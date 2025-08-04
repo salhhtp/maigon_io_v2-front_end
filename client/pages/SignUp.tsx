@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Mail } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useState } from "react";
+import Logo from "@/components/Logo";
 
 export default function SignUp() {
   const [formData, setFormData] = useState({
@@ -49,9 +50,7 @@ export default function SignUp() {
       {/* Right side - Sign up form */}
       <div className="flex-1 flex flex-col items-center justify-center px-8 py-12">
         <div className="w-full max-w-md mb-8">
-          <div className="text-4xl lg:text-5xl font-medium bg-gradient-to-r from-[#B6A5A5] to-transparent bg-clip-text text-transparent text-center">
-            <span className="font-lora">MAIGON</span>
-          </div>
+          <Logo size="xl" />
         </div>
 
         <Card className="w-full max-w-md border-none shadow-none bg-transparent">
