@@ -6,6 +6,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Mail, Lock } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useState } from "react";
+import Logo from "@/components/Logo";
 
 export default function SignIn() {
   const [email, setEmail] = useState("");
@@ -24,9 +25,7 @@ export default function SignIn() {
       <div className="flex-1 flex flex-col justify-center items-start px-12 lg:px-16">
         <div className="max-w-2xl">
           <div className="mb-16">
-            <div className="text-4xl lg:text-5xl font-medium bg-gradient-to-r from-[#B6A5A5] to-transparent bg-clip-text text-transparent mb-12">
-              <span className="font-lora">MAIGON</span>
-            </div>
+            <Logo size="xl" className="mb-12" />
           </div>
 
           <h1 className="text-5xl lg:text-6xl font-medium text-[#313832] font-lora leading-tight mb-8">
