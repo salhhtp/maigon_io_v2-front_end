@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/c
 import { Camera, ChevronDown } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useState } from "react";
+import Logo from "@/components/Logo";
 
 export default function Index() {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
@@ -61,9 +62,7 @@ export default function Index() {
     <div className="min-h-screen bg-[#F9F8F8]">
       {/* Navigation */}
       <nav className="flex items-center justify-between px-8 lg:px-16 py-6 bg-[#F9F8F8]">
-        <div className="text-4xl lg:text-5xl font-medium bg-gradient-to-r from-[#B6A5A5] to-transparent bg-clip-text text-transparent">
-          <span className="font-lora">MAIGON</span>
-        </div>
+        <Logo size="xl" />
         
         <div className="hidden md:flex items-center space-x-8">
           <Link to="/solutions" className="text-[#271D1D] hover:text-[#9A7C7C] transition-colors">Solutions</Link>
@@ -319,9 +318,7 @@ export default function Index() {
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             <div>
-              <div className="text-2xl font-medium bg-gradient-to-r from-[#B6A5A5] to-transparent bg-clip-text text-transparent mb-6">
-                <span className="font-lora">MAIGON</span>
-              </div>
+              <Logo size="md" className="mb-6" />
               <address className="text-[#271D1D] text-sm leading-relaxed not-italic">
                 Maigon AB<br />
                 c/o Synch Advokat AB<br />
