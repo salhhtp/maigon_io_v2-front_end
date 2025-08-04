@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { ChevronDown } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useState } from "react";
+import Logo from "@/components/Logo";
 
 const NewsCard = ({ title, date, imageSrc, featured = false }: { title: string; date: string; imageSrc: string; featured?: boolean }) => (
   <div className={`flex flex-col ${featured ? 'gap-4' : 'gap-4'}`}>
@@ -48,8 +49,8 @@ export default function News() {
     <div className="min-h-screen bg-[#F9F8F8]">
       {/* Navigation */}
       <nav className="flex items-center justify-between px-8 lg:px-16 py-6 bg-[#F9F8F8]">
-        <Link to="/" className="text-4xl lg:text-5xl font-medium bg-gradient-to-r from-[#B6A5A5] to-transparent bg-clip-text text-transparent">
-          <span className="font-lora">MAIGON</span>
+        <Link to="/">
+          <Logo size="xl" />
         </Link>
         
         <div className="hidden md:flex items-center space-x-8">
