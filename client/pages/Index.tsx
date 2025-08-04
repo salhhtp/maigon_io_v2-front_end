@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/card";
 import { Camera, ChevronDown } from "lucide-react";
+import { Link } from "react-router-dom";
 import { useState } from "react";
 
 export default function Index() {
