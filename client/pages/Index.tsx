@@ -30,7 +30,7 @@ const ContractCardsAnimation = ({ contractTypes }: { contractTypes: ContractType
   return (
     <div className="mb-20 overflow-x-auto">
       <div className="relative min-w-[1058px] h-[458px] mx-auto">
-        <div className="absolute inset-0 flex" style={{ padding: '10px' }}>
+        <div className="absolute inset-0 flex" style={{ padding: '10px', width: '1073px', marginLeft: '19px' }}>
           {contractTypes.map((type, index) => {
             const isActive = activeCard === index;
             const cardHeight = isActive ? 314 : 76;
