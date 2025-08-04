@@ -335,7 +335,7 @@ export default function Index() {
               <ul className="space-y-2 text-sm text-[#271D1D]">
                 <li><a href="#solutions" className="hover:text-[#9A7C7C] transition-colors">Solutions</a></li>
                 <li><Link to="/news" className="hover:text-[#9A7C7C] transition-colors">News</Link></li>
-                <li><a href="#team" className="hover:text-[#9A7C7C] transition-colors">Team</a></li>
+                <li><Link to="/team" className="hover:text-[#9A7C7C] transition-colors">Team</Link></li>
               </ul>
             </div>
 
