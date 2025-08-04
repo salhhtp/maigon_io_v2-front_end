@@ -11,6 +11,7 @@ import SignIn from "./pages/SignIn";
 import SignUp from "./pages/SignUp";
 import Solutions from "./pages/Solutions";
 import News from "./pages/News";
+import Team from "./pages/Team";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
