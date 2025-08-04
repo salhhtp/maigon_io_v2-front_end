@@ -343,17 +343,8 @@ export default function Index() {
         </div>
       </section>
 
-      {/* Testimonials */}
-      <section className="px-8 lg:px-16 py-16 lg:py-24 bg-white">
-        <div className="max-w-4xl mx-auto text-center">
-          <blockquote className="text-2xl lg:text-4xl font-lora text-black mb-8 leading-relaxed">
-            "DPA AI makes review of data processing agreements much faster."
-          </blockquote>
-          <cite className="text-[#271D1D] text-lg">
-            Sara Edlund, General Counsel at Dustin Group
-          </cite>
-        </div>
-      </section>
+      {/* Animated Quotes */}
+      <AnimatedQuotes />
 
       {/* FAQ Section */}
       <section className="px-8 lg:px-16 py-16 lg:py-24">
