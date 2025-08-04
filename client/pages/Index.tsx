@@ -334,7 +334,7 @@ export default function Index() {
               <h4 className="text-[#9A7C7C] font-lora text-sm mb-4">Overview</h4>
               <ul className="space-y-2 text-sm text-[#271D1D]">
                 <li><a href="#solutions" className="hover:text-[#9A7C7C] transition-colors">Solutions</a></li>
-                <li><a href="#news" className="hover:text-[#9A7C7C] transition-colors">News</a></li>
+                <li><Link to="/news" className="hover:text-[#9A7C7C] transition-colors">News</Link></li>
                 <li><a href="#team" className="hover:text-[#9A7C7C] transition-colors">Team</a></li>
               </ul>
             </div>
