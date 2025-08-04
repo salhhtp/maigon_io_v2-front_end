@@ -206,9 +206,7 @@ export default function Team() {
             {/* Logo and Address */}
             <div className="mb-12 lg:mb-0">
               <div className="mb-6">
-                <span className="text-2xl font-lora bg-gradient-to-r from-[#B6A5A5] to-transparent bg-clip-text text-transparent">
-                  MAIGON
-                </span>
+                <Logo size="md" />
               </div>
               <div className="text-sm text-[#271D1D] leading-relaxed">
                 <p>Maigon AB</p>
