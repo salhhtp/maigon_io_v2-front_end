@@ -343,9 +343,7 @@ export default function UserHome() {
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             <div>
-              <div className="text-2xl font-medium bg-gradient-to-r from-[#B6A5A5] to-transparent bg-clip-text text-transparent mb-6">
-                <span className="font-lora">MAIGON</span>
-              </div>
+              <Logo size="md" className="mb-6" />
               <address className="text-[#271D1D] text-sm leading-relaxed not-italic">
                 Maigon AB<br />
                 c/o Synch Advokat AB<br />
