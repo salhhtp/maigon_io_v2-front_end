@@ -28,55 +28,59 @@ const ContractCardsAnimation = ({ contractTypes }: { contractTypes: ContractType
   };
 
   return (
-    <div className="mb-20">
-      <div className="relative h-[458px] overflow-hidden">
-        <div className="flex gap-2 p-4">
+    <div className="mb-20 overflow-x-auto">
+      <div className="relative min-w-[1058px] h-[458px] mx-auto">
+        <div className="absolute inset-0 flex" style={{ padding: '10px' }}>
           {contractTypes.map((type, index) => {
             const isActive = activeCard === index;
             const cardHeight = isActive ? 314 : 76;
+            const leftPosition = 16 + (index * 142); // 150px width - 8px overlap
 
             return (
               <div
                 key={index}
-                className="relative transition-all duration-500 ease-in-out cursor-pointer"
-                style={{ width: '150px', height: `${cardHeight}px` }}
+                className="absolute transition-all duration-700 ease-in-out cursor-pointer hover:shadow-md"
+                style={{
+                  width: '150px',
+                  height: `${cardHeight}px`,
+                  left: `${leftPosition}px`,
+                  top: '16px'
+                }}
                 onClick={() => handleCardClick(index)}
               >
                 {/* Top border */}
                 <div className="absolute top-0 left-0 w-full h-px bg-[#D6CECE] rounded-full" />
 
                 {/* Progress indicator for active card */}
-                {isActive && (
-                  <div
-                    className="absolute top-0 left-0 h-px bg-[#271D1D] rounded-full transition-all duration-500"
-                    style={{ width: '100%' }}
-                  />
-                )}
+                <div
+                  className="absolute top-0 left-0 h-px bg-[#271D1D] rounded-full transition-all duration-700"
+                  style={{ width: isActive ? '100%' : '0%' }}
+                />
 
                 {/* Card title */}
-                <div className="flex flex-col justify-center items-center h-[59px] px-2 mt-1">
-                  <h4 className="text-[#271D1D] text-center text-sm font-bold leading-[26px]">
+                <div className="absolute top-1 left-0 right-0 flex flex-col justify-center items-center h-[59px] px-2">
+                  <h4 className="text-[#271D1D] text-center font-bold leading-[26px] text-sm">
                     {type.title}
                   </h4>
                 </div>
 
                 {/* Bottom border */}
                 <div
-                  className="absolute left-0 w-full h-px bg-[#D6CECE] rounded-full transition-all duration-500"
+                  className="absolute left-0 w-full h-px bg-[#D6CECE] rounded-full"
                   style={{ top: `${cardHeight - 1}px` }}
                 />
 
                 {/* Expanded description - only visible when active */}
-                {isActive && (
-                  <div
-                    className="absolute left-4 right-4 top-[83px] transition-all duration-500 opacity-100"
-                    style={{ height: '220px' }}
-                  >
-                    <p className="text-[#271D1D] text-xs leading-5 tracking-[0.12px]">
-                      {type.description}
-                    </p>
-                  </div>
-                )}
+                <div
+                  className={`absolute left-4 right-4 top-[83px] transition-all duration-700 overflow-hidden ${
+                    isActive ? 'opacity-100' : 'opacity-0'
+                  }`}
+                  style={{ height: isActive ? '220px' : '0px' }}
+                >
+                  <p className="text-[#271D1D] text-xs leading-5 tracking-[0.12px]">
+                    {type.description}
+                  </p>
+                </div>
               </div>
             );
           })}
