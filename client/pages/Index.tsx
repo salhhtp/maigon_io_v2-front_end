@@ -69,8 +69,8 @@ export default function Index() {
           <a href="#solutions" className="text-[#271D1D] hover:text-[#9A7C7C] transition-colors">Solutions</a>
           <a href="#news" className="text-[#271D1D] hover:text-[#9A7C7C] transition-colors">News</a>
           <a href="#team" className="text-[#271D1D] hover:text-[#9A7C7C] transition-colors">Team</a>
-          <Button className="bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white px-8 rounded-lg">
-            Sign In/Up
+          <Button asChild className="bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white px-8 rounded-lg">
+            <Link to="/signin">Sign In/Up</Link>
           </Button>
         </div>
       </nav>
