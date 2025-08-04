@@ -6,6 +6,86 @@ import { useState, useEffect } from "react";
 import Logo from "@/components/Logo";
 import Footer from "@/components/Footer";
 
+interface ContractType {
+  title: string;
+  description: string;
+}
+
+const ContractCardsAnimation = ({ contractTypes }: { contractTypes: ContractType[] }) => {
+  const [activeCard, setActiveCard] = useState(0);
+
+  // Auto-animate cards every 10 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setActiveCard((prev) => (prev + 1) % contractTypes.length);
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, [contractTypes.length]);
+
+  const handleCardClick = (index: number) => {
+    setActiveCard(index);
+  };
+
+  return (
+    <div className="mb-20">
+      <div className="relative h-[458px] overflow-hidden">
+        <div className="flex gap-2 p-4">
+          {contractTypes.map((type, index) => {
+            const isActive = activeCard === index;
+            const cardHeight = isActive ? 314 : 76;
+
+            return (
+              <div
+                key={index}
+                className="relative transition-all duration-500 ease-in-out cursor-pointer"
+                style={{ width: '150px', height: `${cardHeight}px` }}
+                onClick={() => handleCardClick(index)}
+              >
+                {/* Top border */}
+                <div className="absolute top-0 left-0 w-full h-px bg-[#D6CECE] rounded-full" />
+
+                {/* Progress indicator for active card */}
+                {isActive && (
+                  <div
+                    className="absolute top-0 left-0 h-px bg-[#271D1D] rounded-full transition-all duration-500"
+                    style={{ width: '100%' }}
+                  />
+                )}
+
+                {/* Card title */}
+                <div className="flex flex-col justify-center items-center h-[59px] px-2 mt-1">
+                  <h4 className="text-[#271D1D] text-center text-sm font-bold leading-[26px]">
+                    {type.title}
+                  </h4>
+                </div>
+
+                {/* Bottom border */}
+                <div
+                  className="absolute left-0 w-full h-px bg-[#D6CECE] rounded-full transition-all duration-500"
+                  style={{ top: `${cardHeight - 1}px` }}
+                />
+
+                {/* Expanded description - only visible when active */}
+                {isActive && (
+                  <div
+                    className="absolute left-4 right-4 top-[83px] transition-all duration-500 opacity-100"
+                    style={{ height: '220px' }}
+                  >
+                    <p className="text-[#271D1D] text-xs leading-5 tracking-[0.12px]">
+                      {type.description}
+                    </p>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export default function Index() {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
