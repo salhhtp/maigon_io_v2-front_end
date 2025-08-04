@@ -4,6 +4,7 @@ import { Camera, ChevronDown, User } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useState } from "react";
 import Logo from "@/components/Logo";
+import Footer from "@/components/Footer";
 
 export default function UserHome() {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
@@ -338,48 +339,7 @@ export default function UserHome() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="px-8 lg:px-16 py-16 bg-[#F9F8F8]">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            <div>
-              <Logo size="md" className="mb-6" />
-              <address className="text-[#271D1D] text-sm leading-relaxed not-italic">
-                Maigon AB<br />
-                c/o Synch Advokat AB<br />
-                Box 3631<br />
-                103 59 Stockholm, Sweden
-              </address>
-            </div>
-
-            <div>
-              <h4 className="text-[#9A7C7C] font-lora text-sm mb-4">Overview</h4>
-              <ul className="space-y-2 text-sm text-[#271D1D]">
-                <li><Link to="/solutions" className="hover:text-[#9A7C7C] transition-colors">Solutions</Link></li>
-                <li><Link to="/news" className="hover:text-[#9A7C7C] transition-colors">News</Link></li>
-                <li><Link to="/team" className="hover:text-[#9A7C7C] transition-colors">Team</Link></li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="text-[#9A7C7C] font-lora text-sm mb-4">Legal</h4>
-              <ul className="space-y-2 text-sm text-[#271D1D]">
-                <li><a href="#" className="hover:text-[#9A7C7C] transition-colors">Terms of Use</a></li>
-                <li><a href="#" className="hover:text-[#9A7C7C] transition-colors">Privacy Policy</a></li>
-                <li><a href="#" className="hover:text-[#9A7C7C] transition-colors">Cookies Policy</a></li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="text-[#9A7C7C] font-lora text-sm mb-4">Socials</h4>
-              <ul className="space-y-2 text-sm text-[#271D1D]">
-                <li><a href="#" className="hover:text-[#9A7C7C] transition-colors">LinkedIn</a></li>
-                <li><a href="#" className="hover:text-[#9A7C7C] transition-colors">Gmail</a></li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }
