@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { ChevronDown, User } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useState } from "react";
+import Logo from "@/components/Logo";
 
 const SolutionCard = ({ title, description, imageSrc }: { title: string; description: string; imageSrc: string }) => (
   <div className="bg-[#F3F3F3] rounded-lg overflow-hidden">
@@ -71,8 +72,8 @@ export default function UserSolutions() {
     <div className="min-h-screen bg-[#F9F8F8]">
       {/* Navigation */}
       <nav className="flex items-center justify-between px-8 lg:px-16 py-6 bg-[#F9F8F8]">
-        <Link to="/home" className="text-4xl lg:text-5xl font-medium bg-gradient-to-r from-[#B6A5A5] to-transparent bg-clip-text text-transparent">
-          <span className="font-lora">MAIGON</span>
+        <Link to="/home">
+          <Logo size="xl" />
         </Link>
         
         <div className="hidden md:flex items-center space-x-8">
