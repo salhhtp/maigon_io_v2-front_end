@@ -327,7 +327,7 @@ export default function Index() {
               </address>
             </div>
 
-            <div>
+            <div className="flex flex-col justify-center items-end">
               <h4 className="text-[#9A7C7C] font-lora text-sm mb-4">Overview</h4>
               <ul className="space-y-2 text-sm text-[#271D1D]">
                 <li><a href="#solutions" className="hover:text-[#9A7C7C] transition-colors">Solutions</a></li>
@@ -336,7 +336,7 @@ export default function Index() {
               </ul>
             </div>
 
-            <div>
+            <div className="flex flex-col justify-center items-end">
               <h4 className="text-[#9A7C7C] font-lora text-sm mb-4">Legal</h4>
               <ul className="space-y-2 text-sm text-[#271D1D]">
                 <li><a href="#" className="hover:text-[#9A7C7C] transition-colors">Terms of Use</a></li>
@@ -345,10 +345,10 @@ export default function Index() {
               </ul>
             </div>
 
-            <div>
-              <h4 className="text-[#9A7C7C] font-lora text-sm mb-4">Socials</h4>
+            <div className="flex flex-col justify-center items-end mb-10">
+              <h4 className="text-[#9A7C7C] font-lora text-sm mx-3 my-0">Socials</h4>
               <ul className="space-y-2 text-sm text-[#271D1D]">
-                <li><a href="#" className="hover:text-[#9A7C7C] transition-colors">LinkedIn</a></li>
+                <li className="pt-2"><a href="#" className="hover:text-[#9A7C7C] transition-colors">LinkedIn</a></li>
                 <li><a href="#" className="hover:text-[#9A7C7C] transition-colors">Gmail</a></li>
               </ul>
             </div>
