@@ -203,18 +203,7 @@ export default function Index() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-20">
-            {contractTypes.map((type, index) => (
-              <div key={index} className="border-t border-[#D6CECE] pt-4">
-                <h4 className="font-bold text-[#271D1D] text-center mb-4 text-sm leading-tight">
-                  {type.title}
-                </h4>
-                <p className="text-xs text-[#271D1D] leading-relaxed">
-                  {type.description}
-                </p>
-              </div>
-            ))}
-          </div>
+          <ContractCardsAnimation contractTypes={contractTypes} />
         </div>
       </section>
 
