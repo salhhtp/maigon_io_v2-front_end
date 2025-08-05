@@ -82,50 +82,70 @@ const AnimatedStepsComponent = () => {
       number: "02",
       title: "Choose your weapon",
       description: "Select your desired solution based on your contract's type.",
-      image: "https://api.builder.io/api/v1/image/assets/TEMP/ab810becba68b895d17259b055eb02fa4e423ca7?width=1376"
+      image: "https://api.builder.io/api/v1/image/assets/TEMP/bf723346ff37e3006a994d9bde29f03ca52957bd?width=1376"
     },
     {
       number: "03",
       title: "Select your perspective",
       description: "Select between \"Data Processer\" and \"Organization\" in order to obtain tailored review results of your contracts.",
-      image: "https://api.builder.io/api/v1/image/assets/TEMP/ab810becba68b895d17259b055eb02fa4e423ca7?width=1376"
+      image: "https://api.builder.io/api/v1/image/assets/TEMP/d2502c8f65fc6fb3cfd64fcf2e883767c28d87b3?width=1376"
     },
     {
       number: "04",
       title: "Upload your contract",
       description: "Upload your contract to let the magic happens.",
-      image: "https://api.builder.io/api/v1/image/assets/TEMP/ab810becba68b895d17259b055eb02fa4e423ca7?width=1376"
+      image: "https://api.builder.io/api/v1/image/assets/TEMP/ac64a1c280fd3ae21e76e02f5df24162a5b11a53?width=1376"
     },
     {
       number: "05",
       title: "Sit back and relax",
       description: "Sit back and relax! This will only take a moment.",
-      image: "https://api.builder.io/api/v1/image/assets/TEMP/ab810becba68b895d17259b055eb02fa4e423ca7?width=1376"
+      image: "https://api.builder.io/api/v1/image/assets/TEMP/0c17d06bf5b7000c02dd54103946d52cf8df3ae2?width=1376"
     },
     {
       number: "06",
       title: "Voilà!",
       description: "Get your review and enjoy all the insights.",
-      image: "https://api.builder.io/api/v1/image/assets/TEMP/ab810becba68b895d17259b055eb02fa4e423ca7?width=1376"
+      image: "https://api.builder.io/api/v1/image/assets/TEMP/b3ecd43f1412a792e3e5e0acc29fa4ec35a0a0b7?width=1376"
     }
   ];
 
   useEffect(() => {
-    const stepInterval = setInterval(() => {
-      setCurrentStep((prev) => (prev + 1) % steps.length);
-      setLoadingProgress(0);
-    }, 10000);
+    let stepTimeout: NodeJS.Timeout;
+    let progressInterval: NodeJS.Timeout;
 
-    const progressInterval = setInterval(() => {
-      setLoadingProgress((prev) => {
-        if (prev >= 100) return 0;
-        return prev + (100 / 1000); // 100% over 10 seconds (100ms intervals)
-      });
-    }, 100);
+    const resetAnimation = () => {
+      setLoadingProgress(0);
+
+      // Clear any existing intervals
+      if (progressInterval) clearInterval(progressInterval);
+
+      // Start progress animation - 100% over exactly 10 seconds
+      const startTime = Date.now();
+      progressInterval = setInterval(() => {
+        const elapsed = Date.now() - startTime;
+        const progress = Math.min((elapsed / 10000) * 100, 100);
+        setLoadingProgress(progress);
+
+        // Clear interval when we reach 100%
+        if (progress >= 100) {
+          clearInterval(progressInterval);
+        }
+      }, 50); // Update every 50ms for smoother animation
+
+      // Schedule next step change
+      stepTimeout = setTimeout(() => {
+        setCurrentStep((prev) => (prev + 1) % steps.length);
+        resetAnimation();
+      }, 10000);
+    };
+
+    // Start the first animation
+    resetAnimation();
 
     return () => {
-      clearInterval(stepInterval);
-      clearInterval(progressInterval);
+      if (stepTimeout) clearTimeout(stepTimeout);
+      if (progressInterval) clearInterval(progressInterval);
     };
   }, [steps.length]);
 
