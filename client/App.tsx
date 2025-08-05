@@ -13,6 +13,7 @@ import SignUp from "./pages/SignUp";
 import Solutions from "./pages/Solutions";
 import UserSolutions from "./pages/UserSolutions";
 import Upload from "./pages/Upload";
+import Loading from "./pages/Loading";
 import News from "./pages/News";
 import Team from "./pages/Team";
 import NotFound from "./pages/NotFound";
