@@ -224,21 +224,25 @@ export default function Index() {
 
           {/* OpenAI Integration Card */}
           <div className="flex justify-center mb-20">
-            <Card className="border border-[#271D1D]/15 rounded-lg overflow-hidden max-w-md">
-              <div className="h-80 bg-[#D6CECE] flex items-center justify-center p-12">
-                <img 
-                  src="https://api.builder.io/api/v1/image/assets/TEMP/36565312d2d6200939ff336eb31f7d63d829ac13?width=722" 
+            <div className="flex flex-col items-start relative" style={{ width: '458px' }}>
+              <div className="h-80 bg-[#D6CECE] flex items-center justify-center p-12 w-full border border-[#271D1D]/15 rounded-lg relative">
+                <img
+                  src="https://api.builder.io/api/v1/image/assets/TEMP/36565312d2d6200939ff336eb31f7d63d829ac13?width=722"
                   alt="OpenAI"
                   className="w-full h-auto"
                 />
               </div>
-              <CardContent className="p-6 text-center">
-                <CardTitle className="text-xl font-medium mb-4 font-lora">OpenAI Integration</CardTitle>
-                <CardDescription className="text-sm leading-relaxed text-[#313832]">
-                  All of our products integrate the latest deep learning technology to ensure maximum accuracy and efficiency.
-                </CardDescription>
-              </CardContent>
-            </Card>
+
+              {/* Card Description */}
+              <div className="flex flex-col items-center w-full relative">
+                <div className="flex h-[89px] flex-col justify-center w-full text-black text-center font-lora text-xl font-medium leading-[90px] relative">
+                  <span>OpenAI Integration</span>
+                </div>
+                <div className="w-full text-black text-center text-xs font-normal leading-[26px] tracking-[0.12px] relative">
+                  <span>All of our products integrate the latest deep learning technology to ensure maximum accuracy and efficiency.</span>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Contract Types Section */}
