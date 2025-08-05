@@ -187,7 +187,7 @@ export default function Index() {
               <img
                 src="https://api.builder.io/api/v1/image/assets/TEMP/7c87d01d9be178b894e267d4b9d0734052823086?width=916"
                 alt="Contract Summary Interface"
-                className="w-full h-auto border border-[#271D1D]/15 rounded-lg"
+                className="w-full h-80 object-cover border border-[#271D1D]/15 rounded-lg"
               />
 
               {/* Card Description */}
