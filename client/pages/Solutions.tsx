@@ -388,17 +388,17 @@ export default function Solutions() {
               </div>
 
               {/* EULA Card */}
-              <div className="flex py-[15px] px-0 pb-[2.333px] flex-col justify-end items-center flex-1 row-start-2 row-span-1 col-start-3 col-span-1 bg-[#F3F3F3] relative">
+              <div className="flex w-[265px] pt-[15px] flex-col justify-end items-center row-start-2 row-span-1 col-start-3 col-span-1 bg-[#F3F3F3] relative">
                 <div className="w-[265px] h-[424px] absolute left-0 top-[15px]">
                   <img
                     src="https://api.builder.io/api/v1/image/assets/TEMP/e15ae08447ee7134243cef816b1e4e7fd28292f3?width=456"
-                    alt="End User License Agreements"
-                    className="w-[228px] h-[228px] rounded-lg absolute left-[19px] top-0"
+                    alt=""
+                    className="w-[228px] h-[228px] flex-shrink-0 rounded-lg absolute left-[19px] top-0"
                   />
-                  <div className="flex w-[174px] h-[27px] flex-col justify-center text-[#271D1D] font-lora text-xl font-medium leading-[22px] absolute left-[30px] top-[246px]">
+                  <div className="flex w-[174px] h-[27px] flex-col justify-center flex-shrink-0 text-[#271D1D] font-lora text-xl font-medium leading-[22px] absolute left-[30px] top-[246px]">
                     End User License Agreements
                   </div>
-                  <div className="flex w-[217px] h-[108px] flex-col justify-center text-[#271D1D] font-roboto text-xs font-normal leading-[18px] tracking-[0.12px] absolute left-[27px] top-[291px]">
+                  <div className="flex w-[217px] h-[108px] flex-col justify-center flex-shrink-0 text-[#271D1D] font-roboto text-xs font-normal leading-[18px] tracking-[0.12px] absolute left-[27px] top-[291px]">
                     Review end user license agreements for compliance with established standards and best practices. Get instant report with insights and extracted clauses. Used most often for reviewing software license agreements
                   </div>
                 </div>
