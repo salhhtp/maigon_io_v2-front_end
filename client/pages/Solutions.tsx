@@ -290,63 +290,151 @@ export default function Solutions() {
 
       {/* Solutions Grid Section */}
       <section className="py-20 max-w-7xl mx-auto px-8 lg:px-16">
-        <div className="flex flex-col lg:flex-row gap-16">
-          {/* Solutions Grid */}
-          <div className="flex-1">
-            <div className="mb-8">
-              <h3 className="text-lg font-medium text-black font-lora">Solutions</h3>
+        <div className="flex items-center gap-1">
+          {/* Solutions Cards Container */}
+          <div className="flex flex-col items-start gap-7 w-full lg:w-[801px]">
+            {/* Solutions Header */}
+            <div className="flex justify-center items-center gap-2.5">
+              <h3 className="text-black text-center font-lora text-base font-medium leading-[18px] tracking-[0.16px]">
+                Solutions
+              </h3>
             </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-1">
-              <SolutionCard 
-                title="Non-Disclosure Agreements"
-                description="Review non-disclosure agreements for compliance with established standards and best practices. Get instant report with compliance insights and extracted clauses."
-                imageSrc="https://api.builder.io/api/v1/image/assets/TEMP/bf723346ff37e3006a994d9bde29f03ca52957bd?width=456"
-              />
-              <SolutionCard 
-                title="Data Processing Agreements"
-                description="Review data processing agreements for compliance with the GDPR and latest EDPB guidelines. Get instant compliance report with extracted clauses, concepts, terms, highlighted risks, and compliance recommendations."
-                imageSrc="https://api.builder.io/api/v1/image/assets/TEMP/d2502c8f65fc6fb3cfd64fcf2e883767c28d87b3?width=456"
-              />
-              <SolutionCard 
-                title="Privacy Policy Documents"
-                description="Review privacy statements for compliance with the GDPR criteria. Get instant compliance report with extracted clauses and recommendations."
-                imageSrc="https://api.builder.io/api/v1/image/assets/TEMP/ac64a1c280fd3ae21e76e02f5df24162a5b11a53?width=456"
-              />
-              <SolutionCard 
-                title="Consultancy Agreements"
-                description="Review consultancy agreements (and other professional services agreements) for compliance with established standards and best practices. Get instant report with insights and extracted clauses."
-                imageSrc="https://api.builder.io/api/v1/image/assets/TEMP/0c17d06bf5b7000c02dd54103946d52cf8df3ae2?width=456"
-              />
-              <SolutionCard 
-                title="R&D Agreements"
-                description="Conduct compliance review of R&D agreements to ensure adherence to industry standards. Obtain a report on potential compliance risks and recommendations for risk mitigation."
-                imageSrc="https://api.builder.io/api/v1/image/assets/TEMP/b3ecd43f1412a792e3e5e0acc29fa4ec35a0a0b7?width=456"
-              />
-              <SolutionCard 
-                title="End User License Agreements"
-                description="Review end user license agreements for compliance with established standards and best practices. Get instant report with insights and extracted clauses. Used most often for reviewing software license agreements"
-                imageSrc="https://api.builder.io/api/v1/image/assets/TEMP/e15ae08447ee7134243cef816b1e4e7fd28292f3?width=456"
-              />
-              <div className="md:col-start-2">
-                <SolutionCard 
-                  title="Product Supply Agreements"
-                  description="Review product supply agreements for compliance with established standards and best practices. Get instant report with insights and extracted clauses."
-                  imageSrc="https://api.builder.io/api/v1/image/assets/TEMP/c45a3430161c947516c7f46bf9858e79c7b54742?width=456"
-                />
+
+            {/* Solutions Grid */}
+            <div className="grid h-auto lg:h-[1368px] py-5 lg:py-[21px] gap-1 w-full grid-rows-3 grid-cols-1 lg:grid-cols-3 bg-transparent">
+              {/* Row 1 */}
+              {/* NDA Card */}
+              <div className="flex w-full lg:w-[265px] pt-4 flex-col justify-end items-center bg-[#F3F3F3] relative min-h-[400px] lg:min-h-[450px]">
+                <div className="w-full lg:w-[265px] h-[424px] absolute left-0 top-4">
+                  <img
+                    src="https://api.builder.io/api/v1/image/assets/TEMP/bf723346ff37e3006a994d9bde29f03ca52957bd?width=456"
+                    alt="Non-Disclosure Agreements"
+                    className="w-[200px] lg:w-[228px] h-[200px] lg:h-[228px] rounded-lg absolute left-4 lg:left-[19px] top-0"
+                  />
+                  <div className="flex w-[157px] h-7 flex-col justify-center text-[#271D1D] font-lora text-lg lg:text-xl font-medium leading-[22px] absolute left-7 lg:left-[30px] top-[215px] lg:top-[246px]">
+                    Non-Disclosure Agreements
+                  </div>
+                  <div className="flex w-[200px] lg:w-[217px] h-auto lg:h-[89px] flex-col justify-center text-[#271D1D] font-roboto text-xs font-normal leading-[18px] tracking-[0.12px] absolute left-7 lg:left-[30px] top-[250px] lg:top-[291px]">
+                    Review non-disclosure agreements for compliance with established standards and best practices. Get instant report with compliance insights and extracted clauses.
+                  </div>
+                </div>
               </div>
+
+              {/* DPA Card */}
+              <div className="flex pt-4 flex-col justify-end items-center w-full bg-[#F3F3F3] relative min-h-[400px] lg:min-h-[450px]">
+                <div className="w-full lg:w-[265px] h-[424px] absolute left-0 top-4">
+                  <img
+                    src="https://api.builder.io/api/v1/image/assets/TEMP/d2502c8f65fc6fb3cfd64fcf2e883767c28d87b3?width=456"
+                    alt="Data Processing Agreements"
+                    className="w-[200px] lg:w-[228px] h-[200px] lg:h-[228px] rounded-lg absolute left-4 lg:left-[19px] top-0"
+                  />
+                  <div className="flex w-[157px] h-7 flex-col justify-center text-[#271D1D] font-lora text-lg lg:text-xl font-medium leading-[22px] absolute left-7 lg:left-[30px] top-[215px] lg:top-[246px]">
+                    Data Processing Agreements
+                  </div>
+                  <div className="flex w-[200px] lg:w-[217px] h-auto lg:h-[118px] flex-col justify-center text-[#271D1D] font-roboto text-xs font-normal leading-[17px] tracking-[0.12px] absolute left-7 lg:left-[30px] top-[250px] lg:top-[293px]">
+                    Review data processing agreements for compliance with the GDPR and latest EDPB guidelines. Get instant compliance report with extracted clauses, concepts, terms, highlighted risks, and compliance recommendations.
+                  </div>
+                </div>
+              </div>
+
+              {/* Privacy Policy Card */}
+              <div className="flex pt-4 flex-col justify-end items-center w-full bg-[#F3F3F3] relative min-h-[400px] lg:min-h-[450px]">
+                <div className="w-full lg:w-[265px] h-[424px] absolute left-0 top-4">
+                  <img
+                    src="https://api.builder.io/api/v1/image/assets/TEMP/ac64a1c280fd3ae21e76e02f5df24162a5b11a53?width=456"
+                    alt="Privacy Policy Documents"
+                    className="w-[200px] lg:w-[228px] h-[200px] lg:h-[228px] rounded-lg absolute left-4 lg:left-[19px] top-0"
+                  />
+                  <div className="flex w-[157px] h-7 flex-col justify-center text-[#271D1D] font-lora text-lg lg:text-xl font-medium leading-[22px] absolute left-7 lg:left-[30px] top-[215px] lg:top-[246px]">
+                    Privacy Policy Documents
+                  </div>
+                  <div className="flex w-[200px] lg:w-[217px] h-auto lg:h-[90px] flex-col justify-center text-[#271D1D] font-roboto text-xs font-normal leading-[18px] tracking-[0.12px] absolute left-7 lg:left-[30px] top-[250px] lg:top-[291px]">
+                    Review privacy statements for compliance with the GDPR criteria. Get instant compliance report with extracted clauses and recommendations.
+                  </div>
+                </div>
+              </div>
+
+              {/* Row 2 */}
+              {/* Consultancy Card */}
+              <div className="flex pt-4 flex-col justify-end items-center w-full bg-[#F3F3F3] relative min-h-[400px] lg:min-h-[450px]">
+                <div className="w-full lg:w-[265px] h-[424px] absolute left-0 top-4">
+                  <img
+                    src="https://api.builder.io/api/v1/image/assets/TEMP/0c17d06bf5b7000c02dd54103946d52cf8df3ae2?width=456"
+                    alt="Consultancy Agreements"
+                    className="w-[200px] lg:w-[228px] h-[200px] lg:h-[228px] rounded-lg absolute left-4 lg:left-[19px] top-0"
+                  />
+                  <div className="flex w-[157px] h-7 flex-col justify-center text-[#271D1D] font-lora text-lg lg:text-xl font-medium leading-[22px] absolute left-7 lg:left-[30px] top-[215px] lg:top-[246px]">
+                    Consultancy Agreements
+                  </div>
+                  <div className="flex w-[200px] lg:w-[217px] h-auto lg:h-[108px] flex-col justify-center text-[#271D1D] font-roboto text-xs font-normal leading-[18px] tracking-[0.12px] absolute left-7 lg:left-[30px] top-[250px] lg:top-[291px]">
+                    Review consultancy agreements (and other professional services agreements) for compliance with established standards and best practices. Get instant report with insights and extracted clauses.
+                  </div>
+                </div>
+              </div>
+
+              {/* R&D Card */}
+              <div className="flex pt-4 flex-col justify-end items-center w-full bg-[#F3F3F3] relative min-h-[400px] lg:min-h-[450px]">
+                <div className="w-full lg:w-[265px] h-[424px] absolute left-0 top-4">
+                  <img
+                    src="https://api.builder.io/api/v1/image/assets/TEMP/b3ecd43f1412a792e3e5e0acc29fa4ec35a0a0b7?width=456"
+                    alt="R&D Agreements"
+                    className="w-[200px] lg:w-[228px] h-[200px] lg:h-[228px] rounded-lg absolute left-4 lg:left-[19px] top-0"
+                  />
+                  <div className="flex w-[157px] h-7 flex-col justify-center text-[#271D1D] font-lora text-lg lg:text-xl font-medium leading-[22px] absolute left-7 lg:left-[30px] top-[215px] lg:top-[246px]">
+                    R&D Agreements
+                  </div>
+                  <div className="flex w-[200px] lg:w-[217px] h-auto lg:h-[90px] flex-col justify-center text-[#271D1D] font-roboto text-xs font-normal leading-[18px] tracking-[0.12px] absolute left-7 lg:left-[30px] top-[250px] lg:top-[291px]">
+                    Conduct compliance review of R&D agreements to ensure adherence to industry standards. Obtain a report on potential compliance risks and recommendations for risk mitigation.
+                  </div>
+                </div>
+              </div>
+
+              {/* EULA Card */}
+              <div className="flex pt-4 flex-col justify-end items-center w-full bg-[#F3F3F3] relative min-h-[400px] lg:min-h-[450px]">
+                <div className="w-full lg:w-[265px] h-[424px] absolute left-0 top-4">
+                  <img
+                    src="https://api.builder.io/api/v1/image/assets/TEMP/e15ae08447ee7134243cef816b1e4e7fd28292f3?width=456"
+                    alt="End User License Agreements"
+                    className="w-[200px] lg:w-[228px] h-[200px] lg:h-[228px] rounded-lg absolute left-4 lg:left-[19px] top-0"
+                  />
+                  <div className="flex w-[174px] h-7 flex-col justify-center text-[#271D1D] font-lora text-lg lg:text-xl font-medium leading-[22px] absolute left-7 lg:left-[30px] top-[215px] lg:top-[246px]">
+                    End User License Agreements
+                  </div>
+                  <div className="flex w-[200px] lg:w-[217px] h-auto lg:h-[108px] flex-col justify-center text-[#271D1D] font-roboto text-xs font-normal leading-[18px] tracking-[0.12px] absolute left-7 lg:left-[27px] top-[250px] lg:top-[291px]">
+                    Review end user license agreements for compliance with established standards and best practices. Get instant report with insights and extracted clauses. Used most often for reviewing software license agreements
+                  </div>
+                </div>
+              </div>
+
+              {/* Row 3 - Empty, PSA Card (center) */}
+              <div></div>
+              {/* PSA Card */}
+              <div className="flex pt-4 flex-col justify-end items-center w-full bg-[#F3F3F3] relative min-h-[400px] lg:min-h-[450px]">
+                <div className="w-full lg:w-[265px] h-[424px] absolute left-0 top-4">
+                  <img
+                    src="https://api.builder.io/api/v1/image/assets/TEMP/c45a3430161c947516c7f46bf9858e79c7b54742?width=456"
+                    alt="Product Supply Agreements"
+                    className="w-[200px] lg:w-[228px] h-[200px] lg:h-[228px] rounded-lg absolute left-4 lg:left-[19px] top-0"
+                  />
+                  <div className="flex w-[157px] h-7 flex-col justify-center text-[#271D1D] font-lora text-lg lg:text-xl font-medium leading-[22px] absolute left-7 lg:left-[30px] top-[215px] lg:top-[246px]">
+                    Product Supply Agreements
+                  </div>
+                  <div className="flex w-[200px] lg:w-[217px] h-auto lg:h-[72px] flex-col justify-center text-[#271D1D] font-roboto text-xs font-normal leading-[18px] tracking-[0.12px] absolute left-7 lg:left-[30px] top-[250px] lg:top-[291px]">
+                    Review product supply agreements for compliance with established standards and best practices. Get instant report with insights and extracted clauses.
+                  </div>
+                </div>
+              </div>
+              <div></div>
             </div>
           </div>
 
           {/* Solutions Content */}
-          <div className="flex-1 max-w-md lg:mt-16">
-            <div className="text-center">
-              <h2 className="text-4xl lg:text-5xl font-medium text-[#271D1D] font-lora leading-tight mb-8">
-                Revolutionizing contract review in the age of AI
-              </h2>
-              <p className="text-lg text-[#271D1D] font-lora">
-                Choose the solution of your desire to start reviewing your contracts with the power of Maigon.
-              </p>
+          <div className="hidden lg:flex flex-col items-center pb-[560px] relative">
+            <div className="flex h-[688px] p-2.5 justify-center items-end gap-2.5 absolute -left-0.5 top-0 w-[410px]">
+              <div className="w-[411px] text-[#271D1D] text-center font-lora text-base font-medium leading-[30px]">
+                <span className="text-3xl lg:text-5xl">Revolutionizing contract review in the age of AI{'\n\n'}</span>
+                <span className="text-base">Choose the solution of your desire to start reviewing your contracts with the power of Maigon.</span>
+              </div>
             </div>
           </div>
         </div>
