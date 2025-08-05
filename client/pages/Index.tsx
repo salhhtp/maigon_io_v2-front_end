@@ -183,15 +183,15 @@ export default function Index() {
             </div>
 
             {/* Card 3 */}
-            <div className="flex flex-col items-start relative" style={{ width: '458px' }}>
+            <div className="flex flex-col items-center relative w-full">
               <img
                 src="https://api.builder.io/api/v1/image/assets/TEMP/7c87d01d9be178b894e267d4b9d0734052823086?width=916"
                 alt="Contract Summary Interface"
-                className="flex flex-col items-start gap-2 w-full border border-[#271D1D]/15 rounded-lg relative"
+                className="w-full h-auto border border-[#271D1D]/15 rounded-lg"
               />
 
               {/* Card Description */}
-              <div className="flex flex-col items-center w-full relative">
+              <div className="flex flex-col items-center w-full relative mt-4">
                 <div className="flex h-[89px] flex-col justify-center w-full text-black text-center font-lora text-xl font-medium leading-[90px] relative">
                   <span>Full Summary</span>
                 </div>
