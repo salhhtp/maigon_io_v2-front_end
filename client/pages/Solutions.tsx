@@ -423,12 +423,16 @@ export default function Solutions() {
             </div>
           </div>
 
-          {/* Solutions Content */}
+          {/* Solutions Content - Sticky */}
           <div className="hidden lg:flex flex-col items-center pb-[560px] relative">
-            <div className="flex h-[688px] p-2.5 justify-center items-end gap-2.5 absolute -left-0.5 top-0 w-[410px]">
+            <div className="sticky top-1/2 -translate-y-1/2 flex h-[688px] p-2.5 justify-center items-end gap-2.5 -left-0.5 w-[410px]">
               <div className="w-[411px] text-[#271D1D] text-center font-lora text-base font-medium leading-[30px]">
-                <span className="text-3xl lg:text-5xl">Revolutionizing contract review in the age of AI{'\n\n'}</span>
-                <span className="text-base">Choose the solution of your desire to start reviewing your contracts with the power of Maigon.</span>
+                <h2 className="text-5xl font-medium leading-tight mb-8">
+                  Revolutionizing contract review in the age of AI
+                </h2>
+                <p className="text-base leading-[30px]">
+                  Choose the solution of your desire to start reviewing your contracts with the power of Maigon.
+                </p>
               </div>
             </div>
           </div>
