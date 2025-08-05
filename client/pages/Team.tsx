@@ -143,17 +143,17 @@ export default function Team() {
 
       {/* Office Photos Section */}
       <section className="py-20 bg-[#F9F8F8]">
-        <div className="max-w-7xl mx-auto px-2.5">
-          <div className="flex flex-col lg:flex-row gap-8 items-center">
-            <img 
-              src="https://api.builder.io/api/v1/image/assets/TEMP/6b6a9254ee69888f18e1b533e3e64360bfa95ab9?width=1254" 
+        <div className="max-w-[1400px] mx-auto px-2.5">
+          <div className="flex flex-col lg:flex-row justify-between items-center gap-4 lg:gap-0">
+            <img
+              src="https://api.builder.io/api/v1/image/assets/TEMP/6b6a9254ee69888f18e1b533e3e64360bfa95ab9?width=1254"
               alt="Office view with terrace"
-              className="flex-1 w-full h-96 lg:h-[440px] object-cover rounded-lg"
+              className="w-full lg:w-[627px] h-80 lg:h-[440px] object-cover rounded-lg flex-shrink-0"
             />
-            <img 
-              src="https://api.builder.io/api/v1/image/assets/TEMP/8e4999b353eaf0cc207c714664e88e596f0bb4f9?width=1514" 
+            <img
+              src="https://api.builder.io/api/v1/image/assets/TEMP/8e4999b353eaf0cc207c714664e88e596f0bb4f9?width=1514"
               alt="Team meeting in office"
-              className="flex-1 w-full h-96 lg:h-[440px] object-cover rounded-lg"
+              className="w-full lg:w-[757px] h-80 lg:h-[440px] object-cover rounded-lg flex-shrink-0"
             />
           </div>
         </div>
