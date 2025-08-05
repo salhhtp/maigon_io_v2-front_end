@@ -10,7 +10,7 @@ const Footer: React.FC = () => {
           {/* Logo and Address */}
           <div className="mb-12 lg:mb-0">
             <div className="mb-6">
-              <Logo size="md" />
+              <Logo size="md" align="start" />
             </div>
             <div className="text-sm text-[#271D1D] leading-relaxed">
               <p>Maigon AB</p>
