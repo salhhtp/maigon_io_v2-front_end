@@ -276,8 +276,8 @@ export default function Solutions() {
       {/* Content Section with Steps */}
       <section className="py-20 max-w-7xl mx-auto px-8 lg:px-16">
         {/* Header */}
-        <div className="text-center mb-20">
-          <h2 className="text-4xl lg:text-5xl font-medium text-[#271D1D] font-lora leading-tight max-w-2xl mx-auto">
+        <div className="flex justify-center items-center gap-2.5 mb-20">
+          <h2 className="w-full lg:w-[597px] text-[#271D1D] text-center font-lora text-3xl lg:text-5xl font-medium leading-tight lg:leading-[90px]">
             Let's take your reviewing process to the next level
           </h2>
         </div>
