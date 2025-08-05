@@ -7,6 +7,7 @@ import Logo from "@/components/Logo";
 import Footer from "@/components/Footer";
 import AnimatedQuotes from "@/components/AnimatedQuotes";
 import ContractCardsAnimation from "@/components/ContractCardsAnimation";
+import MobileNavigation from "@/components/MobileNavigation";
 
 
 
