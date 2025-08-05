@@ -80,29 +80,9 @@ export default function MobileNavigation({ isLoggedIn = false, userName }: Mobil
           {/* Menu Content */}
           <div className="absolute top-0 left-0 right-0 bg-[#F9F8F8] shadow-lg">
             <div className="flex flex-col px-7 py-28 gap-7">
-              {/* Navigation Links */}
-              <div className="flex flex-col items-start gap-7">
-                {navLinks.map((link, index) => (
-                  <Link
-                    key={link.href}
-                    to={link.href}
-                    onClick={closeMenu}
-                    className="flex px-2.5 py-2.5 justify-center items-center gap-2.5"
-                  >
-                    <span 
-                      className={`text-black font-lora text-[32px] leading-[72px] ${
-                        index === 0 ? 'font-semibold' : 'font-medium'
-                      }`}
-                    >
-                      {link.label}
-                    </span>
-                  </Link>
-                ))}
-              </div>
-
               {/* User Authentication Section */}
               {isLoggedIn && userName ? (
-                <div className="mt-4 pt-4 border-t border-[#271D1D]/15">
+                <div className="mb-4 pb-4 border-b border-[#271D1D]/15">
                   <div className="relative">
                     <button
                       onClick={() => setUserDropdownOpen(!userDropdownOpen)}
@@ -123,7 +103,7 @@ export default function MobileNavigation({ isLoggedIn = false, userName }: Mobil
                   </div>
                 </div>
               ) : (
-                <div className="mt-4 pt-4 border-t border-[#271D1D]/15">
+                <div className="mb-4 pb-4 border-b border-[#271D1D]/15">
                   <Link
                     to="/signin"
                     onClick={closeMenu}
@@ -133,6 +113,26 @@ export default function MobileNavigation({ isLoggedIn = false, userName }: Mobil
                   </Link>
                 </div>
               )}
+
+              {/* Navigation Links */}
+              <div className="flex flex-col items-start gap-7">
+                {navLinks.map((link, index) => (
+                  <Link
+                    key={link.href}
+                    to={link.href}
+                    onClick={closeMenu}
+                    className="flex px-2.5 py-2.5 justify-center items-center gap-2.5"
+                  >
+                    <span
+                      className={`text-black font-lora text-[32px] leading-[72px] ${
+                        index === 0 ? 'font-semibold' : 'font-medium'
+                      }`}
+                    >
+                      {link.label}
+                    </span>
+                  </Link>
+                ))}
+              </div>
             </div>
           </div>
         </div>
