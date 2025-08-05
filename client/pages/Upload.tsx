@@ -223,7 +223,9 @@ export default function Upload() {
 
       {/* Main Content */}
       <main className="flex-1 flex items-center justify-center px-8 lg:px-16 py-20">
-        <div className="w-full max-w-[800px] flex flex-col items-center gap-8">
+        <div className={`w-full max-w-[800px] flex flex-col items-center gap-8 transition-all duration-1500 ${
+          isSubmitting ? 'opacity-0 scale-95 filter blur-sm' : 'opacity-100 scale-100'
+        }`}>
           
           {/* Header */}
           <div className="text-center">
