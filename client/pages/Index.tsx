@@ -73,7 +73,7 @@ export default function Index() {
       {/* Navigation */}
       <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-8 lg:px-16 py-6 bg-[#F9F8F8]">
         <Logo size="xl" />
-        
+
         <div className="hidden md:flex items-center space-x-8">
           <Link to="/solutions" className="text-[#271D1D] hover:text-[#9A7C7C] transition-colors">Solutions</Link>
           <Link to="/news" className="text-[#271D1D] hover:text-[#9A7C7C] transition-colors">News</Link>
@@ -82,6 +82,9 @@ export default function Index() {
             <Link to="/signin">Sign In/Up</Link>
           </Button>
         </div>
+
+        {/* Mobile Navigation */}
+        <MobileNavigation isLoggedIn={false} />
       </nav>
 
       {/* Hero Section */}
