@@ -143,7 +143,7 @@ export default function Team() {
 
       {/* Office Photos Section */}
       <section className="py-20 bg-[#F9F8F8]">
-        <div className="max-w-7xl mx-auto px-8 lg:px-16">
+        <div className="max-w-7xl mx-auto px-2.5">
           <div className="flex flex-col lg:flex-row gap-8 items-center">
             <img 
               src="https://api.builder.io/api/v1/image/assets/TEMP/6b6a9254ee69888f18e1b533e3e64360bfa95ab9?width=1254" 
