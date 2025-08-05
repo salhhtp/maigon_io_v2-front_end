@@ -184,23 +184,23 @@ export default function Index() {
             </div>
 
             {/* Card 3 */}
-            <Card className="border border-[#271D1D]/15 rounded-lg overflow-hidden flex flex-col">
-              <div className="relative">
-                <img
-                  src="https://api.builder.io/api/v1/image/assets/TEMP/7c87d01d9be178b894e267d4b9d0734052823086?width=916"
-                  alt="Contract Summary Interface"
-                  className="w-full h-80 object-cover rounded-t-lg"
-                />
+            <div className="flex flex-col items-start relative" style={{ width: '458px' }}>
+              <img
+                src="https://api.builder.io/api/v1/image/assets/TEMP/7c87d01d9be178b894e267d4b9d0734052823086?width=916"
+                alt="Contract Summary Interface"
+                className="flex flex-col items-start gap-2 w-full border border-[#271D1D]/15 rounded-lg relative"
+              />
+
+              {/* Card Description */}
+              <div className="flex flex-col items-center w-full relative">
+                <div className="flex h-[89px] flex-col justify-center w-full text-black text-center font-lora text-xl font-medium leading-[90px] relative">
+                  <span>Full Summary</span>
+                </div>
+                <div className="w-full text-black text-center text-xs font-normal leading-[26px] tracking-[0.12px] relative">
+                  <span>Nothing's out of sight! Every member has access to the fully summary and more key insights for their documents.</span>
+                </div>
               </div>
-              <CardContent className="p-6 text-center flex flex-col items-center bg-[#F9F8F8]">
-                <CardTitle className="text-xl font-medium mb-4 font-lora text-black">
-                  Full Summary
-                </CardTitle>
-                <CardDescription className="text-xs leading-[26px] tracking-[0.12px] text-black">
-                  Nothing's out of sight! Every member has access to the fully summary and more key insights for their documents.
-                </CardDescription>
-              </CardContent>
-            </Card>
+            </div>
 
             {/* Card 4 */}
             <div className="flex flex-col items-start relative" style={{ width: '458px' }}>
