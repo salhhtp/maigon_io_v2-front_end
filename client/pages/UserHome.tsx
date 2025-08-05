@@ -97,6 +97,9 @@ export default function UserHome() {
             )}
           </div>
         </div>
+
+        {/* Mobile Navigation */}
+        <MobileNavigation isLoggedIn={true} userName={userName} />
       </nav>
 
       {/* Hero Section */}
