@@ -151,19 +151,30 @@ export default function Upload() {
       perspective: perspective
     });
 
-    // Start dissolving animation
+    // Step 1: Submit Clicked → Smart Animate - Ease Out - 1500ms
     setIsSubmitting(true);
 
-    // Simulate upload process and then navigate to loading page
+    // Step 2: After Delay - 1ms → Smart Animate - Ease out 1500ms → Disappeared Upload Button
     setTimeout(() => {
-      navigate('/loading', {
-        state: {
-          selectedFile: selectedFile,
-          solutionTitle: solutionTitle,
-          perspective: perspective
-        }
-      });
-    }, 1500); // 1.5 second dissolve animation
+      setUploadButtonHidden(true);
+
+      // Step 3: After Delay 1ms → Smart Animate - Ease in and out back → Loading Screen pops up
+      setTimeout(() => {
+        setShowLoadingTransition(true);
+
+        // Navigate to loading page after transition starts
+        setTimeout(() => {
+          navigate('/loading', {
+            state: {
+              selectedFile: selectedFile,
+              solutionTitle: solutionTitle,
+              perspective: perspective
+            }
+          });
+        }, 500); // Give time for transition animation to start
+
+      }, 1); // 1ms delay
+    }, 1501); // 1500ms + 1ms delay
   };
 
   return (
@@ -309,7 +320,7 @@ export default function Upload() {
           {/* Solution Info */}
           {solutionTitle && perspective && (
             <div className="text-center text-sm text-[#9A7C7C] font-roboto">
-              Selected: <span className="font-medium">{solutionTitle}</span> • 
+              Selected: <span className="font-medium">{solutionTitle}</span> ��� 
               Perspective: <span className="font-medium capitalize">{perspective}</span>
             </div>
           )}
