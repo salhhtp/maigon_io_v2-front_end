@@ -405,7 +405,7 @@ export default function Solutions() {
               </div>
 
               {/* PSA Card */}
-              <div className="flex py-[15px] px-0 pb-[2.333px] flex-col justify-end items-center flex-1 row-start-3 row-span-1 col-start-2 col-span-1 bg-[#F3F3F3] relative">
+              <div className="flex w-[265px] pt-[15px] flex-col justify-end items-center row-start-3 row-span-1 col-start-2 col-span-1 bg-[#F3F3F3] relative">
                 <div className="w-[265px] h-[424px] absolute left-0 top-[15px]">
                   <img
                     src="https://api.builder.io/api/v1/image/assets/TEMP/c45a3430161c947516c7f46bf9858e79c7b54742?width=456"
