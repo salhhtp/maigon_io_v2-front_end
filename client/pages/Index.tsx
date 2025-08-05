@@ -145,9 +145,11 @@ export default function Index() {
             {/* Card 2 */}
             <Card className="border border-[#271D1D]/15 rounded-lg overflow-hidden flex flex-col">
               <div
-                className="h-80 flex justify-between items-center px-24 py-14 rounded-t-lg relative"
+                className="h-80 flex justify-between items-center px-24 py-14 rounded-t-lg relative bg-cover bg-center"
                 style={{
-                  background: `url('https://api.builder.io/api/v1/image/assets/TEMP/2a007dd35a383d1ae8dd9a022fe6283585484de4?width=916') lightgray -60.391px 6px / 123.509% 98.056% no-repeat`
+                  backgroundImage: `url('https://api.builder.io/api/v1/image/assets/TEMP/2a007dd35a383d1ae8dd9a022fe6283585484de4?width=916')`,
+                  backgroundPosition: 'center center',
+                  backgroundSize: 'cover'
                 }}
               >
                 <div className="w-8 h-8 p-2 flex flex-col items-start gap-2"></div>
