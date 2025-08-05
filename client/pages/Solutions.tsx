@@ -17,12 +17,12 @@ const SolutionCard = ({ title, description, imageSrc }: { title: string; descrip
 );
 
 const FeatureCard = ({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) => (
-  <div className="flex flex-col items-center text-center p-6 lg:p-8">
+  <div className="flex flex-col items-center text-center p-6 lg:p-8 transition-colors duration-300 hover:bg-[#D6CECE] group">
     <div className="mb-4">
       {icon}
     </div>
-    <h3 className="text-lg font-medium text-[#271D1D] font-lora mb-3 leading-tight">{title}</h3>
-    <p className="text-sm text-[#271D1D] leading-relaxed">{description}</p>
+    <h3 className="text-base font-medium text-[#271D1D] font-lora mb-3 leading-[30px] tracking-[0.16px] self-stretch">{title}</h3>
+    <p className="text-xs font-normal text-[#271D1D] leading-[21.6px] tracking-[0.12px] font-roboto self-stretch">{description}</p>
   </div>
 );
 
