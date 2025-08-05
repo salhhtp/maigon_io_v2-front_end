@@ -301,130 +301,125 @@ export default function Solutions() {
             </div>
 
             {/* Solutions Grid */}
-            <div className="grid h-auto lg:h-[1368px] py-5 lg:py-[21px] gap-1 w-full grid-rows-3 grid-cols-1 lg:grid-cols-3 bg-transparent">
-              {/* Row 1 */}
+            <div className="grid h-auto lg:h-[1368px] py-5 lg:py-[21px] gap-y-px gap-x-[3px] w-full grid-rows-3 grid-cols-1 lg:grid-cols-3 relative">
               {/* NDA Card */}
-              <div className="flex w-full lg:w-[265px] pt-4 flex-col justify-end items-center bg-[#F3F3F3] relative min-h-[400px] lg:min-h-[450px]">
-                <div className="w-full lg:w-[265px] h-[424px] absolute left-0 top-4">
+              <div className="flex w-[265px] pt-[15px] flex-col justify-end items-center row-start-1 row-span-1 col-start-1 col-span-1 bg-[#F3F3F3] relative">
+                <div className="w-[265px] h-[424px] absolute left-0 top-[15px]">
                   <img
                     src="https://api.builder.io/api/v1/image/assets/TEMP/bf723346ff37e3006a994d9bde29f03ca52957bd?width=456"
                     alt="Non-Disclosure Agreements"
-                    className="w-[200px] lg:w-[228px] h-[200px] lg:h-[228px] rounded-lg absolute left-4 lg:left-[19px] top-0"
+                    className="w-[228px] h-[228px] rounded-lg absolute left-[19px] top-0"
                   />
-                  <div className="flex w-[157px] h-7 flex-col justify-center text-[#271D1D] font-lora text-lg lg:text-xl font-medium leading-[22px] absolute left-7 lg:left-[30px] top-[215px] lg:top-[246px]">
+                  <div className="flex w-[157px] h-[27px] flex-col justify-center text-[#271D1D] font-lora text-xl font-medium leading-[22px] absolute left-[30px] top-[246px]">
                     Non-Disclosure Agreements
                   </div>
-                  <div className="flex w-[200px] lg:w-[217px] h-auto lg:h-[89px] flex-col justify-center text-[#271D1D] font-roboto text-xs font-normal leading-[18px] tracking-[0.12px] absolute left-7 lg:left-[30px] top-[250px] lg:top-[291px]">
+                  <div className="flex w-[217px] h-[89px] flex-col justify-center text-[#271D1D] font-roboto text-xs font-normal leading-[18px] tracking-[0.12px] absolute left-[30px] top-[291px]">
                     Review non-disclosure agreements for compliance with established standards and best practices. Get instant report with compliance insights and extracted clauses.
                   </div>
                 </div>
               </div>
 
               {/* DPA Card */}
-              <div className="flex pt-4 flex-col justify-end items-center w-full bg-[#F3F3F3] relative min-h-[400px] lg:min-h-[450px]">
-                <div className="w-full lg:w-[265px] h-[424px] absolute left-0 top-4">
+              <div className="flex py-[15px] px-0 pb-[2.333px] flex-col justify-end items-center flex-1 row-start-1 row-span-1 col-start-2 col-span-1 bg-[#F3F3F3] relative">
+                <div className="w-[265px] h-[424px] absolute left-0 top-[15px]">
                   <img
                     src="https://api.builder.io/api/v1/image/assets/TEMP/d2502c8f65fc6fb3cfd64fcf2e883767c28d87b3?width=456"
                     alt="Data Processing Agreements"
-                    className="w-[200px] lg:w-[228px] h-[200px] lg:h-[228px] rounded-lg absolute left-4 lg:left-[19px] top-0"
+                    className="w-[228px] h-[228px] rounded-lg absolute left-[19px] top-0"
                   />
-                  <div className="flex w-[157px] h-7 flex-col justify-center text-[#271D1D] font-lora text-lg lg:text-xl font-medium leading-[22px] absolute left-7 lg:left-[30px] top-[215px] lg:top-[246px]">
+                  <div className="flex w-[157px] h-[27px] flex-col justify-center text-[#271D1D] font-lora text-xl font-medium leading-[22px] absolute left-[30px] top-[246px]">
                     Data Processing Agreements
                   </div>
-                  <div className="flex w-[200px] lg:w-[217px] h-auto lg:h-[118px] flex-col justify-center text-[#271D1D] font-roboto text-xs font-normal leading-[17px] tracking-[0.12px] absolute left-7 lg:left-[30px] top-[250px] lg:top-[293px]">
+                  <div className="flex w-[217px] h-[118px] flex-col justify-center text-[#271D1D] font-roboto text-xs font-normal leading-[17px] tracking-[0.12px] absolute left-[30px] top-[293px]">
                     Review data processing agreements for compliance with the GDPR and latest EDPB guidelines. Get instant compliance report with extracted clauses, concepts, terms, highlighted risks, and compliance recommendations.
                   </div>
                 </div>
               </div>
 
               {/* Privacy Policy Card */}
-              <div className="flex pt-4 flex-col justify-end items-center w-full bg-[#F3F3F3] relative min-h-[400px] lg:min-h-[450px]">
-                <div className="w-full lg:w-[265px] h-[424px] absolute left-0 top-4">
+              <div className="flex py-[15px] px-0 pb-[2.333px] flex-col justify-end items-center flex-1 row-start-1 row-span-1 col-start-3 col-span-1 bg-[#F3F3F3] relative">
+                <div className="w-[265px] h-[424px] absolute left-0 top-[15px]">
                   <img
                     src="https://api.builder.io/api/v1/image/assets/TEMP/ac64a1c280fd3ae21e76e02f5df24162a5b11a53?width=456"
                     alt="Privacy Policy Documents"
-                    className="w-[200px] lg:w-[228px] h-[200px] lg:h-[228px] rounded-lg absolute left-4 lg:left-[19px] top-0"
+                    className="w-[228px] h-[228px] rounded-lg absolute left-[19px] top-0"
                   />
-                  <div className="flex w-[157px] h-7 flex-col justify-center text-[#271D1D] font-lora text-lg lg:text-xl font-medium leading-[22px] absolute left-7 lg:left-[30px] top-[215px] lg:top-[246px]">
+                  <div className="flex w-[157px] h-[27px] flex-col justify-center text-[#271D1D] font-lora text-xl font-medium leading-[22px] absolute left-[30px] top-[246px]">
                     Privacy Policy Documents
                   </div>
-                  <div className="flex w-[200px] lg:w-[217px] h-auto lg:h-[90px] flex-col justify-center text-[#271D1D] font-roboto text-xs font-normal leading-[18px] tracking-[0.12px] absolute left-7 lg:left-[30px] top-[250px] lg:top-[291px]">
+                  <div className="flex w-[217px] h-[90px] flex-col justify-center text-[#271D1D] font-roboto text-xs font-normal leading-[18px] tracking-[0.12px] absolute left-[30px] top-[291px]">
                     Review privacy statements for compliance with the GDPR criteria. Get instant compliance report with extracted clauses and recommendations.
                   </div>
                 </div>
               </div>
 
-              {/* Row 2 */}
               {/* Consultancy Card */}
-              <div className="flex pt-4 flex-col justify-end items-center w-full bg-[#F3F3F3] relative min-h-[400px] lg:min-h-[450px]">
-                <div className="w-full lg:w-[265px] h-[424px] absolute left-0 top-4">
+              <div className="flex py-[15px] px-0 pb-[2.333px] flex-col justify-end items-center flex-1 row-start-2 row-span-1 col-start-1 col-span-1 bg-[#F3F3F3] relative">
+                <div className="w-[265px] h-[424px] absolute left-0 top-[15px]">
                   <img
                     src="https://api.builder.io/api/v1/image/assets/TEMP/0c17d06bf5b7000c02dd54103946d52cf8df3ae2?width=456"
                     alt="Consultancy Agreements"
-                    className="w-[200px] lg:w-[228px] h-[200px] lg:h-[228px] rounded-lg absolute left-4 lg:left-[19px] top-0"
+                    className="w-[228px] h-[228px] rounded-lg absolute left-[19px] top-0"
                   />
-                  <div className="flex w-[157px] h-7 flex-col justify-center text-[#271D1D] font-lora text-lg lg:text-xl font-medium leading-[22px] absolute left-7 lg:left-[30px] top-[215px] lg:top-[246px]">
+                  <div className="flex w-[157px] h-[27px] flex-col justify-center text-[#271D1D] font-lora text-xl font-medium leading-[22px] absolute left-[30px] top-[246px]">
                     Consultancy Agreements
                   </div>
-                  <div className="flex w-[200px] lg:w-[217px] h-auto lg:h-[108px] flex-col justify-center text-[#271D1D] font-roboto text-xs font-normal leading-[18px] tracking-[0.12px] absolute left-7 lg:left-[30px] top-[250px] lg:top-[291px]">
+                  <div className="flex w-[217px] h-[108px] flex-col justify-center text-[#271D1D] font-roboto text-xs font-normal leading-[18px] tracking-[0.12px] absolute left-[30px] top-[291px]">
                     Review consultancy agreements (and other professional services agreements) for compliance with established standards and best practices. Get instant report with insights and extracted clauses.
                   </div>
                 </div>
               </div>
 
               {/* R&D Card */}
-              <div className="flex pt-4 flex-col justify-end items-center w-full bg-[#F3F3F3] relative min-h-[400px] lg:min-h-[450px]">
-                <div className="w-full lg:w-[265px] h-[424px] absolute left-0 top-4">
+              <div className="flex py-[15px] px-0 pb-[2.333px] flex-col justify-end items-center flex-1 row-start-2 row-span-1 col-start-2 col-span-1 bg-[#F3F3F3] relative">
+                <div className="w-[265px] h-[424px] absolute left-0 top-[15px]">
                   <img
                     src="https://api.builder.io/api/v1/image/assets/TEMP/b3ecd43f1412a792e3e5e0acc29fa4ec35a0a0b7?width=456"
                     alt="R&D Agreements"
-                    className="w-[200px] lg:w-[228px] h-[200px] lg:h-[228px] rounded-lg absolute left-4 lg:left-[19px] top-0"
+                    className="w-[228px] h-[228px] rounded-lg absolute left-[19px] top-0"
                   />
-                  <div className="flex w-[157px] h-7 flex-col justify-center text-[#271D1D] font-lora text-lg lg:text-xl font-medium leading-[22px] absolute left-7 lg:left-[30px] top-[215px] lg:top-[246px]">
+                  <div className="flex w-[157px] h-[27px] flex-col justify-center text-[#271D1D] font-lora text-xl font-medium leading-[22px] absolute left-[30px] top-[246px]">
                     R&D Agreements
                   </div>
-                  <div className="flex w-[200px] lg:w-[217px] h-auto lg:h-[90px] flex-col justify-center text-[#271D1D] font-roboto text-xs font-normal leading-[18px] tracking-[0.12px] absolute left-7 lg:left-[30px] top-[250px] lg:top-[291px]">
+                  <div className="flex w-[217px] h-[90px] flex-col justify-center text-[#271D1D] font-roboto text-xs font-normal leading-[18px] tracking-[0.12px] absolute left-[30px] top-[291px]">
                     Conduct compliance review of R&D agreements to ensure adherence to industry standards. Obtain a report on potential compliance risks and recommendations for risk mitigation.
                   </div>
                 </div>
               </div>
 
               {/* EULA Card */}
-              <div className="flex pt-4 flex-col justify-end items-center w-full bg-[#F3F3F3] relative min-h-[400px] lg:min-h-[450px]">
-                <div className="w-full lg:w-[265px] h-[424px] absolute left-0 top-4">
+              <div className="flex py-[15px] px-0 pb-[2.333px] flex-col justify-end items-center flex-1 row-start-2 row-span-1 col-start-3 col-span-1 bg-[#F3F3F3] relative">
+                <div className="w-[265px] h-[424px] absolute left-0 top-[15px]">
                   <img
                     src="https://api.builder.io/api/v1/image/assets/TEMP/e15ae08447ee7134243cef816b1e4e7fd28292f3?width=456"
                     alt="End User License Agreements"
-                    className="w-[200px] lg:w-[228px] h-[200px] lg:h-[228px] rounded-lg absolute left-4 lg:left-[19px] top-0"
+                    className="w-[228px] h-[228px] rounded-lg absolute left-[19px] top-0"
                   />
-                  <div className="flex w-[174px] h-7 flex-col justify-center text-[#271D1D] font-lora text-lg lg:text-xl font-medium leading-[22px] absolute left-7 lg:left-[30px] top-[215px] lg:top-[246px]">
+                  <div className="flex w-[174px] h-[27px] flex-col justify-center text-[#271D1D] font-lora text-xl font-medium leading-[22px] absolute left-[30px] top-[246px]">
                     End User License Agreements
                   </div>
-                  <div className="flex w-[200px] lg:w-[217px] h-auto lg:h-[108px] flex-col justify-center text-[#271D1D] font-roboto text-xs font-normal leading-[18px] tracking-[0.12px] absolute left-7 lg:left-[27px] top-[250px] lg:top-[291px]">
+                  <div className="flex w-[217px] h-[108px] flex-col justify-center text-[#271D1D] font-roboto text-xs font-normal leading-[18px] tracking-[0.12px] absolute left-[27px] top-[291px]">
                     Review end user license agreements for compliance with established standards and best practices. Get instant report with insights and extracted clauses. Used most often for reviewing software license agreements
                   </div>
                 </div>
               </div>
 
-              {/* Row 3 - Empty, PSA Card (center) */}
-              <div></div>
               {/* PSA Card */}
-              <div className="flex pt-4 flex-col justify-end items-center w-full bg-[#F3F3F3] relative min-h-[400px] lg:min-h-[450px]">
-                <div className="w-full lg:w-[265px] h-[424px] absolute left-0 top-4">
+              <div className="flex py-[15px] px-0 pb-[2.333px] flex-col justify-end items-center flex-1 row-start-3 row-span-1 col-start-2 col-span-1 bg-[#F3F3F3] relative">
+                <div className="w-[265px] h-[424px] absolute left-0 top-[15px]">
                   <img
                     src="https://api.builder.io/api/v1/image/assets/TEMP/c45a3430161c947516c7f46bf9858e79c7b54742?width=456"
                     alt="Product Supply Agreements"
-                    className="w-[200px] lg:w-[228px] h-[200px] lg:h-[228px] rounded-lg absolute left-4 lg:left-[19px] top-0"
+                    className="w-[228px] h-[228px] rounded-lg absolute left-[19px] top-0"
                   />
-                  <div className="flex w-[157px] h-7 flex-col justify-center text-[#271D1D] font-lora text-lg lg:text-xl font-medium leading-[22px] absolute left-7 lg:left-[30px] top-[215px] lg:top-[246px]">
+                  <div className="flex w-[157px] h-[27px] flex-col justify-center text-[#271D1D] font-lora text-xl font-medium leading-[22px] absolute left-[30px] top-[246px]">
                     Product Supply Agreements
                   </div>
-                  <div className="flex w-[200px] lg:w-[217px] h-auto lg:h-[72px] flex-col justify-center text-[#271D1D] font-roboto text-xs font-normal leading-[18px] tracking-[0.12px] absolute left-7 lg:left-[30px] top-[250px] lg:top-[291px]">
+                  <div className="flex w-[217px] h-[72px] flex-col justify-center text-[#271D1D] font-roboto text-xs font-normal leading-[18px] tracking-[0.12px] absolute left-[30px] top-[291px]">
                     Review product supply agreements for compliance with established standards and best practices. Get instant report with insights and extracted clauses.
                   </div>
                 </div>
               </div>
-              <div></div>
             </div>
           </div>
 
