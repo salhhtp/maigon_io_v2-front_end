@@ -20,6 +20,7 @@ export const AnimatedSolutionCard = ({
   const [isClicked, setIsClicked] = useState(false);
   const [dataSubjectHovered, setDataSubjectHovered] = useState(false);
   const [organizationHovered, setOrganizationHovered] = useState(false);
+  const navigate = useNavigate();
 
   const handleCardClick = () => {
     setIsClicked(true);
@@ -32,9 +33,14 @@ export const AnimatedSolutionCard = ({
 
   const handleReviewClick = (type: string) => {
     console.log(`Review as ${type} for ${title}`);
-    // Here you would implement the actual review flow
-    // For now, we'll just close the overlay after selection
-    setIsClicked(false);
+    // Navigate to upload page with selected solution and perspective
+    navigate('/upload', {
+      state: {
+        solutionId: id,
+        solutionTitle: title,
+        perspective: type
+      }
+    });
   };
 
   return (
