@@ -358,13 +358,13 @@ export default function Solutions() {
                 <div className="w-[265px] h-[424px] absolute left-0 top-[15px]">
                   <img
                     src="https://api.builder.io/api/v1/image/assets/TEMP/0c17d06bf5b7000c02dd54103946d52cf8df3ae2?width=456"
-                    alt="Consultancy Agreements"
-                    className="w-[228px] h-[228px] rounded-lg absolute left-[19px] top-0"
+                    alt=""
+                    className="w-[228px] h-[228px] flex-shrink-0 rounded-lg absolute left-[19px] top-0"
                   />
-                  <div className="flex w-[157px] h-[27px] flex-col justify-center text-[#271D1D] font-lora text-xl font-medium leading-[22px] absolute left-[30px] top-[246px]">
+                  <div className="flex w-[157px] h-[27px] flex-col justify-center flex-shrink-0 text-[#271D1D] font-lora text-xl font-medium leading-[22px] absolute left-[30px] top-[246px]">
                     Consultancy Agreements
                   </div>
-                  <div className="flex w-[217px] h-[108px] flex-col justify-center text-[#271D1D] font-roboto text-xs font-normal leading-[18px] tracking-[0.12px] absolute left-[30px] top-[291px]">
+                  <div className="flex w-[217px] h-[108px] flex-col justify-center flex-shrink-0 text-[#271D1D] font-roboto text-xs font-normal leading-[18px] tracking-[0.12px] absolute left-[30px] top-[291px]">
                     Review consultancy agreements (and other professional services agreements) for compliance with established standards and best practices. Get instant report with insights and extracted clauses.
                   </div>
                 </div>
