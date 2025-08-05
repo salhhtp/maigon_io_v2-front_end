@@ -7,6 +7,7 @@ import AnimatedLoadingLogo from "@/components/AnimatedLoadingLogo";
 
 export default function Loading() {
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   
