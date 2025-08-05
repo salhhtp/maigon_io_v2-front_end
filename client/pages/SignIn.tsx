@@ -40,18 +40,21 @@ export default function SignIn() {
         {/* Right Section - Form Container */}
         <div className="flex w-full lg:w-[448px] py-14 flex-col items-center gap-[97px] order-1 lg:order-2">
           {/* MAIGON Logo */}
-          <div 
-            className="self-stretch text-center font-lora text-3xl lg:text-5xl font-normal leading-6"
+          <div
+            className="self-stretch text-center font-lora text-5xl font-normal leading-6 relative"
             style={{
               textShadow: '0 4px 4px rgba(0, 0, 0, 0.25)',
-              WebkitTextStroke: '1px #B6A5A5',
+              WebkitTextStrokeWidth: '1px',
+              WebkitTextStrokeColor: '#B6A5A5',
               background: 'linear-gradient(98deg, #B6A5A5 31.1%, rgba(182, 165, 165, 0.00) 52.18%)',
+              backgroundClip: 'text',
               WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text'
+              WebkitTextFillColor: 'transparent'
             }}
           >
-            MAIGON
+            <span className="font-lora text-5xl font-normal">M</span>
+            <span className="font-lora text-5xl font-normal">AI</span>
+            <span className="font-lora text-5xl font-normal">GON</span>
           </div>
 
           {/* Form */}
