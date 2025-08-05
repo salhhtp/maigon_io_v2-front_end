@@ -143,13 +143,14 @@ export default function Index() {
             </div>
 
             {/* Card 2 */}
-            <Card className="border border-[#271D1D]/15 rounded-lg overflow-hidden flex flex-col">
+            <div className="flex flex-col items-start relative" style={{ width: '458px' }}>
               <div
-                className="h-80 flex justify-between items-center px-24 py-14 rounded-t-lg relative bg-cover bg-center"
+                className="flex justify-between items-center px-24 py-14 w-full border border-[#271D1D]/15 rounded-lg relative bg-cover bg-center"
                 style={{
                   backgroundImage: `url('https://api.builder.io/api/v1/image/assets/TEMP/2a007dd35a383d1ae8dd9a022fe6283585484de4?width=916')`,
                   backgroundPosition: 'center center',
-                  backgroundSize: 'cover'
+                  backgroundSize: 'cover',
+                  height: '360px'
                 }}
               >
                 <div className="w-8 h-8 p-2 flex flex-col items-start gap-2"></div>
@@ -170,15 +171,17 @@ export default function Index() {
                   />
                 </svg>
               </div>
-              <CardContent className="p-6 text-center flex flex-col items-center bg-[#F9F8F8]">
-                <CardTitle className="text-xl font-medium mb-4 font-lora text-black">
-                  Review From Different Perspectives
-                </CardTitle>
-                <CardDescription className="text-xs leading-[26px] tracking-[0.12px] text-black">
-                  You can choose to review your document/s from the "Data Subject" or "Organization" perspective to get tailored analysis of your document.
-                </CardDescription>
-              </CardContent>
-            </Card>
+
+              {/* Card Description */}
+              <div className="flex flex-col items-center w-full relative">
+                <div className="flex h-[89px] flex-col justify-center w-full text-black text-center font-lora text-xl font-medium leading-[90px] relative">
+                  <span>Review From Different Perspectives</span>
+                </div>
+                <div className="w-full text-black text-center text-xs font-normal leading-[26px] tracking-[0.12px] relative">
+                  <span>You can choose to review your document/s from the "Data Subject" or "Organization" perspective to get tailored analysis of your document.</span>
+                </div>
+              </div>
+            </div>
 
             {/* Card 3 */}
             <Card className="border border-[#271D1D]/15 rounded-lg overflow-hidden flex flex-col">
