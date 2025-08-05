@@ -5,6 +5,7 @@ import { useState } from "react";
 import Logo from "@/components/Logo";
 import Footer from "@/components/Footer";
 import AnimatedQuotes from "@/components/AnimatedQuotes";
+import MobileNavigation from "@/components/MobileNavigation";
 
 const TeamMemberCard = ({ name, role, imageSrc }: { name: string; role: string; imageSrc: string }) => (
   <div className="bg-[#F3F3F3] p-4 flex flex-col items-center">
