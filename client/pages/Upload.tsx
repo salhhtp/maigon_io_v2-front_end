@@ -10,11 +10,59 @@ export default function Upload() {
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [pendingNavigation, setPendingNavigation] = useState<string | null>(null);
+  const [hasStartedProcess, setHasStartedProcess] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const location = useLocation();
-  
+  const navigate = useNavigate();
+
   // Get the solution info from navigation state
   const { solutionTitle, perspective } = location.state || {};
+
+  // Block navigation when user has started the upload process
+  const blocker = useBlocker(
+    ({ currentLocation, nextLocation }) =>
+      hasStartedProcess && currentLocation.pathname !== nextLocation.pathname
+  );
+
+  // Handle browser back/forward buttons and page refresh
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasStartedProcess) {
+        e.preventDefault();
+        e.returnValue = '';
+        return '';
+      }
+    };
+
+    const handlePopState = (e: PopStateEvent) => {
+      if (hasStartedProcess) {
+        e.preventDefault();
+        setShowConfirmModal(true);
+        window.history.pushState(null, '', window.location.href);
+      }
+    };
+
+    if (hasStartedProcess) {
+      window.addEventListener('beforeunload', handleBeforeUnload);
+      window.addEventListener('popstate', handlePopState);
+      // Prevent back navigation
+      window.history.pushState(null, '', window.location.href);
+    }
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [hasStartedProcess]);
+
+  // Handle React Router navigation blocking
+  useEffect(() => {
+    if (blocker.state === 'blocked') {
+      setShowConfirmModal(true);
+    }
+  }, [blocker.state]);
 
   const handleFileSelect = (file: File) => {
     const allowedTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
