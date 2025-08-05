@@ -307,10 +307,13 @@ export default function Upload() {
             </div>
 
             {/* Submit Button */}
-            <div className="absolute right-0 top-[66px]">
+            <div className={`absolute right-0 top-[66px] transition-all duration-[1500ms] ease-out ${
+              uploadButtonHidden ? 'opacity-0 scale-0 pointer-events-none' : 'opacity-100 scale-100'
+            }`}>
               <Button
                 onClick={handleSubmit}
-                className="bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-[#F9F8F8] px-8 py-2 rounded-lg font-roboto text-base font-normal leading-6 tracking-[0.16px]"
+                disabled={isSubmitting}
+                className="bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-[#F9F8F8] px-8 py-2 rounded-lg font-roboto text-base font-normal leading-6 tracking-[0.16px] disabled:opacity-70"
               >
                 Submit
               </Button>
