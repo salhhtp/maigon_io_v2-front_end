@@ -1,9 +1,10 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { ChevronDown, User, Upload as UploadIcon } from "lucide-react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate, useBlocker } from "react-router-dom";
 import Logo from "@/components/Logo";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
+import ConfirmationModal from "@/components/ConfirmationModal";
 
 export default function Upload() {
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
