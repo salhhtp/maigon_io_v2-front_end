@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 import { useState, useEffect } from "react";
 import Logo from "@/components/Logo";
 import Footer from "@/components/Footer";
+import AnimatedQuotes from "@/components/AnimatedQuotes";
 
 interface ContractType {
   title: string;
