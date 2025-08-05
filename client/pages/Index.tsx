@@ -8,10 +8,7 @@ import Footer from "@/components/Footer";
 import AnimatedQuotes from "@/components/AnimatedQuotes";
 import ContractCardsAnimation from "@/components/ContractCardsAnimation";
 
-interface ContractType {
-  title: string;
-  description: string;
-}
+
 
 
 
