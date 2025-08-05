@@ -320,7 +320,7 @@ export default function Solutions() {
               </div>
 
               {/* DPA Card */}
-              <div className="flex w-[265px] pt-[15px] flex-col justify-end items-center row-start-1 row-span-1 col-start-2 col-span-1 bg-[#F3F3F3] relative">
+              <div className="flex w-[265px] pt-[15px] flex-col justify-end items-center row-start-1 row-span-1 col-start-2 col-span-1 bg-[#F3F3F3] relative" style={{ marginLeft: "60px" }}>
                 <div className="w-[265px] h-[424px] absolute left-0 top-[15px]">
                   <img
                     src="https://api.builder.io/api/v1/image/assets/TEMP/d2502c8f65fc6fb3cfd64fcf2e883767c28d87b3?width=456"
