@@ -200,7 +200,7 @@ const AnimatedStepsComponent = () => {
         <img
           src={steps[currentStep].image}
           alt={`Step ${steps[currentStep].number} demonstration`}
-          className="w-full lg:w-[688px] h-[660px] rounded-lg border border-[#271D1D]/15 absolute right-0 lg:left-[522px] top-0 object-cover transition-opacity duration-500"
+          className="w-full lg:w-[688px] h-[660px] rounded-lg border border-[#271D1D]/15 absolute right-0 lg:left-[522px] top-0 object-cover"
         />
       </div>
     </div>
