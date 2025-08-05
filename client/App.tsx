@@ -50,6 +50,10 @@ const router = createBrowserRouter([
     element: <Upload />,
   },
   {
+    path: "/loading",
+    element: <Loading />,
+  },
+  {
     path: "/news",
     element: <News />,
   },
