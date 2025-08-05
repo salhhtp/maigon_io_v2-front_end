@@ -44,6 +44,9 @@ const FAQItem = ({ question, answer }: { question: string; answer: string }) => 
 export default function UserTeam() {
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
 
+  // User data - can be replaced with actual user context/auth later
+  const userName = "Adam";
+
   return (
     <div className="min-h-screen bg-[#F9F8F8]">
       {/* Navigation */}
