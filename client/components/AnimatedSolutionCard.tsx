@@ -89,7 +89,7 @@ export const AnimatedSolutionCard = ({
           </button>
 
           {/* Review Buttons Container */}
-          <div className="absolute left-[21px] top-[192px] w-[223px]">
+          <div className="absolute left-[21px] top-[192px] w-[223px] flex items-center gap-[24px]">
             {/* Review as data subject button */}
             <div className="relative">
               <button
@@ -148,7 +148,7 @@ export const AnimatedSolutionCard = ({
             </div>
 
             {/* Review as organization button */}
-            <div className="relative absolute left-[124px] top-0">
+            <div className="relative">
               <button
                 onClick={(e) => {
                   e.stopPropagation();
