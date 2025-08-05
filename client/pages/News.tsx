@@ -66,7 +66,7 @@ export default function News() {
       </nav>
 
       {/* Featured News Section */}
-      <section className="py-20 px-8 lg:px-16 bg-[#F9F8F8]">
+      <section className="py-20 px-8 lg:px-16 bg-[#F9F8F8] pt-24 lg:pt-32">
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-col lg:flex-row items-end gap-8">
             {/* Left Content */}
