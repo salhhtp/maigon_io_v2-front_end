@@ -123,7 +123,13 @@ export default function Team() {
                   role="Business Development & Investor Relations"
                   imageSrc="https://api.builder.io/api/v1/image/assets/TEMP/c15caa6bb2aefa8a854a3ae2fa4a7b6679ceb4da?width=456"
                 />
-                
+
+                <TeamMemberCard
+                  name="Arunendu Mazumder"
+                  role="Head of Sales"
+                  imageSrc="https://api.builder.io/api/v1/image/assets/TEMP/ccc0fa373e58bf89213b7240c1551afe1599a976?width=456"
+                />
+
                 {/* Bottom Row - Centered */}
                 <div className="col-span-2 lg:col-span-3 flex justify-center gap-1">
                   <div className="grid grid-cols-2 gap-1">
@@ -131,11 +137,6 @@ export default function Team() {
                       name="Salih Hatipoglu"
                       role="Head of Technology"
                       imageSrc="https://api.builder.io/api/v1/image/assets/TEMP/bc7260ff7b3b8e5320a5d6f55b88e4968080c4d4?width=456"
-                    />
-                    <TeamMemberCard
-                      name="Arunendu Mazumder"
-                      role="Head of Sales"
-                      imageSrc="https://api.builder.io/api/v1/image/assets/TEMP/ccc0fa373e58bf89213b7240c1551afe1599a976?width=456"
                     />
                   </div>
                 </div>
