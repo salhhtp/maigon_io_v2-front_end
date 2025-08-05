@@ -337,7 +337,7 @@ export default function Solutions() {
               </div>
 
               {/* Privacy Policy Card */}
-              <div className="flex w-[265px] pt-[15px] flex-col justify-end items-center row-start-1 row-span-1 col-start-3 col-span-1 bg-[#F3F3F3] relative" style={{ marginLeft: "120px" }}>
+              <div className="flex w-[200px] pt-[15px] flex-col justify-end items-center row-start-1 row-span-1 col-start-3 col-span-1 bg-[#F3F3F3] relative" style={{ marginLeft: "120px" }}>
                 <div className="w-[265px] h-[424px] absolute left-0 top-[15px]">
                   <img
                     src="https://api.builder.io/api/v1/image/assets/TEMP/ac64a1c280fd3ae21e76e02f5df24162a5b11a53?width=456"
