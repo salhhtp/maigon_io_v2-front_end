@@ -210,6 +210,17 @@ const AnimatedStepsComponent = () => {
 
 export default function UserSolutions() {
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+  const location = useLocation();
+
+  // Check if user returned from completed review
+  useEffect(() => {
+    if (location.state?.reviewCompleted) {
+      setShowSuccessMessage(true);
+      // Auto-hide success message after 5 seconds
+      setTimeout(() => setShowSuccessMessage(false), 5000);
+    }
+  }, [location.state]);
 
   return (
     <div className="min-h-screen bg-[#F9F8F8]">
