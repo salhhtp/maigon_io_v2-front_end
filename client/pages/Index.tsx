@@ -145,7 +145,7 @@ export default function Index() {
             {/* Card 2 */}
             <div className="flex flex-col items-center relative w-full">
               <div
-                className="flex justify-between items-center px-24 py-14 w-full border border-[#271D1D]/15 rounded-lg relative bg-cover bg-center h-80"
+                className="flex justify-between items-center px-24 py-14 w-full h-80 border border-[#271D1D]/15 rounded-lg relative bg-cover bg-center"
                 style={{
                   backgroundImage: `url('https://api.builder.io/api/v1/image/assets/TEMP/2a007dd35a383d1ae8dd9a022fe6283585484de4?width=916')`,
                   backgroundPosition: 'center center',
