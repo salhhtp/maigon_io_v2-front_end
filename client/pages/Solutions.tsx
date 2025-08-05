@@ -354,7 +354,7 @@ export default function Solutions() {
               </div>
 
               {/* Consultancy Card */}
-              <div className="flex w-[265px] pt-[15px] flex-col justify-end items-center row-start-2 row-span-1 col-start-1 col-span-1 bg-[#F3F3F3] relative">
+              <div className="flex w-[200px] pt-[15px] flex-col justify-end items-center row-start-2 row-span-1 col-start-1 col-span-1 bg-[#F3F3F3] relative">
                 <div className="w-[265px] h-[424px] absolute left-0 top-[15px]">
                   <img
                     src="https://api.builder.io/api/v1/image/assets/TEMP/0c17d06bf5b7000c02dd54103946d52cf8df3ae2?width=456"
