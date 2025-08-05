@@ -405,7 +405,7 @@ export default function Solutions() {
               </Link>
 
               {/* PSA Card */}
-              <div className="flex pt-[15px] flex-col justify-end items-center flex-1 self-stretch bg-[#F3F3F3] relative lg:col-start-2 lg:row-start-3">
+              <Link to="/signin" className="flex pt-[15px] flex-col justify-end items-center flex-1 self-stretch bg-[#F3F3F3] relative lg:col-start-2 lg:row-start-3 cursor-pointer hover:bg-[#ECECEC] transition-colors duration-200">
                 <div className="w-[265px] h-[424px] absolute left-0 top-[15px]">
                   <img
                     src="https://api.builder.io/api/v1/image/assets/TEMP/79eb9ad36f91db898294f4ebc9584deb77f82e31?width=456"
@@ -419,7 +419,7 @@ export default function Solutions() {
                     Review product supply agreements for compliance with established standards and best practices. Get instant report with insights and extracted clauses.
                   </div>
                 </div>
-              </div>
+              </Link>
             </div>
           </div>
 
