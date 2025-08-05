@@ -354,7 +354,7 @@ export default function Solutions() {
               </Link>
 
               {/* Consultancy Card */}
-              <div className="flex pt-[15px] flex-col justify-end items-center flex-1 self-stretch bg-[#F3F3F3] relative lg:col-start-1 lg:row-start-2">
+              <Link to="/signin" className="flex pt-[15px] flex-col justify-end items-center flex-1 self-stretch bg-[#F3F3F3] relative lg:col-start-1 lg:row-start-2 cursor-pointer hover:bg-[#ECECEC] transition-colors duration-200">
                 <div className="w-[265px] h-[424px] absolute left-0 top-[15px]">
                   <img
                     src="https://api.builder.io/api/v1/image/assets/TEMP/ace056ab1571ec964a3c7a17e383b264d6766921?width=456"
@@ -368,7 +368,7 @@ export default function Solutions() {
                     Review consultancy agreements (and other professional services agreements) for compliance with established standards and best practices. Get instant report with insights and extracted clauses.
                   </div>
                 </div>
-              </div>
+              </Link>
 
               {/* R&D Card */}
               <div className="flex pt-[15px] flex-col justify-end items-center flex-1 self-stretch bg-[#F3F3F3] relative lg:col-start-2 lg:row-start-2">
