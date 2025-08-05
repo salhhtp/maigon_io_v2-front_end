@@ -371,7 +371,7 @@ export default function Solutions() {
               </div>
 
               {/* R&D Card */}
-              <div className="flex w-[265px] pt-[15px] flex-col justify-end items-center row-start-2 row-span-1 col-start-2 col-span-1 bg-[#F3F3F3] relative" style={{ marginLeft: "60px" }}>
+              <div className="flex w-[200px] pt-[15px] flex-col justify-end items-center row-start-2 row-span-1 col-start-2 col-span-1 bg-[#F3F3F3] relative" style={{ marginLeft: "60px" }}>
                 <div className="w-[265px] h-[424px] absolute left-0 top-[15px]">
                   <img
                     src="https://api.builder.io/api/v1/image/assets/TEMP/b3ecd43f1412a792e3e5e0acc29fa4ec35a0a0b7?width=456"
