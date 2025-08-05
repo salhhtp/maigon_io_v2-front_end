@@ -82,31 +82,31 @@ const AnimatedStepsComponent = () => {
       number: "02",
       title: "Choose your weapon",
       description: "Select your desired solution based on your contract's type.",
-      image: "https://api.builder.io/api/v1/image/assets/TEMP/bf723346ff37e3006a994d9bde29f03ca52957bd?width=1376"
+      image: "https://api.builder.io/api/v1/image/assets/TEMP/2a3aa41e3700ecfe17563a788c06e994ecf557f2?width=1376"
     },
     {
       number: "03",
       title: "Select your perspective",
       description: "Select between \"Data Processer\" and \"Organization\" in order to obtain tailored review results of your contracts.",
-      image: "https://api.builder.io/api/v1/image/assets/TEMP/d2502c8f65fc6fb3cfd64fcf2e883767c28d87b3?width=1376"
+      image: "https://api.builder.io/api/v1/image/assets/TEMP/5618bd7501c5a1c4b2d28e4e25a6db6f8660e172?width=1376"
     },
     {
       number: "04",
       title: "Upload your contract",
       description: "Upload your contract to let the magic happens.",
-      image: "https://api.builder.io/api/v1/image/assets/TEMP/ac64a1c280fd3ae21e76e02f5df24162a5b11a53?width=1376"
+      image: "https://api.builder.io/api/v1/image/assets/TEMP/15cc33264f77c3058e8f3b3572a0dc0618db8461?width=1376"
     },
     {
       number: "05",
       title: "Sit back and relax",
       description: "Sit back and relax! This will only take a moment.",
-      image: "https://api.builder.io/api/v1/image/assets/TEMP/0c17d06bf5b7000c02dd54103946d52cf8df3ae2?width=1376"
+      image: "https://api.builder.io/api/v1/image/assets/TEMP/b2ac06bf0d475ae09b33f0c014469cf778bf87a8?width=1376"
     },
     {
       number: "06",
       title: "Voilà!",
       description: "Get your review and enjoy all the insights.",
-      image: "https://api.builder.io/api/v1/image/assets/TEMP/b3ecd43f1412a792e3e5e0acc29fa4ec35a0a0b7?width=1376"
+      image: "https://api.builder.io/api/v1/image/assets/TEMP/b9df8a89a44e419b87b2f12be6bcc732bd80a24c?width=1376"
     }
   ];
 
