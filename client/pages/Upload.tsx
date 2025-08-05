@@ -154,7 +154,7 @@ export default function Upload() {
     <div className="min-h-screen bg-[#F9F8F8] flex flex-col">
       {/* Navigation */}
       <nav className="flex items-center justify-between px-8 lg:px-16 py-6">
-        <div onClick={handleLinkClick("/user-home")} className="cursor-pointer">
+        <div onClick={handleLinkClick("/home")} className="cursor-pointer">
           <Logo size="xl" />
         </div>
 
