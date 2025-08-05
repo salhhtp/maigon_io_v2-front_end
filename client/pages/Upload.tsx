@@ -145,29 +145,19 @@ export default function Upload() {
       return;
     }
 
-    console.log('🚀 Starting submit process:', {
-      file: selectedFile,
-      solution: solutionTitle,
-      perspective: perspective
-    });
-
     // Step 1: Submit Clicked → Smart Animate - Ease Out - 1500ms
-    console.log('⏳ Step 1: Starting submit animation...');
     setIsSubmitting(true);
 
     // Step 2: After Delay - 1ms → Smart Animate - Ease out 1500ms → Disappeared Upload Button
     setTimeout(() => {
-      console.log('⏳ Step 2: Hiding upload button...');
       setUploadButtonHidden(true);
 
       // Step 3: After Delay 1ms → Smart Animate - Ease in and out back → Loading Screen pops up
       setTimeout(() => {
-        console.log('⏳ Step 3: Starting loading transition...');
         setShowLoadingTransition(true);
 
         // Navigate to loading page after transition starts
         setTimeout(() => {
-          console.log('🎯 Navigating to loading page...');
           navigate('/loading', {
             state: {
               selectedFile: selectedFile,
