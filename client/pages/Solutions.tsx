@@ -337,7 +337,7 @@ export default function Solutions() {
               </Link>
 
               {/* Privacy Policy Card */}
-              <div className="flex pt-[15px] flex-col justify-end items-center flex-1 self-stretch bg-[#F3F3F3] relative lg:col-start-3 lg:row-start-1">
+              <Link to="/signin" className="flex pt-[15px] flex-col justify-end items-center flex-1 self-stretch bg-[#F3F3F3] relative lg:col-start-3 lg:row-start-1 cursor-pointer hover:bg-[#ECECEC] transition-colors duration-200">
                 <div className="w-[265px] h-[424px] absolute left-0 top-[15px]">
                   <img
                     src="https://api.builder.io/api/v1/image/assets/TEMP/ac64a1c280fd3ae21e76e02f5df24162a5b11a53?width=456"
@@ -351,7 +351,7 @@ export default function Solutions() {
                     Review privacy statements for compliance with the GDPR criteria. Get instant compliance report with extracted clauses and recommendations.
                   </div>
                 </div>
-              </div>
+              </Link>
 
               {/* Consultancy Card */}
               <div className="flex pt-[15px] flex-col justify-end items-center flex-1 self-stretch bg-[#F3F3F3] relative lg:col-start-1 lg:row-start-2">
