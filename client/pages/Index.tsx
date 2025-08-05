@@ -200,17 +200,65 @@ export default function Index() {
             </Card>
 
             {/* Card 4 */}
-            <Card className="border border-[#271D1D]/15 rounded-lg overflow-hidden">
-              <div className="h-80 bg-[#B3BBB3] flex items-center justify-center">
-                <img 
-                  src="https://api.builder.io/api/v1/image/assets/TEMP/8cfe4c4f940f1afd5a3eb4c4cc5773dcf04b118a?width=1411" 
-                  alt="Laptop"
-                  className="w-full h-full object-contain"
-                />
+            <Card className="border border-[#271D1D]/15 rounded-lg overflow-hidden flex flex-col bg-[#B3BBB3]">
+              <div className="h-80 bg-[#B3BBB3] flex flex-col items-center justify-center relative p-4">
+                <div className="relative flex flex-col items-center">
+                  {/* Laptop Image */}
+                  <img
+                    src="https://api.builder.io/api/v1/image/assets/TEMP/f0556d4c0e818511e69c6e2ab97e8b4f9907a17c?width=1411"
+                    alt="HP Elite Laptop"
+                    className="max-w-full h-auto object-contain relative z-10"
+                    style={{ maxHeight: '240px' }}
+                  />
+
+                  {/* Shadow */}
+                  <img
+                    src="https://api.builder.io/api/v1/image/assets/TEMP/30c250eb19eeb5a4916930ab4eec40f37525f912?width=1712"
+                    alt="Shadow"
+                    className="w-full max-w-[200px] h-auto opacity-50 mix-blend-multiply relative -mt-2"
+                  />
+
+                  {/* Screen Overlay SVG */}
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <svg
+                      className="absolute z-20"
+                      width="180"
+                      height="120"
+                      viewBox="0 0 282 334"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                      style={{
+                        transform: 'translate(-10px, -20px)',
+                        maxWidth: '60%',
+                        maxHeight: '60%'
+                      }}
+                    >
+                      <defs>
+                        <pattern id="pattern0_card4" patternContentUnits="objectBoundingBox" width="1" height="1">
+                          <image
+                            href="https://api.builder.io/api/v1/image/assets%2F4c5b06bbdfb6468489995bc62588cb90%2F919927d477ea467ea7b1986896316797?format=webp&width=800"
+                            width="1"
+                            height="1"
+                            preserveAspectRatio="xMidYMid slice"
+                          />
+                        </pattern>
+                      </defs>
+                      <path
+                        fillRule="evenodd"
+                        clipRule="evenodd"
+                        d="M0.339844 0.804688L535.777 23.6909L605.091 332.116L57.8575 333.692L0.339844 0.804688Z"
+                        fill="url(#pattern0_card4)"
+                      />
+                    </svg>
+                  </div>
+                </div>
               </div>
-              <CardContent className="p-6 text-center">
-                <CardTitle className="text-xl font-medium mb-4 font-lora">See All The Risks</CardTitle>
-                <CardDescription className="text-sm leading-relaxed">
+
+              <CardContent className="p-6 text-center flex flex-col items-center bg-[#F9F8F8]">
+                <CardTitle className="text-xl font-medium mb-4 font-lora text-black">
+                  See All The Risks
+                </CardTitle>
+                <CardDescription className="text-xs leading-[26px] tracking-[0.12px] text-black">
                   Find out all the issues that needs to be addressed in your documents.
                 </CardDescription>
               </CardContent>
