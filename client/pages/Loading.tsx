@@ -114,7 +114,7 @@ export default function Loading() {
           {/* Animated Loading Logo */}
           <div className="w-full px-2.5 py-2.5">
             <AnimatedLoadingLogo
-              duration={5000} // 5 seconds for testing
+              duration={30000} // 30 seconds - realistic AI review time
               onComplete={handleLoadingComplete}
             />
           </div>
