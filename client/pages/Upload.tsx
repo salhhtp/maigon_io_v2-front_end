@@ -178,8 +178,9 @@ export default function Upload() {
   };
 
   return (
-    <div className={`min-h-screen bg-[#F9F8F8] flex flex-col transition-opacity duration-1500 ${
-      isSubmitting ? 'opacity-30' : 'opacity-100'
+    <div className={`min-h-screen bg-[#F9F8F8] flex flex-col transition-all duration-[1500ms] ${
+      showLoadingTransition ? 'opacity-0 ease-in-out transform scale-105' :
+      isSubmitting ? 'opacity-80 ease-out' : 'opacity-100'
     }`}>
       {/* Navigation */}
       <nav className="flex items-center justify-between px-8 lg:px-16 py-6">
