@@ -320,7 +320,7 @@ export default function Solutions() {
               </Link>
 
               {/* DPA Card */}
-              <div className="flex pt-[15px] flex-col justify-end items-center flex-1 self-stretch bg-[#F3F3F3] relative lg:col-start-2 lg:row-start-1">
+              <Link to="/signin" className="flex pt-[15px] flex-col justify-end items-center flex-1 self-stretch bg-[#F3F3F3] relative lg:col-start-2 lg:row-start-1 cursor-pointer hover:bg-[#ECECEC] transition-colors duration-200">
                 <div className="w-[265px] h-[424px] absolute left-0 top-[15px]">
                   <img
                     src="https://api.builder.io/api/v1/image/assets/TEMP/d2502c8f65fc6fb3cfd64fcf2e883767c28d87b3?width=456"
@@ -334,7 +334,7 @@ export default function Solutions() {
                     Review data processing agreements for compliance with the GDPR and latest EDPB guidelines. Get instant compliance report with extracted clauses, concepts, terms, highlighted risks, and compliance recommendations.
                   </div>
                 </div>
-              </div>
+              </Link>
 
               {/* Privacy Policy Card */}
               <div className="flex pt-[15px] flex-col justify-end items-center flex-1 self-stretch bg-[#F3F3F3] relative lg:col-start-3 lg:row-start-1">
