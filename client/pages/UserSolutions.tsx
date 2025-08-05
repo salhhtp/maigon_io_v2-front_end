@@ -259,6 +259,9 @@ export default function UserSolutions() {
             )}
           </div>
         </div>
+
+        {/* Mobile Navigation */}
+        <MobileNavigation isLoggedIn={true} userName={userName} />
       </nav>
 
       {/* Hero Section */}
