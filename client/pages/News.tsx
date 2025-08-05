@@ -84,7 +84,7 @@ export default function News() {
                   
                   {/* Article Info */}
                   <div className="space-y-16">
-                    <div className="space-y-2 text-center">
+                    <div className="flex flex-col justify-start items-start space-y-2">
                       <p className="text-xs text-[#271D1D] font-medium">Published</p>
                       <p className="text-xs text-[#271D1D] font-lora">Mar 24, 2025</p>
                     </div>
