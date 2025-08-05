@@ -49,7 +49,9 @@ export default function Loading() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#F9F8F8] flex flex-col">
+    <div className={`min-h-screen bg-[#F9F8F8] flex flex-col transition-all duration-700 ease-out ${
+      isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
+    }`}>
       {/* Navigation */}
       <nav className="flex items-center justify-between px-8 lg:px-16 py-6">
         <Logo size="xl" />
