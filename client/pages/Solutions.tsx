@@ -172,15 +172,15 @@ const AnimatedStepsComponent = () => {
 
               {/* Step Content */}
               <div className={`w-full transition-all duration-500 ${
-                index === currentStep ? 'h-[175px]' : 'h-[93px]'
+                index === currentStep ? 'h-[120px] md:h-[150px] lg:h-[175px]' : 'h-[60px] md:h-[75px] lg:h-[93px]'
               }`}>
                 {/* Divider line for non-active steps */}
                 {index !== currentStep && (
                   <div className="w-full h-px rounded-lg bg-[#D9D9D9] mb-px"></div>
                 )}
 
-                <div className="w-full h-[175px] relative">
-                  <div className="flex w-full lg:w-[354px] h-5 flex-col justify-center text-black font-lora text-lg lg:text-2xl font-medium leading-[90px] absolute left-4 top-9">
+                <div className="w-full h-[120px] md:h-[150px] lg:h-[175px] relative">
+                  <div className="flex w-full lg:w-[354px] h-5 flex-col justify-center text-black font-lora text-sm md:text-lg lg:text-2xl font-medium leading-[60px] md:leading-[75px] lg:leading-[90px] absolute left-2 md:left-3 lg:left-4 top-6 md:top-7 lg:top-9">
                     {step.title}
                   </div>
                   <div className="flex w-6 lg:w-7 h-5 flex-col justify-center text-black font-lora text-lg lg:text-2xl font-medium leading-[70px] absolute right-4 lg:right-9 top-9">
