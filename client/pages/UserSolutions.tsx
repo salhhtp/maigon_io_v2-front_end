@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { ChevronDown, User } from "lucide-react";
 import { Link } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Logo from "@/components/Logo";
 import Footer from "@/components/Footer";
 import AnimatedQuotes from "@/components/AnimatedQuotes";
@@ -17,12 +17,12 @@ const SolutionCard = ({ title, description, imageSrc }: { title: string; descrip
 );
 
 const FeatureCard = ({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) => (
-  <div className="flex flex-col items-center text-center p-6 lg:p-8">
+  <div className="flex flex-col items-center text-center p-6 lg:p-8 transition-colors duration-300 hover:bg-[#D6CECE] group">
     <div className="mb-4">
       {icon}
     </div>
-    <h3 className="text-lg font-medium text-[#271D1D] font-lora mb-3 leading-tight">{title}</h3>
-    <p className="text-sm text-[#271D1D] leading-relaxed">{description}</p>
+    <h3 className="text-base font-medium text-[#271D1D] font-lora mb-3 leading-[30px] tracking-[0.16px] self-stretch">{title}</h3>
+    <p className="text-xs font-normal text-[#271D1D] leading-[21.6px] tracking-[0.12px] font-roboto self-stretch">{description}</p>
   </div>
 );
 
@@ -32,7 +32,7 @@ const StepItem = ({ number, title, description, isActive = false }: { number: st
     <div className="absolute top-0 left-0 w-full h-px bg-[#D6CECE] rounded-full">
       {isActive && <div className="h-full bg-[#271D1D] rounded-full" style={{ width: '100%' }} />}
     </div>
-    
+
     {/* Step content */}
     <div className="pt-8 pb-6">
       <div className="flex justify-between items-start mb-4">
@@ -46,7 +46,7 @@ const StepItem = ({ number, title, description, isActive = false }: { number: st
 
 const FAQItem = ({ question, answer }: { question: string; answer: string }) => {
   const [isOpen, setIsOpen] = useState(false);
-  
+
   return (
     <div className="border border-[#725A5A]/15 bg-[#725A5A]/3 rounded-lg">
       <button
@@ -54,8 +54,8 @@ const FAQItem = ({ question, answer }: { question: string; answer: string }) => 
         onClick={() => setIsOpen(!isOpen)}
       >
         <span className="text-xl lg:text-2xl font-semibold text-[#725A5A]">{question}</span>
-        <ChevronDown 
-          className={`w-6 h-6 text-[#725A5A] transition-transform ${isOpen ? 'rotate-180' : ''}`} 
+        <ChevronDown
+          className={`w-6 h-6 text-[#725A5A] transition-transform ${isOpen ? 'rotate-180' : ''}`}
         />
       </button>
       {isOpen && (
@@ -63,6 +63,146 @@ const FAQItem = ({ question, answer }: { question: string; answer: string }) => 
           <p className="text-xl lg:text-2xl text-[#725A5A] leading-relaxed">{answer}</p>
         </div>
       )}
+    </div>
+  );
+};
+
+const AnimatedStepsComponent = () => {
+  const [currentStep, setCurrentStep] = useState(0);
+  const [loadingProgress, setLoadingProgress] = useState(0);
+
+  const steps = [
+    {
+      number: "01",
+      title: "Create or log into your account",
+      description: "Create or log into your existing Maigon account in order to experience the power that comes with Maigon.",
+      image: "https://api.builder.io/api/v1/image/assets/TEMP/ab810becba68b895d17259b055eb02fa4e423ca7?width=1376"
+    },
+    {
+      number: "02",
+      title: "Choose your weapon",
+      description: "Select your desired solution based on your contract's type.",
+      image: "https://api.builder.io/api/v1/image/assets/TEMP/2a3aa41e3700ecfe17563a788c06e994ecf557f2?width=1376"
+    },
+    {
+      number: "03",
+      title: "Select your perspective",
+      description: "Select between \"Data Processer\" and \"Organization\" in order to obtain tailored review results of your contracts.",
+      image: "https://api.builder.io/api/v1/image/assets/TEMP/5618bd7501c5a1c4b2d28e4e25a6db6f8660e172?width=1376"
+    },
+    {
+      number: "04",
+      title: "Upload your contract",
+      description: "Upload your contract to let the magic happens.",
+      image: "https://api.builder.io/api/v1/image/assets/TEMP/15cc33264f77c3058e8f3b3572a0dc0618db8461?width=1376"
+    },
+    {
+      number: "05",
+      title: "Sit back and relax",
+      description: "Sit back and relax! This will only take a moment.",
+      image: "https://api.builder.io/api/v1/image/assets/TEMP/b2ac06bf0d475ae09b33f0c014469cf778bf87a8?width=1376"
+    },
+    {
+      number: "06",
+      title: "Voilà!",
+      description: "Get your review and enjoy all the insights.",
+      image: "https://api.builder.io/api/v1/image/assets/TEMP/b9df8a89a44e419b87b2f12be6bcc732bd80a24c?width=1376"
+    }
+  ];
+
+  useEffect(() => {
+    let stepTimeout: NodeJS.Timeout;
+    let progressInterval: NodeJS.Timeout;
+
+    const resetAnimation = () => {
+      setLoadingProgress(0);
+
+      // Clear any existing intervals
+      if (progressInterval) clearInterval(progressInterval);
+
+      // Start progress animation - 100% over exactly 10 seconds
+      const startTime = Date.now();
+      progressInterval = setInterval(() => {
+        const elapsed = Date.now() - startTime;
+        const progress = Math.min((elapsed / 10000) * 100, 100);
+        setLoadingProgress(progress);
+
+        // Clear interval when we reach 100%
+        if (progress >= 100) {
+          clearInterval(progressInterval);
+        }
+      }, 50); // Update every 50ms for smoother animation
+
+      // Schedule next step change
+      stepTimeout = setTimeout(() => {
+        setCurrentStep((prev) => (prev + 1) % steps.length);
+        resetAnimation();
+      }, 10000);
+    };
+
+    // Start the first animation
+    resetAnimation();
+
+    return () => {
+      if (stepTimeout) clearTimeout(stepTimeout);
+      if (progressInterval) clearInterval(progressInterval);
+    };
+  }, [steps.length]);
+
+  return (
+    <div className="flex flex-col gap-2.5 w-full p-2.5">
+      <div className="h-[660px] w-full relative">
+        {/* Steps Section */}
+        <div className="flex flex-col justify-end items-start gap-px absolute left-0 top-1 h-[641px] w-full lg:w-[458px]">
+          {steps.map((step, index) => (
+            <div key={index} className="flex flex-col w-full lg:w-[458px]">
+              {/* Loading Bar - only show on active step */}
+              {index === currentStep && (
+                <div className="flex w-full h-px justify-center items-center mb-px">
+                  <div className="w-full h-px relative">
+                    <div className="w-full h-px rounded-lg bg-[#D6CECE] absolute left-0 top-0"></div>
+                    <div
+                      className="h-px rounded-lg bg-[#271D1D] absolute left-0 top-0 transition-all duration-100 ease-linear"
+                      style={{ width: `${loadingProgress}%` }}
+                    ></div>
+                  </div>
+                </div>
+              )}
+
+              {/* Step Content */}
+              <div className={`w-full transition-all duration-500 ${
+                index === currentStep ? 'h-[175px]' : 'h-[93px]'
+              }`}>
+                {/* Divider line for non-active steps */}
+                {index !== currentStep && (
+                  <div className="w-full h-px rounded-lg bg-[#D9D9D9] mb-px"></div>
+                )}
+
+                <div className="w-full h-[175px] relative">
+                  <div className="flex w-full lg:w-[354px] h-5 flex-col justify-center text-black font-lora text-lg lg:text-2xl font-medium leading-[90px] absolute left-4 top-9">
+                    {step.title}
+                  </div>
+                  <div className="flex w-6 lg:w-7 h-5 flex-col justify-center text-black font-lora text-lg lg:text-2xl font-medium leading-[70px] absolute right-4 lg:right-9 top-9">
+                    {step.number}
+                  </div>
+                  {index === currentStep && (
+                    <div className="w-full lg:w-[370px] h-[52px] text-black font-roboto text-xs font-normal leading-[26px] absolute left-4 top-[92px]">
+                      {step.description}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Image Section */}
+        <img
+          src={steps[currentStep].image}
+          alt={`Step ${steps[currentStep].number} demonstration`}
+          className="w-full lg:w-[688px] h-[660px] rounded-lg border border-[#271D1D]/15 absolute right-0 lg:left-[522px] top-0 object-cover"
+        />
+      </div>
     </div>
   );
 };
