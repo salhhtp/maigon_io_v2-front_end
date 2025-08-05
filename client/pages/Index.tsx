@@ -128,7 +128,7 @@ export default function Index() {
               <img
                 src="https://api.builder.io/api/v1/image/assets/TEMP/e33365b24a4962ef5c0529d0c37ac13af63f6f48?width=916"
                 alt="Compliance Dashboard Interface"
-                className="w-full h-auto border border-[#271D1D]/15 rounded-lg"
+                className="w-full h-80 object-cover border border-[#271D1D]/15 rounded-lg"
               />
 
               {/* Card Description */}
