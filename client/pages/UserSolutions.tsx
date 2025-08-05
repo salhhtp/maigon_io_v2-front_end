@@ -153,9 +153,9 @@ const AnimatedStepsComponent = () => {
 
   return (
     <div className="flex flex-col gap-2.5 w-full p-2.5">
-      <div className="h-[660px] w-full relative">
+      <div className="min-h-[400px] lg:h-[660px] w-full flex flex-col lg:flex-row lg:relative">
         {/* Steps Section */}
-        <div className="flex flex-col justify-end items-start gap-px absolute left-0 top-1 h-[641px] w-full lg:w-[458px]">
+        <div className="flex flex-col justify-start lg:justify-end items-start gap-px lg:absolute lg:left-0 lg:top-1 h-auto lg:h-[641px] w-full lg:w-[458px] mb-8 lg:mb-0">
           {steps.map((step, index) => (
             <div key={index} className="flex flex-col w-full lg:w-[458px]">
               {/* Loading Bar - only show on active step */}
