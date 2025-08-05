@@ -303,7 +303,7 @@ export default function Solutions() {
             {/* Solutions Grid */}
             <div className="grid h-auto lg:h-[1368px] py-5 lg:py-[21px] gap-y-px gap-x-1 w-full grid-rows-3 grid-cols-1 lg:grid-cols-3 relative">
               {/* NDA Card */}
-              <div className="flex w-full lg:w-[265px] pt-[15px] flex-col justify-end items-center bg-[#F3F3F3] relative lg:col-start-1 lg:row-start-1">
+              <Link to="/signin" className="flex w-full lg:w-[265px] pt-[15px] flex-col justify-end items-center bg-[#F3F3F3] relative lg:col-start-1 lg:row-start-1 cursor-pointer hover:bg-[#ECECEC] transition-colors duration-200">
                 <div className="w-full lg:w-[265px] h-[424px] absolute left-0 top-[15px]">
                   <img
                     src="https://api.builder.io/api/v1/image/assets/TEMP/bf723346ff37e3006a994d9bde29f03ca52957bd?width=456"
@@ -317,7 +317,7 @@ export default function Solutions() {
                     Review non-disclosure agreements for compliance with established standards and best practices. Get instant report with compliance insights and extracted clauses.
                   </div>
                 </div>
-              </div>
+              </Link>
 
               {/* DPA Card */}
               <div className="flex pt-[15px] flex-col justify-end items-center flex-1 self-stretch bg-[#F3F3F3] relative lg:col-start-2 lg:row-start-1">
