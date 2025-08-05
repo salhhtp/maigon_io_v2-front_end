@@ -124,15 +124,19 @@ export default function Index() {
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 mb-20">
             {/* Card 1 */}
-            <Card className="border border-[#271D1D]/15 rounded-lg overflow-hidden">
-              <div className="h-80 bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center relative">
-                <div className="w-32 h-32 rounded-full border-2 border-[#271D1D] flex items-center justify-center">
-                  <span className="text-white text-xl font-semibold">73%</span>
-                </div>
+            <Card className="border border-[#271D1D]/15 rounded-lg overflow-hidden flex flex-col">
+              <div className="relative">
+                <img
+                  src="https://api.builder.io/api/v1/image/assets/TEMP/e33365b24a4962ef5c0529d0c37ac13af63f6f48?width=916"
+                  alt="Compliance Dashboard Interface"
+                  className="w-full h-80 object-cover rounded-t-lg"
+                />
               </div>
-              <CardContent className="p-6 text-center">
-                <CardTitle className="text-xl font-medium mb-4 font-lora">Learn Your Compliance Score</CardTitle>
-                <CardDescription className="text-sm leading-relaxed">
+              <CardContent className="p-6 text-center flex flex-col items-center">
+                <CardTitle className="text-xl font-medium mb-4 font-lora text-black">
+                  Learn Your Compliance Score
+                </CardTitle>
+                <CardDescription className="text-xs leading-[26px] tracking-[0.12px] text-black">
                   Our machine learning algorithms are trained to give you the full look on what you need to know the most from your agreements.
                 </CardDescription>
               </CardContent>
