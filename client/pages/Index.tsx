@@ -206,7 +206,7 @@ export default function Index() {
               <img
                 src="https://api.builder.io/api/v1/image/assets/TEMP/72edd72cd0f4d42d5f5a36fcc0d9e59c5460050c?width=916"
                 alt="Card 4"
-                className="w-full h-auto border border-[#271D1D]/15 rounded-lg"
+                className="w-full h-80 object-cover border border-[#271D1D]/15 rounded-lg"
               />
 
               {/* Card Description */}
