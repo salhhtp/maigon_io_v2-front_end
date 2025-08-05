@@ -323,123 +323,67 @@ export default function UserSolutions() {
             {/* Solutions Grid */}
             <div className="grid w-full lg:w-[801px] h-auto lg:h-[1368px] py-5 lg:py-[21px] gap-y-px gap-x-1 grid-rows-3 grid-cols-1 lg:grid-cols-3 relative">
               {/* NDA Card */}
-              <div className="flex w-full lg:w-[265px] h-[439px] pt-[15px] flex-col justify-end items-center bg-[#F3F3F3] relative lg:col-start-1 lg:row-start-1 cursor-pointer hover:bg-[#ECECEC] transition-colors duration-200">
-                <div className="w-full lg:w-[265px] h-[424px] relative">
-                  <img
-                    src="https://api.builder.io/api/v1/image/assets/TEMP/bf723346ff37e3006a994d9bde29f03ca52957bd?width=456"
-                    alt=""
-                    className="w-[228px] h-[228px] rounded-lg absolute left-[19px] top-0"
-                  />
-                  <div className="flex w-[157px] h-[27px] flex-col justify-center text-[#271D1D] font-lora text-xl font-medium leading-[22px] absolute left-[30px] top-[246px]">
-                    Non-Disclosure Agreements
-                  </div>
-                  <div className="flex w-[217px] h-[89px] flex-col justify-center text-[#271D1D] font-roboto text-xs font-normal leading-[18px] tracking-[0.12px] absolute left-[30px] top-[291px]">
-                    Review non-disclosure agreements for compliance with established standards and best practices. Get instant report with compliance insights and extracted clauses.
-                  </div>
-                </div>
-              </div>
+              <AnimatedSolutionCard
+                id="nda"
+                title="Non-Disclosure Agreements"
+                description="Review non-disclosure agreements for compliance with established standards and best practices. Get instant report with compliance insights and extracted clauses."
+                imageSrc="https://api.builder.io/api/v1/image/assets/TEMP/bf723346ff37e3006a994d9bde29f03ca52957bd?width=456"
+                className="w-full lg:w-[265px] h-[439px] lg:col-start-1 lg:row-start-1"
+              />
 
               {/* DPA Card */}
-              <div className="flex pt-[15px] flex-col justify-end items-center flex-1 self-stretch bg-[#F3F3F3] relative lg:col-start-2 lg:row-start-1 cursor-pointer hover:bg-[#ECECEC] transition-colors duration-200">
-                <div className="w-[265px] h-[424px] relative">
-                  <img
-                    src="https://api.builder.io/api/v1/image/assets/TEMP/d2502c8f65fc6fb3cfd64fcf2e883767c28d87b3?width=456"
-                    alt=""
-                    className="w-[228px] h-[228px] rounded-lg absolute left-[19px] top-0"
-                  />
-                  <div className="flex w-[157px] h-[27px] flex-col justify-center text-[#271D1D] font-lora text-xl font-medium leading-[22px] absolute left-[30px] top-[246px]">
-                    Data Processing Agreements
-                  </div>
-                  <div className="flex w-[217px] h-[118px] flex-col justify-center text-[#271D1D] font-roboto text-xs font-normal leading-[17px] tracking-[0.12px] absolute left-[30px] top-[293px]">
-                    Review data processing agreements for compliance with the GDPR and latest EDPB guidelines. Get instant compliance report with extracted clauses, concepts, terms, highlighted risks, and compliance recommendations.
-                  </div>
-                </div>
-              </div>
+              <AnimatedSolutionCard
+                id="dpa"
+                title="Data Processing Agreements"
+                description="Review data processing agreements for compliance with the GDPR and latest EDPB guidelines. Get instant compliance report with extracted clauses, concepts, terms, highlighted risks, and compliance recommendations."
+                imageSrc="https://api.builder.io/api/v1/image/assets/TEMP/d2502c8f65fc6fb3cfd64fcf2e883767c28d87b3?width=456"
+                className="flex-1 self-stretch lg:col-start-2 lg:row-start-1"
+              />
 
               {/* Privacy Policy Card */}
-              <div className="flex pt-[15px] flex-col justify-end items-center flex-1 self-stretch bg-[#F3F3F3] relative lg:col-start-3 lg:row-start-1 cursor-pointer hover:bg-[#ECECEC] transition-colors duration-200">
-                <div className="w-[265px] h-[424px] relative">
-                  <img
-                    src="https://api.builder.io/api/v1/image/assets/TEMP/ac64a1c280fd3ae21e76e02f5df24162a5b11a53?width=456"
-                    alt=""
-                    className="w-[228px] h-[228px] rounded-lg absolute left-[19px] top-0"
-                  />
-                  <div className="flex w-[157px] h-[27px] flex-col justify-center text-[#271D1D] font-lora text-xl font-medium leading-[22px] absolute left-[30px] top-[246px]">
-                    Privacy Policy Documents
-                  </div>
-                  <div className="flex w-[217px] h-[90px] flex-col justify-center text-[#271D1D] font-roboto text-xs font-normal leading-[18px] tracking-[0.12px] absolute left-[30px] top-[291px]">
-                    Review privacy statements for compliance with the GDPR criteria. Get instant compliance report with extracted clauses and recommendations.
-                  </div>
-                </div>
-              </div>
+              <AnimatedSolutionCard
+                id="privacy"
+                title="Privacy Policy Documents"
+                description="Review privacy statements for compliance with the GDPR criteria. Get instant compliance report with extracted clauses and recommendations."
+                imageSrc="https://api.builder.io/api/v1/image/assets/TEMP/ac64a1c280fd3ae21e76e02f5df24162a5b11a53?width=456"
+                className="flex-1 self-stretch lg:col-start-3 lg:row-start-1"
+              />
 
               {/* Consultancy Card */}
-              <div className="flex pt-[15px] flex-col justify-end items-center flex-1 self-stretch bg-[#F3F3F3] relative lg:col-start-1 lg:row-start-2 cursor-pointer hover:bg-[#ECECEC] transition-colors duration-200">
-                <div className="w-[265px] h-[424px] relative">
-                  <img
-                    src="https://api.builder.io/api/v1/image/assets/TEMP/0c17d06bf5b7000c02dd54103946d52cf8df3ae2?width=456"
-                    alt=""
-                    className="w-[228px] h-[228px] rounded-lg absolute left-[19px] top-0"
-                  />
-                  <div className="flex w-[157px] h-[27px] flex-col justify-center text-[#271D1D] font-lora text-xl font-medium leading-[22px] absolute left-[30px] top-[246px]">
-                    Consultancy Agreements
-                  </div>
-                  <div className="flex w-[217px] h-[108px] flex-col justify-center text-[#271D1D] font-roboto text-xs font-normal leading-[18px] tracking-[0.12px] absolute left-[30px] top-[291px]">
-                    Review consultancy agreements (and other professional services agreements) for compliance with established standards and best practices. Get instant report with insights and extracted clauses.
-                  </div>
-                </div>
-              </div>
+              <AnimatedSolutionCard
+                id="consultancy"
+                title="Consultancy Agreements"
+                description="Review consultancy agreements (and other professional services agreements) for compliance with established standards and best practices. Get instant report with insights and extracted clauses."
+                imageSrc="https://api.builder.io/api/v1/image/assets/TEMP/0c17d06bf5b7000c02dd54103946d52cf8df3ae2?width=456"
+                className="flex-1 self-stretch lg:col-start-1 lg:row-start-2"
+              />
 
               {/* R&D Card */}
-              <div className="flex pt-[15px] flex-col justify-end items-center flex-1 self-stretch bg-[#F3F3F3] relative lg:col-start-2 lg:row-start-2 cursor-pointer hover:bg-[#ECECEC] transition-colors duration-200">
-                <div className="w-[265px] h-[424px] relative">
-                  <img
-                    src="https://api.builder.io/api/v1/image/assets/TEMP/b3ecd43f1412a792e3e5e0acc29fa4ec35a0a0b7?width=456"
-                    alt=""
-                    className="w-[228px] h-[228px] rounded-lg absolute left-[19px] top-0"
-                  />
-                  <div className="flex w-[157px] h-[27px] flex-col justify-center text-[#271D1D] font-lora text-xl font-medium leading-[22px] absolute left-[30px] top-[246px]">
-                    R&D Agreements
-                  </div>
-                  <div className="flex w-[217px] h-[90px] flex-col justify-center text-[#271D1D] font-roboto text-xs font-normal leading-[18px] tracking-[0.12px] absolute left-[30px] top-[291px]">
-                    Conduct compliance review of R&D agreements to ensure adherence to industry standards. Obtain a report on potential compliance risks and recommendations for risk mitigation.
-                  </div>
-                </div>
-              </div>
+              <AnimatedSolutionCard
+                id="rnd"
+                title="R&D Agreements"
+                description="Conduct compliance review of R&D agreements to ensure adherence to industry standards. Obtain a report on potential compliance risks and recommendations for risk mitigation."
+                imageSrc="https://api.builder.io/api/v1/image/assets/TEMP/b3ecd43f1412a792e3e5e0acc29fa4ec35a0a0b7?width=456"
+                className="flex-1 self-stretch lg:col-start-2 lg:row-start-2"
+              />
 
               {/* EULA Card */}
-              <div className="flex pt-[15px] flex-col justify-end items-center flex-1 self-stretch bg-[#F3F3F3] relative lg:col-start-3 lg:row-start-2 cursor-pointer hover:bg-[#ECECEC] transition-colors duration-200">
-                <div className="w-[265px] h-[424px] relative">
-                  <img
-                    src="https://api.builder.io/api/v1/image/assets/TEMP/e15ae08447ee7134243cef816b1e4e7fd28292f3?width=456"
-                    alt=""
-                    className="w-[228px] h-[228px] rounded-lg absolute left-[19px] top-0"
-                  />
-                  <div className="flex w-[174px] h-[27px] flex-col justify-center text-[#271D1D] font-lora text-xl font-medium leading-[22px] absolute left-[30px] top-[246px]">
-                    End User License Agreements
-                  </div>
-                  <div className="flex w-[217px] h-[108px] flex-col justify-center text-[#271D1D] font-roboto text-xs font-normal leading-[18px] tracking-[0.12px] absolute left-[27px] top-[291px]">
-                    Review end user license agreements for compliance with established standards and best practices. Get instant report with insights and extracted clauses. Used most often for reviewing software license agreements
-                  </div>
-                </div>
-              </div>
+              <AnimatedSolutionCard
+                id="eula"
+                title="End User License Agreements"
+                description="Review end user license agreements for compliance with established standards and best practices. Get instant report with insights and extracted clauses. Used most often for reviewing software license agreements"
+                imageSrc="https://api.builder.io/api/v1/image/assets/TEMP/e15ae08447ee7134243cef816b1e4e7fd28292f3?width=456"
+                className="flex-1 self-stretch lg:col-start-3 lg:row-start-2"
+              />
 
               {/* PSA Card */}
-              <div className="flex pt-[15px] flex-col justify-end items-center flex-1 self-stretch bg-[#F3F3F3] relative lg:col-start-2 lg:row-start-3 cursor-pointer hover:bg-[#ECECEC] transition-colors duration-200">
-                <div className="w-[265px] h-[424px] relative">
-                  <img
-                    src="https://api.builder.io/api/v1/image/assets/TEMP/c45a3430161c947516c7f46bf9858e79c7b54742?width=456"
-                    alt=""
-                    className="w-[228px] h-[228px] rounded-lg absolute left-[19px] top-0"
-                  />
-                  <div className="flex w-[157px] h-[27px] flex-col justify-center text-[#271D1D] font-lora text-xl font-medium leading-[22px] absolute left-[30px] top-[246px]">
-                    Product Supply Agreements
-                  </div>
-                  <div className="flex w-[217px] h-[72px] flex-col justify-center text-[#271D1D] font-roboto text-xs font-normal leading-[18px] tracking-[0.12px] absolute left-[30px] top-[291px]">
-                    Review product supply agreements for compliance with established standards and best practices. Get instant report with insights and extracted clauses.
-                  </div>
-                </div>
-              </div>
+              <AnimatedSolutionCard
+                id="psa"
+                title="Product Supply Agreements"
+                description="Review product supply agreements for compliance with established standards and best practices. Get instant report with insights and extracted clauses."
+                imageSrc="https://api.builder.io/api/v1/image/assets/TEMP/c45a3430161c947516c7f46bf9858e79c7b54742?width=456"
+                className="flex-1 self-stretch lg:col-start-2 lg:row-start-3"
+              />
             </div>
           </div>
 
