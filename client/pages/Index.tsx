@@ -6,6 +6,7 @@ import { useState, useEffect } from "react";
 import Logo from "@/components/Logo";
 import Footer from "@/components/Footer";
 import AnimatedQuotes from "@/components/AnimatedQuotes";
+import ContractCardsAnimation from "@/components/ContractCardsAnimation";
 
 interface ContractType {
   title: string;
