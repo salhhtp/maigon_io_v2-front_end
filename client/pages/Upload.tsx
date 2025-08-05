@@ -14,6 +14,8 @@ export default function Upload() {
   const [pendingNavigation, setPendingNavigation] = useState<string | null>(null);
   const [hasStartedProcess, setHasStartedProcess] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [uploadButtonHidden, setUploadButtonHidden] = useState(false);
+  const [showLoadingTransition, setShowLoadingTransition] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const location = useLocation();
   const navigate = useNavigate();
