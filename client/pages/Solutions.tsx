@@ -388,7 +388,7 @@ export default function Solutions() {
               </Link>
 
               {/* EULA Card */}
-              <div className="flex pt-[15px] flex-col justify-end items-center flex-1 self-stretch bg-[#F3F3F3] relative lg:col-start-3 lg:row-start-2">
+              <Link to="/signin" className="flex pt-[15px] flex-col justify-end items-center flex-1 self-stretch bg-[#F3F3F3] relative lg:col-start-3 lg:row-start-2 cursor-pointer hover:bg-[#ECECEC] transition-colors duration-200">
                 <div className="w-[265px] h-[424px] absolute left-0 top-[15px]">
                   <img
                     src="https://api.builder.io/api/v1/image/assets/TEMP/028255c210716e79f6cc8592e835ed9bcd809aa3?width=456"
@@ -402,7 +402,7 @@ export default function Solutions() {
                     Review end user license agreements for compliance with established standards and best practices. Get instant report with insights and extracted clauses. Used most often for reviewing software license agreements
                   </div>
                 </div>
-              </div>
+              </Link>
 
               {/* PSA Card */}
               <div className="flex pt-[15px] flex-col justify-end items-center flex-1 self-stretch bg-[#F3F3F3] relative lg:col-start-2 lg:row-start-3">
