@@ -301,7 +301,7 @@ export default function Solutions() {
             </div>
 
             {/* Solutions Grid */}
-            <div className="grid h-auto lg:h-[1368px] py-5 lg:py-[21px] gap-y-px gap-x-1 w-full grid-rows-3 grid-cols-1 lg:grid-cols-3 relative">
+            <div className="grid h-auto lg:h-[1368px] py-5 lg:py-[21px] lg:pr-11 gap-y-px gap-x-1 w-full grid-rows-3 grid-cols-1 lg:grid-cols-3 relative">
               {/* NDA Card */}
               <div className="flex w-full lg:w-[265px] pt-[15px] flex-col justify-end items-center bg-[#F3F3F3] relative lg:col-start-1 lg:row-start-1">
                 <div className="w-full lg:w-[265px] h-[424px] absolute left-0 top-[15px]">
