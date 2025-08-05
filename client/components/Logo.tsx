@@ -6,7 +6,7 @@ interface LogoProps {
   align?: 'start' | 'center' | 'end';
 }
 
-const Logo: React.FC<LogoProps> = ({ className = '', size = 'lg' }) => {
+const Logo: React.FC<LogoProps> = ({ className = '', size = 'lg', align = 'center' }) => {
   const sizeClasses = {
     sm: 'h-4',
     md: 'h-6',
@@ -14,8 +14,14 @@ const Logo: React.FC<LogoProps> = ({ className = '', size = 'lg' }) => {
     xl: 'h-8'
   };
 
+  const alignClasses = {
+    start: 'justify-start',
+    center: 'justify-center',
+    end: 'justify-end'
+  };
+
   return (
-    <div className={`flex justify-center items-center ${className}`}>
+    <div className={`flex ${alignClasses[align]} items-center ${className}`}>
       <img 
         src="https://api.builder.io/api/v1/image/assets/TEMP/b0949329babe110fdd188f56bd092ac7588362ee?width=400" 
         alt="MAIGON"
