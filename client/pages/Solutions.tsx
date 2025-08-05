@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { useState } from "react";
 import Logo from "@/components/Logo";
 import Footer from "@/components/Footer";
+import AnimatedQuotes from "@/components/AnimatedQuotes";
 
 const SolutionCard = ({ title, description, imageSrc }: { title: string; description: string; imageSrc: string }) => (
   <div className="bg-[#F3F3F3] rounded-lg overflow-hidden">
@@ -367,17 +368,7 @@ export default function Solutions() {
         </div>
       </section>
 
-      {/* Testimonials Section */}
-      <section className="py-20">
-        <div className="max-w-4xl mx-auto px-8 lg:px-16 text-center">
-          <h2 className="text-4xl lg:text-5xl font-normal text-black font-lora leading-tight mb-8">
-            " DPA AI makes review of data processing agreements much faster. "
-          </h2>
-          <p className="text-lg text-black">
-            Sara Edlund, General Counsel at Dustin Group
-          </p>
-        </div>
-      </section>
+      <AnimatedQuotes />
 
       {/* FAQ Section */}
       <section className="py-20 max-w-4xl mx-auto px-8 lg:px-16">
