@@ -297,6 +297,13 @@ export default function Upload() {
       </main>
 
       <Footer />
+
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showConfirmModal}
+        onConfirm={handleConfirmNavigation}
+        onCancel={handleCancelNavigation}
+      />
     </div>
   );
 }
