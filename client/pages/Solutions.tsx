@@ -183,11 +183,11 @@ const AnimatedStepsComponent = () => {
                   <div className="flex w-full lg:w-[354px] h-5 flex-col justify-center text-black font-lora text-sm md:text-lg lg:text-2xl font-medium leading-[60px] md:leading-[75px] lg:leading-[90px] absolute left-2 md:left-3 lg:left-4 top-6 md:top-7 lg:top-9">
                     {step.title}
                   </div>
-                  <div className="flex w-6 lg:w-7 h-5 flex-col justify-center text-black font-lora text-lg lg:text-2xl font-medium leading-[70px] absolute right-4 lg:right-9 top-9">
+                  <div className="flex w-5 md:w-6 lg:w-7 h-5 flex-col justify-center text-black font-lora text-sm md:text-lg lg:text-2xl font-medium leading-[50px] md:leading-[60px] lg:leading-[70px] absolute right-2 md:right-3 lg:right-9 top-6 md:top-7 lg:top-9">
                     {step.number}
                   </div>
                   {index === currentStep && (
-                    <div className="w-full lg:w-[370px] h-[52px] text-black font-roboto text-xs font-normal leading-[26px] absolute left-4 top-[92px]">
+                    <div className="w-full lg:w-[370px] h-[40px] md:h-[45px] lg:h-[52px] text-black font-roboto text-xs font-normal leading-[20px] md:leading-[24px] lg:leading-[26px] absolute left-2 md:left-3 lg:left-4 top-[70px] md:top-[80px] lg:top-[92px]">
                       {step.description}
                     </div>
                   )}
