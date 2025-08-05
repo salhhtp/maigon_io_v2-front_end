@@ -557,6 +557,25 @@ export default function UserSolutions() {
       </section>
 
       <Footer />
+
+      {/* Review Completion Success Message */}
+      {showSuccessMessage && (
+        <div className="fixed top-4 right-4 z-50 bg-green-500 text-white px-6 py-4 rounded-lg shadow-lg flex items-center gap-3 animate-in slide-in-from-right duration-300">
+          <CheckCircle className="w-5 h-5" />
+          <div>
+            <div className="font-medium">Review Completed! ✅</div>
+            <div className="text-sm opacity-90">
+              {location.state?.fileName} - {location.state?.solutionTitle}
+            </div>
+          </div>
+          <button
+            onClick={() => setShowSuccessMessage(false)}
+            className="ml-2 hover:opacity-70 transition-opacity"
+          >
+            ×
+          </button>
+        </div>
+      )}
     </div>
   );
 }
