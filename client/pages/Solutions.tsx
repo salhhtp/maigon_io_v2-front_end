@@ -241,8 +241,8 @@ export default function Solutions() {
               </p>
             </div>
           </div>
-          <Button className="flex py-3 px-10 justify-center items-center gap-2.5 rounded-xl bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-[#F9F8F8] text-center font-roboto text-lg lg:text-xl font-normal leading-6 tracking-[0.2px]">
-            Try for free
+          <Button asChild className="flex py-3 px-10 justify-center items-center gap-2.5 rounded-xl bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-[#F9F8F8] text-center font-roboto text-lg lg:text-xl font-normal leading-6 tracking-[0.2px]">
+            <Link to="/signin">Try for free</Link>
           </Button>
         </div>
 
