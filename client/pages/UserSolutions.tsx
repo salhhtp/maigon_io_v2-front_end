@@ -213,6 +213,9 @@ export default function UserSolutions() {
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const location = useLocation();
 
+  // User data - can be replaced with actual user context/auth later
+  const userName = "Adam";
+
   // Check if user returned from completed review
   useEffect(() => {
     if (location.state?.reviewCompleted) {
