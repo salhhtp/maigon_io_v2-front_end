@@ -124,15 +124,15 @@ export default function Index() {
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 mb-20">
             {/* Card 1 */}
-            <div className="flex flex-col items-start relative" style={{ width: '458px' }}>
+            <div className="flex flex-col items-center relative w-full">
               <img
                 src="https://api.builder.io/api/v1/image/assets/TEMP/e33365b24a4962ef5c0529d0c37ac13af63f6f48?width=916"
                 alt="Compliance Dashboard Interface"
-                className="flex flex-col items-start gap-2 w-full border border-[#271D1D]/15 rounded-lg relative"
+                className="w-full h-auto border border-[#271D1D]/15 rounded-lg"
               />
 
               {/* Card Description */}
-              <div className="flex flex-col items-center w-full relative">
+              <div className="flex flex-col items-center w-full relative mt-4">
                 <div className="flex h-[89px] flex-col justify-center w-full text-black text-center font-lora text-xl font-medium leading-[90px] relative">
                   <span>Learn Your Compliance Score</span>
                 </div>
