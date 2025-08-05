@@ -5,6 +5,7 @@ import { useState } from "react";
 import Logo from "@/components/Logo";
 import Footer from "@/components/Footer";
 import AnimatedQuotes from "@/components/AnimatedQuotes";
+import MobileNavigation from "@/components/MobileNavigation";
 
 const NewsCard = ({ title, date, imageSrc, featured = false }: { title: string; date: string; imageSrc: string; featured?: boolean }) => (
   <div className={`flex flex-col ${featured ? 'gap-4' : 'gap-4'}`}>
