@@ -76,10 +76,12 @@ export default function Upload() {
   };
 
   const handleLinkClick = (path: string) => (e: React.MouseEvent) => {
-    if (hasStartedProcess) {
+    if (hasStartedProcess || isSubmitting) {
       e.preventDefault();
-      setPendingNavigation(path);
-      setShowConfirmModal(true);
+      if (!isSubmitting) {
+        setPendingNavigation(path);
+        setShowConfirmModal(true);
+      }
     }
   };
 
