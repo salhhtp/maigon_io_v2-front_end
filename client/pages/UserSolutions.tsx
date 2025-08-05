@@ -265,7 +265,7 @@ export default function UserSolutions() {
       </nav>
 
       {/* Hero Section */}
-      <section className="flex flex-col lg:flex-row justify-center items-center gap-8 lg:gap-44 px-8 lg:px-16 py-12 lg:py-20 max-w-7xl mx-auto pt-24 lg:pt-32">
+      <section className="flex flex-col lg:flex-row justify-center items-center gap-8 lg:gap-44 px-8 lg:px-16 py-20 lg:py-20 max-w-7xl mx-auto pt-28 lg:pt-32">
         <div className="flex flex-col items-start gap-6 lg:gap-20 w-full lg:w-[461px] mb-8 lg:mb-0">
           <div className="flex flex-col items-start gap-8 lg:gap-28 w-full">
             <div className="flex justify-center items-center gap-2.5 w-full">
