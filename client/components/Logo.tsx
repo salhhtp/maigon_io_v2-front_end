@@ -3,6 +3,7 @@ import React from 'react';
 interface LogoProps {
   className?: string;
   size?: 'sm' | 'md' | 'lg' | 'xl';
+  align?: 'start' | 'center' | 'end';
 }
 
 const Logo: React.FC<LogoProps> = ({ className = '', size = 'lg' }) => {
