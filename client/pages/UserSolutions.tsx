@@ -152,58 +152,129 @@ const AnimatedStepsComponent = () => {
   }, [steps.length]);
 
   return (
-    <div className="flex flex-col gap-2.5 w-full p-2.5">
-      <div className="min-h-[400px] lg:h-[660px] w-full flex flex-col lg:flex-row lg:relative">
-        {/* Steps Section */}
-        <div className="flex flex-col justify-start lg:justify-end items-start gap-px lg:absolute lg:left-0 lg:top-1 h-auto lg:h-[641px] w-full lg:w-[458px] mb-8 lg:mb-0">
+    <div className="flex flex-col gap-4 w-full">
+      {/* Mobile/Tablet Layout */}
+      <div className="block lg:hidden">
+        {/* Current Step Image */}
+        <div className="mb-6">
+          <img
+            src={steps[currentStep].image}
+            alt={`Step ${steps[currentStep].number} demonstration`}
+            className="w-full h-[250px] rounded-lg border border-[#271D1D]/15 object-cover"
+          />
+        </div>
+
+        {/* Current Step Info */}
+        <div className="bg-white rounded-lg p-6 border border-[#271D1D]/15 mb-6">
+          <div className="flex justify-between items-start mb-4">
+            <h3 className="text-black font-lora text-xl font-medium leading-tight max-w-[250px]">
+              {steps[currentStep].title}
+            </h3>
+            <span className="text-black font-lora text-xl font-medium">
+              {steps[currentStep].number}
+            </span>
+          </div>
+          <p className="text-black font-roboto text-sm leading-relaxed">
+            {steps[currentStep].description}
+          </p>
+
+          {/* Progress Bar */}
+          <div className="mt-4">
+            <div className="w-full h-1 bg-[#D6CECE] rounded-full">
+              <div
+                className="h-1 bg-[#271D1D] rounded-full transition-all duration-100 ease-linear"
+                style={{ width: `${loadingProgress}%` }}
+              ></div>
+            </div>
+          </div>
+        </div>
+
+        {/* Step Navigation */}
+        <div className="flex flex-col gap-2">
           {steps.map((step, index) => (
-            <div key={index} className="flex flex-col w-full lg:w-[458px]">
-              {/* Loading Bar - only show on active step */}
-              {index === currentStep && (
-                <div className="flex w-full h-px justify-center items-center mb-px">
-                  <div className="w-full h-px relative">
-                    <div className="w-full h-px rounded-lg bg-[#D6CECE] absolute left-0 top-0"></div>
-                    <div
-                      className="h-px rounded-lg bg-[#271D1D] absolute left-0 top-0 transition-all duration-100 ease-linear"
-                      style={{ width: `${loadingProgress}%` }}
-                    ></div>
-                  </div>
-                </div>
-              )}
-
-              {/* Step Content */}
-              <div className={`w-full transition-all duration-500 ${
-                index === currentStep ? 'h-[175px]' : 'h-[93px]'
-              }`}>
-                {/* Divider line for non-active steps */}
-                {index !== currentStep && (
-                  <div className="w-full h-px rounded-lg bg-[#D9D9D9] mb-px"></div>
-                )}
-
-                <div className="w-full h-[175px] relative">
-                  <div className="flex w-full lg:w-[354px] h-5 flex-col justify-center text-black font-lora text-lg lg:text-2xl font-medium leading-[90px] absolute left-4 top-9">
-                    {step.title}
-                  </div>
-                  <div className="flex w-6 lg:w-7 h-5 flex-col justify-center text-black font-lora text-lg lg:text-2xl font-medium leading-[70px] absolute right-4 lg:right-9 top-9">
-                    {step.number}
-                  </div>
-                  {index === currentStep && (
-                    <div className="w-full lg:w-[370px] h-[52px] text-black font-roboto text-xs font-normal leading-[26px] absolute left-4 top-[92px]">
-                      {step.description}
-                    </div>
-                  )}
-                </div>
-              </div>
+            <div
+              key={index}
+              className={`flex justify-between items-center p-3 rounded-lg border transition-colors ${
+                index === currentStep
+                  ? 'bg-[#F3F3F3] border-[#271D1D]/20'
+                  : 'bg-white border-[#271D1D]/10'
+              }`}
+            >
+              <span
+                className={`font-lora text-sm ${
+                  index === currentStep ? 'font-medium' : 'font-normal'
+                }`}
+              >
+                {step.title}
+              </span>
+              <span
+                className={`font-lora text-sm ${
+                  index === currentStep ? 'font-medium' : 'font-normal'
+                }`}
+              >
+                {step.number}
+              </span>
             </div>
           ))}
         </div>
+      </div>
 
-        {/* Image Section */}
-        <img
-          src={steps[currentStep].image}
-          alt={`Step ${steps[currentStep].number} demonstration`}
-          className="w-full lg:w-[688px] h-[300px] lg:h-[660px] rounded-lg border border-[#271D1D]/15 lg:absolute lg:right-0 lg:left-[522px] lg:top-0 object-cover"
-        />
+      {/* Desktop Layout */}
+      <div className="hidden lg:block">
+        <div className="flex flex-col gap-2.5 w-full p-2.5">
+          <div className="h-[660px] w-full relative">
+            {/* Steps Section */}
+            <div className="flex flex-col justify-end items-start gap-px absolute left-0 top-1 h-[641px] w-[458px]">
+              {steps.map((step, index) => (
+                <div key={index} className="flex flex-col w-[458px]">
+                  {/* Loading Bar - only show on active step */}
+                  {index === currentStep && (
+                    <div className="flex w-full h-px justify-center items-center mb-px">
+                      <div className="w-full h-px relative">
+                        <div className="w-full h-px rounded-lg bg-[#D6CECE] absolute left-0 top-0"></div>
+                        <div
+                          className="h-px rounded-lg bg-[#271D1D] absolute left-0 top-0 transition-all duration-100 ease-linear"
+                          style={{ width: `${loadingProgress}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Step Content */}
+                  <div className={`w-full transition-all duration-500 ${
+                    index === currentStep ? 'h-[175px]' : 'h-[93px]'
+                  }`}>
+                    {/* Divider line for non-active steps */}
+                    {index !== currentStep && (
+                      <div className="w-full h-px rounded-lg bg-[#D9D9D9] mb-px"></div>
+                    )}
+
+                    <div className="w-full h-[175px] relative">
+                      <div className="flex w-[354px] h-5 flex-col justify-center text-black font-lora text-2xl font-medium leading-[90px] absolute left-4 top-9">
+                        {step.title}
+                      </div>
+                      <div className="flex w-7 h-5 flex-col justify-center text-black font-lora text-2xl font-medium leading-[70px] absolute right-9 top-9">
+                        {step.number}
+                      </div>
+                      {index === currentStep && (
+                        <div className="w-[370px] h-[52px] text-black font-roboto text-xs font-normal leading-[26px] absolute left-4 top-[92px]">
+                          {step.description}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Image Section */}
+            <img
+              src={steps[currentStep].image}
+              alt={`Step ${steps[currentStep].number} demonstration`}
+              className="w-[688px] h-[660px] rounded-lg border border-[#271D1D]/15 absolute right-0 left-[522px] top-0 object-cover"
+            />
+          </div>
+        </div>
       </div>
     </div>
   );
