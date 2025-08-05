@@ -143,13 +143,36 @@ export default function Index() {
             </Card>
 
             {/* Card 2 */}
-            <Card className="border border-[#271D1D]/15 rounded-lg overflow-hidden">
-              <div className="h-80 bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center">
-                <div className="w-8 h-8 transform rotate-45 bg-black"></div>
+            <Card className="border border-[#271D1D]/15 rounded-lg overflow-hidden flex flex-col">
+              <div
+                className="h-80 flex justify-between items-center px-24 py-14 rounded-t-lg relative"
+                style={{
+                  background: `url('https://api.builder.io/api/v1/image/assets/TEMP/2a007dd35a383d1ae8dd9a022fe6283585484de4?width=916') lightgray -60.391px 6px / 123.509% 98.056% no-repeat`
+                }}
+              >
+                <div className="w-8 h-8 p-2 flex flex-col items-start gap-2"></div>
+                <svg
+                  className="flex p-1 items-center gap-2"
+                  width="31"
+                  height="31"
+                  viewBox="0 0 31 31"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M4.375 4.14062L13.8017 26.7673L17.1483 16.914L27.0017 13.5673L4.375 4.14062Z"
+                    fill="black"
+                    stroke="black"
+                    strokeWidth="2"
+                    strokeLinejoin="round"
+                  />
+                </svg>
               </div>
-              <CardContent className="p-6 text-center">
-                <CardTitle className="text-xl font-medium mb-4 font-lora">Review From Different Perspectives</CardTitle>
-                <CardDescription className="text-sm leading-relaxed">
+              <CardContent className="p-6 text-center flex flex-col items-center bg-[#F9F8F8]">
+                <CardTitle className="text-xl font-medium mb-4 font-lora text-black">
+                  Review From Different Perspectives
+                </CardTitle>
+                <CardDescription className="text-xs leading-[26px] tracking-[0.12px] text-black">
                   You can choose to review your document/s from the "Data Subject" or "Organization" perspective to get tailored analysis of your document.
                 </CardDescription>
               </CardContent>
