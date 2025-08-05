@@ -70,7 +70,7 @@ export default function MobileNavigation({ isLoggedIn = false, userName }: Mobil
 
       {/* Mobile Menu Overlay */}
       {isMenuOpen && (
-        <div className="fixed inset-0 z-40 md:hidden">
+        <div className="fixed inset-0 z-50 md:hidden">
           {/* Background overlay */}
           <div 
             className="absolute inset-0 bg-black/20 backdrop-blur-sm"
