@@ -223,24 +223,17 @@ export default function UserHome() {
           </div>
 
           {/* Contract Types Section */}
-          <div className="text-center mb-12">
-            <h3 className="text-3xl lg:text-4xl font-medium text-[#271D1D] font-lora mb-6">One-For-Each!</h3>
-            <p className="text-xl text-center max-w-3xl mx-auto">
-              Enjoy Maigon for all your agreements with industry leading <strong>SEVEN</strong> different, AI models that are each tailor made for any agreement you'd want to review.
-            </p>
-          </div>
+          <div className="flex flex-col items-center justify-center w-full">
+            <div className="text-center mb-12 w-full max-w-5xl">
+              <h3 className="text-3xl lg:text-4xl font-medium text-[#271D1D] font-lora mb-6">One-For-Each!</h3>
+              <p className="text-xl text-center max-w-3xl mx-auto">
+                Enjoy Maigon for all your agreements with industry leading <strong>SEVEN</strong> different, AI models that are each tailor made for any agreement you'd want to review.
+              </p>
+            </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-20">
-            {contractTypes.map((type, index) => (
-              <div key={index} className="border-t border-[#D6CECE] pt-4">
-                <h4 className="font-bold text-[#271D1D] text-center mb-4 text-sm leading-tight">
-                  {type.title}
-                </h4>
-                <p className="text-xs text-[#271D1D] leading-relaxed">
-                  {type.description}
-                </p>
-              </div>
-            ))}
+            <div className="flex justify-center w-full">
+              <ContractCardsAnimation contractTypes={contractTypes} />
+            </div>
           </div>
         </div>
       </section>
