@@ -223,7 +223,7 @@ export default function UserSolutions() {
   }, [location.state]);
 
   return (
-    <div className="min-h-screen bg-[#F9F8F8]">
+    <div className="min-h-screen bg-[#F9F8F8] relative">
       {/* Navigation */}
       <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-8 lg:px-16 py-6 bg-[#F9F8F8]">
         <Link to="/home">
