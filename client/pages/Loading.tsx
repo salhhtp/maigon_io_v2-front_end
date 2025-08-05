@@ -23,6 +23,16 @@ export default function Loading() {
     }, 1000);
   };
 
+  // Entrance animation
+  useEffect(() => {
+    // Trigger entrance animation after component mounts
+    const timer = setTimeout(() => {
+      setIsVisible(true);
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, []);
+
   // Prevent navigation during loading
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
@@ -32,7 +42,7 @@ export default function Loading() {
     };
 
     window.addEventListener('beforeunload', handleBeforeUnload);
-    
+
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
