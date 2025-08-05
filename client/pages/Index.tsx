@@ -124,23 +124,23 @@ export default function Index() {
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 mb-20">
             {/* Card 1 */}
-            <Card className="border border-[#271D1D]/15 rounded-lg overflow-hidden flex flex-col">
-              <div className="relative">
-                <img
-                  src="https://api.builder.io/api/v1/image/assets/TEMP/e33365b24a4962ef5c0529d0c37ac13af63f6f48?width=916"
-                  alt="Compliance Dashboard Interface"
-                  className="w-full h-80 object-cover rounded-t-lg"
-                />
+            <div className="flex flex-col items-start relative" style={{ width: '458px' }}>
+              <img
+                src="https://api.builder.io/api/v1/image/assets/TEMP/e33365b24a4962ef5c0529d0c37ac13af63f6f48?width=916"
+                alt="Compliance Dashboard Interface"
+                className="flex flex-col items-start gap-2 w-full border border-[#271D1D]/15 rounded-lg relative"
+              />
+
+              {/* Card Description */}
+              <div className="flex flex-col items-center w-full relative">
+                <div className="flex h-[89px] flex-col justify-center w-full text-black text-center font-lora text-xl font-medium leading-[90px] relative">
+                  <span>Learn Your Compliance Score</span>
+                </div>
+                <div className="w-full text-black text-center text-xs font-normal leading-[26px] tracking-[0.12px] relative">
+                  <span>Our machine learning algorithms are trained to give you the full look on what you need to know the most from your agreements.</span>
+                </div>
               </div>
-              <CardContent className="p-6 text-center flex flex-col items-center bg-[#F9F8F8]">
-                <CardTitle className="text-xl font-medium mb-4 font-lora text-black">
-                  Learn Your Compliance Score
-                </CardTitle>
-                <CardDescription className="text-xs leading-[26px] tracking-[0.12px] text-black">
-                  Our machine learning algorithms are trained to give you the full look on what you need to know the most from your agreements.
-                </CardDescription>
-              </CardContent>
-            </Card>
+            </div>
 
             {/* Card 2 */}
             <Card className="border border-[#271D1D]/15 rounded-lg overflow-hidden flex flex-col">
