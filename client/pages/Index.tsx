@@ -132,7 +132,7 @@ export default function Index() {
                   className="w-full h-80 object-cover rounded-t-lg"
                 />
               </div>
-              <CardContent className="p-6 text-center flex flex-col items-center">
+              <CardContent className="p-6 text-center flex flex-col items-center bg-[#F9F8F8]">
                 <CardTitle className="text-xl font-medium mb-4 font-lora text-black">
                   Learn Your Compliance Score
                 </CardTitle>
