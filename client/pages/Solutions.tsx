@@ -301,7 +301,7 @@ export default function Solutions() {
             </div>
 
             {/* Solutions Grid */}
-            <div className="grid h-auto lg:h-[1368px] py-5 lg:py-[21px] gap-y-px gap-x-[3px] w-full grid-rows-3 grid-cols-1 lg:grid-cols-3 relative">
+            <div className="grid h-auto lg:h-[1368px] py-5 lg:py-[21px] gap-0.5 w-full grid-rows-3 grid-cols-1 lg:grid-cols-3 relative">
               {/* NDA Card */}
               <div className="flex w-[265px] pt-[15px] flex-col justify-end items-center row-start-1 row-span-1 col-start-1 col-span-1 bg-[#F3F3F3] relative">
                 <div className="w-[265px] h-[424px] absolute left-0 top-[15px]">
@@ -320,17 +320,17 @@ export default function Solutions() {
               </div>
 
               {/* DPA Card */}
-              <div className="flex py-[15px] px-0 pb-[2.333px] flex-col justify-end items-center flex-1 row-start-1 row-span-1 col-start-2 col-span-1 bg-[#F3F3F3] relative">
+              <div className="flex w-[265px] pt-[15px] flex-col justify-end items-center row-start-1 row-span-1 col-start-2 col-span-1 bg-[#F3F3F3] relative">
                 <div className="w-[265px] h-[424px] absolute left-0 top-[15px]">
                   <img
                     src="https://api.builder.io/api/v1/image/assets/TEMP/d2502c8f65fc6fb3cfd64fcf2e883767c28d87b3?width=456"
-                    alt="Data Processing Agreements"
-                    className="w-[228px] h-[228px] rounded-lg absolute left-[19px] top-0"
+                    alt=""
+                    className="w-[228px] h-[228px] flex-shrink-0 rounded-lg absolute left-[19px] top-0"
                   />
-                  <div className="flex w-[157px] h-[27px] flex-col justify-center text-[#271D1D] font-lora text-xl font-medium leading-[22px] absolute left-[30px] top-[246px]">
+                  <div className="flex w-[157px] h-[27px] flex-col justify-center flex-shrink-0 text-[#271D1D] font-lora text-xl font-medium leading-[22px] absolute left-[30px] top-[246px]">
                     Data Processing Agreements
                   </div>
-                  <div className="flex w-[217px] h-[118px] flex-col justify-center text-[#271D1D] font-roboto text-xs font-normal leading-[17px] tracking-[0.12px] absolute left-[30px] top-[293px]">
+                  <div className="flex w-[217px] h-[118px] flex-col justify-center flex-shrink-0 text-[#271D1D] font-roboto text-xs font-normal leading-[17px] tracking-[0.12px] absolute left-[30px] top-[293px]">
                     Review data processing agreements for compliance with the GDPR and latest EDPB guidelines. Get instant compliance report with extracted clauses, concepts, terms, highlighted risks, and compliance recommendations.
                   </div>
                 </div>
