@@ -17,6 +17,7 @@ import Loading from "./pages/Loading";
 import News from "./pages/News";
 import UserNews from "./pages/UserNews";
 import Team from "./pages/Team";
+import UserTeam from "./pages/UserTeam";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -65,6 +66,10 @@ const router = createBrowserRouter([
   {
     path: "/team",
     element: <Team />,
+  },
+  {
+    path: "/user-team",
+    element: <UserTeam />,
   },
   {
     path: "*",
