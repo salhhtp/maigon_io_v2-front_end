@@ -67,6 +67,126 @@ const FAQItem = ({ question, answer }: { question: string; answer: string }) => 
   );
 };
 
+const AnimatedStepsComponent = () => {
+  const [currentStep, setCurrentStep] = useState(0);
+  const [loadingProgress, setLoadingProgress] = useState(0);
+
+  const steps = [
+    {
+      number: "01",
+      title: "Create or log into your account",
+      description: "Create or log into your existing Maigon account in order to experience the power that comes with Maigon.",
+      image: "https://api.builder.io/api/v1/image/assets/TEMP/ab810becba68b895d17259b055eb02fa4e423ca7?width=1376"
+    },
+    {
+      number: "02",
+      title: "Choose your weapon",
+      description: "Select your desired solution based on your contract's type.",
+      image: "https://api.builder.io/api/v1/image/assets/TEMP/ab810becba68b895d17259b055eb02fa4e423ca7?width=1376"
+    },
+    {
+      number: "03",
+      title: "Select your perspective",
+      description: "Select between \"Data Processer\" and \"Organization\" in order to obtain tailored review results of your contracts.",
+      image: "https://api.builder.io/api/v1/image/assets/TEMP/ab810becba68b895d17259b055eb02fa4e423ca7?width=1376"
+    },
+    {
+      number: "04",
+      title: "Upload your contract",
+      description: "Upload your contract to let the magic happens.",
+      image: "https://api.builder.io/api/v1/image/assets/TEMP/ab810becba68b895d17259b055eb02fa4e423ca7?width=1376"
+    },
+    {
+      number: "05",
+      title: "Sit back and relax",
+      description: "Sit back and relax! This will only take a moment.",
+      image: "https://api.builder.io/api/v1/image/assets/TEMP/ab810becba68b895d17259b055eb02fa4e423ca7?width=1376"
+    },
+    {
+      number: "06",
+      title: "Voilà!",
+      description: "Get your review and enjoy all the insights.",
+      image: "https://api.builder.io/api/v1/image/assets/TEMP/ab810becba68b895d17259b055eb02fa4e423ca7?width=1376"
+    }
+  ];
+
+  useEffect(() => {
+    const stepInterval = setInterval(() => {
+      setCurrentStep((prev) => (prev + 1) % steps.length);
+      setLoadingProgress(0);
+    }, 10000);
+
+    const progressInterval = setInterval(() => {
+      setLoadingProgress((prev) => {
+        if (prev >= 100) return 0;
+        return prev + (100 / 1000); // 100% over 10 seconds (100ms intervals)
+      });
+    }, 100);
+
+    return () => {
+      clearInterval(stepInterval);
+      clearInterval(progressInterval);
+    };
+  }, [steps.length]);
+
+  return (
+    <div className="flex flex-col gap-2.5 w-full p-2.5">
+      <div className="h-[660px] w-full relative">
+        {/* Steps Section */}
+        <div className="flex flex-col justify-end items-start gap-px absolute left-0 top-1 h-[641px] w-full lg:w-[458px]">
+          {steps.map((step, index) => (
+            <div key={index} className="flex flex-col w-full lg:w-[458px]">
+              {/* Loading Bar - only show on active step */}
+              {index === currentStep && (
+                <div className="flex w-full h-px justify-center items-center mb-px">
+                  <div className="w-full h-px relative">
+                    <div className="w-full h-px rounded-lg bg-[#D6CECE] absolute left-0 top-0"></div>
+                    <div
+                      className="h-px rounded-lg bg-[#271D1D] absolute left-0 top-0 transition-all duration-100 ease-linear"
+                      style={{ width: `${loadingProgress}%` }}
+                    ></div>
+                  </div>
+                </div>
+              )}
+
+              {/* Step Content */}
+              <div className={`w-full transition-all duration-500 ${
+                index === currentStep ? 'h-[175px]' : 'h-[93px]'
+              }`}>
+                {/* Divider line for non-active steps */}
+                {index !== currentStep && (
+                  <div className="w-full h-px rounded-lg bg-[#D9D9D9] mb-px"></div>
+                )}
+
+                <div className="w-full h-[175px] relative">
+                  <div className="flex w-full lg:w-[354px] h-5 flex-col justify-center text-black font-lora text-lg lg:text-2xl font-medium leading-[90px] absolute left-4 top-9">
+                    {step.title}
+                  </div>
+                  <div className="flex w-6 lg:w-7 h-5 flex-col justify-center text-black font-lora text-lg lg:text-2xl font-medium leading-[70px] absolute right-4 lg:right-9 top-9">
+                    {step.number}
+                  </div>
+                  {index === currentStep && (
+                    <div className="w-full lg:w-[370px] h-[52px] text-black font-roboto text-xs font-normal leading-[26px] absolute left-4 top-[92px]">
+                      {step.description}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Image Section */}
+        <img
+          src={steps[currentStep].image}
+          alt={`Step ${steps[currentStep].number} demonstration`}
+          className="w-full lg:w-[688px] h-[660px] rounded-lg border border-[#271D1D]/15 absolute right-0 lg:left-[522px] top-0 object-cover transition-opacity duration-500"
+        />
+      </div>
+    </div>
+  );
+};
+
 export default function Solutions() {
   return (
     <div className="min-h-screen bg-[#F9F8F8]">
