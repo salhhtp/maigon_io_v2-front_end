@@ -143,14 +143,13 @@ export default function Index() {
             </div>
 
             {/* Card 2 */}
-            <div className="flex flex-col items-start relative" style={{ width: '458px' }}>
+            <div className="flex flex-col items-center relative w-full">
               <div
-                className="flex justify-between items-center px-24 py-14 w-full border border-[#271D1D]/15 rounded-lg relative bg-cover bg-center"
+                className="flex justify-between items-center px-24 py-14 w-full border border-[#271D1D]/15 rounded-lg relative bg-cover bg-center h-80"
                 style={{
                   backgroundImage: `url('https://api.builder.io/api/v1/image/assets/TEMP/2a007dd35a383d1ae8dd9a022fe6283585484de4?width=916')`,
                   backgroundPosition: 'center center',
-                  backgroundSize: 'cover',
-                  height: '360px'
+                  backgroundSize: 'cover'
                 }}
               >
                 <div className="w-8 h-8 p-2 flex flex-col items-start gap-2"></div>
@@ -173,7 +172,7 @@ export default function Index() {
               </div>
 
               {/* Card Description */}
-              <div className="flex flex-col items-center w-full relative">
+              <div className="flex flex-col items-center w-full relative mt-4">
                 <div className="flex h-[89px] flex-col justify-center w-full text-black text-center font-lora text-xl font-medium leading-[90px] relative">
                   <span>Review From Different Perspectives</span>
                 </div>
