@@ -140,15 +140,26 @@ export default function Upload() {
       alert('Please select a file to upload.');
       return;
     }
-    
+
     console.log('Submitting:', {
       file: selectedFile,
       solution: solutionTitle,
       perspective: perspective
     });
-    
-    // Here you would implement the actual file upload logic
-    alert(`Uploading ${selectedFile.name} for ${solutionTitle} review from ${perspective} perspective`);
+
+    // Start dissolving animation
+    setIsSubmitting(true);
+
+    // Simulate upload process and then navigate to loading page
+    setTimeout(() => {
+      navigate('/loading', {
+        state: {
+          selectedFile: selectedFile,
+          solutionTitle: solutionTitle,
+          perspective: perspective
+        }
+      });
+    }, 1500); // 1.5 second dissolve animation
   };
 
   return (
