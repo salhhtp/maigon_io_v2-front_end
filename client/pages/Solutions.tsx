@@ -307,13 +307,13 @@ export default function Solutions() {
                 <div className="w-[265px] h-[424px] absolute left-0 top-[15px]">
                   <img
                     src="https://api.builder.io/api/v1/image/assets/TEMP/bf723346ff37e3006a994d9bde29f03ca52957bd?width=456"
-                    alt="Non-Disclosure Agreements"
-                    className="w-[228px] h-[228px] rounded-lg absolute left-[19px] top-0"
+                    alt=""
+                    className="w-[228px] h-[228px] flex-shrink-0 rounded-lg absolute left-[19px] top-0"
                   />
-                  <div className="flex w-[157px] h-[27px] flex-col justify-center text-[#271D1D] font-lora text-xl font-medium leading-[22px] absolute left-[30px] top-[246px]">
+                  <div className="flex w-[157px] h-[27px] flex-col justify-center flex-shrink-0 text-[#271D1D] font-lora text-xl font-medium leading-[22px] absolute left-[30px] top-[246px]">
                     Non-Disclosure Agreements
                   </div>
-                  <div className="flex w-[217px] h-[89px] flex-col justify-center text-[#271D1D] font-roboto text-xs font-normal leading-[18px] tracking-[0.12px] absolute left-[30px] top-[291px]">
+                  <div className="flex w-[217px] h-[89px] flex-col justify-center flex-shrink-0 text-[#271D1D] font-roboto text-xs font-normal leading-[18px] tracking-[0.12px] absolute left-[30px] top-[291px]">
                     Review non-disclosure agreements for compliance with established standards and best practices. Get instant report with compliance insights and extracted clauses.
                   </div>
                 </div>
