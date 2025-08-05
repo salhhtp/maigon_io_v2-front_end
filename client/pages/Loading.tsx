@@ -15,12 +15,9 @@ export default function Loading() {
   const { selectedFile, solutionTitle, perspective } = location.state || {};
 
   const handleLoadingComplete = () => {
-    // Navigate to results page (you can create this later)
-    console.log('Loading complete! Ready to show results.');
-    // For now, navigate back to user solutions
-    setTimeout(() => {
-      navigate('/user-solutions');
-    }, 1000);
+    console.log('🎉 Loading complete! Ready to show results.');
+    // Remove auto-navigation for testing - just log completion
+    alert('Loading animation completed! (Auto-navigation disabled for testing)');
   };
 
   // Entrance animation
