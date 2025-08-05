@@ -15,6 +15,7 @@ import UserSolutions from "./pages/UserSolutions";
 import Upload from "./pages/Upload";
 import Loading from "./pages/Loading";
 import News from "./pages/News";
+import UserNews from "./pages/UserNews";
 import Team from "./pages/Team";
 import NotFound from "./pages/NotFound";
 
