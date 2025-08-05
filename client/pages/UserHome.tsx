@@ -65,7 +65,7 @@ export default function UserHome() {
   return (
     <div className="min-h-screen bg-[#F9F8F8]">
       {/* Navigation */}
-      <nav className="flex items-center justify-between px-8 lg:px-16 py-6 bg-[#F9F8F8]">
+      <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-8 lg:px-16 py-6 bg-[#F9F8F8]">
         <Logo size="xl" />
         
         <div className="hidden md:flex items-center space-x-8">
