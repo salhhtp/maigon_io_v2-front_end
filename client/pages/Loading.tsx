@@ -85,7 +85,11 @@ export default function Loading() {
 
       {/* Main Content */}
       <main className="flex-1 flex items-center justify-center px-8 lg:px-16 py-20">
-        <div className="w-full max-w-[554px] flex flex-col items-center gap-7">
+        <div className={`w-full max-w-[554px] flex flex-col items-center gap-7 transition-all duration-1000 ${
+          isVisible ? 'transform translate-y-0 scale-100 opacity-100' : 'transform translate-y-8 scale-95 opacity-0'
+        }`} style={{
+          transitionTimingFunction: isVisible ? 'cubic-bezier(0.68, -0.55, 0.265, 1.55)' : 'ease-out'
+        }}>
           
           {/* Header Text */}
           <div className="w-full max-w-[237px] flex flex-col items-center gap-2">
