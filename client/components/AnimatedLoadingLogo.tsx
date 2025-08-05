@@ -58,10 +58,10 @@ export const AnimatedLoadingLogo = ({
       </div>
 
       {/* Filled Logo (Clipped by progress) */}
-      <div 
+      <div
         className="absolute inset-0 flex items-center justify-center overflow-hidden"
-        style={{ 
-          clipPath: `inset(0 ${100 - progress}% 0 0)`,
+        style={{
+          clipPath: `inset(${100 - progress}% 0 0 0)`,
           transition: 'clip-path 0.1s ease-out'
         }}
       >
