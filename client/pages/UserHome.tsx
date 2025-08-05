@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/card";
-import { Camera, ChevronDown, User } from "lucide-react";
+import { ChevronDown, User } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useState } from "react";
 import Logo from "@/components/Logo";
@@ -67,15 +67,15 @@ export default function UserHome() {
       {/* Navigation */}
       <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-8 lg:px-16 py-6 bg-[#F9F8F8]">
         <Logo size="xl" />
-        
+
         <div className="hidden md:flex items-center space-x-8">
           <Link to="/solutions" className="text-[#271D1D] hover:text-[#9A7C7C] transition-colors">Solutions</Link>
           <Link to="/news" className="text-[#271D1D] hover:text-[#9A7C7C] transition-colors">News</Link>
           <Link to="/team" className="text-[#271D1D] hover:text-[#9A7C7C] transition-colors">Team</Link>
-          
+
           {/* User Button */}
           <div className="relative">
-            <button 
+            <button
               onClick={() => setUserDropdownOpen(!userDropdownOpen)}
               className="flex items-center space-x-2 bg-[#D6CECE] hover:bg-[#D6CECE]/90 px-4 py-2 rounded-lg transition-colors"
             >
@@ -83,7 +83,7 @@ export default function UserHome() {
               <span className="text-[#271D1D] font-medium">@Salih</span>
               <ChevronDown className={`w-4 h-4 text-[#271D1D] transition-transform ${userDropdownOpen ? 'rotate-180' : ''}`} />
             </button>
-            
+
             {userDropdownOpen && (
               <div className="absolute right-0 mt-2 w-32 bg-white border border-[#271D1D]/15 rounded-lg shadow-lg py-2 z-10">
                 <a href="#" className="block px-4 py-2 text-sm text-[#271D1D] hover:bg-[#F9F8F8] transition-colors">Profile</a>
@@ -96,31 +96,37 @@ export default function UserHome() {
       </nav>
 
       {/* Hero Section */}
-      <section className="flex flex-col lg:flex-row items-center justify-between px-8 lg:px-16 py-12 lg:py-20 max-w-7xl mx-auto pt-24 lg:pt-32">
-        <div className="flex-1 lg:pr-12 mb-12 lg:mb-0">
-          <div className="space-y-4 mb-8">
-            <h1 className="text-4xl lg:text-5xl xl:text-6xl font-medium leading-tight">
-              <span className="text-[#171614] font-lora">Experience the power of</span>
-              <br />
-              <span className="text-[#9A7C7C] font-lora">AI-Driven</span>
-              <br />
-              <span className="text-[#171614] font-lora">contract review</span>
-            </h1>
+      <section className="flex flex-col lg:flex-row justify-center items-center gap-8 lg:gap-[67px] px-8 lg:px-16 py-12 lg:py-20 max-w-[1270px] mx-auto pt-24 lg:pt-32">
+        <div className="flex flex-col items-start gap-6 lg:gap-[71px] w-full lg:w-[579px] mb-8 lg:mb-0 flex-shrink-0">
+          <div className="flex flex-col items-start gap-8 lg:gap-[137px] w-full">
+            <div className="flex flex-col items-start gap-2 lg:gap-[17px] w-full">
+              <h1 className="w-full h-8 lg:h-16 text-[#171614] font-lora text-3xl lg:text-5xl font-medium leading-tight lg:leading-[72px]">
+                Experience the power of
+              </h1>
+              <h1 className="w-full h-8 lg:h-16 text-[#9A7C7C] font-lora text-3xl lg:text-5xl font-medium leading-tight lg:leading-[72px]">
+                AI-Driven
+              </h1>
+              <h1 className="w-full h-8 lg:h-16 text-[#171614] font-lora text-3xl lg:text-5xl font-medium leading-tight lg:leading-[72px]">
+                contract review
+              </h1>
+            </div>
+            <div className="flex justify-center items-center gap-2.5 p-2.5">
+              <p className="w-full lg:w-[458px] text-[#171614] font-roboto text-sm lg:text-base font-normal leading-relaxed lg:leading-[30px] tracking-[0.16px]">
+                Efficiency is the key to closing deals fast. Our AI contract review tools screen agreements, answer legal questions, and provide guidance for finalizing contracts in record time.
+              </p>
+            </div>
           </div>
-          
-          <p className="text-[#171614] text-lg leading-relaxed mb-8 max-w-lg">
-            Efficiency is the key to closing deals fast. Our AI contract review tools screen agreements, answer legal questions, and provide guidance for finalizing contracts in record time.
-          </p>
-          
-          <Button asChild className="bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white px-10 py-6 text-xl rounded-lg">
-            <Link to="/solutions">Go to Solutions</Link>
+          <Button className="flex py-3 px-10 justify-center items-center gap-2.5 rounded-xl bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-[#F9F8F8] text-center font-roboto text-lg lg:text-xl font-normal leading-6 tracking-[0.2px]">
+            Go to Solutions
           </Button>
         </div>
-        
-        <div className="flex-1 flex justify-center lg:justify-end">
-          <div className="bg-white rounded-lg border border-[#271D1D]/15 p-16 lg:p-20 flex items-center justify-center w-full max-w-md aspect-square">
-            <Camera className="w-32 h-32 lg:w-40 lg:h-40 text-[#1E1E1E] stroke-1" />
-          </div>
+
+        <div className="flex py-32 lg:py-[214px] px-16 lg:px-[122px] items-center gap-2.5 bg-white w-full lg:w-auto rounded-lg border border-[#271D1D]/15">
+          <img
+            src="https://api.builder.io/api/v1/image/assets/TEMP/ee4cddf9ea0f3a0dccdc24e4e7e8b76698d62ba8?width=758"
+            alt="Camera"
+            className="w-full h-auto lg:w-[379px] lg:h-[403px] flex justify-center items-center"
+          />
         </div>
       </section>
 
@@ -134,98 +140,132 @@ export default function UserHome() {
             </h2>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 mb-20">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 mb-20 place-items-center">
             {/* Card 1 */}
-            <Card className="border border-[#271D1D]/15 rounded-lg overflow-hidden">
-              <div className="h-80 bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center relative">
-                <div className="w-32 h-32 rounded-full border-2 border-[#271D1D] bg-gray-800 flex items-center justify-center">
-                  <span className="text-white text-xl font-semibold">73%</span>
+            <div className="flex flex-col items-center relative w-full max-w-md">
+              <img
+                src="https://api.builder.io/api/v1/image/assets/TEMP/e33365b24a4962ef5c0529d0c37ac13af63f6f48?width=916"
+                alt="Compliance Dashboard Interface"
+                className="w-full h-80 object-cover border border-[#271D1D]/15 rounded-lg"
+              />
+
+              {/* Card Description */}
+              <div className="flex flex-col items-center w-full relative mt-4">
+                <div className="flex h-[89px] flex-col justify-center w-full text-black text-center font-lora text-xl font-medium leading-[90px] relative">
+                  <span>Learn Your Compliance Score</span>
+                </div>
+                <div className="w-full text-black text-center text-xs font-normal leading-[26px] tracking-[0.12px] relative">
+                  <span>Our machine learning algorithms are trained to give you the full look on what you need to know the most from your agreements.</span>
                 </div>
               </div>
-              <CardContent className="p-6 text-center">
-                <CardTitle className="text-xl font-medium mb-4 font-lora">Learn Your Compliance Score</CardTitle>
-                <CardDescription className="text-sm leading-relaxed">
-                  Our machine learning algorithms are trained to give you the full look on what you need to know the most from your agreements.
-                </CardDescription>
-              </CardContent>
-            </Card>
+            </div>
 
             {/* Card 2 */}
-            <Card className="border border-[#271D1D]/15 rounded-lg overflow-hidden">
-              <div 
-                className="h-80 flex items-center justify-center relative"
-                style={{ 
-                  backgroundImage: "url('https://api.builder.io/api/v1/image/assets/TEMP/2a007dd35a383d1ae8dd9a022fe6283585484de4?width=916')", 
-                  backgroundSize: "cover", 
-                  backgroundPosition: "center" 
+            <div className="flex flex-col items-center relative w-full max-w-md">
+              <div
+                className="flex justify-between items-center px-24 py-14 w-full h-80 border border-[#271D1D]/15 rounded-lg relative bg-cover bg-center"
+                style={{
+                  backgroundImage: `url('https://api.builder.io/api/v1/image/assets/TEMP/2a007dd35a383d1ae8dd9a022fe6283585484de4?width=916')`,
+                  backgroundPosition: 'center center',
+                  backgroundSize: 'cover'
                 }}
               >
-                <div className="absolute bottom-8 right-8 w-8 h-8 bg-black transform rotate-45"></div>
+                <div className="w-8 h-8 p-2 flex flex-col items-start gap-2"></div>
+                <svg
+                  className="flex p-1 items-center gap-2"
+                  width="31"
+                  height="31"
+                  viewBox="0 0 31 31"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M4.375 4.14062L13.8017 26.7673L17.1483 16.914L27.0017 13.5673L4.375 4.14062Z"
+                    fill="black"
+                    stroke="black"
+                    strokeWidth="2"
+                    strokeLinejoin="round"
+                  />
+                </svg>
               </div>
-              <CardContent className="p-6 text-center">
-                <CardTitle className="text-xl font-medium mb-4 font-lora">Review From Different Perspectives</CardTitle>
-                <CardDescription className="text-sm leading-relaxed">
-                  You can choose to review your document/s from the "Data Subject" or "Organization" perspective to get tailored analysis of your document.
-                </CardDescription>
-              </CardContent>
-            </Card>
+
+              {/* Card Description */}
+              <div className="flex flex-col items-center w-full relative mt-4">
+                <div className="flex h-[89px] flex-col justify-center w-full text-black text-center font-lora text-xl font-medium leading-[90px] relative">
+                  <span>Review From Different Perspectives</span>
+                </div>
+                <div className="w-full text-black text-center text-xs font-normal leading-[26px] tracking-[0.12px] relative">
+                  <span>You can choose to review your document/s from the "Data Subject" or "Organization" perspective to get tailored analysis of your document.</span>
+                </div>
+              </div>
+            </div>
 
             {/* Card 3 */}
-            <Card className="border border-[#271D1D]/15 rounded-lg overflow-hidden">
-              <img 
-                src="https://api.builder.io/api/v1/image/assets/TEMP/7c87d01d9be178b894e267d4b9d0734052823086?width=916" 
-                alt="Full Summary"
-                className="w-full h-80 object-cover"
+            <div className="flex flex-col items-center relative w-full max-w-md">
+              <img
+                src="https://api.builder.io/api/v1/image/assets/TEMP/7c87d01d9be178b894e267d4b9d0734052823086?width=916"
+                alt="Contract Summary Interface"
+                className="w-full h-80 object-cover border border-[#271D1D]/15 rounded-lg"
               />
-              <CardContent className="p-6 text-center">
-                <CardTitle className="text-xl font-medium mb-4 font-lora">Full Summary</CardTitle>
-                <CardDescription className="text-sm leading-relaxed">
-                  Nothing's out of sight! Every member has access to the fully summary and more key insights for their documents.
-                </CardDescription>
-              </CardContent>
-            </Card>
+
+              {/* Card Description */}
+              <div className="flex flex-col items-center w-full relative mt-4">
+                <div className="flex h-[89px] flex-col justify-center w-full text-black text-center font-lora text-xl font-medium leading-[90px] relative">
+                  <span>Full Summary</span>
+                </div>
+                <div className="w-full text-black text-center text-xs font-normal leading-[26px] tracking-[0.12px] relative">
+                  <span>Nothing's out of sight! Every member has access to the fully summary and more key insights for their documents.</span>
+                </div>
+              </div>
+            </div>
 
             {/* Card 4 */}
-            <Card className="border border-[#271D1D]/15 rounded-lg overflow-hidden">
-              <div className="h-80 bg-[#B3BBB3] flex items-center justify-center p-8">
-                <img 
-                  src="https://api.builder.io/api/v1/image/assets/TEMP/8cfe4c4f940f1afd5a3eb4c4cc5773dcf04b118a?width=1411" 
-                  alt="Laptop showing risks analysis"
-                  className="w-full h-full object-contain"
-                />
+            <div className="flex flex-col items-center relative w-full max-w-md">
+              <img
+                src="https://api.builder.io/api/v1/image/assets/TEMP/72edd72cd0f4d42d5f5a36fcc0d9e59c5460050c?width=916"
+                alt="Card 4"
+                className="w-full h-80 object-cover border border-[#271D1D]/15 rounded-lg"
+              />
+
+              {/* Card Description */}
+              <div className="flex flex-col items-center w-full relative mt-4">
+                <div className="flex h-[89px] flex-col justify-center w-full text-black text-center font-lora text-xl font-medium leading-[90px] relative">
+                  <span>See All The Risks</span>
+                </div>
+                <div className="w-full text-black text-center text-xs font-normal leading-[26px] tracking-[0.12px] relative">
+                  <span>Find out all the issues that needs to be addressed in your documents.</span>
+                </div>
               </div>
-              <CardContent className="p-6 text-center">
-                <CardTitle className="text-xl font-medium mb-4 font-lora">See All The Risks</CardTitle>
-                <CardDescription className="text-sm leading-relaxed">
-                  Find out all the issues that needs to be addressed in your documents.
-                </CardDescription>
-              </CardContent>
-            </Card>
+            </div>
           </div>
 
           {/* OpenAI Integration Card */}
           <div className="flex justify-center mb-20">
-            <Card className="border border-[#271D1D]/15 rounded-lg overflow-hidden max-w-md">
-              <div className="h-80 bg-[#D6CECE] flex items-center justify-center p-12">
-                <img 
-                  src="https://api.builder.io/api/v1/image/assets/TEMP/36565312d2d6200939ff336eb31f7d63d829ac13?width=722" 
+            <div className="flex flex-col items-center relative w-full max-w-md">
+              <div className="h-80 bg-[#D6CECE] flex items-center justify-center p-12 w-full border border-[#271D1D]/15 rounded-lg">
+                <img
+                  src="https://api.builder.io/api/v1/image/assets/TEMP/36565312d2d6200939ff336eb31f7d63d829ac13?width=722"
                   alt="OpenAI"
                   className="w-full h-auto"
                 />
               </div>
-              <CardContent className="p-6 text-center">
-                <CardTitle className="text-xl font-medium mb-4 font-lora">OpenAI Integration</CardTitle>
-                <CardDescription className="text-sm leading-relaxed text-[#313832]">
-                  All of our products integrate the latest deep learning technology to ensure maximum accuracy and efficiency.
-                </CardDescription>
-              </CardContent>
-            </Card>
+
+              {/* Card Description */}
+              <div className="flex flex-col items-center w-full relative mt-4">
+                <div className="flex h-[89px] flex-col justify-center w-full text-black text-center font-lora text-xl font-medium leading-[90px] relative">
+                  <span>OpenAI Integration</span>
+                </div>
+                <div className="w-full text-black text-center text-xs font-normal leading-[26px] tracking-[0.12px] relative">
+                  <span>All of our products integrate the latest deep learning technology to ensure maximum accuracy and efficiency.</span>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Contract Types Section */}
           <div className="flex flex-col items-center justify-center w-full">
             <div className="text-center mb-12 w-full max-w-5xl">
-              <h3 className="text-3xl lg:text-4xl font-medium text-[#271D1D] font-lora mb-6">One-For-Each!</h3>
+              <h3 className="text-3xl lg:text-4xl font-medium text-[#271D1D] font-lora mb-6 mt-75">One-For-Each!</h3>
               <p className="text-xl text-center max-w-3xl mx-auto">
                 Enjoy Maigon for all your agreements with industry leading <strong>SEVEN</strong> different, AI models that are each tailor made for any agreement you'd want to review.
               </p>
@@ -250,8 +290,8 @@ export default function UserHome() {
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16">
             <Card className="border border-[#271D1D]/15 rounded-lg overflow-hidden">
-              <img 
-                src="https://api.builder.io/api/v1/image/assets/TEMP/defadcd8445be3dc8712f81677c887b3ef4db62b?width=820" 
+              <img
+                src="https://api.builder.io/api/v1/image/assets/TEMP/defadcd8445be3dc8712f81677c887b3ef4db62b?width=820"
                 alt="News article"
                 className="w-full h-64 object-cover"
               />
@@ -267,8 +307,8 @@ export default function UserHome() {
             </Card>
 
             <Card className="border border-[#271D1D]/15 rounded-lg overflow-hidden">
-              <img 
-                src="https://api.builder.io/api/v1/image/assets/TEMP/c498213c0b4214c6db0aac491c03b8a8739f2f72?width=820" 
+              <img
+                src="https://api.builder.io/api/v1/image/assets/TEMP/c498213c0b4214c6db0aac491c03b8a8739f2f72?width=820"
                 alt="News article"
                 className="w-full h-64 object-cover"
               />
@@ -286,6 +326,7 @@ export default function UserHome() {
         </div>
       </section>
 
+      {/* Animated Quotes */}
       <AnimatedQuotes />
 
       {/* FAQ Section */}
@@ -305,7 +346,7 @@ export default function UserHome() {
                   <h3 className="text-xl lg:text-2xl font-semibold text-[#725A5A]">
                     {faq.question}
                   </h3>
-                  <ChevronDown 
+                  <ChevronDown
                     className={`w-6 h-6 text-[#725A5A] transition-transform ${
                       openFaq === index ? 'rotate-180' : ''
                     }`}
