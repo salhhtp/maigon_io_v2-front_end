@@ -371,7 +371,7 @@ export default function Solutions() {
               </Link>
 
               {/* R&D Card */}
-              <div className="flex pt-[15px] flex-col justify-end items-center flex-1 self-stretch bg-[#F3F3F3] relative lg:col-start-2 lg:row-start-2">
+              <Link to="/signin" className="flex pt-[15px] flex-col justify-end items-center flex-1 self-stretch bg-[#F3F3F3] relative lg:col-start-2 lg:row-start-2 cursor-pointer hover:bg-[#ECECEC] transition-colors duration-200">
                 <div className="w-[265px] h-[424px] absolute left-0 top-[15px]">
                   <img
                     src="https://api.builder.io/api/v1/image/assets/TEMP/55ab6d6eecccdbe325f9af592bd502bb13e77ea6?width=456"
@@ -385,7 +385,7 @@ export default function Solutions() {
                     Conduct compliance review of R&D agreements to ensure adherence to industry standards. Obtain a report on potential compliance risks and recommendations for risk mitigation.
                   </div>
                 </div>
-              </div>
+              </Link>
 
               {/* EULA Card */}
               <div className="flex pt-[15px] flex-col justify-end items-center flex-1 self-stretch bg-[#F3F3F3] relative lg:col-start-3 lg:row-start-2">
