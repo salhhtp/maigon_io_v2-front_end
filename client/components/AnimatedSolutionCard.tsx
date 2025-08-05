@@ -17,6 +17,8 @@ export const AnimatedSolutionCard = ({
   className = ""
 }: SolutionCardProps) => {
   const [isClicked, setIsClicked] = useState(false);
+  const [dataSubjectHovered, setDataSubjectHovered] = useState(false);
+  const [organizationHovered, setOrganizationHovered] = useState(false);
 
   const handleCardClick = () => {
     setIsClicked(true);
