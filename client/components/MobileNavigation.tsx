@@ -79,7 +79,27 @@ export default function MobileNavigation({ isLoggedIn = false, userName }: Mobil
           
           {/* Menu Content */}
           <div className="absolute top-0 left-0 right-0 bg-[#F9F8F8] shadow-lg">
-            <div className="flex flex-col px-7 py-28 gap-7">
+            {/* Close button */}
+            <div className="flex justify-end p-6">
+              <button
+                onClick={closeMenu}
+                className="flex items-center justify-center w-8 h-8"
+                aria-label="Close menu"
+              >
+                <div className="w-[14px] h-[14px] relative">
+                  <div
+                    className="w-[17px] h-[3px] rounded-[10px] bg-[#271D1D] absolute left-0 top-0"
+                    style={{ transform: 'rotate(-45deg)', transformOrigin: 'center' }}
+                  ></div>
+                  <div
+                    className="w-[17px] h-[3px] rounded-[10px] bg-[#271D1D] absolute left-0 top-0"
+                    style={{ transform: 'rotate(45deg)', transformOrigin: 'center' }}
+                  ></div>
+                </div>
+              </button>
+            </div>
+
+            <div className="flex flex-col px-7 pb-28 gap-7">
               {/* Navigation Links */}
               <div className="flex flex-col items-start gap-7">
                 {navLinks.map((link, index) => (
