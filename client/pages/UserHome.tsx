@@ -6,6 +6,7 @@ import { useState } from "react";
 import Logo from "@/components/Logo";
 import Footer from "@/components/Footer";
 import AnimatedQuotes from "@/components/AnimatedQuotes";
+import ContractCardsAnimation from "@/components/ContractCardsAnimation";
 
 export default function UserHome() {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
