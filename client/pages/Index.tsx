@@ -84,17 +84,23 @@ export default function Index() {
       </nav>
 
       {/* Hero Section */}
-      <section className="flex flex-col lg:flex-row justify-center items-center gap-8 lg:gap-44 px-8 lg:px-16 py-12 lg:py-20 max-w-7xl mx-auto pt-24 lg:pt-32">
-        <div className="flex flex-col items-start gap-6 lg:gap-20 w-full lg:w-[461px] mb-8 lg:mb-0">
-          <div className="flex flex-col items-start gap-8 lg:gap-28 w-full">
-            <div className="flex justify-center items-center gap-2.5 w-full">
-              <h1 className="w-full text-[#171614] font-lora text-3xl lg:text-5xl font-medium leading-tight lg:leading-[72px]">
-                Ready to experience the future of contract review?
+      <section className="flex flex-col lg:flex-row justify-center items-center gap-8 lg:gap-[67px] px-8 lg:px-16 py-12 lg:py-20 max-w-[1270px] mx-auto pt-24 lg:pt-32">
+        <div className="flex flex-col items-start gap-6 lg:gap-[71px] w-full lg:w-[579px] mb-8 lg:mb-0 flex-shrink-0">
+          <div className="flex flex-col items-start gap-8 lg:gap-[137px] w-full">
+            <div className="flex flex-col items-start gap-2 lg:gap-[17px] w-full">
+              <h1 className="w-full h-8 lg:h-16 text-[#171614] font-lora text-3xl lg:text-5xl font-medium leading-tight lg:leading-[72px]">
+                Experience the power of
+              </h1>
+              <h1 className="w-full h-8 lg:h-16 text-[#9A7C7C] font-lora text-3xl lg:text-5xl font-medium leading-tight lg:leading-[72px]">
+                AI-Driven
+              </h1>
+              <h1 className="w-full h-8 lg:h-16 text-[#171614] font-lora text-3xl lg:text-5xl font-medium leading-tight lg:leading-[72px]">
+                contract review
               </h1>
             </div>
-            <div className="flex justify-center items-center gap-2.5 w-full">
-              <p className="w-full text-[#171614] font-roboto text-sm lg:text-base font-normal leading-relaxed lg:leading-[30px] tracking-[0.16px]">
-                Our solutions include contract type-specific AI review modules. All of our products integrate the latest deep learning technology to ensure maximum accuracy and efficiency. We are regularly adding support of new contract types based on customer demand.
+            <div className="flex justify-center items-center gap-2.5 p-2.5">
+              <p className="w-full lg:w-[458px] text-[#171614] font-roboto text-sm lg:text-base font-normal leading-relaxed lg:leading-[30px] tracking-[0.16px]">
+                Efficiency is the key to closing deals fast. Our AI contract review tools screen agreements, answer legal questions, and provide guidance for finalizing contracts in record time.
               </p>
             </div>
           </div>
@@ -103,30 +109,12 @@ export default function Index() {
           </Button>
         </div>
 
-        <div className="flex py-32 lg:py-[214px] px-16 lg:px-[122px] items-center gap-2.5 bg-white w-full lg:w-auto lg:min-w-[623px] lg:h-[831px] rounded-lg border border-[#271D1D]/15">
-          <svg
-            width="379"
-            height="403"
-            viewBox="0 0 380 404"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            className="w-full h-auto lg:w-[379px] lg:h-[403px]"
-          >
-            <path
-              d="M363.71 319.542C363.71 328.449 360.382 336.991 354.459 343.289C348.536 349.587 340.503 353.125 332.126 353.125H47.8763C39.4999 353.125 31.4665 349.587 25.5435 343.289C19.6205 336.991 16.293 328.449 16.293 319.542V134.833C16.293 125.926 19.6205 117.384 25.5435 111.086C31.4665 104.788 39.4999 101.25 47.8763 101.25H111.043L142.626 50.875H237.376L268.96 101.25H332.126C340.503 101.25 348.536 104.788 354.459 111.086C360.382 117.384 363.71 125.926 363.71 134.833V319.542Z"
-              stroke="#1E1E1E"
-              strokeWidth="4"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-            <path
-              d="M190.001 285.958C224.887 285.958 253.168 255.887 253.168 218.792C253.168 181.697 224.887 151.625 190.001 151.625C155.115 151.625 126.835 181.697 126.835 218.792C126.835 255.887 155.115 285.958 190.001 285.958Z"
-              stroke="#1E1E1E"
-              strokeWidth="4"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
+        <div className="flex py-32 lg:py-[214px] px-16 lg:px-[122px] items-center gap-2.5 bg-white w-full lg:w-auto rounded-lg border border-[#271D1D]/15">
+          <img
+            src="https://api.builder.io/api/v1/image/assets/TEMP/ee4cddf9ea0f3a0dccdc24e4e7e8b76698d62ba8?width=758"
+            alt="Camera"
+            className="w-full h-auto lg:w-[379px] lg:h-[403px] flex justify-center items-center"
+          />
         </div>
       </section>
 
