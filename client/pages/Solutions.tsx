@@ -303,7 +303,7 @@ export default function Solutions() {
             {/* Solutions Grid */}
             <div className="grid h-auto lg:h-[1368px] py-5 lg:py-[21px] gap-0.5 w-full grid-rows-3 grid-cols-1 lg:grid-cols-3 relative">
               {/* NDA Card */}
-              <div className="flex w-[265px] pt-[15px] flex-col justify-end items-center row-start-1 row-span-1 col-start-1 col-span-1 bg-[#F3F3F3] relative">
+              <div className="flex w-[200px] pt-[15px] flex-col justify-end items-center row-start-1 row-span-1 col-start-1 col-span-1 bg-[#F3F3F3] relative">
                 <div className="w-[265px] h-[424px] absolute left-0 top-[15px]">
                   <img
                     src="https://api.builder.io/api/v1/image/assets/TEMP/bf723346ff37e3006a994d9bde29f03ca52957bd?width=456"
