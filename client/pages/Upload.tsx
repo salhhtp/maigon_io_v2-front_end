@@ -68,8 +68,39 @@ export default function Upload() {
     const allowedTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
     if (allowedTypes.includes(file.type)) {
       setSelectedFile(file);
+      setHasStartedProcess(true); // Mark that user has started the process
     } else {
       alert('Please select a PDF or DOCX file.');
+    }
+  };
+
+  const handleLinkClick = (path: string) => (e: React.MouseEvent) => {
+    if (hasStartedProcess) {
+      e.preventDefault();
+      setPendingNavigation(path);
+      setShowConfirmModal(true);
+    }
+  };
+
+  const handleConfirmNavigation = () => {
+    setHasStartedProcess(false);
+    setShowConfirmModal(false);
+
+    if (blocker.state === 'blocked') {
+      blocker.proceed();
+    } else if (pendingNavigation) {
+      navigate(pendingNavigation);
+    }
+
+    setPendingNavigation(null);
+  };
+
+  const handleCancelNavigation = () => {
+    setShowConfirmModal(false);
+    setPendingNavigation(null);
+
+    if (blocker.state === 'blocked') {
+      blocker.reset();
     }
   };
 
