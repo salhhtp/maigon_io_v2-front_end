@@ -223,8 +223,8 @@ export default function Index() {
 
           {/* OpenAI Integration Card */}
           <div className="flex justify-center mb-20">
-            <div className="flex flex-col items-start relative" style={{ width: '458px' }}>
-              <div className="h-80 bg-[#D6CECE] flex items-center justify-center p-12 w-full border border-[#271D1D]/15 rounded-lg relative">
+            <div className="flex flex-col items-center relative w-full max-w-md">
+              <div className="h-80 bg-[#D6CECE] flex items-center justify-center p-12 w-full border border-[#271D1D]/15 rounded-lg">
                 <img
                   src="https://api.builder.io/api/v1/image/assets/TEMP/36565312d2d6200939ff336eb31f7d63d829ac13?width=722"
                   alt="OpenAI"
@@ -233,7 +233,7 @@ export default function Index() {
               </div>
 
               {/* Card Description */}
-              <div className="flex flex-col items-center w-full relative">
+              <div className="flex flex-col items-center w-full relative mt-4">
                 <div className="flex h-[89px] flex-col justify-center w-full text-black text-center font-lora text-xl font-medium leading-[90px] relative">
                   <span>OpenAI Integration</span>
                 </div>
