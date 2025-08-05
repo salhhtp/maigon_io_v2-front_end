@@ -43,7 +43,7 @@ const AnimatedQuotes = () => {
   }, [quotes.length]);
 
   return (
-    <section className="px-8 lg:px-16 py-16 lg:py-24 bg-white">
+    <section className="px-8 lg:px-16 py-16 lg:py-24 bg-[#F9F8F8]">
       <div className="max-w-7xl mx-auto">
         <div className="relative h-[379px] flex items-center justify-center overflow-hidden">
           {quotes.map((quote, index) => (
