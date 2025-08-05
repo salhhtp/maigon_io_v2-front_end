@@ -22,8 +22,11 @@ export default function Loading() {
 
   // Entrance animation
   useEffect(() => {
+    console.log('📱 Loading page mounted!', { selectedFile, solutionTitle, perspective });
+
     // Trigger entrance animation after component mounts
     const timer = setTimeout(() => {
+      console.log('✨ Loading page entrance animation started');
       setIsVisible(true);
     }, 100);
 
