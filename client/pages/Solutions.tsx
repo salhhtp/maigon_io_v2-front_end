@@ -87,7 +87,7 @@ export default function Solutions() {
       </nav>
 
       {/* Hero Section */}
-      <section className="flex flex-col lg:flex-row items-center justify-between px-8 lg:px-16 py-12 lg:py-20 max-w-7xl mx-auto">
+      <section className="flex flex-col lg:flex-row items-center justify-between px-8 lg:px-16 py-12 lg:py-20 max-w-7xl mx-auto pt-24 lg:pt-32">
         <div className="flex-1 lg:pr-12 mb-12 lg:mb-0 max-w-lg">
           <div className="space-y-8">
             <h1 className="text-4xl lg:text-5xl xl:text-6xl font-medium leading-tight text-[#171614] font-lora">
