@@ -122,9 +122,9 @@ export default function Index() {
             </h2>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 mb-20">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 mb-20 place-items-center">
             {/* Card 1 */}
-            <div className="flex flex-col items-center relative w-full">
+            <div className="flex flex-col items-center relative w-full max-w-md">
               <img
                 src="https://api.builder.io/api/v1/image/assets/TEMP/e33365b24a4962ef5c0529d0c37ac13af63f6f48?width=916"
                 alt="Compliance Dashboard Interface"
