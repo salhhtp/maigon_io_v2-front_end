@@ -240,9 +240,9 @@ export default function Upload() {
 
       {/* Main Content */}
       <main className="flex-1 flex items-center justify-center px-8 lg:px-16 py-20">
-        <div className={`w-full max-w-[800px] flex flex-col items-center gap-8 transition-all duration-1500 ${
-          isSubmitting ? 'opacity-0 scale-95 filter blur-sm' : 'opacity-100 scale-100'
-        }`}>
+        <div className={`w-full max-w-[800px] flex flex-col items-center gap-8 transition-all duration-[1500ms] ${
+          isSubmitting ? 'ease-out' : ''
+        } ${showLoadingTransition ? 'opacity-0 scale-110' : isSubmitting ? 'opacity-70 scale-98' : 'opacity-100 scale-100'}`}>
           
           {/* Header */}
           <div className="text-center">
@@ -320,7 +320,7 @@ export default function Upload() {
           {/* Solution Info */}
           {solutionTitle && perspective && (
             <div className="text-center text-sm text-[#9A7C7C] font-roboto">
-              Selected: <span className="font-medium">{solutionTitle}</span> ��� 
+              Selected: <span className="font-medium">{solutionTitle}</span> • 
               Perspective: <span className="font-medium capitalize">{perspective}</span>
             </div>
           )}
