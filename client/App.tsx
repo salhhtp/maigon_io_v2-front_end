@@ -15,6 +15,7 @@ import UserSolutions from "./pages/UserSolutions";
 import Upload from "./pages/Upload";
 import Loading from "./pages/Loading";
 import TestLoading from "./pages/TestLoading";
+import AnimationTest from "./pages/AnimationTest";
 import News from "./pages/News";
 import Team from "./pages/Team";
 import NotFound from "./pages/NotFound";
