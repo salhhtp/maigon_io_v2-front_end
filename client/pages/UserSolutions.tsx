@@ -327,7 +327,7 @@ export default function UserSolutions() {
       </section>
 
       {/* Solutions Grid Section */}
-      <section className="py-20 max-w-7xl mx-auto px-8 lg:px-16">
+      <section className="py-16 lg:py-20 max-w-7xl mx-auto px-8 lg:px-16">
         <div className="flex items-center gap-1">
           {/* Solutions Cards Container */}
           <div className="flex w-full lg:w-[801px] flex-col items-start gap-7">
