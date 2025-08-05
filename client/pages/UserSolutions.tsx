@@ -312,7 +312,7 @@ export default function UserSolutions() {
       </section>
 
       {/* Content Section with Steps */}
-      <section className="py-20 max-w-7xl mx-auto px-8 lg:px-16">
+      <section className="py-16 lg:py-20 max-w-7xl mx-auto px-8 lg:px-16">
         {/* Header */}
         <div className="flex justify-center items-center gap-2.5 mb-20">
           <h2 className="w-full lg:w-[597px] text-[#271D1D] text-center font-lora text-3xl lg:text-5xl font-medium leading-tight lg:leading-[90px]">
