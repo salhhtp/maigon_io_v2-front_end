@@ -142,53 +142,9 @@ export default function Solutions() {
           </h2>
         </div>
 
-        {/* Steps and Image */}
-        <div className="flex flex-col lg:flex-row gap-16 items-start">
-          {/* Steps */}
-          <div className="flex-1 max-w-lg">
-            <div className="space-y-1">
-              <StepItem 
-                number="01" 
-                title="Create or log into your account" 
-                description="Create or log into your existing Maigon account in order to experience the power that comes with Maigon."
-                isActive={true}
-              />
-              <StepItem 
-                number="02" 
-                title="Choose your weapon" 
-                description="Select your desired solution based on your contract's type."
-              />
-              <StepItem 
-                number="03" 
-                title="Select your perspective" 
-                description={"Select between \"Data Processer\" and \"Organization\" in order to obtain tailored review results of your contracts."}
-              />
-              <StepItem 
-                number="04" 
-                title="Upload your contract" 
-                description="Upload your contract to let the magic happens."
-              />
-              <StepItem 
-                number="05" 
-                title="Sit back and relax" 
-                description="Sit back and relax! This will only take a moment."
-              />
-              <StepItem 
-                number="06" 
-                title="Voilà!" 
-                description="Get your review and enjoy all the insights."
-              />
-            </div>
-          </div>
-
-          {/* Image */}
-          <div className="flex-1">
-            <img 
-              src="https://api.builder.io/api/v1/image/assets/TEMP/ab810becba68b895d17259b055eb02fa4e423ca7?width=1376" 
-              alt="Step demonstration" 
-              className="w-full max-w-2xl rounded-lg border border-[#271D1D]/15"
-            />
-          </div>
+        {/* Animated Steps */}
+        <div className="flex flex-col gap-2.5 w-full">
+          <AnimatedStepsComponent />
         </div>
       </section>
 
