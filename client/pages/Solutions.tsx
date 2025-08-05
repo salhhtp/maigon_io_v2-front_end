@@ -430,7 +430,7 @@ export default function Solutions() {
                 <span className="text-5xl font-medium leading-tight block mb-4">
                   Revolutionizing contract review in the age of AI
                 </span>
-                <span className="text-base font-medium leading-[30px] block">
+                <span className="text-base font-medium leading-[30px] block" style={{ marginTop: "71px" }}>
                   Choose the solution of your desire to start reviewing your contracts with the power of Maigon.
                 </span>
               </div>
