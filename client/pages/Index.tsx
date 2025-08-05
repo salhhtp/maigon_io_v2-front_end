@@ -181,15 +181,19 @@ export default function Index() {
             </Card>
 
             {/* Card 3 */}
-            <Card className="border border-[#271D1D]/15 rounded-lg overflow-hidden">
-              <img 
-                src="https://api.builder.io/api/v1/image/assets/TEMP/7c87d01d9be178b894e267d4b9d0734052823086?width=916" 
-                alt="Full Summary"
-                className="w-full h-80 object-cover"
-              />
-              <CardContent className="p-6 text-center">
-                <CardTitle className="text-xl font-medium mb-4 font-lora">Full Summary</CardTitle>
-                <CardDescription className="text-sm leading-relaxed">
+            <Card className="border border-[#271D1D]/15 rounded-lg overflow-hidden flex flex-col">
+              <div className="relative">
+                <img
+                  src="https://api.builder.io/api/v1/image/assets/TEMP/7c87d01d9be178b894e267d4b9d0734052823086?width=916"
+                  alt="Contract Summary Interface"
+                  className="w-full h-80 object-cover rounded-t-lg"
+                />
+              </div>
+              <CardContent className="p-6 text-center flex flex-col items-center bg-[#F9F8F8]">
+                <CardTitle className="text-xl font-medium mb-4 font-lora text-black">
+                  Full Summary
+                </CardTitle>
+                <CardDescription className="text-xs leading-[26px] tracking-[0.12px] text-black">
                   Nothing's out of sight! Every member has access to the fully summary and more key insights for their documents.
                 </CardDescription>
               </CardContent>
