@@ -143,7 +143,7 @@ export default function Index() {
             </div>
 
             {/* Card 2 */}
-            <div className="flex flex-col items-center relative w-full">
+            <div className="flex flex-col items-center relative w-full max-w-md">
               <div
                 className="flex justify-between items-center px-24 py-14 w-full h-80 border border-[#271D1D]/15 rounded-lg relative bg-cover bg-center"
                 style={{
@@ -183,7 +183,7 @@ export default function Index() {
             </div>
 
             {/* Card 3 */}
-            <div className="flex flex-col items-center relative w-full">
+            <div className="flex flex-col items-center relative w-full max-w-md">
               <img
                 src="https://api.builder.io/api/v1/image/assets/TEMP/7c87d01d9be178b894e267d4b9d0734052823086?width=916"
                 alt="Contract Summary Interface"
@@ -202,7 +202,7 @@ export default function Index() {
             </div>
 
             {/* Card 4 */}
-            <div className="flex flex-col items-center relative w-full">
+            <div className="flex flex-col items-center relative w-full max-w-md">
               <img
                 src="https://api.builder.io/api/v1/image/assets/TEMP/72edd72cd0f4d42d5f5a36fcc0d9e59c5460050c?width=916"
                 alt="Card 4"
