@@ -6,6 +6,7 @@ import Logo from "@/components/Logo";
 import Footer from "@/components/Footer";
 import AnimatedQuotes from "@/components/AnimatedQuotes";
 import AnimatedSolutionCard from "@/components/AnimatedSolutionCard";
+import MobileNavigation from "@/components/MobileNavigation";
 
 const SolutionCard = ({ title, description, imageSrc }: { title: string; description: string; imageSrc: string }) => (
   <div className="bg-[#F3F3F3] rounded-lg overflow-hidden">
