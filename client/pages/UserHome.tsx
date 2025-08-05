@@ -107,13 +107,13 @@ export default function UserHome() {
         <div className="flex flex-col items-start gap-6 lg:gap-[71px] w-full lg:w-[579px] mb-8 lg:mb-0 flex-shrink-0">
           <div className="flex flex-col items-start gap-8 lg:gap-[137px] w-full">
             <div className="flex flex-col items-start gap-2 lg:gap-[17px] w-full">
-              <h1 className="w-full h-8 lg:h-16 text-[#171614] font-lora text-3xl lg:text-5xl font-medium leading-tight lg:leading-[72px]">
+              <h1 className="w-full text-[#171614] font-lora text-3xl lg:text-5xl font-medium leading-tight lg:leading-[72px]">
                 Experience the power of
               </h1>
-              <h1 className="w-full h-8 lg:h-16 text-[#9A7C7C] font-lora text-3xl lg:text-5xl font-medium leading-tight lg:leading-[72px]">
+              <h1 className="w-full text-[#9A7C7C] font-lora text-3xl lg:text-5xl font-medium leading-tight lg:leading-[72px]">
                 AI-Driven
               </h1>
-              <h1 className="w-full h-8 lg:h-16 text-[#171614] font-lora text-3xl lg:text-5xl font-medium leading-tight lg:leading-[72px]">
+              <h1 className="w-full text-[#171614] font-lora text-3xl lg:text-5xl font-medium leading-tight lg:leading-[72px]">
                 contract review
               </h1>
             </div>
