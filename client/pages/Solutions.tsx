@@ -389,7 +389,7 @@ export default function Solutions() {
 
               {/* EULA Card */}
               <div className="flex w-[265px] pt-[15px] flex-col justify-end items-center row-start-2 row-span-1 col-start-3 col-span-1 bg-[#F3F3F3] relative" style={{ marginLeft: "120px" }}>
-                <div className="w-[265px] h-[424px] absolute left-0 top-[15px]">
+                <div className="w-[265px] h-[424px] absolute left-0 top-[15px]" style={{ marginLeft: "5px" }}>
                   <img
                     src="https://api.builder.io/api/v1/image/assets/TEMP/e15ae08447ee7134243cef816b1e4e7fd28292f3?width=456"
                     alt=""
