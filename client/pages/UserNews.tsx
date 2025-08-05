@@ -86,6 +86,9 @@ export default function UserNews() {
             )}
           </div>
         </div>
+
+        {/* Mobile Navigation */}
+        <MobileNavigation isLoggedIn={true} userName={userName} />
       </nav>
 
       {/* Featured News Section */}
