@@ -200,15 +200,15 @@ export default function Index() {
             </Card>
 
             {/* Card 4 */}
-            <div className="flex flex-col items-start w-full relative">
+            <div className="flex flex-col items-start relative" style={{ width: '458px' }}>
               <div className="flex flex-col items-start gap-2 w-full border border-[#271D1D]/15 rounded-lg bg-[#B3BBB3] relative">
-                <div className="flex flex-col items-center relative w-full">
+                <div className="flex flex-col items-center relative">
                   {/* Laptop Image */}
                   <img
                     src="https://api.builder.io/api/v1/image/assets/TEMP/f0556d4c0e818511e69c6e2ab97e8b4f9907a17c?width=1411"
                     alt=""
-                    className="relative max-w-full h-auto"
-                    style={{ width: '350px', height: '194px' }}
+                    className="relative"
+                    style={{ width: '705.287px', height: '388.89px' }}
                   />
 
                   {/* Shadow */}
@@ -216,17 +216,17 @@ export default function Index() {
                     src="https://api.builder.io/api/v1/image/assets/TEMP/30c250eb19eeb5a4916930ab4eec40f37525f912?width=1712"
                     alt=""
                     className="relative mix-blend-multiply"
-                    style={{ width: '428px', height: '8px' }}
+                    style={{ width: '856px', height: '16.298px' }}
                   />
 
                   {/* Screen Overlay SVG */}
                   <svg
                     className="absolute"
                     style={{
-                      width: '302px',
-                      height: '166px',
-                      right: '37px',
-                      bottom: '8px'
+                      width: '604.751px',
+                      height: '332.887px',
+                      right: '74.909px',
+                      bottom: '28.95px'
                     }}
                     width="282"
                     height="334"
@@ -237,7 +237,7 @@ export default function Index() {
                     <defs>
                       <pattern id="pattern0_546_28328" patternContentUnits="objectBoundingBox" width="1" height="1">
                         <image
-                          href="https://cdn.builder.io/api/v1/image/assets%2F4c5b06bbdfb6468489995bc62588cb90%2Ff64e908bec9b499280f4c65460a640e8?format=webp&width=800"
+                          href="https://cdn.builder.io/api/v1/image/assets%2F4c5b06bbdfb6468489995bc62588cb90%2F6155493f8a5f41e6bcc667e3526831f5?format=webp&width=800"
                           width="1"
                           height="1"
                           preserveAspectRatio="xMidYMid slice"
