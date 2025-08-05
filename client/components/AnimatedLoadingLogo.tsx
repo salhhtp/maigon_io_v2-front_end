@@ -5,26 +5,37 @@ interface AnimatedLoadingLogoProps {
   onComplete?: () => void;
 }
 
-export const AnimatedLoadingLogo = ({ 
-  duration = 10000, // Default 10 seconds
-  onComplete 
+export const AnimatedLoadingLogo = ({
+  duration = 5000, // Reduced to 5 seconds for testing
+  onComplete
 }: AnimatedLoadingLogoProps) => {
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {
+    console.log('🚀 AnimatedLoadingLogo mounted, starting animation...');
+
     const startTime = Date.now();
     const interval = setInterval(() => {
       const elapsed = Date.now() - startTime;
       const newProgress = Math.min((elapsed / duration) * 100, 100);
       setProgress(newProgress);
 
+      // Debug progress
+      if (Math.floor(newProgress) % 10 === 0 && Math.floor(newProgress) !== Math.floor((newProgress - 1))) {
+        console.log(`⏳ Loading progress: ${Math.floor(newProgress)}%`);
+      }
+
       if (newProgress >= 100) {
+        console.log('✅ Loading animation complete!');
         clearInterval(interval);
         onComplete?.();
       }
     }, 50); // Update every 50ms for smooth animation
 
-    return () => clearInterval(interval);
+    return () => {
+      console.log('🛑 AnimatedLoadingLogo unmounted');
+      clearInterval(interval);
+    };
   }, [duration, onComplete]);
 
   return (
