@@ -292,7 +292,7 @@ export default function Solutions() {
       <section className="py-20 max-w-7xl mx-auto px-8 lg:px-16">
         <div className="flex items-center gap-1">
           {/* Solutions Cards Container */}
-          <div className="flex flex-col items-start gap-7 w-full lg:w-[801px]">
+          <div className="flex flex-col items-start gap-7 w-full lg:w-[650px] lg:mr-5">
             {/* Solutions Header */}
             <div className="flex justify-center items-center gap-2.5">
               <h3 className="text-black text-center font-lora text-base font-medium leading-[18px] tracking-[0.16px]">
