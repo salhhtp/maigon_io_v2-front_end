@@ -59,6 +59,9 @@ export default function Team() {
             <Link to="/signin">Sign In/Up</Link>
           </Button>
         </div>
+
+        {/* Mobile Navigation */}
+        <MobileNavigation isLoggedIn={false} />
       </nav>
 
       {/* Hero Section */}
