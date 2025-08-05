@@ -427,10 +427,10 @@ export default function Solutions() {
           <div className="hidden lg:flex flex-col items-start justify-start pb-[560px] relative">
             <div className="sticky top-[380px] flex h-[688px] p-2.5 justify-center items-end gap-2.5 absolute left-[-2px] top-0 w-[410px]">
               <div className="w-[411px] text-[#271D1D] text-center font-lora text-base font-medium leading-[30px] relative">
-                <span className="text-5xl font-medium leading-tight block mb-4">
+                <span className="text-3xl font-light leading-[60px] block mb-4">
                   Revolutionizing contract review in the age of AI
                 </span>
-                <span className="text-base font-medium leading-[30px] block">
+                <span className="text-xs font-extralight leading-[30px] block">
                   Choose the solution of your desire to start reviewing your contracts with the power of Maigon.
                 </span>
               </div>
