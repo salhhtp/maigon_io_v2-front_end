@@ -40,9 +40,9 @@ export default function SignIn() {
         </div>
 
         {/* Right Section - Form Container */}
-        <div className="flex w-full lg:w-[448px] py-14 flex-col items-center gap-8 order-1 lg:order-2">
+        <div className="flex w-full lg:w-[448px] py-14 flex-col items-center gap-12 lg:gap-8 order-1 lg:order-2">
           {/* MAIGON Logo */}
-          <div className="w-full max-w-md mb-8">
+          <div className="w-full max-w-md mb-12 lg:mb-8">
             <Logo size="xl" />
           </div>
 
