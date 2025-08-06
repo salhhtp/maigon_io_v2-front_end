@@ -188,7 +188,7 @@ export default function SignIn() {
 
           {/* Bottom Account Creation Link */}
           <div className="flex w-full lg:w-[448px] h-6 justify-center items-center relative -mt-[69px]">
-            <div className="flex w-full h-6 py-0 px-[79.367px] lg:px-[79.359px] justify-center items-center flex-shrink-0">
+            <div className="flex w-full h-6 py-0 px-[79.367px] lg:px-[79.359px] pt-[26px] lg:pt-0 justify-center items-center flex-shrink-0">
               <span className="flex w-[170px] h-[19px] flex-col justify-center flex-shrink-0 text-[#4B5563] text-center font-inter text-sm font-normal leading-6">
                 Don't have an account?
               </span>
