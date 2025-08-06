@@ -23,7 +23,7 @@ export default function SignIn() {
     <div className="min-h-screen bg-[#F9F8F8] flex items-center justify-center p-4 lg:p-8">
       <div className="flex flex-col lg:flex-row items-center gap-8 lg:gap-[212px] w-full max-w-[1200px]">
         {/* Left Section - Header Content */}
-        <div className="flex flex-col items-start gap-[75px] w-full lg:w-[474px] order-2 lg:order-1">
+        <div className="hidden lg:flex flex-col items-start gap-[75px] w-full lg:w-[474px] order-2 lg:order-1">
           {/* Header */}
           <div className="flex p-2.5 justify-center items-center gap-2.5 self-stretch">
             <h1 className="text-[#313832] text-center font-lora text-4xl lg:text-[64px] font-medium leading-tight lg:leading-[90px]">
