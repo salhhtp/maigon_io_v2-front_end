@@ -304,11 +304,11 @@ export default function Solutions() {
               </h3>
             </div>
 
-            {/* Solutions Grid */}
-            <div className="grid h-auto lg:h-[1368px] py-5 lg:py-[21px] gap-y-px gap-x-1 w-full grid-rows-3 grid-cols-1 lg:grid-cols-3 relative">
+            {/* Desktop Grid */}
+            <div className="hidden lg:grid h-[1368px] py-[21px] gap-y-px gap-x-1 w-full grid-rows-3 grid-cols-3 relative">
               {/* NDA Card */}
-              <Link to="/signin" className="flex w-full lg:w-[265px] pt-[15px] flex-col justify-end items-center bg-[#F3F3F3] relative lg:col-start-1 lg:row-start-1 cursor-pointer hover:bg-[#ECECEC] transition-colors duration-200">
-                <div className="w-full lg:w-[265px] h-[424px] absolute left-0 top-[15px]">
+              <Link to="/signin" className="flex w-[265px] pt-[15px] flex-col justify-end items-center bg-[#F3F3F3] relative col-start-1 row-start-1 cursor-pointer hover:bg-[#ECECEC] transition-colors duration-200">
+                <div className="w-[265px] h-[424px] absolute left-0 top-[15px]">
                   <img
                     src="https://api.builder.io/api/v1/image/assets/TEMP/bf723346ff37e3006a994d9bde29f03ca52957bd?width=456"
                     alt=""
@@ -324,7 +324,7 @@ export default function Solutions() {
               </Link>
 
               {/* DPA Card */}
-              <Link to="/signin" className="flex pt-[15px] flex-col justify-end items-center flex-1 self-stretch bg-[#F3F3F3] relative lg:col-start-2 lg:row-start-1 cursor-pointer hover:bg-[#ECECEC] transition-colors duration-200">
+              <Link to="/signin" className="flex pt-[15px] flex-col justify-end items-center flex-1 self-stretch bg-[#F3F3F3] relative col-start-2 row-start-1 cursor-pointer hover:bg-[#ECECEC] transition-colors duration-200">
                 <div className="w-[265px] h-[424px] absolute left-0 top-[15px]">
                   <img
                     src="https://api.builder.io/api/v1/image/assets/TEMP/d2502c8f65fc6fb3cfd64fcf2e883767c28d87b3?width=456"
@@ -341,7 +341,7 @@ export default function Solutions() {
               </Link>
 
               {/* Privacy Policy Card */}
-              <Link to="/signin" className="flex pt-[15px] flex-col justify-end items-center flex-1 self-stretch bg-[#F3F3F3] relative lg:col-start-3 lg:row-start-1 cursor-pointer hover:bg-[#ECECEC] transition-colors duration-200">
+              <Link to="/signin" className="flex pt-[15px] flex-col justify-end items-center flex-1 self-stretch bg-[#F3F3F3] relative col-start-3 row-start-1 cursor-pointer hover:bg-[#ECECEC] transition-colors duration-200">
                 <div className="w-[265px] h-[424px] absolute left-0 top-[15px]">
                   <img
                     src="https://api.builder.io/api/v1/image/assets/TEMP/ac64a1c280fd3ae21e76e02f5df24162a5b11a53?width=456"
@@ -358,7 +358,7 @@ export default function Solutions() {
               </Link>
 
               {/* Consultancy Card */}
-              <Link to="/signin" className="flex pt-[15px] flex-col justify-end items-center flex-1 self-stretch bg-[#F3F3F3] relative lg:col-start-1 lg:row-start-2 cursor-pointer hover:bg-[#ECECEC] transition-colors duration-200">
+              <Link to="/signin" className="flex pt-[15px] flex-col justify-end items-center flex-1 self-stretch bg-[#F3F3F3] relative col-start-1 row-start-2 cursor-pointer hover:bg-[#ECECEC] transition-colors duration-200">
                 <div className="w-[265px] h-[424px] absolute left-0 top-[15px]">
                   <img
                     src="https://api.builder.io/api/v1/image/assets/TEMP/ace056ab1571ec964a3c7a17e383b264d6766921?width=456"
@@ -375,7 +375,7 @@ export default function Solutions() {
               </Link>
 
               {/* R&D Card */}
-              <Link to="/signin" className="flex pt-[15px] flex-col justify-end items-center flex-1 self-stretch bg-[#F3F3F3] relative lg:col-start-2 lg:row-start-2 cursor-pointer hover:bg-[#ECECEC] transition-colors duration-200">
+              <Link to="/signin" className="flex pt-[15px] flex-col justify-end items-center flex-1 self-stretch bg-[#F3F3F3] relative col-start-2 row-start-2 cursor-pointer hover:bg-[#ECECEC] transition-colors duration-200">
                 <div className="w-[265px] h-[424px] absolute left-0 top-[15px]">
                   <img
                     src="https://api.builder.io/api/v1/image/assets/TEMP/55ab6d6eecccdbe325f9af592bd502bb13e77ea6?width=456"
@@ -392,7 +392,7 @@ export default function Solutions() {
               </Link>
 
               {/* EULA Card */}
-              <Link to="/signin" className="flex pt-[15px] flex-col justify-end items-center flex-1 self-stretch bg-[#F3F3F3] relative lg:col-start-3 lg:row-start-2 cursor-pointer hover:bg-[#ECECEC] transition-colors duration-200">
+              <Link to="/signin" className="flex pt-[15px] flex-col justify-end items-center flex-1 self-stretch bg-[#F3F3F3] relative col-start-3 row-start-2 cursor-pointer hover:bg-[#ECECEC] transition-colors duration-200">
                 <div className="w-[265px] h-[424px] absolute left-0 top-[15px]">
                   <img
                     src="https://api.builder.io/api/v1/image/assets/TEMP/028255c210716e79f6cc8592e835ed9bcd809aa3?width=456"
@@ -409,7 +409,7 @@ export default function Solutions() {
               </Link>
 
               {/* PSA Card */}
-              <Link to="/signin" className="flex pt-[15px] flex-col justify-end items-center flex-1 self-stretch bg-[#F3F3F3] relative lg:col-start-2 lg:row-start-3 cursor-pointer hover:bg-[#ECECEC] transition-colors duration-200">
+              <Link to="/signin" className="flex pt-[15px] flex-col justify-end items-center flex-1 self-stretch bg-[#F3F3F3] relative col-start-2 row-start-3 cursor-pointer hover:bg-[#ECECEC] transition-colors duration-200">
                 <div className="w-[265px] h-[424px] absolute left-0 top-[15px]">
                   <img
                     src="https://api.builder.io/api/v1/image/assets/TEMP/79eb9ad36f91db898294f4ebc9584deb77f82e31?width=456"
@@ -424,6 +424,11 @@ export default function Solutions() {
                   </div>
                 </div>
               </Link>
+            </div>
+
+            {/* Mobile/Tablet Carousel */}
+            <div className="block lg:hidden">
+              <SolutionsCarousel />
             </div>
           </div>
 
