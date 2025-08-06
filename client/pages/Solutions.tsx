@@ -17,6 +17,167 @@ const SolutionCard = ({ title, description, imageSrc }: { title: string; descrip
   </div>
 );
 
+const SolutionsCarousel = () => {
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const carouselRef = useRef<HTMLDivElement>(null);
+
+  const solutions = [
+    {
+      title: "Non-Disclosure Agreements",
+      description: "Review non-disclosure agreements for compliance with established standards and best practices. Get instant report with compliance insights and extracted clauses.",
+      imageSrc: "https://api.builder.io/api/v1/image/assets/TEMP/bf723346ff37e3006a994d9bde29f03ca52957bd?width=456"
+    },
+    {
+      title: "Data Processing Agreements",
+      description: "Review data processing agreements for compliance with the GDPR and latest EDPB guidelines. Get instant compliance report with extracted clauses, concepts, terms, highlighted risks, and compliance recommendations.",
+      imageSrc: "https://api.builder.io/api/v1/image/assets/TEMP/d2502c8f65fc6fb3cfd64fcf2e883767c28d87b3?width=456"
+    },
+    {
+      title: "Privacy Policy Documents",
+      description: "Review privacy statements for compliance with the GDPR criteria. Get instant compliance report with extracted clauses and recommendations.",
+      imageSrc: "https://api.builder.io/api/v1/image/assets/TEMP/ac64a1c280fd3ae21e76e02f5df24162a5b11a53?width=456"
+    },
+    {
+      title: "Consultancy Agreements",
+      description: "Review consultancy agreements (and other professional services agreements) for compliance with established standards and best practices. Get instant report with insights and extracted clauses.",
+      imageSrc: "https://api.builder.io/api/v1/image/assets/TEMP/ace056ab1571ec964a3c7a17e383b264d6766921?width=456"
+    },
+    {
+      title: "R&D Agreements",
+      description: "Conduct compliance review of R&D agreements to ensure adherence to industry standards. Obtain a report on potential compliance risks and recommendations for risk mitigation.",
+      imageSrc: "https://api.builder.io/api/v1/image/assets/TEMP/55ab6d6eecccdbe325f9af592bd502bb13e77ea6?width=456"
+    },
+    {
+      title: "End User License Agreements",
+      description: "Review end user license agreements for compliance with established standards and best practices. Get instant report with insights and extracted clauses. Used most often for reviewing software license agreements.",
+      imageSrc: "https://api.builder.io/api/v1/image/assets/TEMP/028255c210716e79f6cc8592e835ed9bcd809aa3?width=456"
+    },
+    {
+      title: "Product Supply Agreements",
+      description: "Review product supply agreements for compliance with established standards and best practices. Get instant report with insights and extracted clauses.",
+      imageSrc: "https://api.builder.io/api/v1/image/assets/TEMP/79eb9ad36f91db898294f4ebc9584deb77f82e31?width=456"
+    }
+  ];
+
+  const nextSlide = () => {
+    setCurrentSlide((prev) => (prev + 1) % solutions.length);
+  };
+
+  const prevSlide = () => {
+    setCurrentSlide((prev) => (prev - 1 + solutions.length) % solutions.length);
+  };
+
+  const goToSlide = (index: number) => {
+    setCurrentSlide(index);
+  };
+
+  // Touch/swipe support
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > 50;
+    const isRightSwipe = distance < -50;
+
+    if (isLeftSwipe) {
+      nextSlide();
+    } else if (isRightSwipe) {
+      prevSlide();
+    }
+  };
+
+  return (
+    <div className="py-5 relative">
+      {/* Navigation Buttons */}
+      <div className="flex justify-between items-center mb-4 px-4">
+        <button
+          onClick={prevSlide}
+          className="flex items-center justify-center w-10 h-10 rounded-full bg-white border border-[#271D1D]/20 hover:bg-[#F3F3F3] transition-colors shadow-sm"
+          aria-label="Previous solution"
+        >
+          <ChevronLeft className="w-5 h-5 text-[#271D1D]" />
+        </button>
+
+        <div className="text-center">
+          <span className="text-sm text-[#271D1D]/70">
+            {currentSlide + 1} of {solutions.length}
+          </span>
+        </div>
+
+        <button
+          onClick={nextSlide}
+          className="flex items-center justify-center w-10 h-10 rounded-full bg-white border border-[#271D1D]/20 hover:bg-[#F3F3F3] transition-colors shadow-sm"
+          aria-label="Next solution"
+        >
+          <ChevronRight className="w-5 h-5 text-[#271D1D]" />
+        </button>
+      </div>
+
+      {/* Carousel Container */}
+      <div
+        ref={carouselRef}
+        className="relative overflow-hidden"
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+      >
+        <div
+          className="flex transition-transform duration-300 ease-in-out"
+          style={{ transform: `translateX(-${currentSlide * 100}%)` }}
+        >
+          {solutions.map((solution, index) => (
+            <div key={index} className="w-full flex-shrink-0 px-4">
+              <Link to="/signin" className="block">
+                <div className="bg-[#F3F3F3] rounded-lg overflow-hidden hover:bg-[#ECECEC] transition-colors duration-200 p-6">
+                  <div className="flex flex-col items-center text-center">
+                    <img
+                      src={solution.imageSrc}
+                      alt={solution.title}
+                      className="w-48 h-48 md:w-56 md:h-56 object-cover rounded-lg mb-6"
+                    />
+                    <h3 className="text-lg md:text-xl font-medium text-[#271D1D] font-lora mb-4 leading-tight">
+                      {solution.title}
+                    </h3>
+                    <p className="text-sm text-[#271D1D] leading-relaxed max-w-md">
+                      {solution.description}
+                    </p>
+                  </div>
+                </div>
+              </Link>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Dot Indicators */}
+      <div className="flex justify-center mt-6 space-x-2">
+        {solutions.map((_, index) => (
+          <button
+            key={index}
+            onClick={() => goToSlide(index)}
+            className={`w-2 h-2 rounded-full transition-colors duration-200 ${
+              index === currentSlide ? 'bg-[#271D1D]' : 'bg-[#271D1D]/30'
+            }`}
+            aria-label={`Go to slide ${index + 1}`}
+          />
+        ))}
+      </div>
+    </div>
+  );
+};
+
 const FeatureCard = ({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) => (
   <div className="flex flex-col items-center text-center p-6 lg:p-8 transition-colors duration-300 hover:bg-[#D6CECE] group">
     <div className="mb-4">
