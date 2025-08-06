@@ -34,11 +34,11 @@ const AnimatedQuotes: React.FC = () => {
   return (
     <section className="px-8 lg:px-16 py-16 lg:py-24 bg-[#F9F8F8]">
       <div className="max-w-7xl mx-auto">
-        <div className="relative min-h-[280px] md:min-h-[320px] lg:h-[379px] flex items-center justify-center overflow-hidden">
+        <div className="relative min-h-[400px] md:min-h-[450px] lg:h-[379px] flex items-center justify-center">
           {quotes.map((quote, index) => (
             <div
               key={index}
-              className={`absolute inset-0 flex flex-col items-center justify-center text-center px-4 py-8 transition-all duration-1000 ${
+              className={`absolute inset-0 flex flex-col items-center justify-center text-center px-6 py-12 transition-all duration-1000 ${
                 index === currentQuote
                   ? 'opacity-100 translate-x-0'
                   : index < currentQuote
@@ -47,11 +47,13 @@ const AnimatedQuotes: React.FC = () => {
               }`}
             >
               <blockquote
-                className={`${quote.fontSize} font-lora text-black mb-6 md:mb-8 leading-tight md:leading-relaxed lg:leading-[47px] max-w-[982px]`}
+                className={`${quote.fontSize} font-lora text-black mb-8 md:mb-10 ${
+                  index === 1 ? 'leading-[1.4] md:leading-[1.5]' : 'leading-[1.3] md:leading-[1.4]'
+                } lg:leading-[47px] max-w-[982px] mx-auto`}
               >
                 {quote.text}
               </blockquote>
-              <cite className="text-black text-sm md:text-base font-normal leading-relaxed md:leading-[47px] tracking-[0.16px] not-italic">
+              <cite className="text-black text-xs md:text-sm lg:text-base font-normal leading-[1.4] md:leading-[1.5] lg:leading-[47px] tracking-[0.16px] not-italic max-w-[800px] mx-auto">
                 {quote.author}
               </cite>
             </div>
