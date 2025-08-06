@@ -34,21 +34,21 @@ export default function SignUp() {
   return (
     <div className="min-h-screen bg-[#F9F8F8] flex">
       {/* Left side - Description */}
-      <div className="flex-1 flex flex-col justify-center items-start px-12 lg:px-16">
+      <div className="hidden lg:flex flex-1 flex-col justify-center items-start px-12 lg:px-16">
         <div className="max-w-2xl">
-          <h1 className="hidden lg:block text-5xl lg:text-6xl font-medium text-[#313832] font-lora leading-tight mb-8">
+          <h1 className="text-5xl lg:text-6xl font-medium text-[#313832] font-lora leading-tight mb-8">
             State-Of-The-Art AI<br />
             for Legal Review
           </h1>
-          
-          <p className="hidden lg:block text-[#4B5563] text-lg leading-relaxed">
+
+          <p className="text-[#4B5563] text-lg leading-relaxed">
             Complete the form to receive your credentials from our team.
           </p>
         </div>
       </div>
 
       {/* Right side - Sign up form */}
-      <div className="flex-1 flex flex-col items-center justify-center px-8 py-12">
+      <div className="flex-1 lg:flex-1 flex flex-col items-center justify-center px-8 py-12">
         <div className="w-full max-w-md mb-8">
           <Logo size="xl" />
         </div>
