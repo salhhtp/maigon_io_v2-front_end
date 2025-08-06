@@ -41,7 +41,7 @@ export default function SignUp() {
             for Legal Review
           </h1>
           
-          <p className="text-[#4B5563] text-lg leading-relaxed">
+          <p className="hidden lg:block text-[#4B5563] text-lg leading-relaxed">
             Complete the form to receive your credentials from our team.
           </p>
         </div>
