@@ -99,15 +99,15 @@ const SolutionsCarousel = () => {
   };
 
   return (
-    <div className="py-5 relative">
+    <div className="py-5 relative w-full max-w-sm mx-auto">
       {/* Navigation Buttons */}
-      <div className="flex justify-between items-center mb-4 px-4">
+      <div className="flex justify-between items-center mb-4">
         <button
           onClick={prevSlide}
-          className="flex items-center justify-center w-10 h-10 rounded-full bg-white border border-[#271D1D]/20 hover:bg-[#F3F3F3] transition-colors shadow-sm"
+          className="flex items-center justify-center w-8 h-8 rounded-full bg-white border border-[#271D1D]/20 hover:bg-[#F3F3F3] transition-colors shadow-sm"
           aria-label="Previous solution"
         >
-          <ChevronLeft className="w-5 h-5 text-[#271D1D]" />
+          <ChevronLeft className="w-4 h-4 text-[#271D1D]" />
         </button>
 
         <div className="text-center">
@@ -118,17 +118,17 @@ const SolutionsCarousel = () => {
 
         <button
           onClick={nextSlide}
-          className="flex items-center justify-center w-10 h-10 rounded-full bg-white border border-[#271D1D]/20 hover:bg-[#F3F3F3] transition-colors shadow-sm"
+          className="flex items-center justify-center w-8 h-8 rounded-full bg-white border border-[#271D1D]/20 hover:bg-[#F3F3F3] transition-colors shadow-sm"
           aria-label="Next solution"
         >
-          <ChevronRight className="w-5 h-5 text-[#271D1D]" />
+          <ChevronRight className="w-4 h-4 text-[#271D1D]" />
         </button>
       </div>
 
       {/* Carousel Container */}
       <div
         ref={carouselRef}
-        className="relative overflow-hidden"
+        className="relative overflow-hidden rounded-lg"
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
@@ -138,21 +138,23 @@ const SolutionsCarousel = () => {
           style={{ transform: `translateX(-${currentSlide * 100}%)` }}
         >
           {solutions.map((solution, index) => (
-            <div key={index} className="w-full flex-shrink-0 px-4">
+            <div key={index} className="w-full flex-shrink-0">
               <Link to="/signin" className="block">
-                <div className="bg-[#F3F3F3] rounded-lg overflow-hidden hover:bg-[#ECECEC] transition-colors duration-200 p-6">
-                  <div className="flex flex-col items-center text-center">
+                <div className="bg-[#F3F3F3] rounded-lg overflow-hidden hover:bg-[#ECECEC] transition-colors duration-200 p-4 h-[420px] md:h-[480px]">
+                  <div className="flex flex-col items-center text-center h-full">
                     <img
                       src={solution.imageSrc}
                       alt={solution.title}
-                      className="w-48 h-48 md:w-56 md:h-56 object-cover rounded-lg mb-6"
+                      className="w-32 h-32 md:w-40 md:h-40 object-cover rounded-lg mb-4 flex-shrink-0"
                     />
-                    <h3 className="text-lg md:text-xl font-medium text-[#271D1D] font-lora mb-4 leading-tight">
-                      {solution.title}
-                    </h3>
-                    <p className="text-sm text-[#271D1D] leading-relaxed max-w-md">
-                      {solution.description}
-                    </p>
+                    <div className="flex flex-col justify-between flex-1">
+                      <h3 className="text-base md:text-lg font-medium text-[#271D1D] font-lora mb-3 leading-tight">
+                        {solution.title}
+                      </h3>
+                      <p className="text-xs md:text-sm text-[#271D1D] leading-relaxed">
+                        {solution.description}
+                      </p>
+                    </div>
                   </div>
                 </div>
               </Link>
@@ -162,7 +164,7 @@ const SolutionsCarousel = () => {
       </div>
 
       {/* Dot Indicators */}
-      <div className="flex justify-center mt-6 space-x-2">
+      <div className="flex justify-center mt-4 space-x-2">
         {solutions.map((_, index) => (
           <button
             key={index}
