@@ -588,7 +588,7 @@ export default function Solutions() {
             </div>
 
             {/* Mobile/Tablet Carousel */}
-            <div className="block lg:hidden">
+            <div className="block lg:hidden max-w-md mx-auto">
               <SolutionsCarousel />
             </div>
           </div>
