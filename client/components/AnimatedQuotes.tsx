@@ -18,7 +18,7 @@ const AnimatedQuotes: React.FC = () => {
     {
       text: "\" At Nordic Semiconductor, we use Maigon to review all NDAs in accordance with our custom playbook. This has dramatically reduced the time we spend going through each NDA, allowing our small legal team to prioritize our resources on other more demanding and interesting legal work. Where we previously would read each NDA word for word, we now only focus on the deviations that Maigon points out for us and trust that other aspects are covered. A must have for any legal team with a high volume of contracts! \"",
       author: "Christian Skovly, Senior Legal Counsel at Nordic Semiconductor",
-      fontSize: "text-sm md:text-lg lg:text-2xl"
+      fontSize: "text-xs md:text-base lg:text-2xl"
     }
   ];
 
