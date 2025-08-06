@@ -36,7 +36,7 @@ export default function SignUp() {
       {/* Left side - Description */}
       <div className="flex-1 flex flex-col justify-center items-start px-12 lg:px-16">
         <div className="max-w-2xl">
-          <h1 className="text-5xl lg:text-6xl font-medium text-[#313832] font-lora leading-tight mb-8">
+          <h1 className="hidden lg:block text-5xl lg:text-6xl font-medium text-[#313832] font-lora leading-tight mb-8">
             State-Of-The-Art AI<br />
             for Legal Review
           </h1>
