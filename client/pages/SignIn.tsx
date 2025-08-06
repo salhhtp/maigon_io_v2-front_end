@@ -49,35 +49,71 @@ export default function SignIn() {
           {/* Form */}
           <div className="flex h-[364px] justify-center items-center self-stretch relative">
             <form onSubmit={handleSubmit} className="flex w-full lg:w-[448px] pb-[98px] flex-col items-start gap-4 relative">
-              {/* Email Field Container */}
-              <div className="flex w-full lg:w-[448px] flex-col items-start gap-1 h-[74px]">
-                {/* Email Label */}
-                <div className="flex h-5 py-[1.5px] pr-[354.625px] pb-0.5 items-center self-stretch">
-                  <Label htmlFor="email" className="text-[#4B5563] font-roboto text-xs font-medium leading-5">
-                    Email Address
-                  </Label>
-                </div>
-
-                {/* Email Input Container */}
-                <div className="h-[50px] self-stretch relative">
-                  {/* Email Icon Container */}
-                  <div className="inline-flex h-[50px] py-[15px] pl-3 pr-0 flex-col justify-center items-center flex-shrink-0 absolute left-0 top-0 w-8">
-                    <svg className="w-5 h-5 flex-shrink-0" width="20" height="21" viewBox="0 0 20 21" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M16.668 3.83594H3.33464C2.41416 3.83594 1.66797 4.58213 1.66797 5.5026V15.5026C1.66797 16.4231 2.41416 17.1693 3.33464 17.1693H16.668C17.5884 17.1693 18.3346 16.4231 18.3346 15.5026V5.5026C18.3346 4.58213 17.5884 3.83594 16.668 3.83594Z" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      <path d="M18.3346 6.33594L10.8596 11.0859C10.6024 11.2471 10.3049 11.3326 10.0013 11.3326C9.6977 11.3326 9.40024 11.2471 9.14297 11.0859L1.66797 6.33594" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
+              {/* Email and Address Fields Container */}
+              <div className="flex flex-col lg:flex-row w-full gap-4">
+                {/* Email Field Container */}
+                <div className="flex w-full lg:w-[216px] flex-col items-start gap-1 h-[74px]">
+                  {/* Email Label */}
+                  <div className="flex h-5 py-[1.5px] pb-0.5 items-center self-stretch">
+                    <Label htmlFor="email" className="text-[#4B5563] font-roboto text-xs font-medium leading-5">
+                      Email Address
+                    </Label>
                   </div>
 
-                  {/* Email Input */}
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="your@email.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="flex w-full h-[50px] py-[13px] pr-[13px] pl-[41px] items-center rounded-lg border border-[#D1D5DB] bg-white/80 text-base placeholder:text-[#CCC] font-roboto"
-                    required
-                  />
+                  {/* Email Input Container */}
+                  <div className="h-[50px] self-stretch relative">
+                    {/* Email Icon Container */}
+                    <div className="inline-flex h-[50px] py-[15px] pl-3 pr-0 flex-col justify-center items-center flex-shrink-0 absolute left-0 top-0 w-8">
+                      <svg className="w-5 h-5 flex-shrink-0" width="20" height="21" viewBox="0 0 20 21" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M16.668 3.83594H3.33464C2.41416 3.83594 1.66797 4.58213 1.66797 5.5026V15.5026C1.66797 16.4231 2.41416 17.1693 3.33464 17.1693H16.668C17.5884 17.1693 18.3346 16.4231 18.3346 15.5026V5.5026C18.3346 4.58213 17.5884 3.83594 16.668 3.83594Z" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M18.3346 6.33594L10.8596 11.0859C10.6024 11.2471 10.3049 11.3326 10.0013 11.3326C9.6977 11.3326 9.40024 11.2471 9.14297 11.0859L1.66797 6.33594" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </div>
+
+                    {/* Email Input */}
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="your@email.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="flex w-full h-[50px] py-[13px] pr-[13px] pl-[41px] items-center rounded-lg border border-[#D1D5DB] bg-white/80 text-base placeholder:text-[#CCC] font-roboto"
+                      required
+                    />
+                  </div>
+                </div>
+
+                {/* Address Field Container */}
+                <div className="flex w-full lg:w-[216px] flex-col items-start gap-1 h-[74px]">
+                  {/* Address Label */}
+                  <div className="flex h-5 py-[1.5px] pb-0.5 items-center self-stretch">
+                    <Label htmlFor="address" className="text-[#4B5563] font-roboto text-xs font-medium leading-5">
+                      Address
+                    </Label>
+                  </div>
+
+                  {/* Address Input Container */}
+                  <div className="h-[50px] self-stretch relative">
+                    {/* Address Icon Container */}
+                    <div className="inline-flex h-[50px] py-[15px] pl-3 pr-0 flex-col justify-center items-center flex-shrink-0 absolute left-0 top-0 w-8">
+                      <svg className="w-5 h-5 flex-shrink-0" width="20" height="21" viewBox="0 0 20 21" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M10 11.5026C11.3807 11.5026 12.5 10.3833 12.5 9.0026C12.5 7.62187 11.3807 6.5026 10 6.5026C8.61929 6.5026 7.5 7.62187 7.5 9.0026C7.5 10.3833 8.61929 11.5026 10 11.5026Z" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M10 1.83594C8.01088 1.83594 6.10322 2.62572 4.6967 4.03224C3.29018 5.43876 2.5004 7.34642 2.5004 9.33554C2.5004 11.3247 3.29018 13.2323 4.6967 14.6388C6.10322 16.0454 8.01088 16.8351 10 16.8351C11.9891 16.8351 13.8968 16.0454 15.3033 14.6388C16.7098 13.2323 17.4996 11.3247 17.4996 9.33554C17.4996 7.34642 16.7098 5.43876 15.3033 4.03224C13.8968 2.62572 11.9891 1.83594 10 1.83594V1.83594Z" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M10 19.1693C10 19.1693 2.5 14.1693 2.5 9.16927C2.5 7.17927 3.29018 5.26927 4.6967 3.86275C6.10322 2.45623 8.01088 1.66645 10 1.66645C11.9891 1.66645 13.8968 2.45623 15.3033 3.86275C16.7098 5.26927 17.4996 7.17927 17.4996 9.16927C17.4996 14.1693 10 19.1693 10 19.1693Z" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </div>
+
+                    {/* Address Input */}
+                    <Input
+                      id="address"
+                      type="text"
+                      placeholder="Your address"
+                      value={address}
+                      onChange={(e) => setAddress(e.target.value)}
+                      className="flex w-full h-[50px] py-[13px] pr-[13px] pl-[41px] items-center rounded-lg border border-[#D1D5DB] bg-white/80 text-base placeholder:text-[#CCC] font-roboto"
+                      required
+                    />
+                  </div>
                 </div>
               </div>
 
