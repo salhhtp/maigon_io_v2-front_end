@@ -152,8 +152,8 @@ const AnimatedStepsComponent = () => {
   }, [steps.length]);
 
   return (
-    <div className="flex flex-col gap-1 md:gap-2.5 w-full p-1 md:p-2.5">
-      <div className="h-[400px] md:h-[500px] lg:h-[660px] w-full relative">
+    <div className="flex flex-col gap-1 md:gap-2.5 w-full p-1 md:p-2.5 overflow-hidden">
+      <div className="h-[400px] md:h-[500px] lg:h-[660px] w-full relative max-w-[1210px] mx-auto">
         {/* Steps Section */}
         <div className="flex flex-col justify-end items-start gap-px absolute left-0 top-1 h-[385px] md:h-[485px] lg:h-[641px] w-full lg:w-[458px]">
           {steps.map((step, index) => (
