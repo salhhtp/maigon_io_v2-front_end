@@ -1017,6 +1017,21 @@ export default function Solutions() {
         </div>
       </section>
 
+      <CallToActionSection
+        title="Ready to Transform Your Contract Review Process?"
+        description="Experience the power of AI-driven contract analysis with Maigon's advanced platform. Start your free trial today or explore our flexible pricing options."
+        primaryButton={{
+          text: "Start Free Trial",
+          href: "/signin"
+        }}
+        secondaryButton={{
+          text: "View Pricing",
+          href: "/pricing",
+          variant: "outline"
+        }}
+        className="py-20 max-w-4xl mx-auto px-8 lg:px-16"
+      />
+
       <AnimatedQuotes />
 
       {/* FAQ Section */}
