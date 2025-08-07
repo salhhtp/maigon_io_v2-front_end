@@ -40,18 +40,18 @@ const AnimatedSolutionsMockup: React.FC = () => {
   return (
     <div className="w-full h-full bg-gradient-to-br from-white to-[#F9F8F8] rounded-lg border border-[#271D1D]/15 overflow-hidden relative">
       {/* Header */}
-      <div className="bg-[#271D1D] text-white p-4">
+      <div className="bg-[#271D1D] text-white p-6">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-[#9A7C7C] rounded flex items-center justify-center">
-              <FileText className="w-4 h-4" />
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-[#9A7C7C] rounded-lg flex items-center justify-center">
+              <FileText className="w-6 h-6" />
             </div>
             <div>
-              <h3 className="font-medium">Contract Analysis Dashboard</h3>
-              <p className="text-xs text-gray-300">AI-Powered Review System</p>
+              <h3 className="text-lg font-medium">Contract Analysis Dashboard</h3>
+              <p className="text-sm text-gray-300">AI-Powered Review System</p>
             </div>
           </div>
-          <div className="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded">
+          <div className="text-sm bg-green-500/20 text-green-400 px-3 py-2 rounded-lg">
             Live
           </div>
         </div>
