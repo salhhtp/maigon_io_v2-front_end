@@ -124,12 +124,32 @@ export default function Loading() {
     }`}>
       {/* Navigation */}
       <nav className="flex items-center justify-between px-8 lg:px-16 py-6">
-        <Logo size="xl" />
+        <div onClick={handleLinkClick("/home")} className="cursor-pointer">
+          <Logo size="xl" />
+        </div>
 
         <div className="hidden md:flex items-center space-x-8">
-          <span className="text-[#271D1D] cursor-default">Solutions</span>
-          <span className="text-[#271D1D] cursor-default">News</span>
-          <span className="text-[#271D1D] cursor-default">Team</span>
+          <a
+            href="/user-solutions"
+            onClick={handleLinkClick("/user-solutions")}
+            className="text-[#271D1D] hover:text-[#9A7C7C] transition-colors cursor-pointer"
+          >
+            Solutions
+          </a>
+          <a
+            href="/user-news"
+            onClick={handleLinkClick("/user-news")}
+            className="text-[#271D1D] hover:text-[#9A7C7C] transition-colors cursor-pointer"
+          >
+            News
+          </a>
+          <a
+            href="/user-team"
+            onClick={handleLinkClick("/user-team")}
+            className="text-[#271D1D] hover:text-[#9A7C7C] transition-colors cursor-pointer"
+          >
+            Team
+          </a>
 
           {/* User Button */}
           <div className="relative">
