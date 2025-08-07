@@ -132,11 +132,13 @@ export default function UserNews() {
 
             {/* Right Image */}
             <div className="flex-1">
-              <img 
-                src="https://api.builder.io/api/v1/image/assets/TEMP/354d86037e54edc0a4f3120d61da3d802119a819?width=1146" 
-                alt="Featured news article"
-                className="w-full max-w-2xl h-96 lg:h-[424px] object-cover rounded-lg border border-[#271D1D]/15"
-              />
+              <Link to="/articles/finding-contract-solution" className="group">
+                <img
+                  src="https://api.builder.io/api/v1/image/assets/TEMP/354d86037e54edc0a4f3120d61da3d802119a819?width=1146"
+                  alt="Featured news article"
+                  className="w-full max-w-2xl h-96 lg:h-[424px] object-cover rounded-lg border border-[#271D1D]/15 group-hover:border-[#9A7C7C]/50 transition-colors"
+                />
+              </Link>
             </div>
           </div>
         </div>
