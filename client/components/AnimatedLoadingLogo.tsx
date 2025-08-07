@@ -28,7 +28,7 @@ export const AnimatedLoadingLogo = ({
   }, [duration, onComplete]);
 
   return (
-    <div className="relative w-full max-w-[534px] h-24 mx-auto">
+    <div className="relative w-full max-w-[534px] h-auto aspect-[534/96] mx-auto">
       {/* Outlined Logo (Always visible) */}
       <div className="absolute inset-0 flex items-center justify-center">
         <svg
