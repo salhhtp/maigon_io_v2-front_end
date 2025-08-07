@@ -58,25 +58,25 @@ const AnimatedSolutionsMockup: React.FC = () => {
       </div>
 
       {/* Main Content */}
-      <div className="p-6 h-full">
+      <div className="p-8 h-full">
         {/* Contract Type Selector */}
-        <div className="grid grid-cols-7 gap-2 mb-6">
+        <div className="grid grid-cols-7 gap-3 mb-8">
           {contractTypes.map((contract, index) => {
             const IconComponent = contract.icon;
             return (
               <div
                 key={index}
-                className={`p-2 rounded-lg border-2 transition-all duration-300 cursor-pointer ${
+                className={`p-3 rounded-lg border-2 transition-all duration-300 cursor-pointer ${
                   index === activeContract
                     ? `${contract.bg} border-current ${contract.color} scale-105 shadow-lg`
                     : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
                 }`}
                 onClick={() => setActiveContract(index)}
               >
-                <IconComponent className={`w-4 h-4 mx-auto ${
+                <IconComponent className={`w-6 h-6 mx-auto ${
                   index === activeContract ? contract.color : 'text-gray-400'
                 }`} />
-                <div className={`text-xs text-center mt-1 font-medium ${
+                <div className={`text-sm text-center mt-2 font-medium ${
                   index === activeContract ? contract.color : 'text-gray-500'
                 }`}>
                   {contract.name}
