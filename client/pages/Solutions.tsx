@@ -5,6 +5,7 @@ import { useState, useEffect, useRef } from "react";
 import Logo from "@/components/Logo";
 import Footer from "@/components/Footer";
 import AnimatedQuotes from "@/components/AnimatedQuotes";
+import AnimatedSolutionsMockup from "@/components/AnimatedSolutionsMockup";
 import MobileNavigation from "@/components/MobileNavigation";
 
 const SolutionCard = ({ title, description, imageSrc }: { title: string; description: string; imageSrc: string }) => (
