@@ -429,7 +429,7 @@ export default function Solutions() {
         </div>
 
         <div className="flex py-8 lg:py-12 px-8 lg:px-12 items-center gap-2.5 bg-white w-full lg:w-auto lg:min-w-[623px] lg:h-[831px] rounded-lg border border-[#271D1D]/15">
-          <div className="w-full h-full lg:w-[379px] lg:h-[403px]">
+          <div className="w-full h-full">
             <AnimatedSolutionsMockup />
           </div>
         </div>
