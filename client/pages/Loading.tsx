@@ -166,7 +166,13 @@ export default function Loading() {
               <div className="absolute right-0 mt-2 w-32 bg-white border border-[#271D1D]/15 rounded-lg shadow-lg py-2 z-10">
                 <a href="#" className="block px-4 py-2 text-sm text-[#271D1D] hover:bg-[#F9F8F8] transition-colors">Profile</a>
                 <a href="#" className="block px-4 py-2 text-sm text-[#271D1D] hover:bg-[#F9F8F8] transition-colors">Settings</a>
-                <span className="block px-4 py-2 text-sm text-[#271D1D] opacity-50 cursor-not-allowed">Log Out</span>
+                <a
+                  href="/"
+                  onClick={handleLinkClick("/")}
+                  className="block px-4 py-2 text-sm text-[#271D1D] hover:bg-[#F9F8F8] transition-colors cursor-pointer"
+                >
+                  Log Out
+                </a>
               </div>
             )}
           </div>
