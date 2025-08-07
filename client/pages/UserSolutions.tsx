@@ -279,9 +279,6 @@ export default function UserSolutions() {
               </p>
             </div>
           </div>
-          <Button className="flex py-3 px-10 justify-center items-center gap-2.5 rounded-xl bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-[#F9F8F8] text-center font-roboto text-lg lg:text-xl font-normal leading-6 tracking-[0.2px]">
-            Go to Solutions
-          </Button>
         </div>
 
         <div className="flex py-32 lg:py-[214px] px-16 lg:px-[122px] items-center gap-2.5 bg-white w-full lg:w-auto lg:min-w-[623px] lg:h-[831px] rounded-lg border border-[#271D1D]/15">
