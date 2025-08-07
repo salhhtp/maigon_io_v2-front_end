@@ -1,0 +1,442 @@
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Check, X } from "lucide-react";
+import { Link, useLocation } from "react-router-dom";
+import { useState } from "react";
+import Logo from "@/components/Logo";
+import Footer from "@/components/Footer";
+import MobileNavigation from "@/components/MobileNavigation";
+
+const PricingCard = ({
+  tier,
+  title,
+  subtitle,
+  price,
+  period,
+  features,
+  buttonText,
+  buttonAction,
+  popular = false,
+}: {
+  tier: string;
+  title: string;
+  subtitle: string;
+  price: number | string;
+  period: string;
+  features: string[];
+  buttonText: string;
+  buttonAction: () => void;
+  popular?: boolean;
+}) => (
+  <Card className={`relative ${popular ? 'ring-2 ring-[#9A7C7C] scale-105' : ''}`}>
+    {popular && (
+      <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+        <span className="bg-[#9A7C7C] text-white px-4 py-1 text-sm rounded-full">
+          Most Popular
+        </span>
+      </div>
+    )}
+    <CardHeader className="text-center">
+      <CardTitle className="text-xl font-medium text-[#271D1D] font-lora">
+        {title}
+      </CardTitle>
+      <p className="text-sm text-[#271D1D]/70">{subtitle}</p>
+      <div className="mt-4">
+        <span className="text-4xl font-bold text-[#271D1D]">
+          {typeof price === 'number' ? `€${price}` : price}
+        </span>
+        <span className="text-[#271D1D]/70 ml-1">{period}</span>
+      </div>
+    </CardHeader>
+    <CardContent>
+      <ul className="space-y-3 mb-6">
+        {features.map((feature, index) => (
+          <li key={index} className="flex items-center gap-2 text-sm">
+            <Check className="w-4 h-4 text-green-500 flex-shrink-0" />
+            <span className="text-[#271D1D]">{feature}</span>
+          </li>
+        ))}
+      </ul>
+      <Button
+        onClick={buttonAction}
+        className={`w-full ${
+          popular
+            ? 'bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white'
+            : 'bg-white border border-[#271D1D]/20 text-[#271D1D] hover:bg-[#F9F8F8]'
+        }`}
+        variant={popular ? 'default' : 'outline'}
+      >
+        {buttonText}
+      </Button>
+    </CardContent>
+  </Card>
+);
+
+const PricingCalculator = ({
+  onPlanSelect,
+}: {
+  onPlanSelect: (plan: string) => void;
+}) => {
+  const [contractCount, setContractCount] = useState(5);
+
+  const calculatePricing = (contracts: number) => {
+    if (contracts <= 1) return { plan: "Free Trial", price: 0, savings: 0 };
+    if (contracts <= 10) {
+      const price = contracts * 12;
+      return { plan: "Pay-as-you-go", price, savings: 0 };
+    }
+    if (contracts <= 15) {
+      const monthlyPrice = 79;
+      const payAsYouGoPrice = contracts * 12;
+      const savings = payAsYouGoPrice - monthlyPrice;
+      return { plan: "Monthly 10 Plan", price: monthlyPrice, savings };
+    }
+    const monthlyPrice = 99;
+    const payAsYouGoPrice = contracts * 12;
+    const savings = payAsYouGoPrice - monthlyPrice;
+    return { plan: "Monthly 15 Plan", price: monthlyPrice, savings };
+  };
+
+  const result = calculatePricing(contractCount);
+
+  return (
+    <Card className="bg-[#F9F8F8] border-[#271D1D]/10">
+      <CardContent className="p-6">
+        <h3 className="font-lora text-lg font-medium text-[#271D1D] mb-2">
+          Pricing Calculator
+        </h3>
+        <p className="text-sm text-[#271D1D]/70 mb-4">
+          How many contracts do you review monthly?
+        </p>
+        
+        <div className="space-y-4">
+          <div>
+            <input
+              type="range"
+              min="1"
+              max="20"
+              value={contractCount}
+              onChange={(e) => setContractCount(parseInt(e.target.value))}
+              className="w-full h-2 bg-[#D6CECE] rounded-lg appearance-none cursor-pointer"
+            />
+            <div className="flex justify-between text-xs text-[#271D1D]/60 mt-1">
+              <span>1</span>
+              <span className="font-medium text-[#271D1D]">{contractCount} contracts</span>
+              <span>20+</span>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg p-4 border border-[#271D1D]/10">
+            <div className="flex justify-between items-center">
+              <div>
+                <p className="font-medium text-[#271D1D]">Recommended: {result.plan}</p>
+                <p className="text-sm text-[#271D1D]/70">
+                  €{result.price}{result.price > 0 ? '/month' : ''}
+                </p>
+              </div>
+              {result.savings > 0 && (
+                <div className="text-right">
+                  <p className="text-sm text-green-600 font-medium">
+                    Save €{result.savings}/month
+                  </p>
+                </div>
+              )}
+            </div>
+            <Button
+              onClick={() => onPlanSelect(result.plan)}
+              className="w-full mt-3 bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white"
+            >
+              Get Started
+            </Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
+export default function PublicPricing() {
+  const location = useLocation();
+
+  const handlePlanSelect = (plan: string) => {
+    // Redirect to sign up for public users
+    window.location.href = '/signin';
+  };
+
+  const handleCalculatorSelect = (plan: string) => {
+    // Redirect to sign up for public users
+    window.location.href = '/signin';
+  };
+
+  return (
+    <div className="min-h-screen bg-[#F9F8F8]">
+      {/* Navigation */}
+      <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-8 lg:px-16 py-6 bg-[#F9F8F8]">
+        <Link to="/">
+          <Logo size="xl" />
+        </Link>
+        
+        <div className="hidden md:flex items-center space-x-8">
+          <Link
+            to="/solutions"
+            className={`transition-colors ${
+              location.pathname === "/solutions"
+                ? "text-[#9A7C7C] font-medium"
+                : "text-[#271D1D] hover:text-[#9A7C7C]"
+            }`}
+          >
+            Solutions
+          </Link>
+          <Link
+            to="/public-pricing"
+            className={`transition-colors ${
+              location.pathname === "/public-pricing"
+                ? "text-[#9A7C7C] font-medium"
+                : "text-[#271D1D] hover:text-[#9A7C7C]"
+            }`}
+          >
+            Pricing
+          </Link>
+          <Link
+            to="/news"
+            className={`transition-colors ${
+              location.pathname === "/news"
+                ? "text-[#9A7C7C] font-medium"
+                : "text-[#271D1D] hover:text-[#9A7C7C]"
+            }`}
+          >
+            News
+          </Link>
+          <Link
+            to="/team"
+            className={`transition-colors ${
+              location.pathname === "/team"
+                ? "text-[#9A7C7C] font-medium"
+                : "text-[#271D1D] hover:text-[#9A7C7C]"
+            }`}
+          >
+            Team
+          </Link>
+          <Button asChild className="bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white px-8 rounded-lg">
+            <Link to="/signin">Sign In/Up</Link>
+          </Button>
+        </div>
+
+        {/* Mobile Navigation */}
+        <MobileNavigation isLoggedIn={false} />
+      </nav>
+
+      {/* Hero Section */}
+      <section className="py-20 px-8 lg:px-16 bg-[#F9F8F8] pt-24 lg:pt-32">
+        <div className="max-w-4xl mx-auto text-center">
+          <h1 className="text-4xl lg:text-5xl font-medium text-[#271D1D] font-lora mb-6">
+            Simple, Transparent Pricing
+          </h1>
+          <p className="text-lg text-[#271D1D]/70 mb-8">
+            From free trials to enterprise solutions, we have pricing that
+            scales with your contract review needs.
+          </p>
+        </div>
+      </section>
+
+      {/* Pricing Calculator */}
+      <section className="pb-16 px-8 lg:px-16">
+        <div className="max-w-2xl mx-auto">
+          <div className="text-center mb-8">
+            <h2 className="text-2xl font-medium text-[#271D1D] font-lora mb-4">
+              Find Your Perfect Plan
+            </h2>
+          </div>
+          
+          <PricingCalculator onPlanSelect={handleCalculatorSelect} />
+        </div>
+      </section>
+
+      {/* Pricing Plans */}
+      <section className="py-16 px-8 lg:px-16">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl lg:text-4xl font-medium text-[#271D1D] font-lora mb-4">
+              Choose Your Plan
+            </h2>
+            <p className="text-[#271D1D]/70">
+              Detailed breakdown of all our service packages and pricing tiers.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {/* Free Trial */}
+            <PricingCard
+              tier="free_trial"
+              title="Free Trial"
+              subtitle="Try Maigon Risk-Free"
+              price={0}
+              period=""
+              features={[
+                "1 contract review",
+                "Basic compliance check",
+                "Standard report",
+                "Email support",
+                "No credit card required",
+              ]}
+              buttonText="Start Free Trial"
+              buttonAction={() => handlePlanSelect("free_trial")}
+            />
+
+            {/* Pay-as-you-go */}
+            <PricingCard
+              tier="pay_as_you_go"
+              title="Pay-as-you-go"
+              subtitle="Perfect for Occasional Use"
+              price={12}
+              period="per contract"
+              features={[
+                "€12 per contract review",
+                "Full compliance analysis",
+                "Detailed insights report",
+                "Priority email support",
+                "No monthly commitment",
+                "Bulk discounts available",
+              ]}
+              buttonText="Get Started"
+              buttonAction={() => handlePlanSelect("pay_as_you_go")}
+            />
+
+            {/* Monthly 10 */}
+            <PricingCard
+              tier="monthly_10"
+              title="Monthly 10"
+              subtitle="Best for Small Teams"
+              price={79}
+              period="per month"
+              popular={true}
+              features={[
+                "10 contract reviews/month",
+                "Advanced AI analysis",
+                "Custom compliance rules",
+                "Priority support",
+                "Team collaboration tools",
+                "Usage analytics",
+              ]}
+              buttonText="Start 14-Day Trial"
+              buttonAction={() => handlePlanSelect("monthly_10")}
+            />
+
+            {/* Monthly 15 */}
+            <PricingCard
+              tier="monthly_15"
+              title="Monthly 15"
+              subtitle="Growing Business Solution"
+              price={99}
+              period="per month"
+              features={[
+                "15 contract reviews/month",
+                "Premium AI features",
+                "Advanced reporting",
+                "Phone & email support",
+                "API access",
+                "Custom integrations",
+              ]}
+              buttonText="Start 14-Day Trial"
+              buttonAction={() => handlePlanSelect("monthly_15")}
+            />
+          </div>
+
+          {/* Enterprise */}
+          <div className="mt-12 text-center">
+            <Card className="max-w-2xl mx-auto">
+              <CardContent className="p-8">
+                <h3 className="text-xl font-medium text-[#271D1D] font-lora mb-4">
+                  Enterprise & Custom Solutions
+                </h3>
+                <p className="text-lg mb-2">
+                  For 15+ Contracts Monthly - Custom Pricing
+                </p>
+                <p className="text-[#271D1D]/70 mb-6">
+                  Tailored solutions for large organizations with specific needs.
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                  <div>
+                    <h4 className="font-medium text-[#271D1D] mb-2">Enterprise Features</h4>
+                    <ul className="text-sm space-y-1">
+                      <li>• Custom pricing based on exact volume</li>
+                      <li>• Feature customization assessment</li>
+                      <li>• Dedicated account manager</li>
+                      <li>• On-premise deployment options</li>
+                    </ul>
+                  </div>
+                  <div>
+                    <h4 className="font-medium text-[#271D1D] mb-2">Additional Benefits</h4>
+                    <ul className="text-sm space-y-1">
+                      <li>• Custom SLA agreements</li>
+                      <li>• Advanced security compliance</li>
+                      <li>• Training & onboarding support</li>
+                      <li>• Priority feature requests</li>
+                    </ul>
+                  </div>
+                </div>
+                <Button
+                  onClick={() => window.location.href = '/signin'}
+                  className="bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white px-8"
+                >
+                  Contact Sales
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* Comparison Table */}
+      <section className="py-16 px-8 lg:px-16">
+        <div className="max-w-6xl mx-auto">
+          <h2 className="text-2xl font-medium text-[#271D1D] font-lora mb-8 text-center">
+            Feature Comparison
+          </h2>
+          
+          <div className="overflow-x-auto">
+            <table className="w-full border border-[#271D1D]/20 rounded-lg">
+              <thead>
+                <tr className="bg-[#F9F8F8]">
+                  <th className="text-left p-4 font-medium text-[#271D1D]">Features</th>
+                  <th className="text-center p-4 font-medium text-[#271D1D]">
+                    Free Trial
+                  </th>
+                  <th className="text-center p-4 font-medium text-[#271D1D]">
+                    Pay-as-you-go
+                  </th>
+                  <th className="text-center p-4 font-medium text-[#271D1D]">
+                    Monthly 10
+                  </th>
+                  <th className="text-center p-4 font-medium text-[#271D1D]">
+                    Monthly 15
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {[
+                  { feature: "Contract Reviews", trial: "1", paygo: "Unlimited", monthly10: "10/month", monthly15: "15/month" },
+                  { feature: "AI Analysis", trial: "Basic", paygo: "Full", monthly10: "Advanced", monthly15: "Premium" },
+                  { feature: "Compliance Reports", trial: "✓", paygo: "✓", monthly10: "✓", monthly15: "✓" },
+                  { feature: "Custom Rules", trial: "✗", paygo: "Limited", monthly10: "✓", monthly15: "✓" },
+                  { feature: "API Access", trial: "✗", paygo: "✗", monthly10: "✗", monthly15: "✓" },
+                  { feature: "Priority Support", trial: "✗", paygo: "✓", monthly10: "✓", monthly15: "✓" },
+                ].map((row, index) => (
+                  <tr key={index} className="border-t border-[#271D1D]/10">
+                    <td className="p-4 font-medium text-[#271D1D]">{row.feature}</td>
+                    <td className="p-4 text-center text-[#271D1D]">{row.trial}</td>
+                    <td className="p-4 text-center text-[#271D1D]">{row.paygo}</td>
+                    <td className="p-4 text-center text-[#271D1D]">{row.monthly10}</td>
+                    <td className="p-4 text-center text-[#271D1D]">{row.monthly15}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <Footer />
+    </div>
+  );
+}
