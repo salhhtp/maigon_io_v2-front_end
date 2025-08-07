@@ -18,7 +18,14 @@ export default function Loading() {
   // Get the upload info from navigation state
   const { selectedFile, solutionTitle, perspective } = location.state || {};
 
+  // Block navigation when processing is in progress
+  const blocker = useBlocker(
+    ({ currentLocation, nextLocation }) =>
+      isProcessing && currentLocation.pathname !== nextLocation.pathname
+  );
+
   const handleLoadingComplete = () => {
+    setIsProcessing(false);
     // Navigate to results page after review completion
     // For now, navigate back to user solutions with success message
     setTimeout(() => {
@@ -31,6 +38,36 @@ export default function Loading() {
         }
       });
     }, 1000);
+  };
+
+  const handleLinkClick = (path: string) => (e: React.MouseEvent) => {
+    if (isProcessing) {
+      e.preventDefault();
+      setPendingNavigation(path);
+      setShowConfirmModal(true);
+    }
+  };
+
+  const handleConfirmNavigation = () => {
+    setIsProcessing(false);
+    setShowConfirmModal(false);
+
+    if (blocker.state === 'blocked') {
+      blocker.proceed();
+    } else if (pendingNavigation) {
+      navigate(pendingNavigation);
+    }
+
+    setPendingNavigation(null);
+  };
+
+  const handleCancelNavigation = () => {
+    setShowConfirmModal(false);
+    setPendingNavigation(null);
+
+    if (blocker.state === 'blocked') {
+      blocker.reset();
+    }
   };
 
   // Entrance animation
