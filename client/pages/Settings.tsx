@@ -308,19 +308,19 @@ export default function Settings() {
                   label="Email Notifications"
                   description="Receive contract review updates via email"
                 >
-                  <Toggle enabled={emailNotifications} onChange={setEmailNotifications} />
+                  <Toggle enabled={emailNotifications} onChange={(value) => handleSettingChange('email_notifications', value)} />
                 </SettingItem>
                 <SettingItem
                   label="Push Notifications"
                   description="Get instant notifications in your browser"
                 >
-                  <Toggle enabled={pushNotifications} onChange={setPushNotifications} />
+                  <Toggle enabled={pushNotifications} onChange={(value) => handleSettingChange('push_notifications', value)} />
                 </SettingItem>
                 <SettingItem
                   label="Marketing Emails"
                   description="Receive updates about new features and offers"
                 >
-                  <Toggle enabled={marketingEmails} onChange={setMarketingEmails} />
+                  <Toggle enabled={marketingEmails} onChange={(value) => handleSettingChange('marketing_emails', value)} />
                 </SettingItem>
               </div>
             </SettingsSection>
