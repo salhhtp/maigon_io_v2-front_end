@@ -261,6 +261,22 @@ export default function Team() {
         </div>
       </section>
 
+      <section className="py-20 max-w-4xl mx-auto px-8 lg:px-16">
+        <CallToActionSection
+          title="Work with the Maigon Team"
+          description="Join our mission to revolutionize contract review with AI. Experience the expertise and innovation that drives our platform forward."
+          primaryButton={{
+            text: "Start Your Journey",
+            href: "/signin"
+          }}
+          secondaryButton={{
+            text: "See Our Solutions",
+            href: "/solutions",
+            variant: "outline"
+          }}
+        />
+      </section>
+
       <Footer />
     </div>
   );
