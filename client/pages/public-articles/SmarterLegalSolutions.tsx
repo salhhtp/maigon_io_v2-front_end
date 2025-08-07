@@ -40,7 +40,10 @@ export default function PublicSmarterLegalSolutions() {
           >
             Team
           </Link>
-          <Button asChild className="bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white px-8 rounded-lg">
+          <Button
+            asChild
+            className="bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white px-8 rounded-lg"
+          >
             <Link to="/signin">Sign In/Up</Link>
           </Button>
         </div>
@@ -65,14 +68,16 @@ export default function PublicSmarterLegalSolutions() {
               Smarter Legal Solutions: How Maigon is Redefining Contract Review
             </h1>
             <p className="text-xl text-[#271D1D]/70 leading-relaxed">
-              Discover how artificial intelligence is transforming the legal industry and why smart contract review solutions are becoming essential for modern law practices.
+              Discover how artificial intelligence is transforming the legal
+              industry and why smart contract review solutions are becoming
+              essential for modern law practices.
             </p>
           </header>
 
           {/* Featured Image */}
           <div className="mb-12">
-            <img 
-              src="https://api.builder.io/api/v1/image/assets/TEMP/defadcd8445be3dc8712f81677c887b3ef4db62b?width=1200" 
+            <img
+              src="https://api.builder.io/api/v1/image/assets/TEMP/defadcd8445be3dc8712f81677c887b3ef4db62b?width=1200"
               alt="Smarter Legal Solutions"
               className="w-full h-64 lg:h-96 object-cover rounded-lg"
             />
@@ -83,13 +88,20 @@ export default function PublicSmarterLegalSolutions() {
             <h2 className="text-2xl font-medium text-[#271D1D] font-lora mb-4">
               The Evolution of Legal Technology
             </h2>
-            
+
             <p className="text-[#271D1D]/80 leading-relaxed mb-6">
-              The legal industry has traditionally been slow to adopt new technologies, but the landscape is rapidly changing. Contract review, once a time-consuming manual process requiring hours of careful analysis, is now being revolutionized by artificial intelligence and machine learning technologies.
+              The legal industry has traditionally been slow to adopt new
+              technologies, but the landscape is rapidly changing. Contract
+              review, once a time-consuming manual process requiring hours of
+              careful analysis, is now being revolutionized by artificial
+              intelligence and machine learning technologies.
             </p>
 
             <p className="text-[#271D1D]/80 leading-relaxed mb-6">
-              At Maigon, we've witnessed firsthand how AI-powered contract analysis can transform legal workflows. Our platform reduces review time from hours to minutes while maintaining the accuracy and thoroughness that legal professionals demand.
+              At Maigon, we've witnessed firsthand how AI-powered contract
+              analysis can transform legal workflows. Our platform reduces
+              review time from hours to minutes while maintaining the accuracy
+              and thoroughness that legal professionals demand.
             </p>
 
             <h2 className="text-2xl font-medium text-[#271D1D] font-lora mb-4 mt-8">
@@ -97,7 +109,8 @@ export default function PublicSmarterLegalSolutions() {
             </h2>
 
             <p className="text-[#271D1D]/80 leading-relaxed mb-6">
-              Traditional contract review processes face several critical challenges:
+              Traditional contract review processes face several critical
+              challenges:
             </p>
 
             <ul className="list-disc pl-6 mb-6 space-y-2 text-[#271D1D]/80">
@@ -113,34 +126,51 @@ export default function PublicSmarterLegalSolutions() {
             </h2>
 
             <p className="text-[#271D1D]/80 leading-relaxed mb-6">
-              Our AI-powered platform addresses these challenges head-on by combining advanced natural language processing with deep learning algorithms specifically trained on legal documents. This unique approach allows us to:
+              Our AI-powered platform addresses these challenges head-on by
+              combining advanced natural language processing with deep learning
+              algorithms specifically trained on legal documents. This unique
+              approach allows us to:
             </p>
 
             <div className="bg-[#F3F3F3] rounded-lg p-6 mb-6">
-              <h3 className="font-medium text-[#271D1D] mb-4">Key Capabilities</h3>
+              <h3 className="font-medium text-[#271D1D] mb-4">
+                Key Capabilities
+              </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <h4 className="font-medium text-[#271D1D] mb-2">Speed & Efficiency</h4>
+                  <h4 className="font-medium text-[#271D1D] mb-2">
+                    Speed & Efficiency
+                  </h4>
                   <p className="text-sm text-[#271D1D]/70">
-                    Review contracts in minutes, not hours, while maintaining comprehensive analysis standards.
+                    Review contracts in minutes, not hours, while maintaining
+                    comprehensive analysis standards.
                   </p>
                 </div>
                 <div>
-                  <h4 className="font-medium text-[#271D1D] mb-2">Accuracy & Consistency</h4>
+                  <h4 className="font-medium text-[#271D1D] mb-2">
+                    Accuracy & Consistency
+                  </h4>
                   <p className="text-sm text-[#271D1D]/70">
-                    Eliminate human error with consistent, reliable contract analysis every time.
+                    Eliminate human error with consistent, reliable contract
+                    analysis every time.
                   </p>
                 </div>
                 <div>
-                  <h4 className="font-medium text-[#271D1D] mb-2">Compliance Expertise</h4>
+                  <h4 className="font-medium text-[#271D1D] mb-2">
+                    Compliance Expertise
+                  </h4>
                   <p className="text-sm text-[#271D1D]/70">
-                    Stay current with evolving regulations like GDPR with our continuously updated AI models.
+                    Stay current with evolving regulations like GDPR with our
+                    continuously updated AI models.
                   </p>
                 </div>
                 <div>
-                  <h4 className="font-medium text-[#271D1D] mb-2">Scalable Solutions</h4>
+                  <h4 className="font-medium text-[#271D1D] mb-2">
+                    Scalable Solutions
+                  </h4>
                   <p className="text-sm text-[#271D1D]/70">
-                    Handle any volume of contracts without compromising quality or increasing costs exponentially.
+                    Handle any volume of contracts without compromising quality
+                    or increasing costs exponentially.
                   </p>
                 </div>
               </div>
@@ -151,11 +181,16 @@ export default function PublicSmarterLegalSolutions() {
             </h2>
 
             <p className="text-[#271D1D]/80 leading-relaxed mb-6">
-              Legal professionals using Maigon report significant improvements in their practice efficiency. By automating routine contract analysis, lawyers can focus on higher-value strategic work while ensuring comprehensive compliance review.
+              Legal professionals using Maigon report significant improvements
+              in their practice efficiency. By automating routine contract
+              analysis, lawyers can focus on higher-value strategic work while
+              ensuring comprehensive compliance review.
             </p>
 
             <blockquote className="border-l-4 border-[#9A7C7C] pl-6 my-8 italic text-[#271D1D]/80">
-              "Maigon has transformed our contract review process. What used to take our team hours now takes minutes, and we catch compliance issues we might have missed before."
+              "Maigon has transformed our contract review process. What used to
+              take our team hours now takes minutes, and we catch compliance
+              issues we might have missed before."
             </blockquote>
 
             <h2 className="text-2xl font-medium text-[#271D1D] font-lora mb-4 mt-8">
@@ -163,11 +198,17 @@ export default function PublicSmarterLegalSolutions() {
             </h2>
 
             <p className="text-[#271D1D]/80 leading-relaxed mb-6">
-              As AI technology continues to advance, we expect to see even more sophisticated applications in legal practice. Machine learning models will become increasingly adept at understanding legal nuances, while integration capabilities will streamline entire legal workflows.
+              As AI technology continues to advance, we expect to see even more
+              sophisticated applications in legal practice. Machine learning
+              models will become increasingly adept at understanding legal
+              nuances, while integration capabilities will streamline entire
+              legal workflows.
             </p>
 
             <p className="text-[#271D1D]/80 leading-relaxed mb-6">
-              At Maigon, we're committed to staying at the forefront of this technological revolution, continuously improving our platform to meet the evolving needs of legal professionals worldwide.
+              At Maigon, we're committed to staying at the forefront of this
+              technological revolution, continuously improving our platform to
+              meet the evolving needs of legal professionals worldwide.
             </p>
           </div>
 
@@ -216,7 +257,8 @@ export default function PublicSmarterLegalSolutions() {
                     Code to Clause: The Engineering Behind AI's Contract Review
                   </h4>
                   <p className="text-sm text-[#271D1D]/70">
-                    Explore the technical architecture that powers modern contract analysis.
+                    Explore the technical architecture that powers modern
+                    contract analysis.
                   </p>
                 </div>
               </Link>

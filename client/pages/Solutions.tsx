@@ -1022,12 +1022,12 @@ export default function Solutions() {
         description="Experience the power of AI-driven contract analysis with Maigon's advanced platform. Start your free trial today or explore our flexible pricing options."
         primaryButton={{
           text: "Start Free Trial",
-          href: "/signin"
+          href: "/signin",
         }}
         secondaryButton={{
           text: "View Pricing",
           href: "/pricing",
-          variant: "outline"
+          variant: "outline",
         }}
         className="py-20 max-w-4xl mx-auto px-8 lg:px-16"
       />

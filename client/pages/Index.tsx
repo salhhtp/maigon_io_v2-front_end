@@ -335,7 +335,10 @@ export default function Index() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16">
-            <Link to="/public-articles/smarter-legal-solutions" className="group">
+            <Link
+              to="/public-articles/smarter-legal-solutions"
+              className="group"
+            >
               <Card className="border border-[#271D1D]/15 rounded-lg overflow-hidden hover:border-[#9A7C7C]/50 transition-colors">
                 <img
                   src="https://api.builder.io/api/v1/image/assets/TEMP/defadcd8445be3dc8712f81677c887b3ef4db62b?width=820"

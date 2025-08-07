@@ -267,12 +267,12 @@ export default function Team() {
           description="Join our mission to revolutionize contract review with AI. Experience the expertise and innovation that drives our platform forward."
           primaryButton={{
             text: "Start Your Journey",
-            href: "/signin"
+            href: "/signin",
           }}
           secondaryButton={{
             text: "See Our Solutions",
             href: "/solutions",
-            variant: "outline"
+            variant: "outline",
           }}
         />
       </section>

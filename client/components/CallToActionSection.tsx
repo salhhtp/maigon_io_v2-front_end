@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 
@@ -8,12 +8,12 @@ interface CallToActionSectionProps {
   primaryButton: {
     text: string;
     href: string;
-    variant?: 'default' | 'outline';
+    variant?: "default" | "outline";
   };
   secondaryButton?: {
     text: string;
     href: string;
-    variant?: 'default' | 'outline';
+    variant?: "default" | "outline";
   };
   className?: string;
 }
@@ -23,7 +23,7 @@ const CallToActionSection: React.FC<CallToActionSectionProps> = ({
   description,
   primaryButton,
   secondaryButton,
-  className = "mt-16"
+  className = "mt-16",
 }) => {
   return (
     <div className={`text-center ${className}`}>
@@ -36,12 +36,13 @@ const CallToActionSection: React.FC<CallToActionSectionProps> = ({
         </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <Link to={primaryButton.href}>
-            <Button 
-              className={primaryButton.variant === 'outline' 
-                ? "text-[#271D1D] border-[#271D1D]/20 px-8 py-3" 
-                : "bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white px-8 py-3"
+            <Button
+              className={
+                primaryButton.variant === "outline"
+                  ? "text-[#271D1D] border-[#271D1D]/20 px-8 py-3"
+                  : "bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white px-8 py-3"
               }
-              variant={primaryButton.variant || 'default'}
+              variant={primaryButton.variant || "default"}
             >
               {primaryButton.text}
             </Button>
@@ -49,10 +50,11 @@ const CallToActionSection: React.FC<CallToActionSectionProps> = ({
           {secondaryButton && (
             <Link to={secondaryButton.href}>
               <Button
-                variant={secondaryButton.variant || 'outline'}
-                className={secondaryButton.variant === 'outline' 
-                  ? "text-[#271D1D] border-[#271D1D]/20 px-8 py-3"
-                  : "bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white px-8 py-3"
+                variant={secondaryButton.variant || "outline"}
+                className={
+                  secondaryButton.variant === "outline"
+                    ? "text-[#271D1D] border-[#271D1D]/20 px-8 py-3"
+                    : "bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white px-8 py-3"
                 }
               >
                 {secondaryButton.text}

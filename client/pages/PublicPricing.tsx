@@ -28,7 +28,9 @@ const PricingCard = ({
   buttonAction: () => void;
   popular?: boolean;
 }) => (
-  <Card className={`relative ${popular ? 'ring-2 ring-[#9A7C7C] scale-105' : ''}`}>
+  <Card
+    className={`relative ${popular ? "ring-2 ring-[#9A7C7C] scale-105" : ""}`}
+  >
     {popular && (
       <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
         <span className="bg-[#9A7C7C] text-white px-4 py-1 text-sm rounded-full">
@@ -43,7 +45,7 @@ const PricingCard = ({
       <p className="text-sm text-[#271D1D]/70">{subtitle}</p>
       <div className="mt-4">
         <span className="text-4xl font-bold text-[#271D1D]">
-          {typeof price === 'number' ? `€${price}` : price}
+          {typeof price === "number" ? `€${price}` : price}
         </span>
         <span className="text-[#271D1D]/70 ml-1">{period}</span>
       </div>
@@ -61,10 +63,10 @@ const PricingCard = ({
         onClick={buttonAction}
         className={`w-full ${
           popular
-            ? 'bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white'
-            : 'bg-white border border-[#271D1D]/20 text-[#271D1D] hover:bg-[#F9F8F8]'
+            ? "bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white"
+            : "bg-white border border-[#271D1D]/20 text-[#271D1D] hover:bg-[#F9F8F8]"
         }`}
-        variant={popular ? 'default' : 'outline'}
+        variant={popular ? "default" : "outline"}
       >
         {buttonText}
       </Button>
@@ -108,7 +110,7 @@ const PricingCalculator = ({
         <p className="text-sm text-[#271D1D]/70 mb-4">
           How many contracts do you review monthly?
         </p>
-        
+
         <div className="space-y-4">
           <div>
             <input
@@ -121,7 +123,9 @@ const PricingCalculator = ({
             />
             <div className="flex justify-between text-xs text-[#271D1D]/60 mt-1">
               <span>1</span>
-              <span className="font-medium text-[#271D1D]">{contractCount} contracts</span>
+              <span className="font-medium text-[#271D1D]">
+                {contractCount} contracts
+              </span>
               <span>20+</span>
             </div>
           </div>
@@ -129,9 +133,12 @@ const PricingCalculator = ({
           <div className="bg-white rounded-lg p-4 border border-[#271D1D]/10">
             <div className="flex justify-between items-center">
               <div>
-                <p className="font-medium text-[#271D1D]">Recommended: {result.plan}</p>
+                <p className="font-medium text-[#271D1D]">
+                  Recommended: {result.plan}
+                </p>
                 <p className="text-sm text-[#271D1D]/70">
-                  €{result.price}{result.price > 0 ? '/month' : ''}
+                  €{result.price}
+                  {result.price > 0 ? "/month" : ""}
                 </p>
               </div>
               {result.savings > 0 && (
@@ -160,12 +167,12 @@ export default function PublicPricing() {
 
   const handlePlanSelect = (plan: string) => {
     // Redirect to sign up for public users
-    window.location.href = '/signin';
+    window.location.href = "/signin";
   };
 
   const handleCalculatorSelect = (plan: string) => {
     // Redirect to sign up for public users
-    window.location.href = '/signin';
+    window.location.href = "/signin";
   };
 
   return (
@@ -175,7 +182,7 @@ export default function PublicPricing() {
         <Link to="/">
           <Logo size="xl" />
         </Link>
-        
+
         <div className="hidden md:flex items-center space-x-8">
           <Link
             to="/solutions"
@@ -217,7 +224,10 @@ export default function PublicPricing() {
           >
             Team
           </Link>
-          <Button asChild className="bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white px-8 rounded-lg">
+          <Button
+            asChild
+            className="bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white px-8 rounded-lg"
+          >
             <Link to="/signin">Sign In/Up</Link>
           </Button>
         </div>
@@ -247,7 +257,7 @@ export default function PublicPricing() {
               Find Your Perfect Plan
             </h2>
           </div>
-          
+
           <PricingCalculator onPlanSelect={handleCalculatorSelect} />
         </div>
       </section>
@@ -353,11 +363,14 @@ export default function PublicPricing() {
                   For 15+ Contracts Monthly - Custom Pricing
                 </p>
                 <p className="text-[#271D1D]/70 mb-6">
-                  Tailored solutions for large organizations with specific needs.
+                  Tailored solutions for large organizations with specific
+                  needs.
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                   <div>
-                    <h4 className="font-medium text-[#271D1D] mb-2">Enterprise Features</h4>
+                    <h4 className="font-medium text-[#271D1D] mb-2">
+                      Enterprise Features
+                    </h4>
                     <ul className="text-sm space-y-1">
                       <li>• Custom pricing based on exact volume</li>
                       <li>• Feature customization assessment</li>
@@ -366,7 +379,9 @@ export default function PublicPricing() {
                     </ul>
                   </div>
                   <div>
-                    <h4 className="font-medium text-[#271D1D] mb-2">Additional Benefits</h4>
+                    <h4 className="font-medium text-[#271D1D] mb-2">
+                      Additional Benefits
+                    </h4>
                     <ul className="text-sm space-y-1">
                       <li>• Custom SLA agreements</li>
                       <li>• Advanced security compliance</li>
@@ -376,7 +391,7 @@ export default function PublicPricing() {
                   </div>
                 </div>
                 <Button
-                  onClick={() => window.location.href = '/signin'}
+                  onClick={() => (window.location.href = "/signin")}
                   className="bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white px-8"
                 >
                   Contact Sales
@@ -393,12 +408,14 @@ export default function PublicPricing() {
           <h2 className="text-2xl font-medium text-[#271D1D] font-lora mb-8 text-center">
             Feature Comparison
           </h2>
-          
+
           <div className="overflow-x-auto">
             <table className="w-full border border-[#271D1D]/20 rounded-lg">
               <thead>
                 <tr className="bg-[#F9F8F8]">
-                  <th className="text-left p-4 font-medium text-[#271D1D]">Features</th>
+                  <th className="text-left p-4 font-medium text-[#271D1D]">
+                    Features
+                  </th>
                   <th className="text-center p-4 font-medium text-[#271D1D]">
                     Free Trial
                   </th>
@@ -415,19 +432,65 @@ export default function PublicPricing() {
               </thead>
               <tbody>
                 {[
-                  { feature: "Contract Reviews", trial: "1", paygo: "Unlimited", monthly10: "10/month", monthly15: "15/month" },
-                  { feature: "AI Analysis", trial: "Basic", paygo: "Full", monthly10: "Advanced", monthly15: "Premium" },
-                  { feature: "Compliance Reports", trial: "✓", paygo: "✓", monthly10: "✓", monthly15: "✓" },
-                  { feature: "Custom Rules", trial: "✗", paygo: "Limited", monthly10: "✓", monthly15: "✓" },
-                  { feature: "API Access", trial: "✗", paygo: "✗", monthly10: "✗", monthly15: "✓" },
-                  { feature: "Priority Support", trial: "✗", paygo: "✓", monthly10: "✓", monthly15: "✓" },
+                  {
+                    feature: "Contract Reviews",
+                    trial: "1",
+                    paygo: "Unlimited",
+                    monthly10: "10/month",
+                    monthly15: "15/month",
+                  },
+                  {
+                    feature: "AI Analysis",
+                    trial: "Basic",
+                    paygo: "Full",
+                    monthly10: "Advanced",
+                    monthly15: "Premium",
+                  },
+                  {
+                    feature: "Compliance Reports",
+                    trial: "✓",
+                    paygo: "✓",
+                    monthly10: "✓",
+                    monthly15: "✓",
+                  },
+                  {
+                    feature: "Custom Rules",
+                    trial: "✗",
+                    paygo: "Limited",
+                    monthly10: "✓",
+                    monthly15: "✓",
+                  },
+                  {
+                    feature: "API Access",
+                    trial: "✗",
+                    paygo: "✗",
+                    monthly10: "✗",
+                    monthly15: "✓",
+                  },
+                  {
+                    feature: "Priority Support",
+                    trial: "✗",
+                    paygo: "✓",
+                    monthly10: "✓",
+                    monthly15: "✓",
+                  },
                 ].map((row, index) => (
                   <tr key={index} className="border-t border-[#271D1D]/10">
-                    <td className="p-4 font-medium text-[#271D1D]">{row.feature}</td>
-                    <td className="p-4 text-center text-[#271D1D]">{row.trial}</td>
-                    <td className="p-4 text-center text-[#271D1D]">{row.paygo}</td>
-                    <td className="p-4 text-center text-[#271D1D]">{row.monthly10}</td>
-                    <td className="p-4 text-center text-[#271D1D]">{row.monthly15}</td>
+                    <td className="p-4 font-medium text-[#271D1D]">
+                      {row.feature}
+                    </td>
+                    <td className="p-4 text-center text-[#271D1D]">
+                      {row.trial}
+                    </td>
+                    <td className="p-4 text-center text-[#271D1D]">
+                      {row.paygo}
+                    </td>
+                    <td className="p-4 text-center text-[#271D1D]">
+                      {row.monthly10}
+                    </td>
+                    <td className="p-4 text-center text-[#271D1D]">
+                      {row.monthly15}
+                    </td>
                   </tr>
                 ))}
               </tbody>

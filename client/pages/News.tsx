@@ -186,7 +186,10 @@ export default function News() {
 
             {/* Right Image */}
             <div className="flex-1">
-              <Link to="/public-articles/finding-contract-solution" className="group">
+              <Link
+                to="/public-articles/finding-contract-solution"
+                className="group"
+              >
                 <img
                   src="https://api.builder.io/api/v1/image/assets/TEMP/354d86037e54edc0a4f3120d61da3d802119a819?width=1146"
                   alt="Featured news article"
@@ -270,12 +273,12 @@ export default function News() {
           description="Ready to revolutionize your contract review process? Join thousands of legal professionals who trust Maigon's AI-powered platform."
           primaryButton={{
             text: "Try Maigon Free",
-            href: "/signin"
+            href: "/signin",
           }}
           secondaryButton={{
             text: "Explore Solutions",
             href: "/solutions",
-            variant: "outline"
+            variant: "outline",
           }}
         />
       </section>

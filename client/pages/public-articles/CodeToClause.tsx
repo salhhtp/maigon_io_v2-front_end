@@ -38,7 +38,10 @@ export default function PublicCodeToClause() {
           >
             Team
           </Link>
-          <Button asChild className="bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white px-8 rounded-lg">
+          <Button
+            asChild
+            className="bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white px-8 rounded-lg"
+          >
             <Link to="/signin">Sign In/Up</Link>
           </Button>
         </div>
@@ -63,14 +66,15 @@ export default function PublicCodeToClause() {
               Code to Clause: The Engineering Behind AI's Contract Review
             </h1>
             <p className="text-xl text-[#271D1D]/70 leading-relaxed">
-              Dive deep into the technical architecture and engineering innovations that power modern AI-driven contract analysis systems.
+              Dive deep into the technical architecture and engineering
+              innovations that power modern AI-driven contract analysis systems.
             </p>
           </header>
 
           {/* Featured Image */}
           <div className="mb-12">
-            <img 
-              src="https://api.builder.io/api/v1/image/assets/TEMP/c498213c0b4214c6db0aac491c03b8a8739f2f72?width=1200" 
+            <img
+              src="https://api.builder.io/api/v1/image/assets/TEMP/c498213c0b4214c6db0aac491c03b8a8739f2f72?width=1200"
               alt="Code to Clause: The Engineering Behind AI's Contract Review"
               className="w-full h-64 lg:h-96 object-cover rounded-lg"
             />
@@ -81,13 +85,21 @@ export default function PublicCodeToClause() {
             <h2 className="text-2xl font-medium text-[#271D1D] font-lora mb-4">
               The Architecture of Intelligence
             </h2>
-            
+
             <p className="text-[#271D1D]/80 leading-relaxed mb-6">
-              Behind every successful AI contract review lies a sophisticated engineering architecture designed to handle the complexity and nuance of legal language. At Maigon, our engineering team has developed a multi-layered system that combines cutting-edge natural language processing with domain-specific legal expertise.
+              Behind every successful AI contract review lies a sophisticated
+              engineering architecture designed to handle the complexity and
+              nuance of legal language. At Maigon, our engineering team has
+              developed a multi-layered system that combines cutting-edge
+              natural language processing with domain-specific legal expertise.
             </p>
 
             <p className="text-[#271D1D]/80 leading-relaxed mb-6">
-              The journey from raw contract text to actionable insights involves multiple stages of processing, each optimized for accuracy, speed, and reliability. Understanding this technical foundation helps explain why AI-powered contract review delivers such transformative results.
+              The journey from raw contract text to actionable insights involves
+              multiple stages of processing, each optimized for accuracy, speed,
+              and reliability. Understanding this technical foundation helps
+              explain why AI-powered contract review delivers such
+              transformative results.
             </p>
 
             <h2 className="text-2xl font-medium text-[#271D1D] font-lora mb-4 mt-8">
@@ -95,41 +107,63 @@ export default function PublicCodeToClause() {
             </h2>
 
             <div className="bg-[#F3F3F3] rounded-lg p-6 mb-6">
-              <h3 className="font-medium text-[#271D1D] mb-4">Core Processing Stages</h3>
+              <h3 className="font-medium text-[#271D1D] mb-4">
+                Core Processing Stages
+              </h3>
               <div className="space-y-4">
                 <div className="flex items-start gap-4">
-                  <div className="w-8 h-8 bg-[#9A7C7C] text-white rounded-full flex items-center justify-center text-sm font-medium">1</div>
+                  <div className="w-8 h-8 bg-[#9A7C7C] text-white rounded-full flex items-center justify-center text-sm font-medium">
+                    1
+                  </div>
                   <div>
-                    <h4 className="font-medium text-[#271D1D] mb-1">Document Parsing</h4>
+                    <h4 className="font-medium text-[#271D1D] mb-1">
+                      Document Parsing
+                    </h4>
                     <p className="text-sm text-[#271D1D]/70">
-                      Intelligent extraction and structure recognition from various document formats
+                      Intelligent extraction and structure recognition from
+                      various document formats
                     </p>
                   </div>
                 </div>
                 <div className="flex items-start gap-4">
-                  <div className="w-8 h-8 bg-[#9A7C7C] text-white rounded-full flex items-center justify-center text-sm font-medium">2</div>
+                  <div className="w-8 h-8 bg-[#9A7C7C] text-white rounded-full flex items-center justify-center text-sm font-medium">
+                    2
+                  </div>
                   <div>
-                    <h4 className="font-medium text-[#271D1D] mb-1">Semantic Analysis</h4>
+                    <h4 className="font-medium text-[#271D1D] mb-1">
+                      Semantic Analysis
+                    </h4>
                     <p className="text-sm text-[#271D1D]/70">
-                      Deep understanding of legal concepts and clause relationships
+                      Deep understanding of legal concepts and clause
+                      relationships
                     </p>
                   </div>
                 </div>
                 <div className="flex items-start gap-4">
-                  <div className="w-8 h-8 bg-[#9A7C7C] text-white rounded-full flex items-center justify-center text-sm font-medium">3</div>
+                  <div className="w-8 h-8 bg-[#9A7C7C] text-white rounded-full flex items-center justify-center text-sm font-medium">
+                    3
+                  </div>
                   <div>
-                    <h4 className="font-medium text-[#271D1D] mb-1">Risk Assessment</h4>
+                    <h4 className="font-medium text-[#271D1D] mb-1">
+                      Risk Assessment
+                    </h4>
                     <p className="text-sm text-[#271D1D]/70">
-                      Automated identification of potential compliance and legal risks
+                      Automated identification of potential compliance and legal
+                      risks
                     </p>
                   </div>
                 </div>
                 <div className="flex items-start gap-4">
-                  <div className="w-8 h-8 bg-[#9A7C7C] text-white rounded-full flex items-center justify-center text-sm font-medium">4</div>
+                  <div className="w-8 h-8 bg-[#9A7C7C] text-white rounded-full flex items-center justify-center text-sm font-medium">
+                    4
+                  </div>
                   <div>
-                    <h4 className="font-medium text-[#271D1D] mb-1">Report Generation</h4>
+                    <h4 className="font-medium text-[#271D1D] mb-1">
+                      Report Generation
+                    </h4>
                     <p className="text-sm text-[#271D1D]/70">
-                      Comprehensive insights compiled into actionable recommendations
+                      Comprehensive insights compiled into actionable
+                      recommendations
                     </p>
                   </div>
                 </div>
@@ -141,15 +175,31 @@ export default function PublicCodeToClause() {
             </h2>
 
             <p className="text-[#271D1D]/80 leading-relaxed mb-6">
-              Our AI system employs multiple specialized machine learning models, each trained for specific aspects of contract analysis:
+              Our AI system employs multiple specialized machine learning
+              models, each trained for specific aspects of contract analysis:
             </p>
 
             <ul className="list-disc pl-6 mb-6 space-y-2 text-[#271D1D]/80">
-              <li><strong>Classification Models:</strong> Identify contract types and categorize clauses</li>
-              <li><strong>Named Entity Recognition:</strong> Extract parties, dates, monetary values, and key terms</li>
-              <li><strong>Sentiment Analysis:</strong> Assess the favorability of contract terms</li>
-              <li><strong>Compliance Checkers:</strong> Verify adherence to specific regulations like GDPR</li>
-              <li><strong>Risk Scoring:</strong> Quantify potential legal and business risks</li>
+              <li>
+                <strong>Classification Models:</strong> Identify contract types
+                and categorize clauses
+              </li>
+              <li>
+                <strong>Named Entity Recognition:</strong> Extract parties,
+                dates, monetary values, and key terms
+              </li>
+              <li>
+                <strong>Sentiment Analysis:</strong> Assess the favorability of
+                contract terms
+              </li>
+              <li>
+                <strong>Compliance Checkers:</strong> Verify adherence to
+                specific regulations like GDPR
+              </li>
+              <li>
+                <strong>Risk Scoring:</strong> Quantify potential legal and
+                business risks
+              </li>
             </ul>
 
             <h2 className="text-2xl font-medium text-[#271D1D] font-lora mb-4 mt-8">
@@ -157,12 +207,16 @@ export default function PublicCodeToClause() {
             </h2>
 
             <p className="text-[#271D1D]/80 leading-relaxed mb-6">
-              The accuracy of AI contract review depends heavily on the quality and comprehensiveness of training data. Our approach to data curation involves:
+              The accuracy of AI contract review depends heavily on the quality
+              and comprehensiveness of training data. Our approach to data
+              curation involves:
             </p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
               <div className="bg-white rounded-lg p-6 border border-[#271D1D]/10">
-                <h4 className="font-medium text-[#271D1D] mb-3">Data Sources</h4>
+                <h4 className="font-medium text-[#271D1D] mb-3">
+                  Data Sources
+                </h4>
                 <ul className="text-sm text-[#271D1D]/70 space-y-2">
                   <li>• Anonymized real-world contracts</li>
                   <li>• Legal precedents and case law</li>
@@ -171,7 +225,9 @@ export default function PublicCodeToClause() {
                 </ul>
               </div>
               <div className="bg-white rounded-lg p-6 border border-[#271D1D]/10">
-                <h4 className="font-medium text-[#271D1D] mb-3">Quality Control</h4>
+                <h4 className="font-medium text-[#271D1D] mb-3">
+                  Quality Control
+                </h4>
                 <ul className="text-sm text-[#271D1D]/70 space-y-2">
                   <li>• Legal expert validation</li>
                   <li>• Continuous model refinement</li>
@@ -186,27 +242,44 @@ export default function PublicCodeToClause() {
             </h2>
 
             <p className="text-[#271D1D]/80 leading-relaxed mb-6">
-              Engineering an AI system that can handle varying document complexities and volumes requires careful attention to scalability. Our infrastructure includes:
+              Engineering an AI system that can handle varying document
+              complexities and volumes requires careful attention to
+              scalability. Our infrastructure includes:
             </p>
 
             <blockquote className="border-l-4 border-[#9A7C7C] pl-6 my-8 italic text-[#271D1D]/80">
-              "The challenge isn't just making AI understand contracts—it's making it understand them consistently, accurately, and at scale."
+              "The challenge isn't just making AI understand contracts—it's
+              making it understand them consistently, accurately, and at scale."
             </blockquote>
 
             <div className="bg-[#F3F3F3] rounded-lg p-6 mb-6">
-              <h3 className="font-medium text-[#271D1D] mb-4">Technical Specifications</h3>
+              <h3 className="font-medium text-[#271D1D] mb-4">
+                Technical Specifications
+              </h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                 <div>
-                  <h4 className="font-medium text-[#271D1D] mb-2">Processing Speed</h4>
-                  <p className="text-[#271D1D]/70">Average contract analysis completed in under 2 minutes</p>
+                  <h4 className="font-medium text-[#271D1D] mb-2">
+                    Processing Speed
+                  </h4>
+                  <p className="text-[#271D1D]/70">
+                    Average contract analysis completed in under 2 minutes
+                  </p>
                 </div>
                 <div>
-                  <h4 className="font-medium text-[#271D1D] mb-2">Accuracy Rate</h4>
-                  <p className="text-[#271D1D]/70">95%+ accuracy in clause identification and risk assessment</p>
+                  <h4 className="font-medium text-[#271D1D] mb-2">
+                    Accuracy Rate
+                  </h4>
+                  <p className="text-[#271D1D]/70">
+                    95%+ accuracy in clause identification and risk assessment
+                  </p>
                 </div>
                 <div>
-                  <h4 className="font-medium text-[#271D1D] mb-2">Language Support</h4>
-                  <p className="text-[#271D1D]/70">50+ languages with multilingual contract handling</p>
+                  <h4 className="font-medium text-[#271D1D] mb-2">
+                    Language Support
+                  </h4>
+                  <p className="text-[#271D1D]/70">
+                    50+ languages with multilingual contract handling
+                  </p>
                 </div>
               </div>
             </div>
@@ -216,11 +289,16 @@ export default function PublicCodeToClause() {
             </h2>
 
             <p className="text-[#271D1D]/80 leading-relaxed mb-6">
-              The field of AI contract review continues to evolve rapidly. Emerging technologies like transformer architectures and few-shot learning are opening new possibilities for even more sophisticated contract analysis capabilities.
+              The field of AI contract review continues to evolve rapidly.
+              Emerging technologies like transformer architectures and few-shot
+              learning are opening new possibilities for even more sophisticated
+              contract analysis capabilities.
             </p>
 
             <p className="text-[#271D1D]/80 leading-relaxed mb-6">
-              At Maigon, we're continuously researching and implementing these advances to ensure our platform remains at the cutting edge of legal technology innovation.
+              At Maigon, we're continuously researching and implementing these
+              advances to ensure our platform remains at the cutting edge of
+              legal technology innovation.
             </p>
           </div>
 
@@ -231,7 +309,8 @@ export default function PublicCodeToClause() {
                 Experience Advanced AI Contract Analysis
               </h3>
               <p className="text-[#271D1D]/70 mb-6">
-                See how our engineering innovations translate into practical benefits for your legal practice.
+                See how our engineering innovations translate into practical
+                benefits for your legal practice.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Link to="/signin">
@@ -257,7 +336,10 @@ export default function PublicCodeToClause() {
               Related Articles
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <Link to="/public-articles/smarter-legal-solutions" className="group">
+              <Link
+                to="/public-articles/smarter-legal-solutions"
+                className="group"
+              >
                 <div className="bg-white rounded-lg p-6 border border-[#271D1D]/10 hover:border-[#9A7C7C]/50 transition-colors">
                   <img
                     src="https://api.builder.io/api/v1/image/assets/TEMP/defadcd8445be3dc8712f81677c887b3ef4db62b?width=400"
@@ -265,7 +347,8 @@ export default function PublicCodeToClause() {
                     className="w-full h-32 object-cover rounded mb-4"
                   />
                   <h4 className="font-medium text-[#271D1D] mb-2 group-hover:text-[#9A7C7C] transition-colors">
-                    Smarter Legal Solutions: How Maigon is Redefining Contract Review
+                    Smarter Legal Solutions: How Maigon is Redefining Contract
+                    Review
                   </h4>
                   <p className="text-sm text-[#271D1D]/70">
                     Discover how AI is transforming the legal industry.
@@ -273,7 +356,10 @@ export default function PublicCodeToClause() {
                 </div>
               </Link>
 
-              <Link to="/public-articles/finding-contract-solution" className="group">
+              <Link
+                to="/public-articles/finding-contract-solution"
+                className="group"
+              >
                 <div className="bg-white rounded-lg p-6 border border-[#271D1D]/10 hover:border-[#9A7C7C]/50 transition-colors">
                   <img
                     src="https://api.builder.io/api/v1/image/assets/TEMP/354d86037e54edc0a4f3120d61da3d802119a819?width=400"
@@ -284,7 +370,8 @@ export default function PublicCodeToClause() {
                     Finding Your Contract Solution: A No-Nonsense Approach
                   </h4>
                   <p className="text-sm text-[#271D1D]/70">
-                    A practical guide to choosing the right contract review solution.
+                    A practical guide to choosing the right contract review
+                    solution.
                   </p>
                 </div>
               </Link>
