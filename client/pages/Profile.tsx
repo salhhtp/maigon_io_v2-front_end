@@ -58,20 +58,16 @@ const UsageChart = ({ monthlyUsage }: { monthlyUsage: Array<{ month: string; rev
   </div>
 );
 
-const RecentActivity = () => (
+const RecentActivity = ({ activities }: { activities: Array<{ action: string; file: string; time: string; status: string }> }) => (
   <div className="bg-white rounded-lg p-6 border border-[#271D1D]/10">
     <h3 className="font-lora text-lg font-medium text-[#271D1D] mb-4">Recent Activity</h3>
     <div className="space-y-4">
-      {[
-        { action: 'Reviewed NDA contract', file: 'confidentiality_agreement.pdf', time: '2 hours ago', status: 'completed' },
-        { action: 'Uploaded DPA document', file: 'data_processing_agreement.docx', time: '1 day ago', status: 'processing' },
-        { action: 'Downloaded report', file: 'privacy_policy_review.pdf', time: '3 days ago', status: 'completed' },
-        { action: 'Reviewed consultancy agreement', file: 'service_agreement.pdf', time: '1 week ago', status: 'completed' }
-      ].map((activity, index) => (
+      {activities.length > 0 ? activities.map((activity, index) => (
         <div key={index} className="flex items-center justify-between py-2 border-b border-[#F3F3F3] last:border-b-0">
           <div className="flex items-center gap-3">
             <div className={`w-2 h-2 rounded-full ${
-              activity.status === 'completed' ? 'bg-green-500' : 'bg-yellow-500'
+              activity.status === 'completed' ? 'bg-green-500' :
+              activity.status === 'processing' ? 'bg-yellow-500' : 'bg-red-500'
             }`} />
             <div>
               <p className="text-sm font-medium text-[#271D1D]">{activity.action}</p>
@@ -80,7 +76,12 @@ const RecentActivity = () => (
           </div>
           <span className="text-xs text-[#271D1D]/50">{activity.time}</span>
         </div>
-      ))}
+      )) : (
+        <div className="text-center py-8 text-[#271D1D]/50">
+          <p className="text-sm">No recent activity</p>
+          <p className="text-xs mt-1">Start reviewing contracts to see your activity here</p>
+        </div>
+      )}
     </div>
   </div>
 );
