@@ -468,7 +468,7 @@ export default function Solutions() {
             </div>
 
             {/* Desktop Grid */}
-            <div className="hidden lg:grid h-[1368px] py-[21px] gap-y-px gap-x-1 w-full grid-rows-3 grid-cols-3 relative">
+            <div className="hidden lg:grid h-[1368px] py-[21px] gap-y-2 gap-x-2 w-full grid-rows-3 grid-cols-3 relative">
               {/* NDA Card */}
               <Link to="/signin" className="flex w-[265px] pt-[15px] flex-col justify-end items-center bg-[#F3F3F3] relative col-start-1 row-start-1 cursor-pointer hover:bg-[#ECECEC] transition-colors duration-200">
                 <div className="w-[265px] h-[424px] absolute left-0 top-[15px]">
