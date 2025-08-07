@@ -285,7 +285,7 @@ export default function Settings() {
                   description="Add an extra layer of security to your account"
                 >
                   <div className="flex items-center gap-3">
-                    <Toggle enabled={twoFactorAuth} onChange={setTwoFactorAuth} />
+                    <Toggle enabled={twoFactorAuth} onChange={(value) => handleSettingChange('two_factor_auth', value)} />
                     {twoFactorAuth && (
                       <Button variant="outline" size="sm" className="text-[#271D1D] border-[#271D1D]/20">
                         Configure
