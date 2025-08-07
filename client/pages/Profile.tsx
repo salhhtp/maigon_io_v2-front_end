@@ -261,7 +261,7 @@ export default function Profile() {
               </div>
             </div>
             <p className="text-lg text-[#271D1D]/70">
-              Welcome back, {userName}! {isAdmin ? 'Manage your platform and users from here.' : 'Track your contract reviews and billing information.'}
+              Welcome back, {user.name.split(' ')[0]}! {isAdmin ? 'Manage your platform and users from here.' : 'Track your contract reviews and billing information.'}
             </p>
           </div>
 
