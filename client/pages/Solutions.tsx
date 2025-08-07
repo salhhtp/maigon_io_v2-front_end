@@ -428,30 +428,10 @@ export default function Solutions() {
           </Button>
         </div>
 
-        <div className="flex py-32 lg:py-[214px] px-16 lg:px-[122px] items-center gap-2.5 bg-white w-full lg:w-auto lg:min-w-[623px] lg:h-[831px] rounded-lg border border-[#271D1D]/15">
-          <svg
-            width="379"
-            height="403"
-            viewBox="0 0 380 404"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            className="w-full h-auto lg:w-[379px] lg:h-[403px]"
-          >
-            <path
-              d="M363.71 319.542C363.71 328.449 360.382 336.991 354.459 343.289C348.536 349.587 340.503 353.125 332.126 353.125H47.8763C39.4999 353.125 31.4665 349.587 25.5435 343.289C19.6205 336.991 16.293 328.449 16.293 319.542V134.833C16.293 125.926 19.6205 117.384 25.5435 111.086C31.4665 104.788 39.4999 101.25 47.8763 101.25H111.043L142.626 50.875H237.376L268.96 101.25H332.126C340.503 101.25 348.536 104.788 354.459 111.086C360.382 117.384 363.71 125.926 363.71 134.833V319.542Z"
-              stroke="#1E1E1E"
-              strokeWidth="4"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-            <path
-              d="M190.001 285.958C224.887 285.958 253.168 255.887 253.168 218.792C253.168 181.697 224.887 151.625 190.001 151.625C155.115 151.625 126.835 181.697 126.835 218.792C126.835 255.887 155.115 285.958 190.001 285.958Z"
-              stroke="#1E1E1E"
-              strokeWidth="4"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
+        <div className="flex py-8 lg:py-12 px-8 lg:px-12 items-center gap-2.5 bg-white w-full lg:w-auto lg:min-w-[623px] lg:h-[831px] rounded-lg border border-[#271D1D]/15">
+          <div className="w-full h-full lg:w-[379px] lg:h-[403px]">
+            <AnimatedSolutionsMockup />
+          </div>
         </div>
       </section>
 
