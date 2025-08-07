@@ -51,14 +51,14 @@ const AnimatedHeroMockup: React.FC = () => {
           currentStep === 0 ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'
         }`}>
           <div className="flex flex-col items-center justify-center h-full">
-            <div className="w-16 h-16 border-2 border-dashed border-[#9A7C7C] rounded-lg flex items-center justify-center mb-4">
-              <Upload className={`w-8 h-8 text-[#9A7C7C] transition-transform duration-500 ${
+            <div className="w-24 h-24 border-3 border-dashed border-[#9A7C7C] rounded-lg flex items-center justify-center mb-6">
+              <Upload className={`w-12 h-12 text-[#9A7C7C] transition-transform duration-500 ${
                 currentStep === 0 ? 'scale-100' : 'scale-75'
               }`} />
             </div>
-            <h3 className="text-lg font-medium text-[#271D1D] mb-2">Upload Your Contract</h3>
-            <p className="text-sm text-[#271D1D]/70 text-center">Drag & drop or click to upload</p>
-            <div className="mt-4 w-32 h-2 bg-[#D6CECE] rounded-full overflow-hidden">
+            <h3 className="text-2xl font-medium text-[#271D1D] mb-3">Upload Your Contract</h3>
+            <p className="text-lg text-[#271D1D]/70 text-center">Drag & drop or click to upload</p>
+            <div className="mt-6 w-48 h-3 bg-[#D6CECE] rounded-full overflow-hidden">
               <div 
                 className="h-full bg-[#9A7C7C] transition-all duration-300 ease-out"
                 style={{ width: currentStep === 0 ? `${Math.min(progress, 100)}%` : '0%' }}
