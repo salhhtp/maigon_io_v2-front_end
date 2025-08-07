@@ -178,11 +178,26 @@ const AdminSolutionCreator = () => (
 
 export default function Profile() {
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
-  
-  // Mock user data - replace with actual user context/auth
-  const userName = "Adam";
-  const userRole = "admin"; // or "user" for regular users
-  const isAdmin = userRole === "admin";
+  const { user, isLoggedIn } = useUser();
+
+  // Redirect if not logged in
+  if (!isLoggedIn || !user) {
+    return (
+      <div className="min-h-screen bg-[#F9F8F8] flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-lora font-medium text-[#271D1D] mb-4">Access Denied</h1>
+          <p className="text-[#271D1D]/70 mb-6">Please log in to view your profile.</p>
+          <Link to="/signin">
+            <Button className="bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white">
+              Sign In
+            </Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  const isAdmin = user.role === "admin";
 
   return (
     <div className="min-h-screen bg-[#F9F8F8]">
