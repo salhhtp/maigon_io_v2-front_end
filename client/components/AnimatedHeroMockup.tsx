@@ -106,33 +106,33 @@ const AnimatedHeroMockup: React.FC = () => {
           currentStep === 2 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
         }`}>
           <div className="flex flex-col items-center justify-center h-full">
-            <CheckCircle className="w-16 h-16 text-green-500 mb-4" />
-            <h3 className="text-lg font-medium text-[#271D1D] mb-4">Analysis Complete!</h3>
-            
+            <CheckCircle className="w-24 h-24 text-green-500 mb-6" />
+            <h3 className="text-2xl font-medium text-[#271D1D] mb-6">Analysis Complete!</h3>
+
             {/* Results preview */}
-            <div className="w-full max-w-xs space-y-2">
-              <div className="flex items-center justify-between p-2 bg-white rounded border">
-                <div className="flex items-center gap-2">
-                  <BarChart3 className="w-4 h-4 text-green-500" />
-                  <span className="text-sm">Compliance Score</span>
+            <div className="w-full max-w-md space-y-3">
+              <div className="flex items-center justify-between p-4 bg-white rounded-lg border shadow-sm">
+                <div className="flex items-center gap-3">
+                  <BarChart3 className="w-5 h-5 text-green-500" />
+                  <span className="text-base">Compliance Score</span>
                 </div>
-                <span className="text-sm font-medium text-green-600">94%</span>
+                <span className="text-base font-medium text-green-600">94%</span>
               </div>
-              
-              <div className="flex items-center justify-between p-2 bg-white rounded border">
-                <div className="flex items-center gap-2">
-                  <AlertTriangle className="w-4 h-4 text-orange-500" />
-                  <span className="text-sm">Risk Level</span>
+
+              <div className="flex items-center justify-between p-4 bg-white rounded-lg border shadow-sm">
+                <div className="flex items-center gap-3">
+                  <AlertTriangle className="w-5 h-5 text-orange-500" />
+                  <span className="text-base">Risk Level</span>
                 </div>
-                <span className="text-sm font-medium text-orange-600">Low</span>
+                <span className="text-base font-medium text-orange-600">Low</span>
               </div>
-              
-              <div className="flex items-center justify-between p-2 bg-white rounded border">
-                <div className="flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-blue-500" />
-                  <span className="text-sm">Key Clauses</span>
+
+              <div className="flex items-center justify-between p-4 bg-white rounded-lg border shadow-sm">
+                <div className="flex items-center gap-3">
+                  <FileText className="w-5 h-5 text-blue-500" />
+                  <span className="text-base">Key Clauses</span>
                 </div>
-                <span className="text-sm font-medium text-blue-600">12 found</span>
+                <span className="text-base font-medium text-blue-600">12 found</span>
               </div>
             </div>
           </div>
