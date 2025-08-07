@@ -221,6 +221,13 @@ export default function Loading() {
       </main>
 
       <Footer />
+
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showConfirmModal}
+        onConfirm={handleConfirmNavigation}
+        onCancel={handleCancelNavigation}
+      />
     </div>
   );
 }
