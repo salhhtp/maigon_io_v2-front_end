@@ -321,7 +321,7 @@ export default function LLMsAndLawyers() {
                     Explore AI Solutions
                   </Button>
                 </Link>
-                <Link to="/pricing">
+                <Link to="/signin">
                   <Button
                     variant="outline"
                     className="text-[#271D1D] border-[#271D1D]/20 px-8 py-3"
