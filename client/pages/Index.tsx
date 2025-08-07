@@ -359,7 +359,7 @@ export default function Index() {
               </Card>
             </Link>
 
-            <Link to="/articles/code-to-clause" className="group">
+            <Link to="/public-articles/code-to-clause" className="group">
               <Card className="border border-[#271D1D]/15 rounded-lg overflow-hidden hover:border-[#9A7C7C]/50 transition-colors">
                 <img
                   src="https://api.builder.io/api/v1/image/assets/TEMP/c498213c0b4214c6db0aac491c03b8a8739f2f72?width=820"
