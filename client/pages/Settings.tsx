@@ -193,7 +193,8 @@ export default function Settings() {
                     <label className="block text-sm font-medium text-[#271D1D] mb-2">Full Name</label>
                     <input
                       type="text"
-                      defaultValue="Adam Smith"
+                      value={formData.name}
+                      onChange={(e) => setFormData({...formData, name: e.target.value})}
                       className="w-full px-3 py-2 border border-[#271D1D]/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#9A7C7C] focus:border-transparent"
                     />
                   </div>
@@ -201,7 +202,8 @@ export default function Settings() {
                     <label className="block text-sm font-medium text-[#271D1D] mb-2">Email Address</label>
                     <input
                       type="email"
-                      defaultValue={userEmail}
+                      value={formData.email}
+                      onChange={(e) => setFormData({...formData, email: e.target.value})}
                       className="w-full px-3 py-2 border border-[#271D1D]/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#9A7C7C] focus:border-transparent"
                     />
                   </div>
@@ -211,7 +213,8 @@ export default function Settings() {
                     <label className="block text-sm font-medium text-[#271D1D] mb-2">Company</label>
                     <input
                       type="text"
-                      defaultValue="Acme Corporation"
+                      value={formData.company}
+                      onChange={(e) => setFormData({...formData, company: e.target.value})}
                       className="w-full px-3 py-2 border border-[#271D1D]/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#9A7C7C] focus:border-transparent"
                     />
                   </div>
@@ -219,13 +222,17 @@ export default function Settings() {
                     <label className="block text-sm font-medium text-[#271D1D] mb-2">Phone Number</label>
                     <input
                       type="tel"
-                      defaultValue="+1 (555) 123-4567"
+                      value={formData.phone}
+                      onChange={(e) => setFormData({...formData, phone: e.target.value})}
                       className="w-full px-3 py-2 border border-[#271D1D]/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#9A7C7C] focus:border-transparent"
                     />
                   </div>
                 </div>
                 <div className="flex justify-end">
-                  <Button className="bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white">
+                  <Button
+                    onClick={handleFormSubmit}
+                    className="bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white"
+                  >
                     Save Changes
                   </Button>
                 </div>
