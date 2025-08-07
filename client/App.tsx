@@ -84,6 +84,10 @@ const router = createBrowserRouter([
     element: <Settings />,
   },
   {
+    path: "/pricing",
+    element: <Pricing />,
+  },
+  {
     path: "*",
     element: <NotFound />,
   },
