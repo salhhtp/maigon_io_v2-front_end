@@ -14,12 +14,19 @@ const ContractCardsAnimation: React.FC<ContractCardsAnimationProps> = ({ contrac
 
   // Auto-animate cards every 10 seconds
   useEffect(() => {
-    const interval = setInterval(() => {
-      setActiveCard((prev) => (prev + 1) % contractTypes.length);
-    }, 10000);
+    if (contractTypes.length > 0) {
+      const interval = setInterval(() => {
+        setActiveCard((prev) => (prev + 1) % contractTypes.length);
+      }, 10000);
 
-    return () => clearInterval(interval);
+      return () => clearInterval(interval);
+    }
   }, [contractTypes.length]);
+
+  // Ensure we have contract types
+  if (!contractTypes || contractTypes.length === 0) {
+    return <div>No contract types available</div>;
+  }
 
   const handleCardClick = (index: number) => {
     setActiveCard(index);
