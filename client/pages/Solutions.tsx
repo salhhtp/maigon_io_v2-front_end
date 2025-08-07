@@ -617,7 +617,7 @@ export default function Solutions() {
           <h3 className="text-lg font-medium text-black font-lora">Features</h3>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           <FeatureCard
             icon={
               <svg width="97" height="96" viewBox="0 0 97 96" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-24 h-24">
