@@ -87,17 +87,19 @@ export default function News() {
                 <div className="space-y-16">
                   {/* Divider */}
                   <div className="w-full h-px bg-[#D6CECE] rounded-full"></div>
-                  
+
                   {/* Article Info */}
                   <div className="space-y-16">
                     <div className="flex flex-col justify-start items-start space-y-2">
                       <p className="text-xs text-[#271D1D] font-medium">Published</p>
                       <p className="text-xs text-[#271D1D] font-lora">Mar 24, 2025</p>
                     </div>
-                    
-                    <h2 className="text-2xl lg:text-4xl font-medium text-black font-lora leading-tight">
-                      Finding your contract solution: A no-nonsense approach
-                    </h2>
+
+                    <Link to="/articles/finding-contract-solution" className="group">
+                      <h2 className="text-2xl lg:text-4xl font-medium text-black font-lora leading-tight group-hover:text-[#9A7C7C] transition-colors">
+                        Finding your contract solution: A no-nonsense approach
+                      </h2>
+                    </Link>
                   </div>
                 </div>
               </div>
