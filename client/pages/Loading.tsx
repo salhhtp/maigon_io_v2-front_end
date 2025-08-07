@@ -80,20 +80,43 @@ export default function Loading() {
     return () => clearTimeout(timer);
   }, []);
 
-  // Prevent navigation during loading
+  // Handle React Router navigation blocking
+  useEffect(() => {
+    if (blocker.state === 'blocked') {
+      setShowConfirmModal(true);
+    }
+  }, [blocker.state]);
+
+  // Handle browser back/forward buttons and page refresh
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      e.preventDefault();
-      e.returnValue = 'Your document is being processed. Are you sure you want to leave?';
-      return e.returnValue;
+      if (isProcessing) {
+        e.preventDefault();
+        e.returnValue = 'Your document is being processed. Are you sure you want to leave?';
+        return e.returnValue;
+      }
     };
 
-    window.addEventListener('beforeunload', handleBeforeUnload);
+    const handlePopState = (e: PopStateEvent) => {
+      if (isProcessing) {
+        e.preventDefault();
+        setShowConfirmModal(true);
+        window.history.pushState(null, '', window.location.href);
+      }
+    };
+
+    if (isProcessing) {
+      window.addEventListener('beforeunload', handleBeforeUnload);
+      window.addEventListener('popstate', handlePopState);
+      // Prevent back navigation
+      window.history.pushState(null, '', window.location.href);
+    }
 
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('popstate', handlePopState);
     };
-  }, []);
+  }, [isProcessing]);
 
   return (
     <div className={`min-h-screen bg-[#F9F8F8] flex flex-col transition-all duration-700 ease-out ${
