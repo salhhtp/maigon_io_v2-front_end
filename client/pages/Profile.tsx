@@ -269,17 +269,17 @@ export default function Profile() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <StatsCard
               title="Total Reviews"
-              value="324"
-              subtitle="This month"
+              value={user.usage.total_reviews.toString()}
+              subtitle="All time"
               icon={<FileText className="w-5 h-5 text-[#9A7C7C]" />}
-              trend={{ value: "12%", positive: true }}
+              trend={user.usage.this_month_reviews > 0 ? { value: "Active", positive: true } : undefined}
             />
             <StatsCard
               title="Current Bill"
-              value="$2,450"
-              subtitle="Due in 15 days"
+              value={user.plan.billing_cycle === 'trial' ? '€0' : `€${user.billing.current_bill}`}
+              subtitle={user.plan.billing_cycle === 'trial' ? 'Free trial' :
+                       user.plan.next_billing_date ? `Due ${user.plan.next_billing_date}` : 'Pay per use'}
               icon={<DollarSign className="w-5 h-5 text-[#9A7C7C]" />}
-              trend={{ value: "8%", positive: false }}
             />
             {isAdmin && (
               <>
@@ -292,7 +292,7 @@ export default function Profile() {
                 />
                 <StatsCard
                   title="Revenue"
-                  value="$48,230"
+                  value="€48,230"
                   subtitle="This month"
                   icon={<BarChart3 className="w-5 h-5 text-[#9A7C7C]" />}
                   trend={{ value: "23%", positive: true }}
@@ -303,13 +303,15 @@ export default function Profile() {
               <>
                 <StatsCard
                   title="Plan Usage"
-                  value="78/100"
-                  subtitle="Contracts remaining"
+                  value={user.plan.contracts_limit === -1 ?
+                    `${user.plan.contracts_used}/∞` :
+                    `${user.plan.contracts_used}/${user.plan.contracts_limit}`}
+                  subtitle={user.plan.contracts_limit === -1 ? 'Unlimited' : 'Contracts remaining'}
                   icon={<BarChart3 className="w-5 h-5 text-[#9A7C7C]" />}
                 />
                 <StatsCard
                   title="Success Rate"
-                  value="98.5%"
+                  value={`${user.usage.success_rate}%`}
                   subtitle="Reviews completed"
                   icon={<BarChart3 className="w-5 h-5 text-[#9A7C7C]" />}
                 />
