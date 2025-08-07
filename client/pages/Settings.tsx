@@ -332,13 +332,17 @@ export default function Settings() {
                   label="Auto-Save Documents"
                   description="Automatically save uploaded documents"
                 >
-                  <Toggle enabled={autoSave} onChange={setAutoSave} />
+                  <Toggle enabled={autoSave} onChange={(value) => handleSettingChange('auto_save', value)} />
                 </SettingItem>
                 <SettingItem
                   label="Language"
                   description="Choose your preferred language"
                 >
-                  <select className="px-3 py-2 border border-[#271D1D]/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#9A7C7C] focus:border-transparent">
+                  <select
+                    value={language}
+                    onChange={(e) => handleLanguageChange(e.target.value)}
+                    className="px-3 py-2 border border-[#271D1D]/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#9A7C7C] focus:border-transparent"
+                  >
                     <option value="en">English</option>
                     <option value="es">Spanish</option>
                     <option value="fr">French</option>
@@ -349,7 +353,11 @@ export default function Settings() {
                   label="Time Zone"
                   description="Set your local time zone"
                 >
-                  <select className="px-3 py-2 border border-[#271D1D]/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#9A7C7C] focus:border-transparent">
+                  <select
+                    value={timezone}
+                    onChange={(e) => handleTimezoneChange(e.target.value)}
+                    className="px-3 py-2 border border-[#271D1D]/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#9A7C7C] focus:border-transparent"
+                  >
                     <option value="UTC-8">Pacific Time (UTC-8)</option>
                     <option value="UTC-7">Mountain Time (UTC-7)</option>
                     <option value="UTC-6">Central Time (UTC-6)</option>
