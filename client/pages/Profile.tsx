@@ -1,0 +1,377 @@
+import { Button } from "@/components/ui/button";
+import { ChevronDown, User, DollarSign, FileText, Users, BarChart3, Settings, Plus, Edit, Trash2 } from "lucide-react";
+import { Link } from "react-router-dom";
+import { useState } from "react";
+import Logo from "@/components/Logo";
+import Footer from "@/components/Footer";
+import MobileNavigation from "@/components/MobileNavigation";
+
+// Dashboard Widget Components
+const StatsCard = ({ title, value, subtitle, icon, trend }: { 
+  title: string; 
+  value: string; 
+  subtitle: string; 
+  icon: React.ReactNode; 
+  trend?: { value: string; positive: boolean } 
+}) => (
+  <div className="bg-white rounded-lg p-6 border border-[#271D1D]/10">
+    <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center gap-3">
+        <div className="p-2 bg-[#F3F3F3] rounded-lg">
+          {icon}
+        </div>
+        <h3 className="font-lora text-sm font-medium text-[#271D1D]">{title}</h3>
+      </div>
+      {trend && (
+        <span className={`text-xs font-medium ${trend.positive ? 'text-green-600' : 'text-red-600'}`}>
+          {trend.positive ? '+' : ''}{trend.value}
+        </span>
+      )}
+    </div>
+    <div>
+      <p className="font-lora text-2xl font-medium text-[#271D1D] mb-1">{value}</p>
+      <p className="text-xs text-[#271D1D]/70">{subtitle}</p>
+    </div>
+  </div>
+);
+
+const UsageChart = () => (
+  <div className="bg-white rounded-lg p-6 border border-[#271D1D]/10">
+    <h3 className="font-lora text-lg font-medium text-[#271D1D] mb-4">Contract Review Usage</h3>
+    <div className="space-y-4">
+      {[
+        { month: 'Jan', reviews: 45, max: 100 },
+        { month: 'Feb', reviews: 67, max: 100 },
+        { month: 'Mar', reviews: 83, max: 100 },
+        { month: 'Apr', reviews: 92, max: 100 },
+        { month: 'May', reviews: 78, max: 100 },
+        { month: 'Jun', reviews: 65, max: 100 }
+      ].map((data, index) => (
+        <div key={index} className="flex items-center gap-4">
+          <span className="text-sm font-medium text-[#271D1D] w-8">{data.month}</span>
+          <div className="flex-1 bg-[#F3F3F3] rounded-full h-2 relative">
+            <div 
+              className="bg-[#9A7C7C] h-2 rounded-full transition-all duration-300"
+              style={{ width: `${(data.reviews / data.max) * 100}%` }}
+            />
+          </div>
+          <span className="text-sm text-[#271D1D]/70 w-16">{data.reviews}/{data.max}</span>
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
+const RecentActivity = () => (
+  <div className="bg-white rounded-lg p-6 border border-[#271D1D]/10">
+    <h3 className="font-lora text-lg font-medium text-[#271D1D] mb-4">Recent Activity</h3>
+    <div className="space-y-4">
+      {[
+        { action: 'Reviewed NDA contract', file: 'confidentiality_agreement.pdf', time: '2 hours ago', status: 'completed' },
+        { action: 'Uploaded DPA document', file: 'data_processing_agreement.docx', time: '1 day ago', status: 'processing' },
+        { action: 'Downloaded report', file: 'privacy_policy_review.pdf', time: '3 days ago', status: 'completed' },
+        { action: 'Reviewed consultancy agreement', file: 'service_agreement.pdf', time: '1 week ago', status: 'completed' }
+      ].map((activity, index) => (
+        <div key={index} className="flex items-center justify-between py-2 border-b border-[#F3F3F3] last:border-b-0">
+          <div className="flex items-center gap-3">
+            <div className={`w-2 h-2 rounded-full ${
+              activity.status === 'completed' ? 'bg-green-500' : 'bg-yellow-500'
+            }`} />
+            <div>
+              <p className="text-sm font-medium text-[#271D1D]">{activity.action}</p>
+              <p className="text-xs text-[#271D1D]/70">{activity.file}</p>
+            </div>
+          </div>
+          <span className="text-xs text-[#271D1D]/50">{activity.time}</span>
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
+const AdminUserManagement = () => (
+  <div className="bg-white rounded-lg p-6 border border-[#271D1D]/10">
+    <div className="flex items-center justify-between mb-4">
+      <h3 className="font-lora text-lg font-medium text-[#271D1D]">User Management</h3>
+      <Button className="bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white px-4 py-2 rounded-lg text-sm">
+        <Plus className="w-4 h-4 mr-2" />
+        Add User
+      </Button>
+    </div>
+    <div className="space-y-3">
+      {[
+        { name: 'John Doe', email: 'john@company.com', plan: 'Enterprise', status: 'active', usage: '78/100' },
+        { name: 'Sarah Wilson', email: 'sarah@startup.io', plan: 'Professional', status: 'active', usage: '45/50' },
+        { name: 'Mike Chen', email: 'mike@legal.com', plan: 'Basic', status: 'inactive', usage: '12/20' },
+        { name: 'Emma Davis', email: 'emma@corp.com', plan: 'Enterprise', status: 'active', usage: '92/100' }
+      ].map((user, index) => (
+        <div key={index} className="flex items-center justify-between p-3 bg-[#F9F8F8] rounded-lg">
+          <div className="flex items-center gap-4">
+            <div className="w-8 h-8 bg-[#D6CECE] rounded-full flex items-center justify-center">
+              <User className="w-4 h-4 text-[#271D1D]" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-[#271D1D]">{user.name}</p>
+              <p className="text-xs text-[#271D1D]/70">{user.email}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="text-right">
+              <p className="text-sm font-medium text-[#271D1D]">{user.plan}</p>
+              <p className="text-xs text-[#271D1D]/70">{user.usage} contracts</p>
+            </div>
+            <div className={`px-2 py-1 rounded-full text-xs font-medium ${
+              user.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+            }`}>
+              {user.status}
+            </div>
+            <div className="flex gap-1">
+              <button className="p-1 hover:bg-[#D6CECE] rounded">
+                <Edit className="w-3 h-3 text-[#271D1D]" />
+              </button>
+              <button className="p-1 hover:bg-red-100 rounded">
+                <Trash2 className="w-3 h-3 text-red-600" />
+              </button>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
+const AdminSolutionCreator = () => (
+  <div className="bg-white rounded-lg p-6 border border-[#271D1D]/10">
+    <div className="flex items-center justify-between mb-4">
+      <h3 className="font-lora text-lg font-medium text-[#271D1D]">Custom Solutions</h3>
+      <Button className="bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white px-4 py-2 rounded-lg text-sm">
+        <Plus className="w-4 h-4 mr-2" />
+        Create Solution
+      </Button>
+    </div>
+    <div className="space-y-3">
+      {[
+        { name: 'Healthcare Compliance Suite', client: 'MedCorp Inc.', status: 'active', contracts: 245 },
+        { name: 'Financial Services Package', client: 'BankTech Ltd.', status: 'development', contracts: 0 },
+        { name: 'Manufacturing Agreements', client: 'Industrial Co.', status: 'active', contracts: 89 }
+      ].map((solution, index) => (
+        <div key={index} className="flex items-center justify-between p-4 border border-[#F3F3F3] rounded-lg">
+          <div>
+            <p className="text-sm font-medium text-[#271D1D]">{solution.name}</p>
+            <p className="text-xs text-[#271D1D]/70">Client: {solution.client}</p>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="text-right">
+              <p className="text-sm font-medium text-[#271D1D]">{solution.contracts} contracts</p>
+              <div className={`px-2 py-1 rounded-full text-xs font-medium ${
+                solution.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+              }`}>
+                {solution.status}
+              </div>
+            </div>
+            <Button variant="outline" size="sm" className="text-[#271D1D] border-[#271D1D]/20">
+              Configure
+            </Button>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
+export default function Profile() {
+  const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+  
+  // Mock user data - replace with actual user context/auth
+  const userName = "Adam";
+  const userRole = "admin"; // or "user" for regular users
+  const isAdmin = userRole === "admin";
+
+  return (
+    <div className="min-h-screen bg-[#F9F8F8]">
+      {/* Navigation */}
+      <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-8 lg:px-16 py-6 bg-[#F9F8F8]">
+        <Link to="/home">
+          <Logo size="xl" />
+        </Link>
+
+        <div className="hidden md:flex items-center space-x-8">
+          <Link to="/user-solutions" className="text-[#271D1D] hover:text-[#9A7C7C] transition-colors">Solutions</Link>
+          <Link to="/user-news" className="text-[#271D1D] hover:text-[#9A7C7C] transition-colors">News</Link>
+          <Link to="/user-team" className="text-[#271D1D] hover:text-[#9A7C7C] transition-colors">Team</Link>
+
+          {/* User Button */}
+          <div className="relative">
+            <button
+              onClick={() => setUserDropdownOpen(!userDropdownOpen)}
+              className="flex items-center space-x-2 bg-[#D6CECE] hover:bg-[#D6CECE]/90 px-4 py-2 rounded-lg transition-colors"
+            >
+              <User className="w-4 h-4 text-[#271D1D]" />
+              <span className="text-[#271D1D] font-medium">@{userName}</span>
+              <ChevronDown className={`w-4 h-4 text-[#271D1D] transition-transform ${userDropdownOpen ? 'rotate-180' : ''}`} />
+            </button>
+
+            {userDropdownOpen && (
+              <div className="absolute right-0 mt-2 w-32 bg-white border border-[#271D1D]/15 rounded-lg shadow-lg py-2 z-10">
+                <Link to="/profile" className="block px-4 py-2 text-sm text-[#271D1D] hover:bg-[#F9F8F8] transition-colors">Profile</Link>
+                <Link to="/settings" className="block px-4 py-2 text-sm text-[#271D1D] hover:bg-[#F9F8F8] transition-colors">Settings</Link>
+                <Link to="/" className="block px-4 py-2 text-sm text-[#271D1D] hover:bg-[#F9F8F8] transition-colors">Log Out</Link>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Mobile Navigation */}
+        <MobileNavigation isLoggedIn={true} userName={userName} />
+      </nav>
+
+      {/* Main Content */}
+      <main className="pt-24 lg:pt-32 pb-20 px-8 lg:px-16">
+        <div className="max-w-7xl mx-auto">
+          {/* Header */}
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <h1 className="text-3xl lg:text-4xl font-medium text-[#271D1D] font-lora">
+                {isAdmin ? 'Admin Dashboard' : 'Profile Dashboard'}
+              </h1>
+              <div className="flex items-center gap-3">
+                {isAdmin && (
+                  <div className="px-3 py-1 bg-[#9A7C7C] text-white rounded-full text-sm font-medium">
+                    Administrator
+                  </div>
+                )}
+                <Link to="/settings">
+                  <Button variant="outline" className="text-[#271D1D] border-[#271D1D]/20">
+                    <Settings className="w-4 h-4 mr-2" />
+                    Settings
+                  </Button>
+                </Link>
+              </div>
+            </div>
+            <p className="text-lg text-[#271D1D]/70">
+              Welcome back, {userName}! {isAdmin ? 'Manage your platform and users from here.' : 'Track your contract reviews and billing information.'}
+            </p>
+          </div>
+
+          {/* Stats Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <StatsCard
+              title="Total Reviews"
+              value="324"
+              subtitle="This month"
+              icon={<FileText className="w-5 h-5 text-[#9A7C7C]" />}
+              trend={{ value: "12%", positive: true }}
+            />
+            <StatsCard
+              title="Current Bill"
+              value="$2,450"
+              subtitle="Due in 15 days"
+              icon={<DollarSign className="w-5 h-5 text-[#9A7C7C]" />}
+              trend={{ value: "8%", positive: false }}
+            />
+            {isAdmin && (
+              <>
+                <StatsCard
+                  title="Active Users"
+                  value="127"
+                  subtitle="Across all plans"
+                  icon={<Users className="w-5 h-5 text-[#9A7C7C]" />}
+                  trend={{ value: "15%", positive: true }}
+                />
+                <StatsCard
+                  title="Revenue"
+                  value="$48,230"
+                  subtitle="This month"
+                  icon={<BarChart3 className="w-5 h-5 text-[#9A7C7C]" />}
+                  trend={{ value: "23%", positive: true }}
+                />
+              </>
+            )}
+            {!isAdmin && (
+              <>
+                <StatsCard
+                  title="Plan Usage"
+                  value="78/100"
+                  subtitle="Contracts remaining"
+                  icon={<BarChart3 className="w-5 h-5 text-[#9A7C7C]" />}
+                />
+                <StatsCard
+                  title="Success Rate"
+                  value="98.5%"
+                  subtitle="Reviews completed"
+                  icon={<BarChart3 className="w-5 h-5 text-[#9A7C7C]" />}
+                />
+              </>
+            )}
+          </div>
+
+          {/* Dashboard Content */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Left Column */}
+            <div className="space-y-8">
+              <UsageChart />
+              <RecentActivity />
+            </div>
+
+            {/* Right Column */}
+            <div className="space-y-8">
+              {isAdmin ? (
+                <>
+                  <AdminUserManagement />
+                  <AdminSolutionCreator />
+                </>
+              ) : (
+                <>
+                  {/* Billing Information */}
+                  <div className="bg-white rounded-lg p-6 border border-[#271D1D]/10">
+                    <h3 className="font-lora text-lg font-medium text-[#271D1D] mb-4">Billing Information</h3>
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-center p-3 bg-[#F9F8F8] rounded-lg">
+                        <span className="text-sm font-medium text-[#271D1D]">Current Plan</span>
+                        <span className="text-sm text-[#271D1D]/70">Professional ($99/month)</span>
+                      </div>
+                      <div className="flex justify-between items-center p-3 bg-[#F9F8F8] rounded-lg">
+                        <span className="text-sm font-medium text-[#271D1D]">Next Billing Date</span>
+                        <span className="text-sm text-[#271D1D]/70">July 15, 2024</span>
+                      </div>
+                      <div className="flex justify-between items-center p-3 bg-[#F9F8F8] rounded-lg">
+                        <span className="text-sm font-medium text-[#271D1D]">Payment Method</span>
+                        <span className="text-sm text-[#271D1D]/70">•••• 4242</span>
+                      </div>
+                      <Button className="w-full bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white">
+                        Manage Billing
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Quick Actions */}
+                  <div className="bg-white rounded-lg p-6 border border-[#271D1D]/10">
+                    <h3 className="font-lora text-lg font-medium text-[#271D1D] mb-4">Quick Actions</h3>
+                    <div className="space-y-3">
+                      <Link to="/user-solutions">
+                        <Button variant="outline" className="w-full justify-start text-[#271D1D] border-[#271D1D]/20">
+                          <FileText className="w-4 h-4 mr-3" />
+                          Review New Contract
+                        </Button>
+                      </Link>
+                      <Button variant="outline" className="w-full justify-start text-[#271D1D] border-[#271D1D]/20">
+                        <DollarSign className="w-4 h-4 mr-3" />
+                        Download Invoice
+                      </Button>
+                      <Button variant="outline" className="w-full justify-start text-[#271D1D] border-[#271D1D]/20">
+                        <BarChart3 className="w-4 h-4 mr-3" />
+                        View Usage Report
+                      </Button>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <Footer />
+    </div>
+  );
+}
