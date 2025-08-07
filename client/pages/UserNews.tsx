@@ -7,21 +7,23 @@ import Footer from "@/components/Footer";
 import AnimatedQuotes from "@/components/AnimatedQuotes";
 import MobileNavigation from "@/components/MobileNavigation";
 
-const NewsCard = ({ title, date, imageSrc, featured = false }: { title: string; date: string; imageSrc: string; featured?: boolean }) => (
-  <div className={`flex flex-col ${featured ? 'gap-4' : 'gap-4'}`}>
-    <img 
-      src={imageSrc} 
-      alt={title} 
-      className={`w-full ${featured ? 'h-96' : 'h-84'} object-cover rounded-lg border border-[#271D1D]/15`} 
-    />
-    <div className="flex flex-col gap-1">
-      <p className="text-xs text-[#271D1D] font-medium">Published</p>
-      <p className="text-xs text-[#271D1D] font-lora">{date}</p>
+const NewsCard = ({ title, date, imageSrc, featured = false, link }: { title: string; date: string; imageSrc: string; featured?: boolean; link: string }) => (
+  <Link to={link} className="group">
+    <div className={`flex flex-col ${featured ? 'gap-4' : 'gap-4'} transition-transform hover:scale-105`}>
+      <img
+        src={imageSrc}
+        alt={title}
+        className={`w-full ${featured ? 'h-96' : 'h-84'} object-cover rounded-lg border border-[#271D1D]/15 group-hover:border-[#9A7C7C]/50 transition-colors`}
+      />
+      <div className="flex flex-col gap-1">
+        <p className="text-xs text-[#271D1D] font-medium">Published</p>
+        <p className="text-xs text-[#271D1D] font-lora">{date}</p>
+      </div>
+      <h3 className={`${featured ? 'text-2xl lg:text-3xl' : 'text-xl lg:text-2xl'} font-medium text-black font-lora leading-tight group-hover:text-[#9A7C7C] transition-colors`}>
+        {title}
+      </h3>
     </div>
-    <h3 className={`${featured ? 'text-2xl lg:text-3xl' : 'text-xl lg:text-2xl'} font-medium text-black font-lora leading-tight`}>
-      {title}
-    </h3>
-  </div>
+  </Link>
 );
 
 const FAQItem = ({ question, answer }: { question: string; answer: string }) => {
