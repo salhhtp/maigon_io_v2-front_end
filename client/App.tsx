@@ -97,6 +97,22 @@ const router = createBrowserRouter([
     element: <DemoLogin />,
   },
   {
+    path: "/articles/smarter-legal-solutions",
+    element: <SmarterLegalSolutions />,
+  },
+  {
+    path: "/articles/code-to-clause",
+    element: <CodeToClause />,
+  },
+  {
+    path: "/articles/llms-and-lawyers",
+    element: <LLMsAndLawyers />,
+  },
+  {
+    path: "/articles/finding-contract-solution",
+    element: <FindingContractSolution />,
+  },
+  {
     path: "*",
     element: <NotFound />,
   },
