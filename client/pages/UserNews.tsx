@@ -7,42 +7,68 @@ import Footer from "@/components/Footer";
 import AnimatedQuotes from "@/components/AnimatedQuotes";
 import MobileNavigation from "@/components/MobileNavigation";
 
-const NewsCard = ({ title, date, imageSrc, featured = false, link }: { title: string; date: string; imageSrc: string; featured?: boolean; link: string }) => (
+const NewsCard = ({
+  title,
+  date,
+  imageSrc,
+  featured = false,
+  link,
+}: {
+  title: string;
+  date: string;
+  imageSrc: string;
+  featured?: boolean;
+  link: string;
+}) => (
   <Link to={link} className="group">
-    <div className={`flex flex-col ${featured ? 'gap-4' : 'gap-4'} transition-transform hover:scale-105`}>
+    <div
+      className={`flex flex-col ${featured ? "gap-4" : "gap-4"} transition-transform hover:scale-105`}
+    >
       <img
         src={imageSrc}
         alt={title}
-        className={`w-full ${featured ? 'h-96' : 'h-84'} object-cover rounded-lg border border-[#271D1D]/15 group-hover:border-[#9A7C7C]/50 transition-colors`}
+        className={`w-full ${featured ? "h-96" : "h-84"} object-cover rounded-lg border border-[#271D1D]/15 group-hover:border-[#9A7C7C]/50 transition-colors`}
       />
       <div className="flex flex-col gap-1">
         <p className="text-xs text-[#271D1D] font-medium">Published</p>
         <p className="text-xs text-[#271D1D] font-lora">{date}</p>
       </div>
-      <h3 className={`${featured ? 'text-2xl lg:text-3xl' : 'text-xl lg:text-2xl'} font-medium text-black font-lora leading-tight group-hover:text-[#9A7C7C] transition-colors`}>
+      <h3
+        className={`${featured ? "text-2xl lg:text-3xl" : "text-xl lg:text-2xl"} font-medium text-black font-lora leading-tight group-hover:text-[#9A7C7C] transition-colors`}
+      >
         {title}
       </h3>
     </div>
   </Link>
 );
 
-const FAQItem = ({ question, answer }: { question: string; answer: string }) => {
+const FAQItem = ({
+  question,
+  answer,
+}: {
+  question: string;
+  answer: string;
+}) => {
   const [isOpen, setIsOpen] = useState(false);
-  
+
   return (
     <div className="border border-[#725A5A]/15 bg-[#725A5A]/3 rounded-lg">
       <button
         className="w-full flex justify-between items-center p-6 text-left"
         onClick={() => setIsOpen(!isOpen)}
       >
-        <span className="text-xl lg:text-2xl font-semibold text-[#725A5A]">{question}</span>
-        <ChevronDown 
-          className={`w-6 h-6 text-[#725A5A] transition-transform ${isOpen ? 'rotate-180' : ''}`} 
+        <span className="text-xl lg:text-2xl font-semibold text-[#725A5A]">
+          {question}
+        </span>
+        <ChevronDown
+          className={`w-6 h-6 text-[#725A5A] transition-transform ${isOpen ? "rotate-180" : ""}`}
         />
       </button>
       {isOpen && (
         <div className="px-6 pb-6">
-          <p className="text-xl lg:text-2xl text-[#725A5A] leading-relaxed">{answer}</p>
+          <p className="text-xl lg:text-2xl text-[#725A5A] leading-relaxed">
+            {answer}
+          </p>
         </div>
       )}
     </div>
@@ -64,21 +90,36 @@ export default function UserNews() {
         </Link>
 
         <div className="hidden md:flex items-center space-x-8">
-          <Link to="/user-solutions" className={`transition-colors ${
-            location.pathname === '/user-solutions'
-              ? 'text-[#9A7C7C] font-medium'
-              : 'text-[#271D1D] hover:text-[#9A7C7C]'
-          }`}>Solutions</Link>
-          <Link to="/user-news" className={`transition-colors ${
-            location.pathname === '/user-news'
-              ? 'text-[#9A7C7C] font-medium'
-              : 'text-[#271D1D] hover:text-[#9A7C7C]'
-          }`}>News</Link>
-          <Link to="/user-team" className={`transition-colors ${
-            location.pathname === '/user-team'
-              ? 'text-[#9A7C7C] font-medium'
-              : 'text-[#271D1D] hover:text-[#9A7C7C]'
-          }`}>Team</Link>
+          <Link
+            to="/user-solutions"
+            className={`transition-colors ${
+              location.pathname === "/user-solutions"
+                ? "text-[#9A7C7C] font-medium"
+                : "text-[#271D1D] hover:text-[#9A7C7C]"
+            }`}
+          >
+            Solutions
+          </Link>
+          <Link
+            to="/user-news"
+            className={`transition-colors ${
+              location.pathname === "/user-news"
+                ? "text-[#9A7C7C] font-medium"
+                : "text-[#271D1D] hover:text-[#9A7C7C]"
+            }`}
+          >
+            News
+          </Link>
+          <Link
+            to="/user-team"
+            className={`transition-colors ${
+              location.pathname === "/user-team"
+                ? "text-[#9A7C7C] font-medium"
+                : "text-[#271D1D] hover:text-[#9A7C7C]"
+            }`}
+          >
+            Team
+          </Link>
 
           {/* User Button */}
           <div className="relative">
@@ -88,14 +129,31 @@ export default function UserNews() {
             >
               <User className="w-4 h-4 text-[#271D1D]" />
               <span className="text-[#271D1D] font-medium">@{userName}</span>
-              <ChevronDown className={`w-4 h-4 text-[#271D1D] transition-transform ${userDropdownOpen ? 'rotate-180' : ''}`} />
+              <ChevronDown
+                className={`w-4 h-4 text-[#271D1D] transition-transform ${userDropdownOpen ? "rotate-180" : ""}`}
+              />
             </button>
 
             {userDropdownOpen && (
               <div className="absolute right-0 mt-2 w-32 bg-white border border-[#271D1D]/15 rounded-lg shadow-lg py-2 z-10">
-                <Link to="/profile" className="block px-4 py-2 text-sm text-[#271D1D] hover:bg-[#F9F8F8] transition-colors">Profile</Link>
-                <Link to="/settings" className="block px-4 py-2 text-sm text-[#271D1D] hover:bg-[#F9F8F8] transition-colors">Settings</Link>
-                <Link to="/" className="block px-4 py-2 text-sm text-[#271D1D] hover:bg-[#F9F8F8] transition-colors">Log Out</Link>
+                <Link
+                  to="/profile"
+                  className="block px-4 py-2 text-sm text-[#271D1D] hover:bg-[#F9F8F8] transition-colors"
+                >
+                  Profile
+                </Link>
+                <Link
+                  to="/settings"
+                  className="block px-4 py-2 text-sm text-[#271D1D] hover:bg-[#F9F8F8] transition-colors"
+                >
+                  Settings
+                </Link>
+                <Link
+                  to="/"
+                  className="block px-4 py-2 text-sm text-[#271D1D] hover:bg-[#F9F8F8] transition-colors"
+                >
+                  Log Out
+                </Link>
               </div>
             )}
           </div>
@@ -121,15 +179,22 @@ export default function UserNews() {
                 <div className="space-y-16">
                   {/* Divider */}
                   <div className="w-full h-px bg-[#D6CECE] rounded-full"></div>
-                  
+
                   {/* Article Info */}
                   <div className="space-y-16">
                     <div className="flex flex-col justify-start items-start space-y-2">
-                      <p className="text-xs text-[#271D1D] font-medium">Published</p>
-                      <p className="text-xs text-[#271D1D] font-lora">Mar 24, 2025</p>
+                      <p className="text-xs text-[#271D1D] font-medium">
+                        Published
+                      </p>
+                      <p className="text-xs text-[#271D1D] font-lora">
+                        Mar 24, 2025
+                      </p>
                     </div>
-                    
-                    <Link to="/articles/finding-contract-solution" className="group">
+
+                    <Link
+                      to="/articles/finding-contract-solution"
+                      className="group"
+                    >
                       <h2 className="text-2xl lg:text-4xl font-medium text-black font-lora leading-tight group-hover:text-[#9A7C7C] transition-colors">
                         Finding your contract solution: A no-nonsense approach
                       </h2>
@@ -137,7 +202,7 @@ export default function UserNews() {
                   </div>
                 </div>
               </div>
-              
+
               {/* Bottom Divider */}
               <div className="w-full h-px bg-[#D6CECE] rounded-full mt-20"></div>
             </div>
@@ -202,19 +267,19 @@ export default function UserNews() {
           </div>
 
           <div className="space-y-4">
-            <FAQItem 
+            <FAQItem
               question="How do I get started?"
               answer="Getting started is easy! Our solutions are available out-of-the-box. If you are looking for a one-time contract review, simply upload your contract and receive a comprehensive compliance report in just a few clicks. If you have larger volumes of contracts, contact us to create a corporate account and start using our AI review modules right away, streamlining your contract review process with ease."
             />
-            <FAQItem 
+            <FAQItem
               question="Can I use Maigon without Playbook ?"
               answer="Yes! Our standard solution is available for use right away, even without Playbook. While Playbook allows for more customization of contract review, adjusted to your specific review guidelines, the standard solution is designed to check for the most important compliance aspects and adherence to best practices. Whether you choose to use Playbook or the standard solution, Maigon provides you with valuable insights every time."
             />
-            <FAQItem 
+            <FAQItem
               question="Will you use my data for training ?"
               answer="No, we won't use your data for any other purpose than the intended contract review. We do not use your contract data for AI training or any other service improvements, unless you need us to look into your contract for troubleshooting. You can trust that your data is kept confidential and secure with us."
             />
-            <FAQItem 
+            <FAQItem
               question="Is API available ?"
               answer="Yes! We offer an API that can be used by contract platform vendors and companies with internal contract review tools. Our API is tailored to specific contract types and is designed to be both simple to use and comprehensive, providing advanced AI insights into submitted agreements for compliance. To get started with our API, please contact our team."
             />

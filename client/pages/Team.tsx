@@ -7,35 +7,55 @@ import Footer from "@/components/Footer";
 import AnimatedQuotes from "@/components/AnimatedQuotes";
 import MobileNavigation from "@/components/MobileNavigation";
 
-const TeamMemberCard = ({ name, role, imageSrc }: { name: string; role: string; imageSrc: string }) => (
+const TeamMemberCard = ({
+  name,
+  role,
+  imageSrc,
+}: {
+  name: string;
+  role: string;
+  imageSrc: string;
+}) => (
   <div className="bg-[#F3F3F3] p-4 flex flex-col items-center">
-    <img 
-      src={imageSrc} 
-      alt={name} 
-      className="w-57 h-57 object-cover rounded-lg mb-4" 
+    <img
+      src={imageSrc}
+      alt={name}
+      className="w-57 h-57 object-cover rounded-lg mb-4"
     />
-    <h3 className="text-xl font-medium text-[#271D1D] font-lora text-center mb-2">{name}</h3>
+    <h3 className="text-xl font-medium text-[#271D1D] font-lora text-center mb-2">
+      {name}
+    </h3>
     <p className="text-sm text-[#271D1D] text-center leading-tight">{role}</p>
   </div>
 );
 
-const FAQItem = ({ question, answer }: { question: string; answer: string }) => {
+const FAQItem = ({
+  question,
+  answer,
+}: {
+  question: string;
+  answer: string;
+}) => {
   const [isOpen, setIsOpen] = useState(false);
-  
+
   return (
     <div className="border border-[#725A5A]/15 bg-[#725A5A]/3 rounded-lg">
       <button
         className="w-full flex justify-between items-center p-6 text-left"
         onClick={() => setIsOpen(!isOpen)}
       >
-        <span className="text-xl lg:text-2xl font-semibold text-[#725A5A]">{question}</span>
-        <ChevronDown 
-          className={`w-6 h-6 text-[#725A5A] transition-transform ${isOpen ? 'rotate-180' : ''}`} 
+        <span className="text-xl lg:text-2xl font-semibold text-[#725A5A]">
+          {question}
+        </span>
+        <ChevronDown
+          className={`w-6 h-6 text-[#725A5A] transition-transform ${isOpen ? "rotate-180" : ""}`}
         />
       </button>
       {isOpen && (
         <div className="px-6 pb-6">
-          <p className="text-xl lg:text-2xl text-[#725A5A] leading-relaxed">{answer}</p>
+          <p className="text-xl lg:text-2xl text-[#725A5A] leading-relaxed">
+            {answer}
+          </p>
         </div>
       )}
     </div>
@@ -52,24 +72,42 @@ export default function Team() {
         <Link to="/">
           <Logo size="xl" />
         </Link>
-        
+
         <div className="hidden md:flex items-center space-x-8">
-          <Link to="/solutions" className={`transition-colors ${
-            location.pathname === '/solutions'
-              ? 'text-[#9A7C7C] font-medium'
-              : 'text-[#271D1D] hover:text-[#9A7C7C]'
-          }`}>Solutions</Link>
-          <Link to="/news" className={`transition-colors ${
-            location.pathname === '/news'
-              ? 'text-[#9A7C7C] font-medium'
-              : 'text-[#271D1D] hover:text-[#9A7C7C]'
-          }`}>News</Link>
-          <Link to="/team" className={`transition-colors ${
-            location.pathname === '/team'
-              ? 'text-[#9A7C7C] font-medium'
-              : 'text-[#271D1D] hover:text-[#9A7C7C]'
-          }`}>Team</Link>
-          <Button asChild className="bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white px-8 rounded-lg">
+          <Link
+            to="/solutions"
+            className={`transition-colors ${
+              location.pathname === "/solutions"
+                ? "text-[#9A7C7C] font-medium"
+                : "text-[#271D1D] hover:text-[#9A7C7C]"
+            }`}
+          >
+            Solutions
+          </Link>
+          <Link
+            to="/news"
+            className={`transition-colors ${
+              location.pathname === "/news"
+                ? "text-[#9A7C7C] font-medium"
+                : "text-[#271D1D] hover:text-[#9A7C7C]"
+            }`}
+          >
+            News
+          </Link>
+          <Link
+            to="/team"
+            className={`transition-colors ${
+              location.pathname === "/team"
+                ? "text-[#9A7C7C] font-medium"
+                : "text-[#271D1D] hover:text-[#9A7C7C]"
+            }`}
+          >
+            Team
+          </Link>
+          <Button
+            asChild
+            className="bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white px-8 rounded-lg"
+          >
             <Link to="/signin">Sign In/Up</Link>
           </Button>
         </div>
@@ -88,14 +126,17 @@ export default function Team() {
                 Meet the Team!
               </h1>
               <p className="text-lg text-[#171614] leading-relaxed">
-                Our team has been working tirelessly to make sure you, the next person who's about to experience the future of contract review, will enjoy and witness what's possible; Also, what the tomorrow will bring to our lives.
+                Our team has been working tirelessly to make sure you, the next
+                person who's about to experience the future of contract review,
+                will enjoy and witness what's possible; Also, what the tomorrow
+                will bring to our lives.
               </p>
             </div>
 
             {/* Right Image */}
             <div className="flex-1">
-              <img 
-                src="https://api.builder.io/api/v1/image/assets/TEMP/1859784f8bfcdd9ec48637d54377d9c248a1289d?width=1248" 
+              <img
+                src="https://api.builder.io/api/v1/image/assets/TEMP/1859784f8bfcdd9ec48637d54377d9c248a1289d?width=1248"
                 alt="Team workspace"
                 className="w-full h-auto max-w-2xl rounded-lg"
               />
@@ -114,7 +155,12 @@ export default function Team() {
                 About Us
               </h2>
               <p className="text-lg text-black leading-relaxed">
-                We are an international team of highly skilled developers, lawyers, and legal data engineers on a mission to automate contract review with the help of AI. Some of our developers are also qualified lawyers. This powerful mix of expertise gives us competitive edge and enables fast, efficient and value-oriented development of high-quality legal AI solutions.
+                We are an international team of highly skilled developers,
+                lawyers, and legal data engineers on a mission to automate
+                contract review with the help of AI. Some of our developers are
+                also qualified lawyers. This powerful mix of expertise gives us
+                competitive edge and enables fast, efficient and value-oriented
+                development of high-quality legal AI solutions.
               </p>
             </div>
 
@@ -184,19 +230,19 @@ export default function Team() {
           </div>
 
           <div className="space-y-4">
-            <FAQItem 
+            <FAQItem
               question="How do I get started?"
               answer="Getting started is easy! Our solutions are available out-of-the-box. If you are looking for a one-time contract review, simply upload your contract and receive a comprehensive compliance report in just a few clicks. If you have larger volumes of contracts, contact us to create a corporate account and start using our AI review modules right away, streamlining your contract review process with ease."
             />
-            <FAQItem 
+            <FAQItem
               question="Can I use Maigon without Playbook ?"
               answer="Yes! Our standard solution is available for use right away, even without Playbook. While Playbook allows for more customization of contract review, adjusted to your specific review guidelines, the standard solution is designed to check for the most important compliance aspects and adherence to best practices. Whether you choose to use Playbook or the standard solution, Maigon provides you with valuable insights every time."
             />
-            <FAQItem 
+            <FAQItem
               question="Will you use my data for training ?"
               answer="No, we won't use your data for any other purpose than the intended contract review. We do not use your contract data for AI training or any other service improvements, unless you need us to look into your contract for troubleshooting. You can trust that your data is kept confidential and secure with us."
             />
-            <FAQItem 
+            <FAQItem
               question="Is API available ?"
               answer="Yes! We offer an API that can be used by contract platform vendors and companies with internal contract review tools. Our API is tailored to specific contract types and is designed to be both simple to use and comprehensive, providing advanced AI insights into submitted agreements for compliance. To get started with our API, please contact our team."
             />

@@ -1,5 +1,12 @@
 import { Button } from "@/components/ui/button";
-import { ChevronDown, User, Check, Star, Phone, Calculator } from "lucide-react";
+import {
+  ChevronDown,
+  User,
+  Check,
+  Star,
+  Phone,
+  Calculator,
+} from "lucide-react";
 import { Link } from "react-router-dom";
 import { useState } from "react";
 import Logo from "@/components/Logo";
@@ -7,19 +14,19 @@ import Footer from "@/components/Footer";
 import MobileNavigation from "@/components/MobileNavigation";
 import { useUser } from "@/contexts/UserContext";
 
-const PricingCard = ({ 
-  tier, 
-  title, 
-  subtitle, 
-  price, 
-  period, 
-  description, 
-  features, 
-  buttonText, 
-  buttonAction, 
-  highlighted = false, 
+const PricingCard = ({
+  tier,
+  title,
+  subtitle,
+  price,
+  period,
+  description,
+  features,
+  buttonText,
+  buttonAction,
+  highlighted = false,
   savings = null,
-  popular = false 
+  popular = false,
 }: {
   tier: string;
   title: string;
@@ -34,9 +41,13 @@ const PricingCard = ({
   savings?: string | null;
   popular?: boolean;
 }) => (
-  <div className={`relative bg-white rounded-lg p-6 border transition-all duration-200 ${
-    highlighted ? 'border-[#9A7C7C] shadow-lg scale-105' : 'border-[#271D1D]/10 hover:border-[#9A7C7C]/50'
-  }`}>
+  <div
+    className={`relative bg-white rounded-lg p-6 border transition-all duration-200 ${
+      highlighted
+        ? "border-[#9A7C7C] shadow-lg scale-105"
+        : "border-[#271D1D]/10 hover:border-[#9A7C7C]/50"
+    }`}
+  >
     {popular && (
       <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
         <div className="bg-[#9A7C7C] text-white px-4 py-1 rounded-full text-sm font-medium flex items-center gap-1">
@@ -45,19 +56,25 @@ const PricingCard = ({
         </div>
       </div>
     )}
-    
+
     <div className="text-center mb-6">
-      <h3 className="font-lora text-xl font-medium text-[#271D1D] mb-2">{title}</h3>
+      <h3 className="font-lora text-xl font-medium text-[#271D1D] mb-2">
+        {title}
+      </h3>
       <p className="text-sm text-[#9A7C7C] font-medium mb-4">{subtitle}</p>
-      
+
       <div className="mb-4">
-        <span className="font-lora text-3xl font-bold text-[#271D1D]">{price}</span>
+        <span className="font-lora text-3xl font-bold text-[#271D1D]">
+          {price}
+        </span>
         <span className="text-sm text-[#271D1D]/70 ml-1">{period}</span>
         {savings && (
-          <div className="text-sm text-green-600 font-medium mt-1">{savings}</div>
+          <div className="text-sm text-green-600 font-medium mt-1">
+            {savings}
+          </div>
         )}
       </div>
-      
+
       <p className="text-sm text-[#271D1D]/70">{description}</p>
     </div>
 
@@ -72,12 +89,12 @@ const PricingCard = ({
       </ul>
     </div>
 
-    <Button 
+    <Button
       onClick={buttonAction}
       className={`w-full ${
-        highlighted 
-          ? 'bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white' 
-          : 'bg-[#F3F3F3] hover:bg-[#D6CECE] text-[#271D1D] border border-[#271D1D]/20'
+        highlighted
+          ? "bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white"
+          : "bg-[#F3F3F3] hover:bg-[#D6CECE] text-[#271D1D] border border-[#271D1D]/20"
       }`}
     >
       {buttonText}
@@ -85,30 +102,34 @@ const PricingCard = ({
   </div>
 );
 
-const PricingCalculator = ({ onPlanSelect }: { onPlanSelect: (contracts: number) => void }) => {
+const PricingCalculator = ({
+  onPlanSelect,
+}: {
+  onPlanSelect: (contracts: number) => void;
+}) => {
   const [contractCount, setContractCount] = useState(5);
-  
+
   const calculatePricing = (contracts: number) => {
-    if (contracts <= 1) return { plan: 'Free Trial', price: 0, savings: 0 };
+    if (contracts <= 1) return { plan: "Free Trial", price: 0, savings: 0 };
     if (contracts <= 10) {
       const payAsYouGo = contracts * 89;
       const monthly10 = 799;
       return {
-        plan: contracts <= 9 ? 'Pay-as-you-go' : 'Monthly 10',
+        plan: contracts <= 9 ? "Pay-as-you-go" : "Monthly 10",
         price: contracts <= 9 ? payAsYouGo : monthly10,
-        savings: contracts <= 9 ? 0 : payAsYouGo - monthly10
+        savings: contracts <= 9 ? 0 : payAsYouGo - monthly10,
       };
     }
     if (contracts <= 15) {
       const payAsYouGo = contracts * 89;
       const monthly15 = 1199;
       return {
-        plan: 'Monthly 15',
+        plan: "Monthly 15",
         price: monthly15,
-        savings: payAsYouGo - monthly15
+        savings: payAsYouGo - monthly15,
       };
     }
-    return { plan: 'Professional', price: 'Custom', savings: 'Contact us' };
+    return { plan: "Professional", price: "Custom", savings: "Contact us" };
   };
 
   const result = calculatePricing(contractCount);
@@ -117,8 +138,12 @@ const PricingCalculator = ({ onPlanSelect }: { onPlanSelect: (contracts: number)
     <div className="bg-white rounded-lg p-6 border border-[#271D1D]/10 max-w-md mx-auto">
       <div className="text-center mb-6">
         <Calculator className="w-8 h-8 text-[#9A7C7C] mx-auto mb-3" />
-        <h3 className="font-lora text-lg font-medium text-[#271D1D] mb-2">Pricing Calculator</h3>
-        <p className="text-sm text-[#271D1D]/70">Find the perfect plan for your needs</p>
+        <h3 className="font-lora text-lg font-medium text-[#271D1D] mb-2">
+          Pricing Calculator
+        </h3>
+        <p className="text-sm text-[#271D1D]/70">
+          Find the perfect plan for your needs
+        </p>
       </div>
 
       <div className="mb-6">
@@ -133,7 +158,7 @@ const PricingCalculator = ({ onPlanSelect }: { onPlanSelect: (contracts: number)
           onChange={(e) => setContractCount(parseInt(e.target.value))}
           className="w-full h-2 bg-[#F3F3F3] rounded-lg appearance-none cursor-pointer"
           style={{
-            background: `linear-gradient(to right, #9A7C7C 0%, #9A7C7C ${(contractCount/20)*100}%, #F3F3F3 ${(contractCount/20)*100}%, #F3F3F3 100%)`
+            background: `linear-gradient(to right, #9A7C7C 0%, #9A7C7C ${(contractCount / 20) * 100}%, #F3F3F3 ${(contractCount / 20) * 100}%, #F3F3F3 100%)`,
           }}
         />
         <div className="flex justify-between text-xs text-[#271D1D]/50 mt-1">
@@ -146,22 +171,30 @@ const PricingCalculator = ({ onPlanSelect }: { onPlanSelect: (contracts: number)
       <div className="bg-[#F9F8F8] rounded-lg p-4 mb-4">
         <div className="text-center">
           <p className="text-sm text-[#271D1D]/70 mb-1">Recommended Plan</p>
-          <p className="font-lora text-lg font-medium text-[#271D1D]">{result.plan}</p>
-          <p className="font-lora text-2xl font-bold text-[#9A7C7C]">
-            {typeof result.price === 'number' ? `€${result.price}` : result.price}
-            {typeof result.price === 'number' && <span className="text-sm font-normal">/month</span>}
+          <p className="font-lora text-lg font-medium text-[#271D1D]">
+            {result.plan}
           </p>
-          {typeof result.savings === 'number' && result.savings > 0 && (
-            <p className="text-sm text-green-600 font-medium">Save €{result.savings}/month</p>
+          <p className="font-lora text-2xl font-bold text-[#9A7C7C]">
+            {typeof result.price === "number"
+              ? `€${result.price}`
+              : result.price}
+            {typeof result.price === "number" && (
+              <span className="text-sm font-normal">/month</span>
+            )}
+          </p>
+          {typeof result.savings === "number" && result.savings > 0 && (
+            <p className="text-sm text-green-600 font-medium">
+              Save €{result.savings}/month
+            </p>
           )}
         </div>
       </div>
 
-      <Button 
+      <Button
         onClick={() => onPlanSelect(contractCount)}
         className="w-full bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white"
       >
-        {contractCount >= 15 ? 'Request Consultation' : 'Select This Plan'}
+        {contractCount >= 15 ? "Request Consultation" : "Select This Plan"}
       </Button>
     </div>
   );
@@ -186,11 +219,16 @@ export default function Pricing() {
   const handleCalculatorSelect = (contracts: number) => {
     if (contracts >= 15) {
       // Trigger consultation request
-      console.log('Requesting consultation for professional plan');
+      console.log("Requesting consultation for professional plan");
     } else {
-      const planType = contracts <= 1 ? 'free_trial' : 
-                      contracts <= 9 ? 'pay_as_you_go' :
-                      contracts <= 10 ? 'monthly_10' : 'monthly_15';
+      const planType =
+        contracts <= 1
+          ? "free_trial"
+          : contracts <= 9
+            ? "pay_as_you_go"
+            : contracts <= 10
+              ? "monthly_10"
+              : "monthly_15";
       handlePlanSelect(planType);
     }
   };
@@ -202,13 +240,33 @@ export default function Pricing() {
         <Link to={isLoggedIn ? "/home" : "/"}>
           <Logo size="xl" />
         </Link>
-        
+
         {isLoggedIn ? (
           <div className="hidden md:flex items-center space-x-8">
-            <Link to="/user-solutions" className="text-[#271D1D] hover:text-[#9A7C7C] transition-colors">Solutions</Link>
-            <Link to="/user-news" className="text-[#271D1D] hover:text-[#9A7C7C] transition-colors">News</Link>
-            <Link to="/user-team" className="text-[#271D1D] hover:text-[#9A7C7C] transition-colors">Team</Link>
-            <Link to="/pricing" className="text-[#271D1D] hover:text-[#9A7C7C] transition-colors">Pricing</Link>
+            <Link
+              to="/user-solutions"
+              className="text-[#271D1D] hover:text-[#9A7C7C] transition-colors"
+            >
+              Solutions
+            </Link>
+            <Link
+              to="/user-news"
+              className="text-[#271D1D] hover:text-[#9A7C7C] transition-colors"
+            >
+              News
+            </Link>
+            <Link
+              to="/user-team"
+              className="text-[#271D1D] hover:text-[#9A7C7C] transition-colors"
+            >
+              Team
+            </Link>
+            <Link
+              to="/pricing"
+              className="text-[#271D1D] hover:text-[#9A7C7C] transition-colors"
+            >
+              Pricing
+            </Link>
 
             {/* User Button */}
             <div className="relative">
@@ -217,33 +275,78 @@ export default function Pricing() {
                 className="flex items-center space-x-2 bg-[#D6CECE] hover:bg-[#D6CECE]/90 px-4 py-2 rounded-lg transition-colors"
               >
                 <User className="w-4 h-4 text-[#271D1D]" />
-                <span className="text-[#271D1D] font-medium">@{user?.name.split(' ')[0]}</span>
-                <ChevronDown className={`w-4 h-4 text-[#271D1D] transition-transform ${userDropdownOpen ? 'rotate-180' : ''}`} />
+                <span className="text-[#271D1D] font-medium">
+                  @{user?.name.split(" ")[0]}
+                </span>
+                <ChevronDown
+                  className={`w-4 h-4 text-[#271D1D] transition-transform ${userDropdownOpen ? "rotate-180" : ""}`}
+                />
               </button>
 
               {userDropdownOpen && (
                 <div className="absolute right-0 mt-2 w-32 bg-white border border-[#271D1D]/15 rounded-lg shadow-lg py-2 z-10">
-                  <Link to="/profile" className="block px-4 py-2 text-sm text-[#271D1D] hover:bg-[#F9F8F8] transition-colors">Profile</Link>
-                  <Link to="/settings" className="block px-4 py-2 text-sm text-[#271D1D] hover:bg-[#F9F8F8] transition-colors">Settings</Link>
-                  <Link to="/" className="block px-4 py-2 text-sm text-[#271D1D] hover:bg-[#F9F8F8] transition-colors">Log Out</Link>
+                  <Link
+                    to="/profile"
+                    className="block px-4 py-2 text-sm text-[#271D1D] hover:bg-[#F9F8F8] transition-colors"
+                  >
+                    Profile
+                  </Link>
+                  <Link
+                    to="/settings"
+                    className="block px-4 py-2 text-sm text-[#271D1D] hover:bg-[#F9F8F8] transition-colors"
+                  >
+                    Settings
+                  </Link>
+                  <Link
+                    to="/"
+                    className="block px-4 py-2 text-sm text-[#271D1D] hover:bg-[#F9F8F8] transition-colors"
+                  >
+                    Log Out
+                  </Link>
                 </div>
               )}
             </div>
           </div>
         ) : (
           <div className="hidden md:flex items-center space-x-8">
-            <Link to="/solutions" className="text-[#271D1D] hover:text-[#9A7C7C] transition-colors">Solutions</Link>
-            <Link to="/news" className="text-[#271D1D] hover:text-[#9A7C7C] transition-colors">News</Link>
-            <Link to="/team" className="text-[#271D1D] hover:text-[#9A7C7C] transition-colors">Team</Link>
-            <Link to="/pricing" className="text-[#271D1D] hover:text-[#9A7C7C] transition-colors">Pricing</Link>
-            <Button asChild className="bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white px-8 rounded-lg">
+            <Link
+              to="/solutions"
+              className="text-[#271D1D] hover:text-[#9A7C7C] transition-colors"
+            >
+              Solutions
+            </Link>
+            <Link
+              to="/news"
+              className="text-[#271D1D] hover:text-[#9A7C7C] transition-colors"
+            >
+              News
+            </Link>
+            <Link
+              to="/team"
+              className="text-[#271D1D] hover:text-[#9A7C7C] transition-colors"
+            >
+              Team
+            </Link>
+            <Link
+              to="/pricing"
+              className="text-[#271D1D] hover:text-[#9A7C7C] transition-colors"
+            >
+              Pricing
+            </Link>
+            <Button
+              asChild
+              className="bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white px-8 rounded-lg"
+            >
               <Link to="/signin">Sign In/Up</Link>
             </Button>
           </div>
         )}
 
         {/* Mobile Navigation */}
-        <MobileNavigation isLoggedIn={isLoggedIn} userName={user?.name.split(' ')[0]} />
+        <MobileNavigation
+          isLoggedIn={isLoggedIn}
+          userName={user?.name.split(" ")[0]}
+        />
       </nav>
 
       {/* Hero Section */}
@@ -253,15 +356,18 @@ export default function Pricing() {
             Choose Your Perfect Plan
           </h1>
           <p className="text-lg text-[#271D1D]/70 mb-8">
-            From free trials to enterprise solutions, we have pricing that scales with your contract review needs.
+            From free trials to enterprise solutions, we have pricing that
+            scales with your contract review needs.
           </p>
-          
+
           {isLoggedIn && user && (
             <div className="bg-white rounded-lg p-4 border border-[#9A7C7C]/20 mb-8 max-w-md mx-auto">
               <p className="text-sm text-[#271D1D] mb-1">Current Plan</p>
               <p className="font-medium text-[#9A7C7C]">{user.plan.name}</p>
-              {user.plan.type !== 'professional' && (
-                <p className="text-xs text-[#271D1D]/70">Looking to upgrade? Choose a new plan below.</p>
+              {user.plan.type !== "professional" && (
+                <p className="text-xs text-[#271D1D]/70">
+                  Looking to upgrade? Choose a new plan below.
+                </p>
               )}
             </div>
           )}
@@ -276,10 +382,11 @@ export default function Pricing() {
               Find Your Ideal Plan
             </h2>
             <p className="text-[#271D1D]/70">
-              Use our calculator to find the most cost-effective plan for your needs.
+              Use our calculator to find the most cost-effective plan for your
+              needs.
             </p>
           </div>
-          
+
           <PricingCalculator onPlanSelect={handleCalculatorSelect} />
         </div>
       </section>
@@ -313,11 +420,11 @@ export default function Pricing() {
                 "Professional-grade analysis (worth €89)",
                 "Personal dashboard access",
                 "Contract review history tracking",
-                "Report storage for 7 days only"
+                "Report storage for 7 days only",
               ]}
               buttonText={isLoggedIn ? "Already Using" : "Start Free Trial"}
-              buttonAction={() => handlePlanSelect('free_trial')}
-              highlighted={user?.plan.type === 'free_trial'}
+              buttonAction={() => handlePlanSelect("free_trial")}
+              highlighted={user?.plan.type === "free_trial"}
             />
 
             {/* Pay-as-you-go */}
@@ -337,11 +444,15 @@ export default function Pricing() {
                 "Permanent report storage",
                 "Basic playbook templates",
                 "Unlimited report storage",
-                "Download reports in multiple formats"
+                "Download reports in multiple formats",
               ]}
-              buttonText={user?.plan.type === 'pay_as_you_go' ? "Current Plan" : "Choose Plan"}
-              buttonAction={() => handlePlanSelect('pay_as_you_go')}
-              highlighted={user?.plan.type === 'pay_as_you_go'}
+              buttonText={
+                user?.plan.type === "pay_as_you_go"
+                  ? "Current Plan"
+                  : "Choose Plan"
+              }
+              buttonAction={() => handlePlanSelect("pay_as_you_go")}
+              highlighted={user?.plan.type === "pay_as_you_go"}
             />
 
             {/* Monthly 10 */}
@@ -361,11 +472,15 @@ export default function Pricing() {
                 "90-day usage analytics and reporting",
                 "Advanced playbook templates",
                 "Monthly billing cycle",
-                "Cancel anytime with 30-day notice"
+                "Cancel anytime with 30-day notice",
               ]}
-              buttonText={user?.plan.type === 'monthly_10' ? "Current Plan" : "Choose Plan"}
-              buttonAction={() => handlePlanSelect('monthly_10')}
-              highlighted={user?.plan.type === 'monthly_10'}
+              buttonText={
+                user?.plan.type === "monthly_10"
+                  ? "Current Plan"
+                  : "Choose Plan"
+              }
+              buttonAction={() => handlePlanSelect("monthly_10")}
+              highlighted={user?.plan.type === "monthly_10"}
               popular={true}
             />
 
@@ -386,11 +501,15 @@ export default function Pricing() {
                 "90-day usage analytics and reporting",
                 "Advanced playbook templates",
                 "Monthly billing cycle",
-                "Cancel anytime with 30-day notice"
+                "Cancel anytime with 30-day notice",
               ]}
-              buttonText={user?.plan.type === 'monthly_15' ? "Current Plan" : "Choose Plan"}
-              buttonAction={() => handlePlanSelect('monthly_15')}
-              highlighted={user?.plan.type === 'monthly_15'}
+              buttonText={
+                user?.plan.type === "monthly_15"
+                  ? "Current Plan"
+                  : "Choose Plan"
+              }
+              buttonAction={() => handlePlanSelect("monthly_15")}
+              highlighted={user?.plan.type === "monthly_15"}
             />
           </div>
 
@@ -399,11 +518,15 @@ export default function Pricing() {
             <div className="bg-gradient-to-r from-[#9A7C7C] to-[#B6A5A5] rounded-lg p-8 text-white text-center">
               <div className="max-w-3xl mx-auto">
                 <Phone className="w-12 h-12 mx-auto mb-4" />
-                <h3 className="font-lora text-2xl font-medium mb-4">Professional Plan</h3>
-                <p className="text-lg mb-2">For 15+ Contracts Monthly - Custom Pricing</p>
+                <h3 className="font-lora text-2xl font-medium mb-4">
+                  Professional Plan
+                </h3>
+                <p className="text-lg mb-2">
+                  For 15+ Contracts Monthly - Custom Pricing
+                </p>
                 <p className="text-white/90 mb-6">
-                  Perfect for large law firms and enterprises requiring custom integrations, 
-                  advanced features, and dedicated support.
+                  Perfect for large law firms and enterprises requiring custom
+                  integrations, advanced features, and dedicated support.
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                   <div className="text-left">
@@ -425,11 +548,13 @@ export default function Pricing() {
                     </ul>
                   </div>
                 </div>
-                <Button 
-                  onClick={() => handlePlanSelect('professional')}
+                <Button
+                  onClick={() => handlePlanSelect("professional")}
                   className="bg-white text-[#9A7C7C] hover:bg-white/90 px-8 py-3"
                 >
-                  {user?.plan.type === 'professional' ? 'Current Plan' : 'Request Consultation'}
+                  {user?.plan.type === "professional"
+                    ? "Current Plan"
+                    : "Request Consultation"}
                 </Button>
               </div>
             </div>
@@ -443,39 +568,69 @@ export default function Pricing() {
           <h2 className="text-2xl lg:text-3xl font-medium text-[#271D1D] font-lora text-center mb-12">
             Plan Comparison
           </h2>
-          
+
           <div className="overflow-x-auto">
             <table className="w-full border-collapse">
               <thead>
                 <tr className="border-b border-[#271D1D]/10">
-                  <th className="text-left p-4 font-medium text-[#271D1D]">Features</th>
-                  <th className="text-center p-4 font-medium text-[#271D1D]">Free Trial</th>
-                  <th className="text-center p-4 font-medium text-[#271D1D]">Pay-as-you-go</th>
-                  <th className="text-center p-4 font-medium text-[#271D1D]">Monthly Plans</th>
-                  <th className="text-center p-4 font-medium text-[#271D1D]">Professional</th>
+                  <th className="text-left p-4 font-medium text-[#271D1D]">
+                    Features
+                  </th>
+                  <th className="text-center p-4 font-medium text-[#271D1D]">
+                    Free Trial
+                  </th>
+                  <th className="text-center p-4 font-medium text-[#271D1D]">
+                    Pay-as-you-go
+                  </th>
+                  <th className="text-center p-4 font-medium text-[#271D1D]">
+                    Monthly Plans
+                  </th>
+                  <th className="text-center p-4 font-medium text-[#271D1D]">
+                    Professional
+                  </th>
                 </tr>
               </thead>
               <tbody className="text-sm">
                 <tr className="border-b border-[#271D1D]/5">
                   <td className="p-4 text-[#271D1D]">Contract Reviews</td>
                   <td className="p-4 text-center text-[#271D1D]/70">1</td>
-                  <td className="p-4 text-center text-[#271D1D]/70">Unlimited</td>
-                  <td className="p-4 text-center text-[#271D1D]/70">10 or 15/month</td>
-                  <td className="p-4 text-center text-[#271D1D]/70">Unlimited</td>
+                  <td className="p-4 text-center text-[#271D1D]/70">
+                    Unlimited
+                  </td>
+                  <td className="p-4 text-center text-[#271D1D]/70">
+                    10 or 15/month
+                  </td>
+                  <td className="p-4 text-center text-[#271D1D]/70">
+                    Unlimited
+                  </td>
                 </tr>
                 <tr className="border-b border-[#271D1D]/5">
                   <td className="p-4 text-[#271D1D]">Report Storage</td>
                   <td className="p-4 text-center text-[#271D1D]/70">7 days</td>
-                  <td className="p-4 text-center text-[#271D1D]/70">Permanent</td>
-                  <td className="p-4 text-center text-[#271D1D]/70">Permanent</td>
-                  <td className="p-4 text-center text-[#271D1D]/70">Permanent</td>
+                  <td className="p-4 text-center text-[#271D1D]/70">
+                    Permanent
+                  </td>
+                  <td className="p-4 text-center text-[#271D1D]/70">
+                    Permanent
+                  </td>
+                  <td className="p-4 text-center text-[#271D1D]/70">
+                    Permanent
+                  </td>
                 </tr>
                 <tr className="border-b border-[#271D1D]/5">
                   <td className="p-4 text-[#271D1D]">Support Response</td>
-                  <td className="p-4 text-center text-[#271D1D]/70">Email only</td>
-                  <td className="p-4 text-center text-[#271D1D]/70">48 hours</td>
-                  <td className="p-4 text-center text-[#271D1D]/70">24-48 hours</td>
-                  <td className="p-4 text-center text-[#271D1D]/70">Priority + dedicated</td>
+                  <td className="p-4 text-center text-[#271D1D]/70">
+                    Email only
+                  </td>
+                  <td className="p-4 text-center text-[#271D1D]/70">
+                    48 hours
+                  </td>
+                  <td className="p-4 text-center text-[#271D1D]/70">
+                    24-48 hours
+                  </td>
+                  <td className="p-4 text-center text-[#271D1D]/70">
+                    Priority + dedicated
+                  </td>
                 </tr>
                 <tr className="border-b border-[#271D1D]/5">
                   <td className="p-4 text-[#271D1D]">API Access</td>

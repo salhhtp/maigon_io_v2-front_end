@@ -1,5 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import { FileText, Shield, Users, Database, Cog, Scale, Package } from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import {
+  FileText,
+  Shield,
+  Users,
+  Database,
+  Cog,
+  Scale,
+  Package,
+} from "lucide-react";
 
 const AnimatedSolutionsMockup: React.FC = () => {
   const [activeContract, setActiveContract] = useState(0);
@@ -8,11 +16,26 @@ const AnimatedSolutionsMockup: React.FC = () => {
   const contractTypes = [
     { icon: Shield, name: "NDA", color: "text-blue-500", bg: "bg-blue-50" },
     { icon: Database, name: "DPA", color: "text-green-500", bg: "bg-green-50" },
-    { icon: Users, name: "Privacy Policy", color: "text-purple-500", bg: "bg-purple-50" },
-    { icon: Cog, name: "Consultancy", color: "text-orange-500", bg: "bg-orange-50" },
+    {
+      icon: Users,
+      name: "Privacy Policy",
+      color: "text-purple-500",
+      bg: "bg-purple-50",
+    },
+    {
+      icon: Cog,
+      name: "Consultancy",
+      color: "text-orange-500",
+      bg: "bg-orange-50",
+    },
     { icon: Scale, name: "R&D", color: "text-red-500", bg: "bg-red-50" },
-    { icon: FileText, name: "EULA", color: "text-indigo-500", bg: "bg-indigo-50" },
-    { icon: Package, name: "Supply", color: "text-teal-500", bg: "bg-teal-50" }
+    {
+      icon: FileText,
+      name: "EULA",
+      color: "text-indigo-500",
+      bg: "bg-indigo-50",
+    },
+    { icon: Package, name: "Supply", color: "text-teal-500", bg: "bg-teal-50" },
   ];
 
   useEffect(() => {
@@ -47,7 +70,9 @@ const AnimatedSolutionsMockup: React.FC = () => {
               <FileText className="w-6 h-6" />
             </div>
             <div>
-              <h3 className="text-lg font-medium">Contract Analysis Dashboard</h3>
+              <h3 className="text-lg font-medium">
+                Contract Analysis Dashboard
+              </h3>
               <p className="text-sm text-gray-300">AI-Powered Review System</p>
             </div>
           </div>
@@ -69,16 +94,20 @@ const AnimatedSolutionsMockup: React.FC = () => {
                 className={`p-3 rounded-lg border-2 transition-all duration-300 cursor-pointer ${
                   index === activeContract
                     ? `${contract.bg} border-current ${contract.color} scale-105 shadow-lg`
-                    : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
+                    : "bg-gray-50 border-gray-200 hover:bg-gray-100"
                 }`}
                 onClick={() => setActiveContract(index)}
               >
-                <IconComponent className={`w-6 h-6 mx-auto ${
-                  index === activeContract ? contract.color : 'text-gray-400'
-                }`} />
-                <div className={`text-sm text-center mt-2 font-medium ${
-                  index === activeContract ? contract.color : 'text-gray-500'
-                }`}>
+                <IconComponent
+                  className={`w-6 h-6 mx-auto ${
+                    index === activeContract ? contract.color : "text-gray-400"
+                  }`}
+                />
+                <div
+                  className={`text-sm text-center mt-2 font-medium ${
+                    index === activeContract ? contract.color : "text-gray-500"
+                  }`}
+                >
                   {contract.name}
                 </div>
               </div>
@@ -89,14 +118,20 @@ const AnimatedSolutionsMockup: React.FC = () => {
         {/* Analysis Section */}
         <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
           <div className="flex items-center gap-4 mb-4">
-            <div className={`w-14 h-14 ${activeContractData.bg} rounded-lg flex items-center justify-center`}>
-              <activeContractData.icon className={`w-7 h-7 ${activeContractData.color}`} />
+            <div
+              className={`w-14 h-14 ${activeContractData.bg} rounded-lg flex items-center justify-center`}
+            >
+              <activeContractData.icon
+                className={`w-7 h-7 ${activeContractData.color}`}
+              />
             </div>
             <div>
               <h4 className="text-lg font-medium text-[#271D1D]">
                 {activeContractData.name} Analysis
               </h4>
-              <p className="text-base text-gray-500">Scanning contract clauses...</p>
+              <p className="text-base text-gray-500">
+                Scanning contract clauses...
+              </p>
             </div>
           </div>
 
@@ -104,18 +139,26 @@ const AnimatedSolutionsMockup: React.FC = () => {
           <div className="mb-6">
             <div className="flex justify-between text-base mb-2">
               <span className="text-gray-600">Analysis Progress</span>
-              <span className={`font-medium ${activeContractData.color}`}>{Math.round(scanProgress)}%</span>
+              <span className={`font-medium ${activeContractData.color}`}>
+                {Math.round(scanProgress)}%
+              </span>
             </div>
             <div className="w-full bg-gray-200 rounded-full h-3">
               <div
                 className={`h-3 rounded-full transition-all duration-200 ease-out bg-gradient-to-r ${
-                  activeContractData.color.includes('blue') ? 'from-blue-400 to-blue-600' :
-                  activeContractData.color.includes('green') ? 'from-green-400 to-green-600' :
-                  activeContractData.color.includes('purple') ? 'from-purple-400 to-purple-600' :
-                  activeContractData.color.includes('orange') ? 'from-orange-400 to-orange-600' :
-                  activeContractData.color.includes('red') ? 'from-red-400 to-red-600' :
-                  activeContractData.color.includes('indigo') ? 'from-indigo-400 to-indigo-600' :
-                  'from-teal-400 to-teal-600'
+                  activeContractData.color.includes("blue")
+                    ? "from-blue-400 to-blue-600"
+                    : activeContractData.color.includes("green")
+                      ? "from-green-400 to-green-600"
+                      : activeContractData.color.includes("purple")
+                        ? "from-purple-400 to-purple-600"
+                        : activeContractData.color.includes("orange")
+                          ? "from-orange-400 to-orange-600"
+                          : activeContractData.color.includes("red")
+                            ? "from-red-400 to-red-600"
+                            : activeContractData.color.includes("indigo")
+                              ? "from-indigo-400 to-indigo-600"
+                              : "from-teal-400 to-teal-600"
                 }`}
                 style={{ width: `${scanProgress}%` }}
               ></div>
@@ -149,14 +192,22 @@ const AnimatedSolutionsMockup: React.FC = () => {
         <div className="space-y-3">
           <div className="flex items-center gap-3 text-base">
             <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-            <span className="text-gray-600">GDPR compliance check complete</span>
+            <span className="text-gray-600">
+              GDPR compliance check complete
+            </span>
           </div>
           <div className="flex items-center gap-3 text-base">
-            <div className="w-3 h-3 bg-blue-500 rounded-full animate-pulse" style={{ animationDelay: '0.5s' }}></div>
+            <div
+              className="w-3 h-3 bg-blue-500 rounded-full animate-pulse"
+              style={{ animationDelay: "0.5s" }}
+            ></div>
             <span className="text-gray-600">Risk assessment in progress</span>
           </div>
           <div className="flex items-center gap-3 text-base">
-            <div className="w-3 h-3 bg-orange-500 rounded-full animate-pulse" style={{ animationDelay: '1s' }}></div>
+            <div
+              className="w-3 h-3 bg-orange-500 rounded-full animate-pulse"
+              style={{ animationDelay: "1s" }}
+            ></div>
             <span className="text-gray-600">Extracting key provisions</span>
           </div>
         </div>

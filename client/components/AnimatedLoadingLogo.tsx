@@ -7,7 +7,7 @@ interface AnimatedLoadingLogoProps {
 
 export const AnimatedLoadingLogo = ({
   duration = 30000, // 30 seconds - realistic review time
-  onComplete
+  onComplete,
 }: AnimatedLoadingLogoProps) => {
   const [progress, setProgress] = useState(0);
 
@@ -45,11 +45,11 @@ export const AnimatedLoadingLogo = ({
             textAnchor="middle"
             className="font-lora text-[128px] font-normal"
             style={{
-              fontSize: 'clamp(64px, 12vw, 128px)',
-              fill: 'none',
-              stroke: '#B6A5A5',
-              strokeWidth: '1px',
-              filter: 'drop-shadow(0 4px 4px rgba(0, 0, 0, 0.25))'
+              fontSize: "clamp(64px, 12vw, 128px)",
+              fill: "none",
+              stroke: "#B6A5A5",
+              strokeWidth: "1px",
+              filter: "drop-shadow(0 4px 4px rgba(0, 0, 0, 0.25))",
             }}
           >
             MAIGON
@@ -62,7 +62,7 @@ export const AnimatedLoadingLogo = ({
         className="absolute inset-0 flex items-center justify-center overflow-hidden"
         style={{
           clipPath: `inset(${100 - progress}% 0 0 0)`,
-          transition: 'clip-path 0.1s ease-out'
+          transition: "clip-path 0.1s ease-out",
         }}
       >
         <svg
@@ -79,9 +79,9 @@ export const AnimatedLoadingLogo = ({
             textAnchor="middle"
             className="font-lora text-[128px] font-normal"
             style={{
-              fontSize: 'clamp(64px, 12vw, 128px)',
-              fill: '#9A7C7C',
-              filter: 'drop-shadow(0 4px 4px rgba(0, 0, 0, 0.25))'
+              fontSize: "clamp(64px, 12vw, 128px)",
+              fill: "#9A7C7C",
+              filter: "drop-shadow(0 4px 4px rgba(0, 0, 0, 0.25))",
             }}
           >
             MAIGON

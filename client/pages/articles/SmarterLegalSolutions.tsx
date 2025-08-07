@@ -18,12 +18,27 @@ export default function SmarterLegalSolutions() {
         <Link to={isLoggedIn ? "/home" : "/"}>
           <Logo size="xl" />
         </Link>
-        
+
         {isLoggedIn ? (
           <div className="hidden md:flex items-center space-x-8">
-            <Link to="/user-solutions" className="text-[#271D1D] hover:text-[#9A7C7C] transition-colors">Solutions</Link>
-            <Link to="/user-news" className="text-[#271D1D] hover:text-[#9A7C7C] transition-colors">News</Link>
-            <Link to="/user-team" className="text-[#271D1D] hover:text-[#9A7C7C] transition-colors">Team</Link>
+            <Link
+              to="/user-solutions"
+              className="text-[#271D1D] hover:text-[#9A7C7C] transition-colors"
+            >
+              Solutions
+            </Link>
+            <Link
+              to="/user-news"
+              className="text-[#271D1D] hover:text-[#9A7C7C] transition-colors"
+            >
+              News
+            </Link>
+            <Link
+              to="/user-team"
+              className="text-[#271D1D] hover:text-[#9A7C7C] transition-colors"
+            >
+              Team
+            </Link>
 
             {/* User Button */}
             <div className="relative">
@@ -32,32 +47,72 @@ export default function SmarterLegalSolutions() {
                 className="flex items-center space-x-2 bg-[#D6CECE] hover:bg-[#D6CECE]/90 px-4 py-2 rounded-lg transition-colors"
               >
                 <User className="w-4 h-4 text-[#271D1D]" />
-                <span className="text-[#271D1D] font-medium">@{user?.name.split(' ')[0]}</span>
-                <ChevronDown className={`w-4 h-4 text-[#271D1D] transition-transform ${userDropdownOpen ? 'rotate-180' : ''}`} />
+                <span className="text-[#271D1D] font-medium">
+                  @{user?.name.split(" ")[0]}
+                </span>
+                <ChevronDown
+                  className={`w-4 h-4 text-[#271D1D] transition-transform ${userDropdownOpen ? "rotate-180" : ""}`}
+                />
               </button>
 
               {userDropdownOpen && (
                 <div className="absolute right-0 mt-2 w-32 bg-white border border-[#271D1D]/15 rounded-lg shadow-lg py-2 z-10">
-                  <Link to="/profile" className="block px-4 py-2 text-sm text-[#271D1D] hover:bg-[#F9F8F8] transition-colors">Profile</Link>
-                  <Link to="/settings" className="block px-4 py-2 text-sm text-[#271D1D] hover:bg-[#F9F8F8] transition-colors">Settings</Link>
-                  <Link to="/" className="block px-4 py-2 text-sm text-[#271D1D] hover:bg-[#F9F8F8] transition-colors">Log Out</Link>
+                  <Link
+                    to="/profile"
+                    className="block px-4 py-2 text-sm text-[#271D1D] hover:bg-[#F9F8F8] transition-colors"
+                  >
+                    Profile
+                  </Link>
+                  <Link
+                    to="/settings"
+                    className="block px-4 py-2 text-sm text-[#271D1D] hover:bg-[#F9F8F8] transition-colors"
+                  >
+                    Settings
+                  </Link>
+                  <Link
+                    to="/"
+                    className="block px-4 py-2 text-sm text-[#271D1D] hover:bg-[#F9F8F8] transition-colors"
+                  >
+                    Log Out
+                  </Link>
                 </div>
               )}
             </div>
           </div>
         ) : (
           <div className="hidden md:flex items-center space-x-8">
-            <Link to="/solutions" className="text-[#271D1D] hover:text-[#9A7C7C] transition-colors">Solutions</Link>
-            <Link to="/news" className="text-[#271D1D] hover:text-[#9A7C7C] transition-colors">News</Link>
-            <Link to="/team" className="text-[#271D1D] hover:text-[#9A7C7C] transition-colors">Team</Link>
-            <Button asChild className="bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white px-8 rounded-lg">
+            <Link
+              to="/solutions"
+              className="text-[#271D1D] hover:text-[#9A7C7C] transition-colors"
+            >
+              Solutions
+            </Link>
+            <Link
+              to="/news"
+              className="text-[#271D1D] hover:text-[#9A7C7C] transition-colors"
+            >
+              News
+            </Link>
+            <Link
+              to="/team"
+              className="text-[#271D1D] hover:text-[#9A7C7C] transition-colors"
+            >
+              Team
+            </Link>
+            <Button
+              asChild
+              className="bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white px-8 rounded-lg"
+            >
               <Link to="/signin">Sign In/Up</Link>
             </Button>
           </div>
         )}
 
         {/* Mobile Navigation */}
-        <MobileNavigation isLoggedIn={isLoggedIn} userName={user?.name.split(' ')[0]} />
+        <MobileNavigation
+          isLoggedIn={isLoggedIn}
+          userName={user?.name.split(" ")[0]}
+        />
       </nav>
 
       {/* Article Content */}
@@ -65,7 +120,7 @@ export default function SmarterLegalSolutions() {
         <div className="max-w-4xl mx-auto">
           {/* Back Button */}
           <div className="mb-8">
-            <Link 
+            <Link
               to={isLoggedIn ? "/user-news" : "/news"}
               className="inline-flex items-center gap-2 text-[#9A7C7C] hover:text-[#271D1D] transition-colors"
             >
@@ -86,18 +141,18 @@ export default function SmarterLegalSolutions() {
                 <span>5 min read</span>
               </div>
             </div>
-            
+
             <h1 className="text-4xl lg:text-5xl font-medium text-[#271D1D] font-lora leading-tight mb-6">
               Smarter Legal Solutions: How Maigon is Redefining Contract Review
             </h1>
-            
+
             <div className="w-full h-px bg-[#D6CECE] rounded-full mb-8"></div>
           </header>
 
           {/* Featured Image */}
           <div className="mb-12">
-            <img 
-              src="https://api.builder.io/api/v1/image/assets/TEMP/defadcd8445be3dc8712f81677c887b3ef4db62b?width=1200" 
+            <img
+              src="https://api.builder.io/api/v1/image/assets/TEMP/defadcd8445be3dc8712f81677c887b3ef4db62b?width=1200"
               alt="Smarter Legal Solutions"
               className="w-full h-64 lg:h-96 object-cover rounded-lg border border-[#271D1D]/15"
             />
@@ -107,41 +162,73 @@ export default function SmarterLegalSolutions() {
           <article className="prose prose-lg max-w-none">
             <div className="text-lg leading-relaxed text-[#271D1D] space-y-6">
               <p>
-                The legal sector is experiencing changes due to technological advancements, moving from manual processes to tools that use technology capable of understanding context. This transition, driven by developments in language processing and general-purpose intelligence, is changing how contracts are analyzed and managed.
+                The legal sector is experiencing changes due to technological
+                advancements, moving from manual processes to tools that use
+                technology capable of understanding context. This transition,
+                driven by developments in language processing and
+                general-purpose intelligence, is changing how contracts are
+                analyzed and managed.
               </p>
 
               <p>
-                Maigon is gradually working toward embracing this change, developing tools and solutions that align with the evolving needs of the legal industry. Its contract review solutions are designed to meet the increasing demands of modern legal teams, particularly within the EU's complex regulatory environment. Its platform uses proprietary models to provide in-depth analysis, going beyond identifying clauses to understand how different contract elements interact within frameworks such as GDPR.
+                Maigon is gradually working toward embracing this change,
+                developing tools and solutions that align with the evolving
+                needs of the legal industry. Its contract review solutions are
+                designed to meet the increasing demands of modern legal teams,
+                particularly within the EU's complex regulatory environment. Its
+                platform uses proprietary models to provide in-depth analysis,
+                going beyond identifying clauses to understand how different
+                contract elements interact within frameworks such as GDPR.
               </p>
 
               <div className="bg-[#F3F3F3] rounded-lg p-6 my-8 border-l-4 border-[#9A7C7C]">
                 <p className="text-[#271D1D] italic font-medium">
-                  "This has dramatically reduced the time we spend going through each NDA, allowing our small legal team to prioritize our resources on more demanding and interesting legal work."
+                  "This has dramatically reduced the time we spend going through
+                  each NDA, allowing our small legal team to prioritize our
+                  resources on more demanding and interesting legal work."
                 </p>
                 <p className="text-[#271D1D]/70 text-sm mt-2">— Maigon User</p>
               </div>
 
               <p>
-                The impact of this approach is evident, as it has significantly enhanced the contract review process. One of our users explains how the platform has transformed their workflow and allowed their team to focus on higher-value legal work.
+                The impact of this approach is evident, as it has significantly
+                enhanced the contract review process. One of our users explains
+                how the platform has transformed their workflow and allowed
+                their team to focus on higher-value legal work.
               </p>
 
               <p>
-                Looking ahead to 2025, Maigon's platform offers deployment without the need for extensive training, supports over 50 languages, and handles bilingual contracts, making it ideal for EU organizations operating in global markets. Custom Playbooks allow companies to integrate their internal policies directly into the system, ensuring consistent application of standards.
+                Looking ahead to 2025, Maigon's platform offers deployment
+                without the need for extensive training, supports over 50
+                languages, and handles bilingual contracts, making it ideal for
+                EU organizations operating in global markets. Custom Playbooks
+                allow companies to integrate their internal policies directly
+                into the system, ensuring consistent application of standards.
               </p>
 
               <div className="bg-[#F3F3F3] rounded-lg p-6 my-8 border-l-4 border-[#9A7C7C]">
                 <p className="text-[#271D1D] italic font-medium">
-                  "DPA AI makes review of data processing agreements much faster."
+                  "DPA AI makes review of data processing agreements much
+                  faster."
                 </p>
                 <p className="text-[#271D1D]/70 text-sm mt-2">— Maigon User</p>
               </div>
 
               <p>
-                As systems become more advanced in understanding legal context, Maigon ensures compliance by continuously updating its platform to reflect changes in legislation and case law. Its ability to assess risks proactively, extract critical information, and analyze patterns transforms contract review from a time-consuming process into a strategic advantage.
+                As systems become more advanced in understanding legal context,
+                Maigon ensures compliance by continuously updating its platform
+                to reflect changes in legislation and case law. Its ability to
+                assess risks proactively, extract critical information, and
+                analyze patterns transforms contract review from a
+                time-consuming process into a strategic advantage.
               </p>
 
               <p>
-                As technology continues to evolve, Maigon is prepared to adapt while maintaining its focus on practical solutions and compliance with EU regulations. For legal teams in this changing landscape, Maigon provides tools to enhance efficiency, accuracy, and strategic decision-making in contract management.
+                As technology continues to evolve, Maigon is prepared to adapt
+                while maintaining its focus on practical solutions and
+                compliance with EU regulations. For legal teams in this changing
+                landscape, Maigon provides tools to enhance efficiency,
+                accuracy, and strategic decision-making in contract management.
               </p>
             </div>
           </article>
@@ -153,7 +240,8 @@ export default function SmarterLegalSolutions() {
                 Ready to Transform Your Contract Review Process?
               </h3>
               <p className="text-[#271D1D]/70 mb-6">
-                Experience the power of AI-driven contract analysis with Maigon's advanced platform.
+                Experience the power of AI-driven contract analysis with
+                Maigon's advanced platform.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Link to={isLoggedIn ? "/user-solutions" : "/solutions"}>
@@ -162,7 +250,10 @@ export default function SmarterLegalSolutions() {
                   </Button>
                 </Link>
                 <Link to="/pricing">
-                  <Button variant="outline" className="text-[#271D1D] border-[#271D1D]/20 px-8 py-3">
+                  <Button
+                    variant="outline"
+                    className="text-[#271D1D] border-[#271D1D]/20 px-8 py-3"
+                  >
                     View Pricing
                   </Button>
                 </Link>
@@ -172,12 +263,14 @@ export default function SmarterLegalSolutions() {
 
           {/* Related Articles */}
           <div className="mt-16">
-            <h3 className="font-lora text-2xl font-medium text-[#271D1D] mb-8">Related Articles</h3>
+            <h3 className="font-lora text-2xl font-medium text-[#271D1D] mb-8">
+              Related Articles
+            </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <Link to="/articles/code-to-clause" className="group">
                 <div className="bg-white rounded-lg p-6 border border-[#271D1D]/10 hover:border-[#9A7C7C]/50 transition-colors">
-                  <img 
-                    src="https://api.builder.io/api/v1/image/assets/TEMP/c498213c0b4214c6db0aac491c03b8a8739f2f72?width=400" 
+                  <img
+                    src="https://api.builder.io/api/v1/image/assets/TEMP/c498213c0b4214c6db0aac491c03b8a8739f2f72?width=400"
                     alt="Code to Clause"
                     className="w-full h-32 object-cover rounded-lg mb-4"
                   />
@@ -185,15 +278,17 @@ export default function SmarterLegalSolutions() {
                     Code to Clause: The Engineering Behind AI's Contract Review
                   </h4>
                   <p className="text-sm text-[#271D1D]/70">
-                    AI contract review systems combine several advanced technologies to automate traditionally manual legal processes...
+                    AI contract review systems combine several advanced
+                    technologies to automate traditionally manual legal
+                    processes...
                   </p>
                 </div>
               </Link>
 
               <Link to="/articles/llms-and-lawyers" className="group">
                 <div className="bg-white rounded-lg p-6 border border-[#271D1D]/10 hover:border-[#9A7C7C]/50 transition-colors">
-                  <img 
-                    src="https://api.builder.io/api/v1/image/assets/TEMP/514bf38fbf249296cea00faa8d72c0d0024ec018?width=400" 
+                  <img
+                    src="https://api.builder.io/api/v1/image/assets/TEMP/514bf38fbf249296cea00faa8d72c0d0024ec018?width=400"
                     alt="LLMs and Lawyers"
                     className="w-full h-32 object-cover rounded-lg mb-4"
                   />
@@ -201,7 +296,8 @@ export default function SmarterLegalSolutions() {
                     LLMs and Lawyers: A New Partnership in Contract Management
                   </h4>
                   <p className="text-sm text-[#271D1D]/70">
-                    The legal industry is undergoing a major shift as Large Language Models change the way contract review is done...
+                    The legal industry is undergoing a major shift as Large
+                    Language Models change the way contract review is done...
                   </p>
                 </div>
               </Link>

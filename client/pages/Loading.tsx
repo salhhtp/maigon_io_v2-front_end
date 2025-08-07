@@ -10,18 +10,20 @@ export default function Loading() {
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [pendingNavigation, setPendingNavigation] = useState<string | null>(null);
+  const [pendingNavigation, setPendingNavigation] = useState<string | null>(
+    null,
+  );
   const [isProcessing, setIsProcessing] = useState(true);
   const location = useLocation();
   const navigate = useNavigate();
-  
+
   // Get the upload info from navigation state
   const { selectedFile, solutionTitle, perspective } = location.state || {};
 
   // Block navigation when processing is in progress
   const blocker = useBlocker(
     ({ currentLocation, nextLocation }) =>
-      isProcessing && currentLocation.pathname !== nextLocation.pathname
+      isProcessing && currentLocation.pathname !== nextLocation.pathname,
   );
 
   const handleLoadingComplete = () => {
@@ -29,13 +31,13 @@ export default function Loading() {
     // Navigate to results page after review completion
     // For now, navigate back to user solutions with success message
     setTimeout(() => {
-      navigate('/user-solutions', {
+      navigate("/user-solutions", {
         state: {
           reviewCompleted: true,
           fileName: selectedFile?.name,
           solutionTitle: solutionTitle,
-          perspective: perspective
-        }
+          perspective: perspective,
+        },
       });
     }, 1000);
   };
@@ -52,7 +54,7 @@ export default function Loading() {
     setIsProcessing(false);
     setShowConfirmModal(false);
 
-    if (blocker.state === 'blocked') {
+    if (blocker.state === "blocked") {
       blocker.proceed();
     } else if (pendingNavigation) {
       navigate(pendingNavigation);
@@ -65,7 +67,7 @@ export default function Loading() {
     setShowConfirmModal(false);
     setPendingNavigation(null);
 
-    if (blocker.state === 'blocked') {
+    if (blocker.state === "blocked") {
       blocker.reset();
     }
   };
@@ -82,7 +84,7 @@ export default function Loading() {
 
   // Handle React Router navigation blocking
   useEffect(() => {
-    if (blocker.state === 'blocked') {
+    if (blocker.state === "blocked") {
       setShowConfirmModal(true);
     }
   }, [blocker.state]);
@@ -92,7 +94,8 @@ export default function Loading() {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (isProcessing) {
         e.preventDefault();
-        e.returnValue = 'Your document is being processed. Are you sure you want to leave?';
+        e.returnValue =
+          "Your document is being processed. Are you sure you want to leave?";
         return e.returnValue;
       }
     };
@@ -101,27 +104,29 @@ export default function Loading() {
       if (isProcessing) {
         e.preventDefault();
         setShowConfirmModal(true);
-        window.history.pushState(null, '', window.location.href);
+        window.history.pushState(null, "", window.location.href);
       }
     };
 
     if (isProcessing) {
-      window.addEventListener('beforeunload', handleBeforeUnload);
-      window.addEventListener('popstate', handlePopState);
+      window.addEventListener("beforeunload", handleBeforeUnload);
+      window.addEventListener("popstate", handlePopState);
       // Prevent back navigation
-      window.history.pushState(null, '', window.location.href);
+      window.history.pushState(null, "", window.location.href);
     }
 
     return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-      window.removeEventListener('popstate', handlePopState);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      window.removeEventListener("popstate", handlePopState);
     };
   }, [isProcessing]);
 
   return (
-    <div className={`min-h-screen bg-[#F9F8F8] flex flex-col transition-all duration-700 ease-out ${
-      isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
-    }`}>
+    <div
+      className={`min-h-screen bg-[#F9F8F8] flex flex-col transition-all duration-700 ease-out ${
+        isVisible ? "opacity-100 scale-100" : "opacity-0 scale-95"
+      }`}
+    >
       {/* Navigation */}
       <nav className="flex items-center justify-between px-8 lg:px-16 py-6">
         <div onClick={handleLinkClick("/home")} className="cursor-pointer">
@@ -159,13 +164,25 @@ export default function Loading() {
             >
               <User className="w-4 h-4 text-[#271D1D]" />
               <span className="text-[#271D1D] font-medium">@Salih</span>
-              <ChevronDown className={`w-4 h-4 text-[#271D1D] transition-transform ${userDropdownOpen ? 'rotate-180' : ''}`} />
+              <ChevronDown
+                className={`w-4 h-4 text-[#271D1D] transition-transform ${userDropdownOpen ? "rotate-180" : ""}`}
+              />
             </button>
 
             {userDropdownOpen && (
               <div className="absolute right-0 mt-2 w-32 bg-white border border-[#271D1D]/15 rounded-lg shadow-lg py-2 z-10">
-                <a href="#" className="block px-4 py-2 text-sm text-[#271D1D] hover:bg-[#F9F8F8] transition-colors">Profile</a>
-                <a href="#" className="block px-4 py-2 text-sm text-[#271D1D] hover:bg-[#F9F8F8] transition-colors">Settings</a>
+                <a
+                  href="#"
+                  className="block px-4 py-2 text-sm text-[#271D1D] hover:bg-[#F9F8F8] transition-colors"
+                >
+                  Profile
+                </a>
+                <a
+                  href="#"
+                  className="block px-4 py-2 text-sm text-[#271D1D] hover:bg-[#F9F8F8] transition-colors"
+                >
+                  Settings
+                </a>
                 <a
                   href="/"
                   onClick={handleLinkClick("/")}
@@ -181,12 +198,18 @@ export default function Loading() {
 
       {/* Main Content */}
       <main className="flex-1 flex items-center justify-center px-8 lg:px-16 py-20">
-        <div className={`w-full max-w-[554px] flex flex-col items-center gap-7 transition-all duration-1000 ${
-          isVisible ? 'transform translate-y-0 scale-100 opacity-100' : 'transform translate-y-8 scale-95 opacity-0'
-        }`} style={{
-          transitionTimingFunction: isVisible ? 'cubic-bezier(0.68, -0.55, 0.265, 1.55)' : 'ease-out'
-        }}>
-          
+        <div
+          className={`w-full max-w-[554px] flex flex-col items-center gap-7 transition-all duration-1000 ${
+            isVisible
+              ? "transform translate-y-0 scale-100 opacity-100"
+              : "transform translate-y-8 scale-95 opacity-0"
+          }`}
+          style={{
+            transitionTimingFunction: isVisible
+              ? "cubic-bezier(0.68, -0.55, 0.265, 1.55)"
+              : "ease-out",
+          }}
+        >
           {/* Header Text */}
           <div className="w-full max-w-[237px] flex flex-col items-center gap-2">
             <div className="text-center px-2.5 py-2.5">
@@ -212,9 +235,17 @@ export default function Loading() {
           {/* Processing Info */}
           {selectedFile && solutionTitle && (
             <div className="text-center text-sm text-[#9A7C7C] font-roboto mt-4">
-              <div>Processing: <span className="font-medium">{selectedFile.name}</span></div>
-              <div>Solution: <span className="font-medium">{solutionTitle}</span></div>
-              <div>Perspective: <span className="font-medium capitalize">{perspective}</span></div>
+              <div>
+                Processing:{" "}
+                <span className="font-medium">{selectedFile.name}</span>
+              </div>
+              <div>
+                Solution: <span className="font-medium">{solutionTitle}</span>
+              </div>
+              <div>
+                Perspective:{" "}
+                <span className="font-medium capitalize">{perspective}</span>
+              </div>
             </div>
           )}
         </div>
