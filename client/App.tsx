@@ -22,6 +22,7 @@ import UserTeam from "./pages/UserTeam";
 import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
 import Pricing from "./pages/Pricing";
+import DemoLogin from "./pages/DemoLogin";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
