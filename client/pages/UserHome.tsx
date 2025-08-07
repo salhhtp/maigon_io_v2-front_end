@@ -129,12 +129,10 @@ export default function UserHome() {
           </Button>
         </div>
 
-        <div className="flex py-32 lg:py-[214px] px-16 lg:px-[122px] items-center gap-2.5 bg-white w-full lg:w-auto rounded-lg border border-[#271D1D]/15">
-          <img
-            src="https://api.builder.io/api/v1/image/assets/TEMP/ee4cddf9ea0f3a0dccdc24e4e7e8b76698d62ba8?width=758"
-            alt="Camera"
-            className="w-full h-auto lg:w-[379px] lg:h-[403px] flex justify-center items-center"
-          />
+        <div className="flex py-8 lg:py-12 px-8 lg:px-12 items-center gap-2.5 bg-white w-full lg:w-auto lg:min-w-[623px] lg:h-[831px] rounded-lg border border-[#271D1D]/15">
+          <div className="w-full h-full lg:w-[379px] lg:h-[403px]">
+            <AnimatedHeroMockup />
+          </div>
         </div>
       </section>
 
