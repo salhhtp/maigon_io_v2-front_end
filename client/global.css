@@ -102,7 +102,12 @@
     @apply border-border;
   }
 
-  body {
+  html, body {
     @apply bg-background text-foreground;
+    overflow-x: hidden;
+  }
+
+  #root {
+    overflow-x: hidden;
   }
 }
