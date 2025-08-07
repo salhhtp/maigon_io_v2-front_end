@@ -98,6 +98,16 @@ export default function News() {
             Solutions
           </Link>
           <Link
+            to="/pricing"
+            className={`transition-colors ${
+              location.pathname === "/pricing"
+                ? "text-[#9A7C7C] font-medium"
+                : "text-[#271D1D] hover:text-[#9A7C7C]"
+            }`}
+          >
+            Pricing
+          </Link>
+          <Link
             to="/news"
             className={`transition-colors ${
               location.pathname === "/news"
