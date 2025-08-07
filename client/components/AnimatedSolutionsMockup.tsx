@@ -146,25 +146,25 @@ const AnimatedSolutionsMockup: React.FC = () => {
         </div>
 
         {/* Status Messages */}
-        <div className="space-y-2">
-          <div className="flex items-center gap-2 text-sm">
-            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+        <div className="space-y-3">
+          <div className="flex items-center gap-3 text-base">
+            <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
             <span className="text-gray-600">GDPR compliance check complete</span>
           </div>
-          <div className="flex items-center gap-2 text-sm">
-            <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" style={{ animationDelay: '0.5s' }}></div>
+          <div className="flex items-center gap-3 text-base">
+            <div className="w-3 h-3 bg-blue-500 rounded-full animate-pulse" style={{ animationDelay: '0.5s' }}></div>
             <span className="text-gray-600">Risk assessment in progress</span>
           </div>
-          <div className="flex items-center gap-2 text-sm">
-            <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse" style={{ animationDelay: '1s' }}></div>
+          <div className="flex items-center gap-3 text-base">
+            <div className="w-3 h-3 bg-orange-500 rounded-full animate-pulse" style={{ animationDelay: '1s' }}></div>
             <span className="text-gray-600">Extracting key provisions</span>
           </div>
         </div>
       </div>
 
       {/* Floating Action */}
-      <div className="absolute bottom-4 right-4">
-        <div className="bg-[#9A7C7C] text-white px-3 py-2 rounded-full text-xs font-medium shadow-lg">
+      <div className="absolute bottom-6 right-6">
+        <div className="bg-[#9A7C7C] text-white px-4 py-3 rounded-full text-sm font-medium shadow-lg">
           AI Processing...
         </div>
       </div>
