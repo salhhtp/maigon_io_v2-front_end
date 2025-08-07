@@ -89,6 +89,10 @@ const router = createBrowserRouter([
     element: <Pricing />,
   },
   {
+    path: "/demo-login",
+    element: <DemoLogin />,
+  },
+  {
     path: "*",
     element: <NotFound />,
   },
