@@ -122,6 +122,22 @@ const router = createBrowserRouter([
     element: <FindingContractSolution />,
   },
   {
+    path: "/public-articles/smarter-legal-solutions",
+    element: <PublicSmarterLegalSolutions />,
+  },
+  {
+    path: "/public-articles/code-to-clause",
+    element: <PublicCodeToClause />,
+  },
+  {
+    path: "/public-articles/llms-and-lawyers",
+    element: <PublicLLMsAndLawyers />,
+  },
+  {
+    path: "/public-articles/finding-contract-solution",
+    element: <PublicFindingContractSolution />,
+  },
+  {
     path: "*",
     element: <NotFound />,
   },
