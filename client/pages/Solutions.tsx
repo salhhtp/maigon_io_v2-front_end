@@ -470,7 +470,7 @@ export default function Solutions() {
             {/* Desktop Grid */}
             <div className="grid w-full lg:w-[801px] h-auto lg:h-[1368px] py-5 lg:py-[21px] gap-y-px gap-x-1 grid-rows-3 grid-cols-1 lg:grid-cols-3 relative">
               {/* NDA Card */}
-              <Link to="/signin" className="flex w-[265px] pt-[15px] flex-col justify-end items-center bg-[#F3F3F3] relative col-start-1 row-start-1 cursor-pointer hover:bg-[#ECECEC] transition-colors duration-200">
+              <Link to="/signin" className="w-full lg:w-[265px] h-[439px] flex pt-[15px] flex-col justify-end items-center bg-[#F3F3F3] relative lg:col-start-1 lg:row-start-1 cursor-pointer hover:bg-[#ECECEC] transition-colors duration-200">
                 <div className="w-[265px] h-[424px] absolute left-0 top-[15px]">
                   <img
                     src="https://api.builder.io/api/v1/image/assets/TEMP/bf723346ff37e3006a994d9bde29f03ca52957bd?width=456"
