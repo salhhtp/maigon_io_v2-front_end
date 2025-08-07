@@ -54,18 +54,78 @@ const Toggle = ({ enabled, onChange }: { enabled: boolean; onChange: (enabled: b
 export default function Settings() {
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  
-  // Settings state
-  const [emailNotifications, setEmailNotifications] = useState(true);
-  const [pushNotifications, setPushNotifications] = useState(false);
-  const [marketingEmails, setMarketingEmails] = useState(true);
-  const [twoFactorAuth, setTwoFactorAuth] = useState(false);
-  const [autoSave, setAutoSave] = useState(true);
-  const [darkMode, setDarkMode] = useState(false);
-  
-  // Mock user data
-  const userName = "Adam";
-  const userEmail = "adam@company.com";
+  const { user, isLoggedIn, updateUser } = useUser();
+
+  // Redirect if not logged in
+  if (!isLoggedIn || !user) {
+    return (
+      <div className="min-h-screen bg-[#F9F8F8] flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-lora font-medium text-[#271D1D] mb-4">Access Denied</h1>
+          <p className="text-[#271D1D]/70 mb-6">Please log in to view your settings.</p>
+          <Link to="/signin">
+            <Button className="bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white">
+              Sign In
+            </Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // Settings state from user context
+  const [emailNotifications, setEmailNotifications] = useState(user.settings.email_notifications);
+  const [pushNotifications, setPushNotifications] = useState(user.settings.push_notifications);
+  const [marketingEmails, setMarketingEmails] = useState(user.settings.marketing_emails);
+  const [twoFactorAuth, setTwoFactorAuth] = useState(user.settings.two_factor_auth);
+  const [autoSave, setAutoSave] = useState(user.settings.auto_save);
+  const [language, setLanguage] = useState(user.settings.language);
+  const [timezone, setTimezone] = useState(user.settings.timezone);
+
+  // Form data
+  const [formData, setFormData] = useState({
+    name: user.name,
+    email: user.email,
+    company: user.company,
+    phone: user.phone
+  });
+
+  const handleSettingChange = (setting: string, value: boolean) => {
+    const newSettings = { ...user.settings, [setting]: value };
+    updateUser({ settings: newSettings });
+
+    // Update local state
+    switch(setting) {
+      case 'email_notifications': setEmailNotifications(value); break;
+      case 'push_notifications': setPushNotifications(value); break;
+      case 'marketing_emails': setMarketingEmails(value); break;
+      case 'two_factor_auth': setTwoFactorAuth(value); break;
+      case 'auto_save': setAutoSave(value); break;
+    }
+  };
+
+  const handleFormSubmit = () => {
+    updateUser({
+      name: formData.name,
+      email: formData.email,
+      company: formData.company,
+      phone: formData.phone
+    });
+    // Show success message
+    alert('Profile updated successfully!');
+  };
+
+  const handleLanguageChange = (newLanguage: string) => {
+    setLanguage(newLanguage);
+    const newSettings = { ...user.settings, language: newLanguage };
+    updateUser({ settings: newSettings });
+  };
+
+  const handleTimezoneChange = (newTimezone: string) => {
+    setTimezone(newTimezone);
+    const newSettings = { ...user.settings, timezone: newTimezone };
+    updateUser({ settings: newSettings });
+  };
 
   return (
     <div className="min-h-screen bg-[#F9F8F8]">
