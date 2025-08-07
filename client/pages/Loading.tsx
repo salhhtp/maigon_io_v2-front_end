@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { ChevronDown, User } from "lucide-react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate, useBlocker } from "react-router-dom";
 import Logo from "@/components/Logo";
 import Footer from "@/components/Footer";
 import AnimatedLoadingLogo from "@/components/AnimatedLoadingLogo";
+import ConfirmationModal from "@/components/ConfirmationModal";
 
 export default function Loading() {
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
