@@ -264,6 +264,22 @@ export default function News() {
         </div>
       </section>
 
+      <section className="py-20 max-w-4xl mx-auto px-8 lg:px-16">
+        <CallToActionSection
+          title="See Maigon in Action"
+          description="Ready to revolutionize your contract review process? Join thousands of legal professionals who trust Maigon's AI-powered platform."
+          primaryButton={{
+            text: "Try Maigon Free",
+            href: "/signin"
+          }}
+          secondaryButton={{
+            text: "Explore Solutions",
+            href: "/solutions",
+            variant: "outline"
+          }}
+        />
+      </section>
+
       <Footer />
     </div>
   );
