@@ -375,27 +375,40 @@ export default function Settings() {
                 <div className="flex items-center justify-between p-4 bg-[#F9F8F8] rounded-lg">
                   <div>
                     <p className="text-sm font-medium text-[#271D1D]">Current Plan</p>
-                    <p className="text-xs text-[#271D1D]/70">Professional - $99/month</p>
+                    <p className="text-xs text-[#271D1D]/70">
+                      {user.plan.name}
+                      {user.plan.billing_cycle !== 'trial' && ` - €${user.plan.price}${user.plan.billing_cycle === 'monthly' ? '/month' : user.plan.billing_cycle === 'per_contract' ? '/contract' : ''}`}
+                    </p>
                   </div>
-                  <Button variant="outline" className="text-[#271D1D] border-[#271D1D]/20">
-                    Upgrade Plan
-                  </Button>
+                  <Link to="/pricing">
+                    <Button variant="outline" className="text-[#271D1D] border-[#271D1D]/20">
+                      {user.plan.type === 'free_trial' ? 'Upgrade Plan' : 'Change Plan'}
+                    </Button>
+                  </Link>
                 </div>
                 <div className="flex items-center justify-between p-4 bg-[#F9F8F8] rounded-lg">
                   <div>
                     <p className="text-sm font-medium text-[#271D1D]">Payment Method</p>
-                    <p className="text-xs text-[#271D1D]/70">Visa ending in 4242</p>
+                    <p className="text-xs text-[#271D1D]/70">{user.billing.payment_method}</p>
                   </div>
                   <Button variant="outline" className="text-[#271D1D] border-[#271D1D]/20">
-                    Update
+                    {user.billing.payment_method === 'No payment method' ? 'Add Payment' : 'Update'}
                   </Button>
                 </div>
                 <div className="flex items-center justify-between">
-                  <Button variant="outline" className="text-[#271D1D] border-[#271D1D]/20">
+                  <Button
+                    variant="outline"
+                    className="text-[#271D1D] border-[#271D1D]/20"
+                    disabled={user.billing.billing_history.length === 0}
+                  >
                     <Download className="w-4 h-4 mr-2" />
                     Download Invoice
                   </Button>
-                  <Button variant="outline" className="text-[#271D1D] border-[#271D1D]/20">
+                  <Button
+                    variant="outline"
+                    className="text-[#271D1D] border-[#271D1D]/20"
+                    disabled={user.billing.billing_history.length === 0}
+                  >
                     View Billing History
                   </Button>
                 </div>
