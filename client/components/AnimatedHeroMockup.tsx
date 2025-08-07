@@ -84,18 +84,18 @@ const AnimatedHeroMockup: React.FC = () => {
             <p className="text-lg text-[#271D1D]/70 text-center mb-6">Scanning for compliance issues...</p>
             
             {/* Analysis indicators */}
-            <div className="space-y-2 w-full max-w-xs">
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-[#9A7C7C] rounded-full animate-pulse"></div>
-                <span className="text-xs text-[#271D1D]/60">Checking GDPR compliance</span>
+            <div className="space-y-3 w-full max-w-md">
+              <div className="flex items-center gap-3">
+                <div className="w-3 h-3 bg-[#9A7C7C] rounded-full animate-pulse"></div>
+                <span className="text-sm text-[#271D1D]/60">Checking GDPR compliance</span>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-[#9A7C7C] rounded-full animate-pulse" style={{ animationDelay: '0.5s' }}></div>
-                <span className="text-xs text-[#271D1D]/60">Analyzing risk factors</span>
+              <div className="flex items-center gap-3">
+                <div className="w-3 h-3 bg-[#9A7C7C] rounded-full animate-pulse" style={{ animationDelay: '0.5s' }}></div>
+                <span className="text-sm text-[#271D1D]/60">Analyzing risk factors</span>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-[#9A7C7C] rounded-full animate-pulse" style={{ animationDelay: '1s' }}></div>
-                <span className="text-xs text-[#271D1D]/60">Extracting key clauses</span>
+              <div className="flex items-center gap-3">
+                <div className="w-3 h-3 bg-[#9A7C7C] rounded-full animate-pulse" style={{ animationDelay: '1s' }}></div>
+                <span className="text-sm text-[#271D1D]/60">Extracting key clauses</span>
               </div>
             </div>
           </div>
