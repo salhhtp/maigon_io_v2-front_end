@@ -6,6 +6,7 @@ import Logo from "@/components/Logo";
 import Footer from "@/components/Footer";
 import AnimatedQuotes from "@/components/AnimatedQuotes";
 import AnimatedSolutionsMockup from "@/components/AnimatedSolutionsMockup";
+import CallToActionSection from "@/components/CallToActionSection";
 import MobileNavigation from "@/components/MobileNavigation";
 
 const SolutionCard = ({
