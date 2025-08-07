@@ -169,7 +169,7 @@ export default function News() {
                     </div>
 
                     <Link
-                      to="/articles/finding-contract-solution"
+                      to="/public-articles/finding-contract-solution"
                       className="group"
                     >
                       <h2 className="text-2xl lg:text-4xl font-medium text-black font-lora leading-tight group-hover:text-[#9A7C7C] transition-colors">
@@ -186,7 +186,7 @@ export default function News() {
 
             {/* Right Image */}
             <div className="flex-1">
-              <Link to="/articles/finding-contract-solution" className="group">
+              <Link to="/public-articles/finding-contract-solution" className="group">
                 <img
                   src="https://api.builder.io/api/v1/image/assets/TEMP/354d86037e54edc0a4f3120d61da3d802119a819?width=1146"
                   alt="Featured news article"
@@ -207,13 +207,13 @@ export default function News() {
                 title="Smarter Legal Solutions: How Maigon is Redefining Contract Review"
                 date="Feb 24, 2025"
                 imageSrc="https://api.builder.io/api/v1/image/assets/TEMP/defadcd8445be3dc8712f81677c887b3ef4db62b?width=820"
-                link="/articles/smarter-legal-solutions"
+                link="/public-articles/smarter-legal-solutions"
               />
               <NewsCard
                 title="Code to Clause: The Engineering Behind AI's Contract Review"
                 date="Mar 19, 2025"
                 imageSrc="https://api.builder.io/api/v1/image/assets/TEMP/c498213c0b4214c6db0aac491c03b8a8739f2f72?width=820"
-                link="/articles/code-to-clause"
+                link="/public-articles/code-to-clause"
               />
             </div>
 
@@ -224,7 +224,7 @@ export default function News() {
                   title="LLMs and Lawyers: A New Partnership in Contract Management"
                   date="Feb 26, 2025"
                   imageSrc="https://api.builder.io/api/v1/image/assets/TEMP/514bf38fbf249296cea00faa8d72c0d0024ec018?width=822"
-                  link="/articles/llms-and-lawyers"
+                  link="/public-articles/llms-and-lawyers"
                 />
               </div>
             </div>
