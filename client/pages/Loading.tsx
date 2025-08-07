@@ -9,6 +9,9 @@ import ConfirmationModal from "@/components/ConfirmationModal";
 export default function Loading() {
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [pendingNavigation, setPendingNavigation] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(true);
   const location = useLocation();
   const navigate = useNavigate();
   
