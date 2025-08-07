@@ -33,9 +33,9 @@ const ContractCardsAnimation: React.FC<ContractCardsAnimationProps> = ({ contrac
   };
 
   return (
-    <div className="mb-20 overflow-hidden">
-      <div className="relative w-full max-w-[1073px] h-[458px] mx-auto">
-        <div className="absolute inset-0 flex" style={{ padding: '10px', width: '100%', maxWidth: '1073px' }}>
+    <div className="mb-20 w-full">
+      <div className="relative w-full max-w-[1073px] h-[458px] mx-auto overflow-hidden">
+        <div className="relative w-full h-full" style={{ padding: '10px' }}>
           {contractTypes.map((type, index) => {
             const isActive = activeCard === index;
             const cardHeight = isActive ? 314 : 76;
