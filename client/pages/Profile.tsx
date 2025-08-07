@@ -5,6 +5,7 @@ import { useState } from "react";
 import Logo from "@/components/Logo";
 import Footer from "@/components/Footer";
 import MobileNavigation from "@/components/MobileNavigation";
+import { useUser } from "@/contexts/UserContext";
 
 // Dashboard Widget Components
 const StatsCard = ({ title, value, subtitle, icon, trend }: { 
