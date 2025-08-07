@@ -36,27 +36,22 @@ const StatsCard = ({ title, value, subtitle, icon, trend }: {
   </div>
 );
 
-const UsageChart = () => (
+const UsageChart = ({ monthlyUsage }: { monthlyUsage: Array<{ month: string; reviews: number; max: number }> }) => (
   <div className="bg-white rounded-lg p-6 border border-[#271D1D]/10">
     <h3 className="font-lora text-lg font-medium text-[#271D1D] mb-4">Contract Review Usage</h3>
     <div className="space-y-4">
-      {[
-        { month: 'Jan', reviews: 45, max: 100 },
-        { month: 'Feb', reviews: 67, max: 100 },
-        { month: 'Mar', reviews: 83, max: 100 },
-        { month: 'Apr', reviews: 92, max: 100 },
-        { month: 'May', reviews: 78, max: 100 },
-        { month: 'Jun', reviews: 65, max: 100 }
-      ].map((data, index) => (
+      {monthlyUsage.map((data, index) => (
         <div key={index} className="flex items-center gap-4">
           <span className="text-sm font-medium text-[#271D1D] w-8">{data.month}</span>
           <div className="flex-1 bg-[#F3F3F3] rounded-full h-2 relative">
-            <div 
+            <div
               className="bg-[#9A7C7C] h-2 rounded-full transition-all duration-300"
-              style={{ width: `${(data.reviews / data.max) * 100}%` }}
+              style={{ width: `${data.max > 0 ? (data.reviews / data.max) * 100 : 0}%` }}
             />
           </div>
-          <span className="text-sm text-[#271D1D]/70 w-16">{data.reviews}/{data.max}</span>
+          <span className="text-sm text-[#271D1D]/70 w-16">
+            {data.reviews}/{data.max === -1 ? '∞' : data.max}
+          </span>
         </div>
       ))}
     </div>
