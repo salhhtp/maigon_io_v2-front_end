@@ -23,6 +23,10 @@ import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
 import Pricing from "./pages/Pricing";
 import DemoLogin from "./pages/DemoLogin";
+import SmarterLegalSolutions from "./pages/articles/SmarterLegalSolutions";
+import CodeToClause from "./pages/articles/CodeToClause";
+import LLMsAndLawyers from "./pages/articles/LLMsAndLawyers";
+import FindingContractSolution from "./pages/articles/FindingContractSolution";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
