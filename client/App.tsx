@@ -98,6 +98,10 @@ const router = createBrowserRouter([
     element: <Pricing />,
   },
   {
+    path: "/public-pricing",
+    element: <PublicPricing />,
+  },
+  {
     path: "/demo-login",
     element: <DemoLogin />,
   },
