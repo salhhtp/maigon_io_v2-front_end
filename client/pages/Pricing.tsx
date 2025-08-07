@@ -316,6 +316,12 @@ export default function Pricing() {
               Solutions
             </Link>
             <Link
+              to="/public-pricing"
+              className="text-[#271D1D] hover:text-[#9A7C7C] transition-colors"
+            >
+              Pricing
+            </Link>
+            <Link
               to="/news"
               className="text-[#271D1D] hover:text-[#9A7C7C] transition-colors"
             >
