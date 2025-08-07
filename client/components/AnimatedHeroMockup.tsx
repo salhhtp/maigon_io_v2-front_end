@@ -72,16 +72,16 @@ const AnimatedHeroMockup: React.FC = () => {
           currentStep === 1 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
         }`}>
           <div className="flex flex-col items-center justify-center h-full">
-            <div className="relative mb-4">
-              <FileText className="w-16 h-16 text-[#271D1D]" />
-              <div className="absolute -inset-2">
-                <div className={`w-20 h-20 border-2 border-[#9A7C7C] rounded-full animate-spin ${
+            <div className="relative mb-6">
+              <FileText className="w-24 h-24 text-[#271D1D]" />
+              <div className="absolute -inset-3">
+                <div className={`w-30 h-30 border-3 border-[#9A7C7C] rounded-full animate-spin ${
                   currentStep === 1 ? 'opacity-100' : 'opacity-0'
                 }`}></div>
               </div>
             </div>
-            <h3 className="text-lg font-medium text-[#271D1D] mb-2">AI Analysis in Progress</h3>
-            <p className="text-sm text-[#271D1D]/70 text-center mb-4">Scanning for compliance issues...</p>
+            <h3 className="text-2xl font-medium text-[#271D1D] mb-3">AI Analysis in Progress</h3>
+            <p className="text-lg text-[#271D1D]/70 text-center mb-6">Scanning for compliance issues...</p>
             
             {/* Analysis indicators */}
             <div className="space-y-2 w-full max-w-xs">
