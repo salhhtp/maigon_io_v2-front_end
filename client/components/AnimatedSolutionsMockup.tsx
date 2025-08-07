@@ -87,28 +87,28 @@ const AnimatedSolutionsMockup: React.FC = () => {
         </div>
 
         {/* Analysis Section */}
-        <div className="bg-white rounded-lg border border-gray-200 p-4 mb-4">
-          <div className="flex items-center gap-3 mb-3">
-            <div className={`w-10 h-10 ${activeContractData.bg} rounded-lg flex items-center justify-center`}>
-              <activeContractData.icon className={`w-5 h-5 ${activeContractData.color}`} />
+        <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
+          <div className="flex items-center gap-4 mb-4">
+            <div className={`w-14 h-14 ${activeContractData.bg} rounded-lg flex items-center justify-center`}>
+              <activeContractData.icon className={`w-7 h-7 ${activeContractData.color}`} />
             </div>
             <div>
-              <h4 className="font-medium text-[#271D1D]">
+              <h4 className="text-lg font-medium text-[#271D1D]">
                 {activeContractData.name} Analysis
               </h4>
-              <p className="text-sm text-gray-500">Scanning contract clauses...</p>
+              <p className="text-base text-gray-500">Scanning contract clauses...</p>
             </div>
           </div>
 
           {/* Progress Bar */}
-          <div className="mb-4">
-            <div className="flex justify-between text-sm mb-1">
+          <div className="mb-6">
+            <div className="flex justify-between text-base mb-2">
               <span className="text-gray-600">Analysis Progress</span>
               <span className={`font-medium ${activeContractData.color}`}>{Math.round(scanProgress)}%</span>
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
+            <div className="w-full bg-gray-200 rounded-full h-3">
               <div
-                className={`h-2 rounded-full transition-all duration-200 ease-out bg-gradient-to-r ${
+                className={`h-3 rounded-full transition-all duration-200 ease-out bg-gradient-to-r ${
                   activeContractData.color.includes('blue') ? 'from-blue-400 to-blue-600' :
                   activeContractData.color.includes('green') ? 'from-green-400 to-green-600' :
                   activeContractData.color.includes('purple') ? 'from-purple-400 to-purple-600' :
@@ -123,24 +123,24 @@ const AnimatedSolutionsMockup: React.FC = () => {
           </div>
 
           {/* Analysis Results */}
-          <div className="grid grid-cols-3 gap-3">
-            <div className="text-center p-2 bg-green-50 rounded">
-              <div className="text-lg font-bold text-green-600">
+          <div className="grid grid-cols-3 gap-4">
+            <div className="text-center p-4 bg-green-50 rounded-lg">
+              <div className="text-2xl font-bold text-green-600">
                 {85 + Math.floor(Math.random() * 15)}%
               </div>
-              <div className="text-xs text-green-700">Compliance</div>
+              <div className="text-sm text-green-700">Compliance</div>
             </div>
-            <div className="text-center p-2 bg-orange-50 rounded">
-              <div className="text-lg font-bold text-orange-600">
+            <div className="text-center p-4 bg-orange-50 rounded-lg">
+              <div className="text-2xl font-bold text-orange-600">
                 {1 + Math.floor(Math.random() * 3)}
               </div>
-              <div className="text-xs text-orange-700">Risks</div>
+              <div className="text-sm text-orange-700">Risks</div>
             </div>
-            <div className="text-center p-2 bg-blue-50 rounded">
-              <div className="text-lg font-bold text-blue-600">
+            <div className="text-center p-4 bg-blue-50 rounded-lg">
+              <div className="text-2xl font-bold text-blue-600">
                 {8 + Math.floor(Math.random() * 7)}
               </div>
-              <div className="text-xs text-blue-700">Clauses</div>
+              <div className="text-sm text-blue-700">Clauses</div>
             </div>
           </div>
         </div>
