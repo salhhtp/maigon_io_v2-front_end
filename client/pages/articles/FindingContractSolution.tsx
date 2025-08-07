@@ -342,7 +342,7 @@ export default function FindingContractSolution() {
                 documents.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Link to={isLoggedIn ? "/user-solutions" : "/solutions"}>
+                <Link to={isLoggedIn ? "/user-solutions" : "/signin"}>
                   <Button className="bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white px-8 py-3">
                     Start Free Trial
                   </Button>
