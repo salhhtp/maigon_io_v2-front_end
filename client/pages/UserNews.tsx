@@ -64,9 +64,21 @@ export default function UserNews() {
         </Link>
 
         <div className="hidden md:flex items-center space-x-8">
-          <Link to="/user-solutions" className="text-[#271D1D] hover:text-[#9A7C7C] transition-colors">Solutions</Link>
-          <Link to="/user-news" className="text-[#271D1D] hover:text-[#9A7C7C] transition-colors">News</Link>
-          <Link to="/user-team" className="text-[#271D1D] hover:text-[#9A7C7C] transition-colors">Team</Link>
+          <Link to="/user-solutions" className={`transition-colors ${
+            location.pathname === '/user-solutions'
+              ? 'text-[#9A7C7C] font-medium'
+              : 'text-[#271D1D] hover:text-[#9A7C7C]'
+          }`}>Solutions</Link>
+          <Link to="/user-news" className={`transition-colors ${
+            location.pathname === '/user-news'
+              ? 'text-[#9A7C7C] font-medium'
+              : 'text-[#271D1D] hover:text-[#9A7C7C]'
+          }`}>News</Link>
+          <Link to="/user-team" className={`transition-colors ${
+            location.pathname === '/user-team'
+              ? 'text-[#9A7C7C] font-medium'
+              : 'text-[#271D1D] hover:text-[#9A7C7C]'
+          }`}>Team</Link>
 
           {/* User Button */}
           <div className="relative">
