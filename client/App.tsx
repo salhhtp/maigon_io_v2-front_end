@@ -95,11 +95,13 @@ const router = createBrowserRouter([
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <RouterProvider router={router} />
-    </TooltipProvider>
+    <UserProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <RouterProvider router={router} />
+      </TooltipProvider>
+    </UserProvider>
   </QueryClientProvider>
 );
 
