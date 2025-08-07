@@ -5,6 +5,7 @@ import { useState } from "react";
 import Logo from "@/components/Logo";
 import Footer from "@/components/Footer";
 import MobileNavigation from "@/components/MobileNavigation";
+import { useUser } from "@/contexts/UserContext";
 
 const SettingsSection = ({ title, children }: { title: string; children: React.ReactNode }) => (
   <div className="bg-white rounded-lg p-6 border border-[#271D1D]/10">
