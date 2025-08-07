@@ -342,19 +342,32 @@ export default function Profile() {
                     <div className="space-y-4">
                       <div className="flex justify-between items-center p-3 bg-[#F9F8F8] rounded-lg">
                         <span className="text-sm font-medium text-[#271D1D]">Current Plan</span>
-                        <span className="text-sm text-[#271D1D]/70">Professional ($99/month)</span>
+                        <span className="text-sm text-[#271D1D]/70">
+                          {user.plan.name}
+                          {user.plan.billing_cycle !== 'trial' && ` (€${user.plan.price}${user.plan.billing_cycle === 'monthly' ? '/month' : user.plan.billing_cycle === 'per_contract' ? '/contract' : ''})`}
+                        </span>
                       </div>
-                      <div className="flex justify-between items-center p-3 bg-[#F9F8F8] rounded-lg">
-                        <span className="text-sm font-medium text-[#271D1D]">Next Billing Date</span>
-                        <span className="text-sm text-[#271D1D]/70">July 15, 2024</span>
-                      </div>
+                      {user.plan.next_billing_date && (
+                        <div className="flex justify-between items-center p-3 bg-[#F9F8F8] rounded-lg">
+                          <span className="text-sm font-medium text-[#271D1D]">Next Billing Date</span>
+                          <span className="text-sm text-[#271D1D]/70">{user.plan.next_billing_date}</span>
+                        </div>
+                      )}
+                      {user.plan.trial_days_remaining && (
+                        <div className="flex justify-between items-center p-3 bg-[#F9F8F8] rounded-lg">
+                          <span className="text-sm font-medium text-[#271D1D]">Trial Days Remaining</span>
+                          <span className="text-sm text-[#271D1D]/70">{user.plan.trial_days_remaining} days</span>
+                        </div>
+                      )}
                       <div className="flex justify-between items-center p-3 bg-[#F9F8F8] rounded-lg">
                         <span className="text-sm font-medium text-[#271D1D]">Payment Method</span>
-                        <span className="text-sm text-[#271D1D]/70">•••• 4242</span>
+                        <span className="text-sm text-[#271D1D]/70">{user.billing.payment_method}</span>
                       </div>
-                      <Button className="w-full bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white">
-                        Manage Billing
-                      </Button>
+                      <Link to="/pricing">
+                        <Button className="w-full bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white">
+                          {user.plan.type === 'free_trial' ? 'Upgrade Plan' : 'Manage Billing'}
+                        </Button>
+                      </Link>
                     </div>
                   </div>
 
