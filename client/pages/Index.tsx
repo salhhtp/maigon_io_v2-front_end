@@ -93,7 +93,7 @@ export default function Index() {
             Solutions
           </Link>
           <Link
-            to="/pricing"
+            to="/public-pricing"
             className="text-[#271D1D] hover:text-[#9A7C7C] transition-colors"
           >
             Pricing
