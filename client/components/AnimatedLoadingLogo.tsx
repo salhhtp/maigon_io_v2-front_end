@@ -28,20 +28,20 @@ export const AnimatedLoadingLogo = ({
   }, [duration, onComplete]);
 
   return (
-    <div className="relative w-full max-w-[534px] h-auto aspect-[534/96] mx-auto">
+    <div className="relative w-full max-w-[534px] h-auto aspect-[534/140] mx-auto">
       {/* Outlined Logo (Always visible) */}
       <div className="absolute inset-0 flex items-center justify-center">
         <svg
           width="534"
-          height="96"
-          viewBox="0 0 534 96"
+          height="140"
+          viewBox="0 0 534 140"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
           className="w-full h-full"
         >
           <text
             x="267"
-            y="72"
+            y="100"
             textAnchor="middle"
             className="font-lora text-[128px] font-normal"
             style={{
@@ -67,15 +67,15 @@ export const AnimatedLoadingLogo = ({
       >
         <svg
           width="534"
-          height="96"
-          viewBox="0 0 534 96"
+          height="140"
+          viewBox="0 0 534 140"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
           className="w-full h-full"
         >
           <text
             x="267"
-            y="72"
+            y="100"
             textAnchor="middle"
             className="font-lora text-[128px] font-normal"
             style={{
