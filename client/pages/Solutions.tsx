@@ -140,15 +140,15 @@ const SolutionsCarousel = () => {
           {solutions.map((solution, index) => (
             <div key={index} className="w-full flex-shrink-0">
               <Link to="/signin" className="block">
-                <div className="bg-[#F3F3F3] rounded-lg overflow-hidden hover:bg-[#ECECEC] transition-colors duration-200 p-4 h-[420px] md:h-[480px]">
+                <div className="bg-[#F3F3F3] rounded-lg overflow-hidden hover:bg-[#ECECEC] transition-colors duration-200 p-3 h-[380px] md:h-[420px]">
                   <div className="flex flex-col items-center text-center h-full">
                     <img
                       src={solution.imageSrc}
                       alt={solution.title}
-                      className="w-32 h-32 md:w-40 md:h-40 object-cover rounded-lg mb-4 flex-shrink-0"
+                      className="w-28 h-28 md:w-36 md:h-36 object-cover rounded-lg mb-2 flex-shrink-0"
                     />
                     <div className="flex flex-col justify-between flex-1">
-                      <h3 className="text-base md:text-lg font-medium text-[#271D1D] font-lora mb-3 leading-tight">
+                      <h3 className="text-sm md:text-base font-medium text-[#271D1D] font-lora mb-2 leading-tight">
                         {solution.title}
                       </h3>
                       <p className="text-xs md:text-sm text-[#271D1D] leading-relaxed">
