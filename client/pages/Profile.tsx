@@ -234,7 +234,7 @@ export default function Profile() {
         </div>
 
         {/* Mobile Navigation */}
-        <MobileNavigation isLoggedIn={true} userName={userName} />
+        <MobileNavigation isLoggedIn={true} userName={user.name.split(' ')[0]} />
       </nav>
 
       {/* Main Content */}
