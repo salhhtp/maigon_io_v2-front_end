@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { ChevronDown } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useState } from "react";
 import Logo from "@/components/Logo";
 import Footer from "@/components/Footer";
@@ -50,6 +50,8 @@ const FAQItem = ({ question, answer }: { question: string; answer: string }) => 
 };
 
 export default function News() {
+  const location = useLocation();
+
   return (
     <div className="min-h-screen bg-[#F9F8F8]">
       {/* Navigation */}
@@ -59,9 +61,21 @@ export default function News() {
         </Link>
         
         <div className="hidden md:flex items-center space-x-8">
-          <Link to="/solutions" className="text-[#271D1D] hover:text-[#9A7C7C] transition-colors">Solutions</Link>
-          <Link to="/news" className="text-[#271D1D] hover:text-[#9A7C7C] transition-colors">News</Link>
-          <Link to="/team" className="text-[#271D1D] hover:text-[#9A7C7C] transition-colors">Team</Link>
+          <Link to="/solutions" className={`transition-colors ${
+            location.pathname === '/solutions'
+              ? 'text-[#9A7C7C] font-medium'
+              : 'text-[#271D1D] hover:text-[#9A7C7C]'
+          }`}>Solutions</Link>
+          <Link to="/news" className={`transition-colors ${
+            location.pathname === '/news'
+              ? 'text-[#9A7C7C] font-medium'
+              : 'text-[#271D1D] hover:text-[#9A7C7C]'
+          }`}>News</Link>
+          <Link to="/team" className={`transition-colors ${
+            location.pathname === '/team'
+              ? 'text-[#9A7C7C] font-medium'
+              : 'text-[#271D1D] hover:text-[#9A7C7C]'
+          }`}>Team</Link>
           <Button asChild className="bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white px-8 rounded-lg">
             <Link to="/signin">Sign In/Up</Link>
           </Button>
