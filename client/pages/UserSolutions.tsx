@@ -7,6 +7,7 @@ import Footer from "@/components/Footer";
 import AnimatedQuotes from "@/components/AnimatedQuotes";
 import AnimatedSolutionCard from "@/components/AnimatedSolutionCard";
 import MobileNavigation from "@/components/MobileNavigation";
+import ContractCardsAnimation from "@/components/ContractCardsAnimation";
 
 const SolutionCard = ({
   title,
