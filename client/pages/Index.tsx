@@ -318,7 +318,11 @@ export default function Index() {
             </div>
 
             <div className="flex justify-center w-full">
-              <ContractCardsAnimation contractTypes={contractTypes} />
+              <ContractCardsAnimation
+                contractTypes={contractTypes}
+                buttonText="Try for free"
+                onButtonClick={() => window.location.href = "/signin"}
+              />
             </div>
           </div>
         </div>
