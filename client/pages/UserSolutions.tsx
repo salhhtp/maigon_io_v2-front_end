@@ -492,99 +492,22 @@ export default function UserSolutions() {
         </div>
       </section>
 
-      {/* Solutions Grid Section */}
+      {/* Solutions Animation Section */}
       <section className="py-16 lg:py-20 max-w-7xl mx-auto px-8 lg:px-16">
-        <div className="flex items-center gap-1">
-          {/* Solutions Cards Container */}
-          <div className="flex w-full lg:w-[801px] flex-col items-start gap-7">
-            {/* Solutions Header */}
-            <div className="flex justify-center items-center gap-2.5">
-              <h3 className="text-black text-center font-lora text-base font-medium leading-[18px] tracking-[0.16px]">
-                Solutions
-              </h3>
-            </div>
+        <div className="text-center mb-16">
+          <h3 className="text-black text-center font-lora text-3xl lg:text-4xl font-medium leading-tight mb-4">
+            Solutions
+          </h3>
+          <p className="text-[#271D1D]/70 text-lg">
+            Choose the solution of your desire to start reviewing your contracts with the power of Maigon.
+          </p>
+        </div>
 
-            {/* Solutions Grid */}
-            <div className="grid w-full lg:w-[801px] h-auto lg:h-[1368px] py-5 lg:py-[21px] gap-y-px gap-x-1 grid-rows-3 grid-cols-1 lg:grid-cols-3 relative">
-              {/* NDA Card */}
-              <AnimatedSolutionCard
-                id="nda"
-                title="Non-Disclosure Agreements"
-                description="Review non-disclosure agreements for compliance with established standards and best practices. Get instant report with compliance insights and extracted clauses."
-                imageSrc="https://api.builder.io/api/v1/image/assets/TEMP/bf723346ff37e3006a994d9bde29f03ca52957bd?width=456"
-                className="w-full lg:w-[265px] h-[439px] lg:col-start-1 lg:row-start-1"
-              />
-
-              {/* DPA Card */}
-              <AnimatedSolutionCard
-                id="dpa"
-                title="Data Processing Agreements"
-                description="Review data processing agreements for compliance with the GDPR and latest EDPB guidelines. Get instant compliance report with extracted clauses, concepts, terms, highlighted risks, and compliance recommendations."
-                imageSrc="https://api.builder.io/api/v1/image/assets/TEMP/d2502c8f65fc6fb3cfd64fcf2e883767c28d87b3?width=456"
-                className="flex-1 self-stretch lg:col-start-2 lg:row-start-1"
-              />
-
-              {/* Privacy Policy Card */}
-              <AnimatedSolutionCard
-                id="privacy"
-                title="Privacy Policy Documents"
-                description="Review privacy statements for compliance with the GDPR criteria. Get instant compliance report with extracted clauses and recommendations."
-                imageSrc="https://api.builder.io/api/v1/image/assets/TEMP/ac64a1c280fd3ae21e76e02f5df24162a5b11a53?width=456"
-                className="flex-1 self-stretch lg:col-start-3 lg:row-start-1"
-              />
-
-              {/* Consultancy Card */}
-              <AnimatedSolutionCard
-                id="consultancy"
-                title="Consultancy Agreements"
-                description="Review consultancy agreements (and other professional services agreements) for compliance with established standards and best practices. Get instant report with insights and extracted clauses."
-                imageSrc="https://api.builder.io/api/v1/image/assets/TEMP/0c17d06bf5b7000c02dd54103946d52cf8df3ae2?width=456"
-                className="flex-1 self-stretch lg:col-start-1 lg:row-start-2"
-              />
-
-              {/* R&D Card */}
-              <AnimatedSolutionCard
-                id="rnd"
-                title="R&D Agreements"
-                description="Conduct compliance review of R&D agreements to ensure adherence to industry standards. Obtain a report on potential compliance risks and recommendations for risk mitigation."
-                imageSrc="https://api.builder.io/api/v1/image/assets/TEMP/b3ecd43f1412a792e3e5e0acc29fa4ec35a0a0b7?width=456"
-                className="flex-1 self-stretch lg:col-start-2 lg:row-start-2"
-              />
-
-              {/* EULA Card */}
-              <AnimatedSolutionCard
-                id="eula"
-                title="End User License Agreements"
-                description="Review end user license agreements for compliance with established standards and best practices. Get instant report with insights and extracted clauses. Used most often for reviewing software license agreements"
-                imageSrc="https://api.builder.io/api/v1/image/assets/TEMP/e15ae08447ee7134243cef816b1e4e7fd28292f3?width=456"
-                className="flex-1 self-stretch lg:col-start-3 lg:row-start-2"
-              />
-
-              {/* PSA Card */}
-              <AnimatedSolutionCard
-                id="psa"
-                title="Product Supply Agreements"
-                description="Review product supply agreements for compliance with established standards and best practices. Get instant report with insights and extracted clauses."
-                imageSrc="https://api.builder.io/api/v1/image/assets/TEMP/c45a3430161c947516c7f46bf9858e79c7b54742?width=456"
-                className="flex-1 self-stretch lg:col-start-2 lg:row-start-3"
-              />
-            </div>
-          </div>
-
-          {/* Solutions Content */}
-          <div className="hidden lg:flex flex-col items-center pb-[560px] relative">
-            <div className="flex h-[688px] p-2.5 justify-center items-end gap-2.5 absolute left-[-2px] top-0 w-[410px]">
-              <div className="w-[411px] text-[#271D1D] text-center font-lora text-base font-medium leading-[30px] relative">
-                <span className="text-3xl lg:text-5xl font-medium leading-[48px] lg:leading-[60px] block mb-4">
-                  Revolutionizing contract review in the age of AI
-                </span>
-                <span className="text-xs font-light leading-[30px] block">
-                  Choose the solution of your desire to start reviewing your
-                  contracts with the power of Maigon.
-                </span>
-              </div>
-            </div>
-          </div>
+        <div className="flex justify-center w-full">
+          <ContractCardsAnimation
+            contractTypes={contractTypes}
+            onCardClick={handleSolutionClick}
+          />
         </div>
       </section>
 
