@@ -59,7 +59,7 @@ const ContractCardsAnimation: React.FC<ContractCardsAnimationProps> = ({
             const isActive = activeCard === index;
             // Make Data Processing Agreements (index 1) and Privacy Policy Documents (index 3) taller
             const needsTallerCard = index === 1 || index === 3;
-            const cardHeight = isActive ? (needsTallerCard ? 450 : 390) : 76;
+            const cardHeight = isActive ? (needsTallerCard ? 520 : 390) : 76;
             const leftPosition = 16 + index * 142; // 150px width - 8px overlap
 
             return (
