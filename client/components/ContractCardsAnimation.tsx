@@ -101,7 +101,7 @@ const ContractCardsAnimation: React.FC<ContractCardsAnimationProps> = ({
                   className={`absolute left-4 right-4 top-[83px] transition-all duration-700 overflow-hidden ${
                     isActive ? "opacity-100" : "opacity-0"
                   }`}
-                  style={{ height: isActive ? "295px" : "0px" }}
+                  style={{ height: isActive ? (needsTallerCard ? "355px" : "295px") : "0px" }}
                 >
                   <div className="flex flex-col h-full">
                     <div className="flex-1 mb-4">
