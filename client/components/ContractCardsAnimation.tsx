@@ -12,6 +12,7 @@ interface ContractCardsAnimationProps {
 
 const ContractCardsAnimation: React.FC<ContractCardsAnimationProps> = ({
   contractTypes,
+  onCardClick,
 }) => {
   const [activeCard, setActiveCard] = useState(0);
 
