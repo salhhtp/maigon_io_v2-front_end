@@ -76,7 +76,9 @@ export default function Upload() {
 
   const handleLinkClick = (path: string) => (e: React.MouseEvent) => {
     e.preventDefault(); // Always prevent default to avoid conflicts
+    console.log('Link clicked, path:', path, 'isSubmitting:', isSubmitting);
     if (!isSubmitting) {
+      console.log('Setting pending navigation and showing modal');
       setPendingNavigation(path);
       setShowConfirmModal(true);
     }
