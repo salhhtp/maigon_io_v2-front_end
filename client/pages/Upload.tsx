@@ -81,8 +81,8 @@ export default function Upload() {
   };
 
   const handleConfirmNavigation = () => {
-    setHasStartedProcess(false);
     setShowConfirmModal(false);
+    setHasStartedProcess(false);
 
     if (blocker.state === 'blocked') {
       blocker.proceed();
