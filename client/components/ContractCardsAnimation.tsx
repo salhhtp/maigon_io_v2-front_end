@@ -7,6 +7,7 @@ interface ContractType {
 
 interface ContractCardsAnimationProps {
   contractTypes: ContractType[];
+  onCardClick?: (index: number, contractType: ContractType) => void;
 }
 
 const ContractCardsAnimation: React.FC<ContractCardsAnimationProps> = ({
