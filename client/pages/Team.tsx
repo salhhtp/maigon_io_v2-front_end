@@ -86,7 +86,7 @@ export default function Team() {
             Solutions
           </Link>
           <Link
-            to="/pricing"
+            to="/public-pricing"
             className={`transition-colors ${
               location.pathname === "/public-pricing"
                 ? "text-[#9A7C7C] font-medium"
