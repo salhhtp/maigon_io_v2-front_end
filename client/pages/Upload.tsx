@@ -183,27 +183,24 @@ export default function Upload() {
         </div>
 
         <div className="hidden md:flex items-center space-x-8">
-          <a
-            href="/user-solutions"
+          <div
             onClick={handleLinkClick("/user-solutions")}
             className="text-[#271D1D] hover:text-[#9A7C7C] transition-colors cursor-pointer"
           >
             Solutions
-          </a>
-          <a
-            href="/news"
+          </div>
+          <div
             onClick={handleLinkClick("/news")}
             className="text-[#271D1D] hover:text-[#9A7C7C] transition-colors cursor-pointer"
           >
             News
-          </a>
-          <a
-            href="/team"
+          </div>
+          <div
             onClick={handleLinkClick("/team")}
             className="text-[#271D1D] hover:text-[#9A7C7C] transition-colors cursor-pointer"
           >
             Team
-          </a>
+          </div>
 
           {/* User Button */}
           <div className="relative">
