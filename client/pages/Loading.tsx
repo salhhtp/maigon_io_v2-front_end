@@ -43,10 +43,13 @@ export default function Loading() {
   };
 
   const handleLinkClick = (path: string) => (e: React.MouseEvent) => {
+    e.preventDefault(); // Always prevent default to avoid conflicts
     if (isProcessing) {
-      e.preventDefault();
       setPendingNavigation(path);
       setShowConfirmModal(true);
+    } else {
+      // If not processing, navigate directly
+      navigate(path);
     }
   };
 
