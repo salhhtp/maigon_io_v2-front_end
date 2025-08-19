@@ -609,199 +609,22 @@ export default function Solutions() {
         </div>
       </section>
 
-      {/* Solutions Grid Section */}
+      {/* Solutions Animation Section */}
       <section className="py-20 max-w-7xl mx-auto px-8 lg:px-16">
-        <div className="flex items-center gap-1">
-          {/* Solutions Cards Container */}
-          <div className="flex w-full lg:w-[801px] flex-col items-start gap-7">
-            {/* Solutions Header */}
-            <div className="flex justify-center items-center gap-2.5">
-              <h3 className="text-black text-center font-lora text-base font-medium leading-[18px] tracking-[0.16px]">
-                Solutions
-              </h3>
-            </div>
+        <div className="text-center mb-16">
+          <h3 className="text-black text-center font-lora text-3xl lg:text-4xl font-medium leading-tight mb-4">
+            Solutions
+          </h3>
+          <p className="text-[#271D1D]/70 text-lg">
+            Choose the solution of your desire to start reviewing your contracts with the power of Maigon.
+          </p>
+        </div>
 
-            {/* Desktop Grid */}
-            <div className="grid w-full lg:w-[801px] h-auto lg:h-[1368px] py-5 lg:py-[21px] gap-y-px gap-x-1 grid-rows-3 grid-cols-1 lg:grid-cols-3 relative">
-              {/* NDA Card */}
-              <Link
-                to="/signin"
-                className="w-full lg:w-[265px] h-[439px] flex pt-[15px] flex-col justify-end items-center bg-[#F3F3F3] relative lg:col-start-1 lg:row-start-1 cursor-pointer hover:bg-[#ECECEC] transition-colors duration-200"
-              >
-                <div className="w-[265px] h-[424px] absolute left-0 top-[15px]">
-                  <img
-                    src="https://api.builder.io/api/v1/image/assets/TEMP/bf723346ff37e3006a994d9bde29f03ca52957bd?width=456"
-                    alt=""
-                    className="w-[228px] h-[228px] flex-shrink-0 rounded-lg absolute left-[19px] top-0"
-                  />
-                  <div className="flex w-[157px] h-[27px] flex-col justify-center flex-shrink-0 text-[#271D1D] font-lora text-xl font-medium leading-[22px] absolute left-[30px] top-[246px]">
-                    Non-Disclosure Agreements
-                  </div>
-                  <div className="flex w-[217px] h-[89px] flex-col justify-center flex-shrink-0 text-[#271D1D] font-roboto text-xs font-normal leading-[18px] tracking-[0.12px] absolute left-[30px] top-[291px]">
-                    Review non-disclosure agreements for compliance with
-                    established standards and best practices. Get instant report
-                    with compliance insights and extracted clauses.
-                  </div>
-                </div>
-              </Link>
-
-              {/* DPA Card */}
-              <Link
-                to="/signin"
-                className="flex pt-[15px] flex-col justify-end items-center flex-1 self-stretch bg-[#F3F3F3] relative lg:col-start-2 lg:row-start-1 cursor-pointer hover:bg-[#ECECEC] transition-colors duration-200"
-              >
-                <div className="w-[265px] h-[424px] absolute left-0 top-[15px]">
-                  <img
-                    src="https://api.builder.io/api/v1/image/assets/TEMP/d2502c8f65fc6fb3cfd64fcf2e883767c28d87b3?width=456"
-                    alt=""
-                    className="w-[228px] h-[228px] flex-shrink-0 rounded-lg absolute left-[19px] top-0"
-                  />
-                  <div className="flex w-[157px] h-[27px] flex-col justify-center flex-shrink-0 text-[#271D1D] font-lora text-xl font-medium leading-[22px] absolute left-[30px] top-[246px]">
-                    Data Processing Agreements
-                  </div>
-                  <div className="flex w-[217px] h-[118px] flex-col justify-center flex-shrink-0 text-[#271D1D] font-roboto text-xs font-normal leading-[17px] tracking-[0.12px] absolute left-[30px] top-[293px]">
-                    Review data processing agreements for compliance with the
-                    GDPR and latest EDPB guidelines. Get instant compliance
-                    report with extracted clauses, concepts, terms, highlighted
-                    risks, and compliance recommendations.
-                  </div>
-                </div>
-              </Link>
-
-              {/* Privacy Policy Card */}
-              <Link
-                to="/signin"
-                className="flex pt-[15px] flex-col justify-end items-center flex-1 self-stretch bg-[#F3F3F3] relative lg:col-start-3 lg:row-start-1 cursor-pointer hover:bg-[#ECECEC] transition-colors duration-200"
-              >
-                <div className="w-[265px] h-[424px] absolute left-0 top-[15px]">
-                  <img
-                    src="https://api.builder.io/api/v1/image/assets/TEMP/ac64a1c280fd3ae21e76e02f5df24162a5b11a53?width=456"
-                    alt=""
-                    className="w-[228px] h-[228px] flex-shrink-0 rounded-lg absolute left-[19px] top-0"
-                  />
-                  <div className="flex w-[157px] h-[27px] flex-col justify-center flex-shrink-0 text-[#271D1D] font-lora text-xl font-medium leading-[22px] absolute left-[30px] top-[246px]">
-                    Privacy Policy Documents
-                  </div>
-                  <div className="flex w-[217px] h-[90px] flex-col justify-center flex-shrink-0 text-[#271D1D] font-roboto text-xs font-normal leading-[18px] tracking-[0.12px] absolute left-[30px] top-[291px]">
-                    Review privacy statements for compliance with the GDPR
-                    criteria. Get instant compliance report with extracted
-                    clauses and recommendations.
-                  </div>
-                </div>
-              </Link>
-
-              {/* Consultancy Card */}
-              <Link
-                to="/signin"
-                className="flex pt-[15px] flex-col justify-end items-center flex-1 self-stretch bg-[#F3F3F3] relative lg:col-start-1 lg:row-start-2 cursor-pointer hover:bg-[#ECECEC] transition-colors duration-200"
-              >
-                <div className="w-[265px] h-[424px] absolute left-0 top-[15px]">
-                  <img
-                    src="https://api.builder.io/api/v1/image/assets/TEMP/ace056ab1571ec964a3c7a17e383b264d6766921?width=456"
-                    alt=""
-                    className="w-[228px] h-[228px] flex-shrink-0 rounded-lg absolute left-[19px] top-0"
-                  />
-                  <div className="flex w-[157px] h-[27px] flex-col justify-center flex-shrink-0 text-[#271D1D] font-lora text-xl font-medium leading-[22px] absolute left-[30px] top-[246px]">
-                    Consultancy Agreements
-                  </div>
-                  <div className="flex w-[217px] h-[108px] flex-col justify-center flex-shrink-0 text-[#271D1D] font-roboto text-xs font-normal leading-[18px] tracking-[0.12px] absolute left-[30px] top-[291px]">
-                    Review consultancy agreements (and other professional
-                    services agreements) for compliance with established
-                    standards and best practices. Get instant report with
-                    insights and extracted clauses.
-                  </div>
-                </div>
-              </Link>
-
-              {/* R&D Card */}
-              <Link
-                to="/signin"
-                className="flex pt-[15px] flex-col justify-end items-center flex-1 self-stretch bg-[#F3F3F3] relative lg:col-start-2 lg:row-start-2 cursor-pointer hover:bg-[#ECECEC] transition-colors duration-200"
-              >
-                <div className="w-[265px] h-[424px] absolute left-0 top-[15px]">
-                  <img
-                    src="https://api.builder.io/api/v1/image/assets/TEMP/55ab6d6eecccdbe325f9af592bd502bb13e77ea6?width=456"
-                    alt=""
-                    className="w-[228px] h-[228px] flex-shrink-0 rounded-lg absolute left-[19px] top-0"
-                  />
-                  <div className="flex w-[157px] h-[27px] flex-col justify-center flex-shrink-0 text-[#271D1D] font-lora text-xl font-medium leading-[22px] absolute left-[30px] top-[246px]">
-                    R&D Agreements
-                  </div>
-                  <div className="flex w-[217px] h-[90px] flex-col justify-center flex-shrink-0 text-[#271D1D] font-roboto text-xs font-normal leading-[18px] tracking-[0.12px] absolute left-[30px] top-[291px]">
-                    Conduct compliance review of R&D agreements to ensure
-                    adherence to industry standards. Obtain a report on
-                    potential compliance risks and recommendations for risk
-                    mitigation.
-                  </div>
-                </div>
-              </Link>
-
-              {/* EULA Card */}
-              <Link
-                to="/signin"
-                className="flex pt-[15px] flex-col justify-end items-center flex-1 self-stretch bg-[#F3F3F3] relative lg:col-start-3 lg:row-start-2 cursor-pointer hover:bg-[#ECECEC] transition-colors duration-200"
-              >
-                <div className="w-[265px] h-[424px] absolute left-0 top-[15px]">
-                  <img
-                    src="https://api.builder.io/api/v1/image/assets/TEMP/028255c210716e79f6cc8592e835ed9bcd809aa3?width=456"
-                    alt=""
-                    className="w-[228px] h-[228px] flex-shrink-0 rounded-lg absolute left-[19px] top-0"
-                  />
-                  <div className="flex w-[174px] h-[27px] flex-col justify-center flex-shrink-0 text-[#271D1D] font-lora text-xl font-medium leading-[22px] absolute left-[30px] top-[246px]">
-                    End User License Agreements
-                  </div>
-                  <div className="flex w-[217px] h-[108px] flex-col justify-center flex-shrink-0 text-[#271D1D] font-roboto text-xs font-normal leading-[18px] tracking-[0.12px] absolute left-[27px] top-[291px]">
-                    Review end user license agreements for compliance with
-                    established standards and best practices. Get instant report
-                    with insights and extracted clauses. Used most often for
-                    reviewing software license agreements
-                  </div>
-                </div>
-              </Link>
-
-              {/* PSA Card */}
-              <Link
-                to="/signin"
-                className="flex pt-[15px] flex-col justify-end items-center flex-1 self-stretch bg-[#F3F3F3] relative lg:col-start-2 lg:row-start-3 cursor-pointer hover:bg-[#ECECEC] transition-colors duration-200"
-              >
-                <div className="w-[265px] h-[424px] absolute left-0 top-[15px]">
-                  <img
-                    src="https://api.builder.io/api/v1/image/assets/TEMP/79eb9ad36f91db898294f4ebc9584deb77f82e31?width=456"
-                    alt=""
-                    className="w-[228px] h-[228px] flex-shrink-0 rounded-lg absolute left-[19px] top-0"
-                  />
-                  <div className="flex w-[157px] h-[27px] flex-col justify-center flex-shrink-0 text-[#271D1D] font-lora text-xl font-medium leading-[22px] absolute left-[30px] top-[246px]">
-                    Product Supply Agreements
-                  </div>
-                  <div className="flex w-[217px] h-[72px] flex-col justify-center flex-shrink-0 text-[#271D1D] font-roboto text-xs font-normal leading-[18px] tracking-[0.12px] absolute left-[30px] top-[291px]">
-                    Review product supply agreements for compliance with
-                    established standards and best practices. Get instant report
-                    with insights and extracted clauses.
-                  </div>
-                </div>
-              </Link>
-            </div>
-
-            {/* Mobile/Tablet Carousel */}
-            <div className="block lg:hidden max-w-md mx-auto">
-              <SolutionsCarousel />
-            </div>
-          </div>
-
-          {/* Solutions Content - Sticky */}
-          <div className="hidden lg:flex flex-col items-start justify-start pb-[560px] relative">
-            <div className="sticky top-[380px] flex h-[688px] p-2.5 justify-center items-end gap-2.5 absolute left-[-2px] top-0 w-[410px]">
-              <div className="w-[411px] text-[#271D1D] text-center font-lora text-base font-medium leading-[30px] relative">
-                <span className="text-3xl font-medium leading-[60px] block mb-4">
-                  Revolutionizing contract review in the age of AI
-                </span>
-                <span className="text-xs font-extralight leading-[30px] block">
-                  Choose the solution of your desire to start reviewing your
-                  contracts with the power of Maigon.
-                </span>
-              </div>
-            </div>
-          </div>
+        <div className="flex justify-center w-full">
+          <ContractCardsAnimation
+            contractTypes={contractTypes}
+            onCardClick={handleSolutionClick}
+          />
         </div>
       </section>
 
