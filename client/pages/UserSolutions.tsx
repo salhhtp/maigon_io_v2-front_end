@@ -8,6 +8,7 @@ import AnimatedQuotes from "@/components/AnimatedQuotes";
 import AnimatedSolutionCard from "@/components/AnimatedSolutionCard";
 import MobileNavigation from "@/components/MobileNavigation";
 import ContractCardsAnimation from "@/components/ContractCardsAnimation";
+import AnimatedSolutionsMockup from "@/components/AnimatedSolutionsMockup";
 
 const SolutionCard = ({
   title,
