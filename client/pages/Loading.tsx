@@ -134,27 +134,24 @@ export default function Loading() {
         </div>
 
         <div className="hidden md:flex items-center space-x-8">
-          <a
-            href="/user-solutions"
+          <div
             onClick={handleLinkClick("/user-solutions")}
             className="text-[#271D1D] hover:text-[#9A7C7C] transition-colors cursor-pointer"
           >
             Solutions
-          </a>
-          <a
-            href="/user-news"
+          </div>
+          <div
             onClick={handleLinkClick("/user-news")}
             className="text-[#271D1D] hover:text-[#9A7C7C] transition-colors cursor-pointer"
           >
             News
-          </a>
-          <a
-            href="/user-team"
+          </div>
+          <div
             onClick={handleLinkClick("/user-team")}
             className="text-[#271D1D] hover:text-[#9A7C7C] transition-colors cursor-pointer"
           >
             Team
-          </a>
+          </div>
 
           {/* User Button */}
           <div className="relative">
