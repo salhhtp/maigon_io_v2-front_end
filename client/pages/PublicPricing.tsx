@@ -163,16 +163,17 @@ const PricingCalculator = ({
 };
 
 export default function PublicPricing() {
+  const navigate = useNavigate();
   const location = useLocation();
 
   const handlePlanSelect = (plan: string) => {
     // Redirect to sign up for public users
-    window.location.href = "/signin";
+    navigate("/signin");
   };
 
   const handleCalculatorSelect = (plan: string) => {
     // Redirect to sign up for public users
-    window.location.href = "/signin";
+    navigate("/signin");
   };
 
   return (
@@ -391,7 +392,7 @@ export default function PublicPricing() {
                   </div>
                 </div>
                 <Button
-                  onClick={() => (window.location.href = "/signin")}
+                  onClick={() => navigate("/signin")}
                   className="bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white px-8"
                 >
                   Contact Sales
