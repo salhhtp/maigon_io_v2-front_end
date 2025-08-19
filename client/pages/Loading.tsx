@@ -180,13 +180,12 @@ export default function Loading() {
                 >
                   Settings
                 </a>
-                <a
-                  href="/"
+                <div
                   onClick={handleLinkClick("/")}
                   className="block px-4 py-2 text-sm text-[#271D1D] hover:bg-[#F9F8F8] transition-colors cursor-pointer"
                 >
                   Log Out
-                </a>
+                </div>
               </div>
             )}
           </div>
