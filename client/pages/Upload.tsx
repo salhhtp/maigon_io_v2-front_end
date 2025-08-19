@@ -32,33 +32,28 @@ export default function Upload() {
   // Handle browser back/forward buttons and page refresh
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (hasStartedProcess) {
-        e.preventDefault();
-        e.returnValue = '';
-        return '';
-      }
+      e.preventDefault();
+      e.returnValue = 'You will lose all your progress and need to start all over again if you leave this page.';
+      return e.returnValue;
     };
 
     const handlePopState = (e: PopStateEvent) => {
-      if (hasStartedProcess) {
-        e.preventDefault();
-        setShowConfirmModal(true);
-        window.history.pushState(null, '', window.location.href);
-      }
+      e.preventDefault();
+      setShowConfirmModal(true);
+      window.history.pushState(null, '', window.location.href);
     };
 
-    if (hasStartedProcess) {
-      window.addEventListener('beforeunload', handleBeforeUnload);
-      window.addEventListener('popstate', handlePopState);
-      // Prevent back navigation
-      window.history.pushState(null, '', window.location.href);
-    }
+    // Always add listeners when on upload page
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('popstate', handlePopState);
+    // Prevent back navigation
+    window.history.pushState(null, '', window.location.href);
 
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
       window.removeEventListener('popstate', handlePopState);
     };
-  }, [hasStartedProcess]);
+  }, []);
 
   // Handle React Router navigation blocking
   useEffect(() => {
