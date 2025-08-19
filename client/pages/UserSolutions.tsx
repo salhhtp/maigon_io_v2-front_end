@@ -318,8 +318,8 @@ export default function UserSolutions() {
     },
   ];
 
-  // Handle solution card clicks - navigate to upload for logged-in users
-  const handleSolutionClick = () => {
+  // Handle solution button clicks - navigate to upload for logged-in users
+  const handleSolutionButtonClick = () => {
     window.location.href = "/upload";
   };
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
@@ -506,7 +506,8 @@ export default function UserSolutions() {
         <div className="flex justify-center w-full">
           <ContractCardsAnimation
             contractTypes={contractTypes}
-            onCardClick={handleSolutionClick}
+            buttonText="Upload a document"
+            onButtonClick={handleSolutionButtonClick}
           />
         </div>
       </section>
