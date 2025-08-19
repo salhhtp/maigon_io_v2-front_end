@@ -278,6 +278,50 @@ const AnimatedStepsComponent = () => {
 
 export default function UserSolutions() {
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+
+  // Contract types data for the animation component
+  const contractTypes = [
+    {
+      title: "Non-Disclosure Agreements",
+      description:
+        "Review non-disclosure agreements for compliance with established standards and best practices. Get instant report with compliance insights and extracted clauses.",
+    },
+    {
+      title: "Data Processing Agreements",
+      description:
+        "Review data processing agreements for compliance with the GDPR and latest EDPB guidelines. Get instant compliance report with extracted clauses, concepts, terms, highlighted risks, and compliance recommendations. Used by large corporate clients with high volumes of DPAs.",
+    },
+    {
+      title: "Consultancy Agreements",
+      description:
+        "Review consultancy agreements (and other professional services agreements) for compliance with established standards and best practices. Get instant report with insights and extracted clauses.",
+    },
+    {
+      title: "Privacy Policy Documents",
+      description:
+        "Review privacy statements for compliance with the GDPR criteria. Get instant compliance report with extracted clauses and recommendations. Used most often for reviewing privacy notices of websites, as well as mobile applications published on App Store and Google Play.",
+    },
+    {
+      title: "Product Supply Agreements",
+      description:
+        "Review product supply agreements for compliance with established standards and best practices. Get instant report with insights and extracted clauses.",
+    },
+    {
+      title: "R&D Agreements",
+      description:
+        "Conduct compliance review of R&D agreements to ensure adherence to industry standards. Obtain a report on potential compliance risks and recommendations for risk mitigation.",
+    },
+    {
+      title: "End User License Agreements",
+      description:
+        "Review end user license agreements for compliance with established standards and best practices. Get instant report with insights and extracted clauses. Used most often for reviewing software license agreements.",
+    },
+  ];
+
+  // Handle solution card clicks - navigate to upload for logged-in users
+  const handleSolutionClick = () => {
+    window.location.href = "/upload";
+  };
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const location = useLocation();
 
