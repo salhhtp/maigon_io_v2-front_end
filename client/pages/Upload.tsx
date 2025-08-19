@@ -23,10 +23,10 @@ export default function Upload() {
   // Get the solution info from navigation state
   const { solutionTitle, perspective } = location.state || {};
 
-  // Block navigation when user has started the upload process
+  // Block navigation when user is on upload page (always show confirmation)
   const blocker = useBlocker(
     ({ currentLocation, nextLocation }) =>
-      hasStartedProcess && currentLocation.pathname !== nextLocation.pathname
+      currentLocation.pathname === '/upload' && currentLocation.pathname !== nextLocation.pathname
   );
 
   // Handle browser back/forward buttons and page refresh
