@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
 
 interface ContractType {
   title: string;
@@ -8,11 +9,15 @@ interface ContractType {
 interface ContractCardsAnimationProps {
   contractTypes: ContractType[];
   onCardClick?: (index: number, contractType: ContractType) => void;
+  buttonText?: string;
+  onButtonClick?: (index: number, contractType: ContractType) => void;
 }
 
 const ContractCardsAnimation: React.FC<ContractCardsAnimationProps> = ({
   contractTypes,
   onCardClick,
+  buttonText = "Try for free",
+  onButtonClick,
 }) => {
   const [activeCard, setActiveCard] = useState(0);
 
@@ -39,13 +44,20 @@ const ContractCardsAnimation: React.FC<ContractCardsAnimationProps> = ({
     }
   };
 
+  const handleButtonClick = (e: React.MouseEvent, index: number) => {
+    e.stopPropagation();
+    if (onButtonClick) {
+      onButtonClick(index, contractTypes[index]);
+    }
+  };
+
   return (
     <div className="mb-20 w-full">
       <div className="relative w-full max-w-[1073px] h-[458px] mx-auto overflow-hidden">
         <div className="relative w-full h-full" style={{ padding: "10px" }}>
           {contractTypes.map((type, index) => {
             const isActive = activeCard === index;
-            const cardHeight = isActive ? 314 : 76;
+            const cardHeight = isActive ? 380 : 76; // Increased height to accommodate button
             const leftPosition = 16 + index * 142; // 150px width - 8px overlap
 
             return (
@@ -82,16 +94,26 @@ const ContractCardsAnimation: React.FC<ContractCardsAnimationProps> = ({
                   style={{ top: `${cardHeight - 1}px` }}
                 />
 
-                {/* Expanded description - only visible when active */}
+                {/* Expanded content - only visible when active */}
                 <div
                   className={`absolute left-4 right-4 top-[83px] transition-all duration-700 overflow-hidden ${
                     isActive ? "opacity-100" : "opacity-0"
                   }`}
-                  style={{ height: isActive ? "220px" : "0px" }}
+                  style={{ height: isActive ? "280px" : "0px" }}
                 >
-                  <p className="text-[#271D1D] text-xs leading-5 tracking-[0.12px]">
-                    {type.description}
-                  </p>
+                  <div className="flex flex-col h-full justify-between">
+                    <p className="text-[#271D1D] text-xs leading-5 tracking-[0.12px] mb-4">
+                      {type.description}
+                    </p>
+                    {onButtonClick && (
+                      <Button
+                        onClick={(e) => handleButtonClick(e, index)}
+                        className="w-full bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white text-xs py-2 px-4 rounded-lg transition-colors duration-200"
+                      >
+                        {buttonText}
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </div>
             );
