@@ -250,6 +250,12 @@ export default function Pricing() {
               Solutions
             </Link>
             <Link
+              to="/pricing"
+              className="text-[#271D1D] hover:text-[#9A7C7C] transition-colors"
+            >
+              Pricing
+            </Link>
+            <Link
               to="/user-news"
               className="text-[#271D1D] hover:text-[#9A7C7C] transition-colors"
             >
@@ -260,12 +266,6 @@ export default function Pricing() {
               className="text-[#271D1D] hover:text-[#9A7C7C] transition-colors"
             >
               Team
-            </Link>
-            <Link
-              to="/pricing"
-              className="text-[#271D1D] hover:text-[#9A7C7C] transition-colors"
-            >
-              Pricing
             </Link>
 
             {/* User Button */}
