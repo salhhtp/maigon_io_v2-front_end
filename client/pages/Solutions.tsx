@@ -630,7 +630,7 @@ export default function Solutions() {
         <div className="flex justify-center w-full">
           <ContractCardsAnimation
             contractTypes={contractTypes}
-            buttonText="Upload a document"
+            buttonText="Try for free"
             onButtonClick={handleSolutionButtonClick}
           />
         </div>
