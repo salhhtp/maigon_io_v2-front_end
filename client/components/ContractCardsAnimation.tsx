@@ -34,6 +34,9 @@ const ContractCardsAnimation: React.FC<ContractCardsAnimationProps> = ({
 
   const handleCardClick = (index: number) => {
     setActiveCard(index);
+    if (onCardClick) {
+      onCardClick(index, contractTypes[index]);
+    }
   };
 
   return (
