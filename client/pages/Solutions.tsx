@@ -458,6 +458,7 @@ const AnimatedStepsComponent = () => {
 export default function Solutions() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { isLoggedIn } = useUser();
 
   // Contract types data for the animation component
   const contractTypes = [
