@@ -6,7 +6,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Camera, ChevronDown } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import Logo from "@/components/Logo";
 import Footer from "@/components/Footer";
@@ -16,6 +16,7 @@ import AnimatedHeroMockup from "@/components/AnimatedHeroMockup";
 import MobileNavigation from "@/components/MobileNavigation";
 
 export default function Index() {
+  const navigate = useNavigate();
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   const faqData = [
@@ -321,7 +322,7 @@ export default function Index() {
               <ContractCardsAnimation
                 contractTypes={contractTypes}
                 buttonText="Try for free"
-                onButtonClick={() => window.location.href = "/signin"}
+                onButtonClick={() => navigate("/signin")}
               />
             </div>
           </div>
