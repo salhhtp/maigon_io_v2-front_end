@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { useEffect } from "react";
 
 interface ConfirmationModalProps {
   isOpen: boolean;
@@ -19,6 +20,22 @@ export const ConfirmationModal = ({
   confirmText = "Yes, leave",
   cancelText = "No, go back"
 }: ConfirmationModalProps) => {
+  // Handle keyboard events
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onCancel();
+      } else if (e.key === 'Enter') {
+        onConfirm();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onCancel, onConfirm]);
+
   if (!isOpen) return null;
 
   return (
