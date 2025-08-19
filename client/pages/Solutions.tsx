@@ -528,9 +528,9 @@ export default function Solutions() {
             Solutions
           </Link>
           <Link
-            to="/pricing"
+            to="/public-pricing"
             className={`transition-colors ${
-              location.pathname === "/pricing"
+              location.pathname === "/public-pricing"
                 ? "text-[#9A7C7C] font-medium"
                 : "text-[#271D1D] hover:text-[#9A7C7C]"
             }`}
