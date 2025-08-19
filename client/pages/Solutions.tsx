@@ -496,8 +496,8 @@ export default function Solutions() {
     },
   ];
 
-  // Handle solution card clicks - navigate to sign in for public users
-  const handleSolutionClick = () => {
+  // Handle solution button clicks - navigate to sign in for public users
+  const handleSolutionButtonClick = () => {
     window.location.href = "/signin";
   };
 
@@ -623,7 +623,8 @@ export default function Solutions() {
         <div className="flex justify-center w-full">
           <ContractCardsAnimation
             contractTypes={contractTypes}
-            onCardClick={handleSolutionClick}
+            buttonText="Upload a document"
+            onButtonClick={handleSolutionButtonClick}
           />
         </div>
       </section>
