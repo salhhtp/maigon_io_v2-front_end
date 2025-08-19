@@ -9,6 +9,7 @@ import AnimatedSolutionsMockup from "@/components/AnimatedSolutionsMockup";
 import CallToActionSection from "@/components/CallToActionSection";
 import MobileNavigation from "@/components/MobileNavigation";
 import ContractCardsAnimation from "@/components/ContractCardsAnimation";
+import { useUser } from "@/contexts/UserContext";
 
 const SolutionCard = ({
   title,
