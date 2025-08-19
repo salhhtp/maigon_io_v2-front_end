@@ -57,7 +57,9 @@ export default function Upload() {
 
   // Handle React Router navigation blocking
   useEffect(() => {
+    console.log('Blocker state changed:', blocker.state);
     if (blocker.state === 'blocked') {
+      console.log('Setting show confirm modal to true');
       setShowConfirmModal(true);
     }
   }, [blocker.state]);
