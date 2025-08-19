@@ -499,9 +499,13 @@ export default function Solutions() {
     },
   ];
 
-  // Handle solution button clicks - navigate to sign in for public users
+  // Handle solution button clicks - navigate based on user login status
   const handleSolutionButtonClick = () => {
-    navigate("/signin");
+    if (isLoggedIn) {
+      navigate("/upload");
+    } else {
+      navigate("/signin");
+    }
   };
 
   return (
