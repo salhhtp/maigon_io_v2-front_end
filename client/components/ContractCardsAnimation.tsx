@@ -57,7 +57,7 @@ const ContractCardsAnimation: React.FC<ContractCardsAnimationProps> = ({
         <div className="relative w-full h-full" style={{ padding: "10px" }}>
           {contractTypes.map((type, index) => {
             const isActive = activeCard === index;
-            const cardHeight = isActive ? 380 : 76; // Increased height to accommodate button
+            const cardHeight = isActive ? 390 : 76; // Slightly increased height for better button spacing
             const leftPosition = 16 + index * 142; // 150px width - 8px overlap
 
             return (
@@ -99,19 +99,23 @@ const ContractCardsAnimation: React.FC<ContractCardsAnimationProps> = ({
                   className={`absolute left-4 right-4 top-[83px] transition-all duration-700 overflow-hidden ${
                     isActive ? "opacity-100" : "opacity-0"
                   }`}
-                  style={{ height: isActive ? "280px" : "0px" }}
+                  style={{ height: isActive ? "295px" : "0px" }}
                 >
-                  <div className="flex flex-col h-full justify-between">
-                    <p className="text-[#271D1D] text-xs leading-5 tracking-[0.12px] mb-4">
-                      {type.description}
-                    </p>
+                  <div className="flex flex-col h-full">
+                    <div className="flex-1 mb-4">
+                      <p className="text-[#271D1D] text-xs leading-5 tracking-[0.12px]">
+                        {type.description}
+                      </p>
+                    </div>
                     {onButtonClick && (
-                      <Button
-                        onClick={(e) => handleButtonClick(e, index)}
-                        className="w-full bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white text-xs py-2 px-4 rounded-lg transition-colors duration-200"
-                      >
-                        {buttonText}
-                      </Button>
+                      <div className="mt-auto">
+                        <Button
+                          onClick={(e) => handleButtonClick(e, index)}
+                          className="w-full bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white text-xs py-3 px-6 rounded-lg transition-colors duration-200 min-h-[32px]"
+                        >
+                          {buttonText}
+                        </Button>
+                      </div>
                     )}
                   </div>
                 </div>
