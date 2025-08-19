@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { ChevronDown, User, CheckCircle } from "lucide-react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import Logo from "@/components/Logo";
 import Footer from "@/components/Footer";
@@ -277,6 +277,7 @@ const AnimatedStepsComponent = () => {
 };
 
 export default function UserSolutions() {
+  const navigate = useNavigate();
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
 
   // Contract types data for the animation component
@@ -320,7 +321,7 @@ export default function UserSolutions() {
 
   // Handle solution button clicks - navigate to upload for logged-in users
   const handleSolutionButtonClick = () => {
-    window.location.href = "/upload";
+    navigate("/upload");
   };
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const location = useLocation();
