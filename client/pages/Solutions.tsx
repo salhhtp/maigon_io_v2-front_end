@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 import Logo from "@/components/Logo";
 import Footer from "@/components/Footer";
@@ -455,6 +455,7 @@ const AnimatedStepsComponent = () => {
 };
 
 export default function Solutions() {
+  const navigate = useNavigate();
   const location = useLocation();
 
   // Contract types data for the animation component
@@ -498,7 +499,7 @@ export default function Solutions() {
 
   // Handle solution button clicks - navigate to sign in for public users
   const handleSolutionButtonClick = () => {
-    window.location.href = "/signin";
+    navigate("/signin");
   };
 
   return (
