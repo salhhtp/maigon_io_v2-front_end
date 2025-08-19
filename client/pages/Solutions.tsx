@@ -501,9 +501,6 @@ export default function Solutions() {
 
   // Handle solution button clicks - navigate based on user login status
   const handleSolutionButtonClick = () => {
-    if (isLoggedIn) {
-      navigate("/upload");
-    } else {
       navigate("/signin");
     }
   };
