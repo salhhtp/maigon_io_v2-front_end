@@ -312,6 +312,8 @@ const AdminSolutionCreator = ({ onCreateSolution }: { onCreateSolution: () => vo
 
 export default function Profile() {
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+  const [addUserModalOpen, setAddUserModalOpen] = useState(false);
+  const [customSolutionModalOpen, setCustomSolutionModalOpen] = useState(false);
   const { user, isLoggedIn } = useUser();
 
   // Redirect if not logged in
