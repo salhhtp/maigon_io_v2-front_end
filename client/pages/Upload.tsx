@@ -172,13 +172,25 @@ export default function Upload() {
 
         // Navigate to loading page after transition starts
         setTimeout(() => {
-          navigate('/loading', {
-            state: {
-              selectedFile: selectedFile,
-              solutionTitle: solutionTitle,
-              perspective: perspective
-            }
+          console.log('Navigating to loading page with data:', {
+            selectedFile: selectedFile?.name,
+            solutionTitle,
+            perspective
           });
+
+          try {
+            navigate('/loading', {
+              state: {
+                selectedFile: selectedFile,
+                solutionTitle: solutionTitle,
+                perspective: perspective
+              }
+            });
+          } catch (error) {
+            console.error('Navigation error:', error);
+            // Fallback: try direct navigation without replace
+            window.location.href = '/loading';
+          }
         }, 500); // Give time for transition animation to start
 
       }, 1); // 1ms delay
