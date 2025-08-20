@@ -484,9 +484,19 @@ export default function UserSolutions() {
       {/* Solutions Animation Section */}
       <section className="py-16 lg:py-20 max-w-7xl mx-auto px-8 lg:px-16">
         <div className="text-center mb-16">
-          <h3 className="text-black text-center font-lora text-3xl lg:text-4xl font-medium leading-tight mb-4">
-            Solutions
-          </h3>
+          <div className="flex items-center justify-center gap-4 mb-6">
+            <h3 className="text-black text-center font-lora text-3xl lg:text-4xl font-medium leading-tight">
+              Solutions
+            </h3>
+            <Button
+              onClick={() => setCustomSolutionModalOpen(true)}
+              variant="outline"
+              className="border-[#9A7C7C] text-[#9A7C7C] hover:bg-[#9A7C7C] hover:text-white"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Create Custom
+            </Button>
+          </div>
           <p className="text-[#271D1D]/70 text-lg">
             Choose the solution of your desire to start reviewing your contracts with the power of Maigon.
           </p>
