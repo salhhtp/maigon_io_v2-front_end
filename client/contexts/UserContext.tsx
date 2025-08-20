@@ -663,23 +663,9 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({
 export const useUser = () => {
   const context = useContext(UserContext);
   if (context === undefined) {
-    // Add more detailed error information for debugging
-    console.error("useUser hook called outside of UserProvider context");
-    console.error("Current UserContext value:", context);
     throw new Error("useUser must be used within a UserProvider");
   }
   return context;
-};
-
-// Safe version of useUser that returns null if context is not available
-export const useUserSafe = () => {
-  try {
-    const context = useContext(UserContext);
-    return context || null;
-  } catch (error) {
-    console.warn("UserContext not available:", error);
-    return null;
-  }
 };
 
 // Export mock users for demo purposes
