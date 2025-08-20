@@ -1,10 +1,10 @@
 export default function Step1Mockup() {
   return (
     <div className="w-full h-full bg-[#F9F8F8] rounded-lg border border-[#271D1D]/15 overflow-hidden relative">
-      <div className="flex items-center justify-center min-h-full p-4">
-        <div className="flex items-center gap-8 w-full max-w-[1000px]">
+      <div className="flex items-center justify-center h-full p-3">
+        <div className="flex items-center gap-6 w-full max-w-[620px]">
           {/* Left Section - Welcome Back */}
-          <div className="hidden lg:flex flex-col items-start gap-[50px] w-[350px]">
+          <div className="flex flex-col items-start gap-8 w-[280px]">
             {/* Header */}
             <div className="flex justify-center items-center">
               <h1 className="text-[#313832] font-lora text-4xl font-medium leading-tight">
