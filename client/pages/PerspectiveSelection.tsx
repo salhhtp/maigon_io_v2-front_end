@@ -25,17 +25,22 @@ export default function PerspectiveSelection() {
     <div className="min-h-screen bg-white">
       {/* Navigation */}
       <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-8 lg:px-16 py-6 bg-[#F9F8F8]">
-        <Logo />
-        
+        <Link to="/home">
+          <Logo size="xl" />
+        </Link>
+
         {/* Desktop Navigation */}
-        <div className="hidden lg:flex items-center space-x-8">
-          <Link to="/user-solutions" className="text-[#271D1D] hover:text-[#725A5A] transition-colors">
+        <div className="hidden md:flex items-center space-x-8">
+          <Link to="/user-solutions" className="text-[#271D1D] hover:text-[#9A7C7C] transition-colors">
             Solutions
           </Link>
-          <Link to="/user-news" className="text-[#271D1D] hover:text-[#725A5A] transition-colors">
+          <Link to="/pricing" className="text-[#271D1D] hover:text-[#9A7C7C] transition-colors">
+            Pricing
+          </Link>
+          <Link to="/user-news" className="text-[#271D1D] hover:text-[#9A7C7C] transition-colors">
             News
           </Link>
-          <Link to="/user-team" className="text-[#271D1D] hover:text-[#725A5A] transition-colors">
+          <Link to="/user-team" className="text-[#271D1D] hover:text-[#9A7C7C] transition-colors">
             Team
           </Link>
           
