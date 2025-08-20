@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { ChevronDown, User, CheckCircle } from "lucide-react";
+import { ChevronDown, User, CheckCircle, ChevronLeft, ChevronRight, Play, Pause } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import React, { useState, useEffect } from "react";
 import Logo from "@/components/Logo";
@@ -134,6 +134,8 @@ const FAQItem = ({
 const AnimatedStepsComponent = () => {
   const [currentStep, setCurrentStep] = useState(0);
   const [loadingProgress, setLoadingProgress] = useState(0);
+  const [isAutoPlay, setIsAutoPlay] = useState(true);
+  const [isPaused, setIsPaused] = useState(false);
 
   const steps = [
     {
@@ -182,6 +184,8 @@ const AnimatedStepsComponent = () => {
     let progressInterval: NodeJS.Timeout;
 
     const resetAnimation = () => {
+      if (!isAutoPlay || isPaused) return;
+
       setLoadingProgress(0);
 
       // Clear any existing intervals
@@ -202,8 +206,10 @@ const AnimatedStepsComponent = () => {
 
       // Schedule next step change
       stepTimeout = setTimeout(() => {
-        setCurrentStep((prev) => (prev + 1) % steps.length);
-        resetAnimation();
+        if (isAutoPlay && !isPaused) {
+          setCurrentStep((prev) => (prev + 1) % steps.length);
+          resetAnimation();
+        }
       }, 10000);
     };
 
@@ -214,10 +220,86 @@ const AnimatedStepsComponent = () => {
       if (stepTimeout) clearTimeout(stepTimeout);
       if (progressInterval) clearInterval(progressInterval);
     };
-  }, [steps.length]);
+  }, [steps.length, isAutoPlay, isPaused, currentStep]);
+
+  const nextStep = () => {
+    setCurrentStep((prev) => (prev + 1) % steps.length);
+    setLoadingProgress(0);
+  };
+
+  const prevStep = () => {
+    setCurrentStep((prev) => (prev - 1 + steps.length) % steps.length);
+    setLoadingProgress(0);
+  };
+
+  const goToStep = (stepIndex: number) => {
+    setCurrentStep(stepIndex);
+    setLoadingProgress(0);
+  };
+
+  const toggleAutoPlay = () => {
+    setIsAutoPlay(!isAutoPlay);
+    if (isAutoPlay) {
+      setLoadingProgress(0);
+    }
+  };
+
+  const togglePause = () => {
+    setIsPaused(!isPaused);
+  };
 
   return (
     <div className="flex flex-col gap-1 md:gap-2.5 w-full p-1 md:p-2.5 overflow-hidden">
+      {/* Navigation Controls */}
+      <div className="flex justify-center items-center gap-4 mb-6">
+        <button
+          onClick={prevStep}
+          className="flex items-center justify-center w-10 h-10 rounded-full bg-white border border-[#271D1D]/20 hover:bg-[#F3F3F3] transition-colors shadow-sm"
+          aria-label="Previous step"
+        >
+          <ChevronLeft className="w-5 h-5 text-[#271D1D]" />
+        </button>
+
+        <div className="flex items-center gap-2">
+          {steps.map((_, index) => (
+            <button
+              key={index}
+              onClick={() => goToStep(index)}
+              className={`w-3 h-3 rounded-full transition-colors duration-200 ${
+                index === currentStep ? "bg-[#271D1D]" : "bg-[#271D1D]/30"
+              }`}
+              aria-label={`Go to step ${index + 1}`}
+            />
+          ))}
+        </div>
+
+        <button
+          onClick={nextStep}
+          className="flex items-center justify-center w-10 h-10 rounded-full bg-white border border-[#271D1D]/20 hover:bg-[#F3F3F3] transition-colors shadow-sm"
+          aria-label="Next step"
+        >
+          <ChevronRight className="w-5 h-5 text-[#271D1D]" />
+        </button>
+
+        <div className="ml-4 flex items-center gap-2">
+          <button
+            onClick={togglePause}
+            className="flex items-center justify-center w-8 h-8 rounded-full bg-white border border-[#271D1D]/20 hover:bg-[#F3F3F3] transition-colors"
+            aria-label={isPaused ? "Resume" : "Pause"}
+          >
+            {isPaused ? (
+              <Play className="w-4 h-4 text-[#271D1D]" />
+            ) : (
+              <Pause className="w-4 h-4 text-[#271D1D]" />
+            )}
+          </button>
+
+          <span className="text-sm text-[#271D1D]/70">
+            {currentStep + 1} / {steps.length}
+          </span>
+        </div>
+      </div>
+
       <div className="h-[400px] md:h-[500px] lg:h-[660px] w-full relative max-w-[1210px] mx-auto">
         {/* Steps Section */}
         <div className="flex flex-col justify-end items-start gap-px absolute left-0 top-1 h-[385px] md:h-[485px] lg:h-[641px] w-full lg:w-[458px]">
