@@ -3,9 +3,11 @@ import { Link, useNavigate } from "react-router-dom";
 import { User, ChevronDown } from "lucide-react";
 import Logo from "@/components/Logo";
 import MobileNavigation from "@/components/MobileNavigation";
+import { useUser } from "@/contexts/UserContext";
 
 export default function PerspectiveSelection() {
   const navigate = useNavigate();
+  const { user } = useUser();
   const [selectedPerspective, setSelectedPerspective] = useState<"data-subject" | "organization" | null>("data-subject");
 
   const handleContinue = () => {
@@ -40,7 +42,7 @@ export default function PerspectiveSelection() {
           <div className="relative group">
             <button className="flex items-center space-x-1 bg-[#D6CECE] px-3 py-2 rounded-lg hover:bg-[#D6CECE]/80 transition-colors">
               <User className="w-4 h-4 text-[#271D1D]" />
-              <span className="text-[#271D1D] text-sm">@Salih</span>
+              <span className="text-[#271D1D] text-sm">@{user?.name?.split(' ')[0] || 'User'}</span>
               <ChevronDown className="w-4 h-4 text-[#271D1D]" />
             </button>
             
