@@ -24,8 +24,20 @@ export default function UserHome() {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
 
-  const { user } = useUser();
+  const { user, isLoading } = useUser();
   const userName = user?.name?.split(" ")[0] || "User";
+
+  // Show loading spinner while context is initializing
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#F9F8F8] flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-2 border-[#9A7C7C] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-[#271D1D]">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   const faqData = [
     {
