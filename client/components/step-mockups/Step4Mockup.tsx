@@ -12,7 +12,7 @@ export default function Step4Mockup() {
           <span className="text-[#271D1D]">Team</span>
           <div className="flex items-center space-x-1 bg-[#D6CECE] px-2 py-1 rounded">
             <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"/>
+              <path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" />
             </svg>
             <span className="text-xs">@Salih</span>
           </div>
@@ -27,7 +27,8 @@ export default function Step4Mockup() {
             Upload your document
           </h1>
           <p className="text-[#4B5563] text-base">
-            Once your document is uploaded and submitted, Maigon AI will start analysing and generating your review.
+            Once your document is uploaded and submitted, Maigon AI will start
+            analysing and generating your review.
           </p>
         </div>
 
@@ -36,14 +37,36 @@ export default function Step4Mockup() {
           {/* File Upload Container */}
           <div className="bg-[#D6CECE] rounded-lg p-8 mb-4 text-center">
             <div className="w-16 h-16 bg-[#725A5A]/20 rounded-lg mx-auto mb-4 flex items-center justify-center">
-              <svg className="w-8 h-8 text-[#725A5A]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              <svg
+                className="w-8 h-8 text-[#725A5A]"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                />
               </svg>
             </div>
-            <div className="text-[#271D1D] font-medium text-lg mb-2">DPIA.pdf</div>
+            <div className="text-[#271D1D] font-medium text-lg mb-2">
+              DPIA.pdf
+            </div>
             <button className="bg-[#725A5A] text-white p-2 rounded-lg">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                />
               </svg>
             </button>
           </div>
@@ -51,7 +74,8 @@ export default function Step4Mockup() {
           {/* Supported Formats */}
           <div className="text-center mb-6">
             <p className="text-[#4B5563] text-sm">
-              Supported formats: <span className="font-medium">docx • doc • pdf</span>
+              Supported formats:{" "}
+              <span className="font-medium">docx • doc • pdf</span>
             </p>
           </div>
 
@@ -64,7 +88,8 @@ export default function Step4Mockup() {
         {/* Additional Info */}
         <div className="mt-8 text-center">
           <p className="text-[#4B5563] text-sm">
-            Your document will be analyzed using our AI-powered legal review system
+            Your document will be analyzed using our AI-powered legal review
+            system
           </p>
         </div>
       </div>

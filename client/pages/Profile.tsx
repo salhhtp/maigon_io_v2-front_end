@@ -16,7 +16,11 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useState } from "react";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import Logo from "@/components/Logo";
 import Footer from "@/components/Footer";
 import MobileNavigation from "@/components/MobileNavigation";
@@ -191,7 +195,9 @@ const RecentActivity = ({
                     <p className="text-xs text-[#271D1D]/70">{activity.file}</p>
                   </div>
                 </div>
-                <span className="text-xs text-[#271D1D]/50">{activity.time}</span>
+                <span className="text-xs text-[#271D1D]/50">
+                  {activity.time}
+                </span>
               </div>
             ))}
             {!isExpanded && activities.length > 5 && (
@@ -273,7 +279,7 @@ const AdminUserManagement = ({ onAddUser }: { onAddUser: () => void }) => {
       plan: "Professional",
       status: "inactive",
       usage: "8/50",
-    }
+    },
   ];
   const displayedUsers = isExpanded ? allUsers : allUsers.slice(0, 4);
 
@@ -322,13 +328,17 @@ const AdminUserManagement = ({ onAddUser }: { onAddUser: () => void }) => {
                 <User className="w-4 h-4 text-[#271D1D]" />
               </div>
               <div>
-                <p className="text-sm font-medium text-[#271D1D]">{user.name}</p>
+                <p className="text-sm font-medium text-[#271D1D]">
+                  {user.name}
+                </p>
                 <p className="text-xs text-[#271D1D]/70">{user.email}</p>
               </div>
             </div>
             <div className="flex items-center gap-4">
               <div className="text-right">
-                <p className="text-sm font-medium text-[#271D1D]">{user.plan}</p>
+                <p className="text-sm font-medium text-[#271D1D]">
+                  {user.plan}
+                </p>
                 <p className="text-xs text-[#271D1D]/70">
                   {user.usage} contracts
                 </p>
@@ -365,7 +375,11 @@ const AdminUserManagement = ({ onAddUser }: { onAddUser: () => void }) => {
   );
 };
 
-const AdminSolutionCreator = ({ onCreateSolution }: { onCreateSolution: () => void }) => (
+const AdminSolutionCreator = ({
+  onCreateSolution,
+}: {
+  onCreateSolution: () => void;
+}) => (
   <div className="bg-white rounded-lg p-6 border border-[#271D1D]/10">
     <div className="flex items-center justify-between mb-4">
       <h3 className="font-lora text-lg font-medium text-[#271D1D]">
@@ -448,12 +462,12 @@ export default function Profile() {
   const { user, isLoggedIn } = useUser();
 
   const handleUserAdded = (userData: any) => {
-    console.log('New user added:', userData);
+    console.log("New user added:", userData);
     // In a real app, this would update the user list and show a success message
   };
 
   const handleSolutionCreated = (solutionData: any) => {
-    console.log('New solution created:', solutionData);
+    console.log("New solution created:", solutionData);
     // In a real app, this would update the solutions list and show a success message
   };
 
@@ -680,8 +694,12 @@ export default function Profile() {
             <div className="space-y-8">
               {isAdmin ? (
                 <>
-                  <AdminUserManagement onAddUser={() => setAddUserModalOpen(true)} />
-                  <AdminSolutionCreator onCreateSolution={() => setCustomSolutionModalOpen(true)} />
+                  <AdminUserManagement
+                    onAddUser={() => setAddUserModalOpen(true)}
+                  />
+                  <AdminSolutionCreator
+                    onCreateSolution={() => setCustomSolutionModalOpen(true)}
+                  />
                 </>
               ) : (
                 <>

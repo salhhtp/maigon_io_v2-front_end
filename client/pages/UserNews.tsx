@@ -80,7 +80,7 @@ export default function UserNews() {
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
 
   const { user } = useUser();
-  const userName = user?.name?.split(' ')[0] || 'User';
+  const userName = user?.name?.split(" ")[0] || "User";
 
   return (
     <div className="min-h-screen bg-[#F9F8F8]">

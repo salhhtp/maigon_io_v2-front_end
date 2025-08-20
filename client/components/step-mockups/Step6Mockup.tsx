@@ -4,24 +4,43 @@ export default function Step6Mockup() {
       {/* Header */}
       <div className="text-center mb-4">
         <div className="w-12 h-12 bg-green-500 rounded-full mx-auto mb-3 flex items-center justify-center">
-          <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
+          <svg
+            className="w-6 h-6 text-white"
+            fill="currentColor"
+            viewBox="0 0 20 20"
+          >
+            <path
+              fillRule="evenodd"
+              d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+              clipRule="evenodd"
+            />
           </svg>
         </div>
-        <h2 className="text-lg font-bold text-[#271D1D] font-lora mb-1">Analysis Complete!</h2>
-        <p className="text-gray-600 text-xs">Your contract has been thoroughly analyzed</p>
+        <h2 className="text-lg font-bold text-[#271D1D] font-lora mb-1">
+          Analysis Complete!
+        </h2>
+        <p className="text-gray-600 text-xs">
+          Your contract has been thoroughly analyzed
+        </p>
       </div>
 
       {/* Overall Score */}
       <div className="bg-white rounded-lg border border-gray-200 p-3 mb-3">
         <div className="flex items-center justify-between mb-2">
-          <h3 className="font-medium text-[#271D1D] text-sm">Compliance Score</h3>
+          <h3 className="font-medium text-[#271D1D] text-sm">
+            Compliance Score
+          </h3>
           <span className="text-xl font-bold text-green-600">87%</span>
         </div>
         <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
-          <div className="h-2 rounded-full bg-green-500" style={{ width: '87%' }}></div>
+          <div
+            className="h-2 rounded-full bg-green-500"
+            style={{ width: "87%" }}
+          ></div>
         </div>
-        <p className="text-xs text-gray-600">Excellent compliance with GDPR standards</p>
+        <p className="text-xs text-gray-600">
+          Excellent compliance with GDPR standards
+        </p>
       </div>
 
       {/* Key Findings */}
@@ -46,22 +65,36 @@ export default function Step6Mockup() {
 
       {/* Key Issues */}
       <div className="space-y-1 mb-3">
-        <h4 className="font-medium text-[#271D1D] text-xs">Key Issues Found:</h4>
-        
+        <h4 className="font-medium text-[#271D1D] text-xs">
+          Key Issues Found:
+        </h4>
+
         <div className="bg-red-50 rounded-lg p-2 border-l-2 border-red-500">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-red-800">Unlimited Liability</span>
-            <span className="text-xs bg-red-100 text-red-800 px-1 py-0.5 rounded">HIGH</span>
+            <span className="text-xs font-medium text-red-800">
+              Unlimited Liability
+            </span>
+            <span className="text-xs bg-red-100 text-red-800 px-1 py-0.5 rounded">
+              HIGH
+            </span>
           </div>
-          <p className="text-xs text-red-700 mt-0.5">No liability cap defined</p>
+          <p className="text-xs text-red-700 mt-0.5">
+            No liability cap defined
+          </p>
         </div>
 
         <div className="bg-yellow-50 rounded-lg p-2 border-l-2 border-yellow-500">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-yellow-800">Data Retention</span>
-            <span className="text-xs bg-yellow-100 text-yellow-800 px-1 py-0.5 rounded">MED</span>
+            <span className="text-xs font-medium text-yellow-800">
+              Data Retention
+            </span>
+            <span className="text-xs bg-yellow-100 text-yellow-800 px-1 py-0.5 rounded">
+              MED
+            </span>
           </div>
-          <p className="text-xs text-yellow-700 mt-0.5">Unclear retention period</p>
+          <p className="text-xs text-yellow-700 mt-0.5">
+            Unclear retention period
+          </p>
         </div>
       </div>
 

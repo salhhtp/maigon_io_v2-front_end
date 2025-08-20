@@ -3,10 +3,12 @@ export default function ComplianceScoreMockup() {
     <div className="w-full h-80 bg-gray-50 border border-[#271D1D]/15 rounded-lg p-6 flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-[#271D1D]">Compliance Dashboard</h3>
+        <h3 className="text-lg font-semibold text-[#271D1D]">
+          Compliance Dashboard
+        </h3>
         <div className="text-xs text-gray-500">NDA Agreement</div>
       </div>
-      
+
       {/* Score Circle */}
       <div className="flex-1 flex items-center justify-center">
         <div className="relative w-32 h-32">
@@ -38,7 +40,7 @@ export default function ComplianceScoreMockup() {
           </div>
         </div>
       </div>
-      
+
       {/* Score Details */}
       <div className="space-y-2">
         <div className="flex justify-between items-center">

@@ -7,7 +7,10 @@ interface MobileNavigationProps {
   userName?: string;
 }
 
-export default function MobileNavigation({ isLoggedIn = false, userName }: MobileNavigationProps) {
+export default function MobileNavigation({
+  isLoggedIn = false,
+  userName,
+}: MobileNavigationProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
 
@@ -24,18 +27,18 @@ export default function MobileNavigation({ isLoggedIn = false, userName }: Mobil
   };
 
   // Navigation links based on authentication state
-  const navLinks = isLoggedIn 
+  const navLinks = isLoggedIn
     ? [
         { label: "Home", href: "/home" },
         { label: "Solutions", href: "/user-solutions" },
         { label: "News", href: "/user-news" },
-        { label: "Team", href: "/user-team" }
+        { label: "Team", href: "/user-team" },
       ]
     : [
         { label: "Home", href: "/" },
         { label: "Solutions", href: "/solutions" },
         { label: "News", href: "/news" },
-        { label: "Team", href: "/team" }
+        { label: "Team", href: "/team" },
       ];
 
   return (
@@ -56,13 +59,13 @@ export default function MobileNavigation({ isLoggedIn = false, userName }: Mobil
         ) : (
           // Close X Icon
           <div className="w-[14px] h-[14px] relative">
-            <div 
+            <div
               className="w-[17px] h-[3px] rounded-[10px] bg-[#271D1D] absolute left-0 top-0"
-              style={{ transform: 'rotate(-45deg)', transformOrigin: 'center' }}
+              style={{ transform: "rotate(-45deg)", transformOrigin: "center" }}
             ></div>
-            <div 
+            <div
               className="w-[17px] h-[3px] rounded-[10px] bg-[#271D1D] absolute left-0 top-0"
-              style={{ transform: 'rotate(45deg)', transformOrigin: 'center' }}
+              style={{ transform: "rotate(45deg)", transformOrigin: "center" }}
             ></div>
           </div>
         )}
@@ -72,11 +75,11 @@ export default function MobileNavigation({ isLoggedIn = false, userName }: Mobil
       {isMenuOpen && (
         <div className="fixed inset-0 z-50 md:hidden">
           {/* Background overlay */}
-          <div 
+          <div
             className="absolute inset-0 bg-black/20 backdrop-blur-sm"
             onClick={closeMenu}
           ></div>
-          
+
           {/* Menu Content */}
           <div className="absolute top-0 left-0 right-0 bg-[#F9F8F8] shadow-lg">
             {/* Close button */}
@@ -89,11 +92,17 @@ export default function MobileNavigation({ isLoggedIn = false, userName }: Mobil
                 <div className="w-[14px] h-[14px] relative">
                   <div
                     className="w-[17px] h-[3px] rounded-[10px] bg-[#271D1D] absolute left-0 top-0"
-                    style={{ transform: 'rotate(-45deg)', transformOrigin: 'center' }}
+                    style={{
+                      transform: "rotate(-45deg)",
+                      transformOrigin: "center",
+                    }}
                   ></div>
                   <div
                     className="w-[17px] h-[3px] rounded-[10px] bg-[#271D1D] absolute left-0 top-0"
-                    style={{ transform: 'rotate(45deg)', transformOrigin: 'center' }}
+                    style={{
+                      transform: "rotate(45deg)",
+                      transformOrigin: "center",
+                    }}
                   ></div>
                 </div>
               </button>
@@ -111,7 +120,7 @@ export default function MobileNavigation({ isLoggedIn = false, userName }: Mobil
                   >
                     <span
                       className={`text-black font-lora text-[32px] leading-[72px] ${
-                        index === 0 ? 'font-semibold' : 'font-medium'
+                        index === 0 ? "font-semibold" : "font-medium"
                       }`}
                     >
                       {link.label}
@@ -129,15 +138,35 @@ export default function MobileNavigation({ isLoggedIn = false, userName }: Mobil
                       className="flex items-center space-x-3 bg-[#D6CECE] hover:bg-[#D6CECE]/90 px-4 py-3 rounded-lg transition-colors w-full"
                     >
                       <User className="w-5 h-5 text-[#271D1D]" />
-                      <span className="text-[#271D1D] font-medium text-lg">@{userName}</span>
-                      <ChevronDown className={`w-5 h-5 text-[#271D1D] transition-transform ml-auto ${userDropdownOpen ? 'rotate-180' : ''}`} />
+                      <span className="text-[#271D1D] font-medium text-lg">
+                        @{userName}
+                      </span>
+                      <ChevronDown
+                        className={`w-5 h-5 text-[#271D1D] transition-transform ml-auto ${userDropdownOpen ? "rotate-180" : ""}`}
+                      />
                     </button>
 
                     {userDropdownOpen && (
                       <div className="mt-2 w-full bg-white border border-[#271D1D]/15 rounded-lg shadow-lg py-2">
-                        <a href="#" className="block px-4 py-3 text-base text-[#271D1D] hover:bg-[#F9F8F8] transition-colors">Profile</a>
-                        <a href="#" className="block px-4 py-3 text-base text-[#271D1D] hover:bg-[#F9F8F8] transition-colors">Settings</a>
-                        <Link to="/" onClick={closeMenu} className="block px-4 py-3 text-base text-[#271D1D] hover:bg-[#F9F8F8] transition-colors">Log Out</Link>
+                        <a
+                          href="#"
+                          className="block px-4 py-3 text-base text-[#271D1D] hover:bg-[#F9F8F8] transition-colors"
+                        >
+                          Profile
+                        </a>
+                        <a
+                          href="#"
+                          className="block px-4 py-3 text-base text-[#271D1D] hover:bg-[#F9F8F8] transition-colors"
+                        >
+                          Settings
+                        </a>
+                        <Link
+                          to="/"
+                          onClick={closeMenu}
+                          className="block px-4 py-3 text-base text-[#271D1D] hover:bg-[#F9F8F8] transition-colors"
+                        >
+                          Log Out
+                        </Link>
                       </div>
                     )}
                   </div>

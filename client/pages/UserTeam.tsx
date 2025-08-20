@@ -66,8 +66,7 @@ const FAQItem = ({
 export default function UserTeam() {
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const { user } = useUser();
-  const userName = user?.name?.split(' ')[0] || 'User';
-
+  const userName = user?.name?.split(" ")[0] || "User";
 
   return (
     <div className="min-h-screen bg-[#F9F8F8]">
@@ -176,7 +175,6 @@ export default function UserTeam() {
                 will enjoy and witness what's possible; Also, what the tomorrow
                 will bring to our lives.
               </p>
-
             </div>
 
             {/* Right Image */}
@@ -302,7 +300,6 @@ export default function UserTeam() {
       </section>
 
       <Footer />
-
     </div>
   );
 }

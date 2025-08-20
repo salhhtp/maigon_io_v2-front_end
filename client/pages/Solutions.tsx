@@ -1,5 +1,11 @@
 import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronLeft, ChevronRight, Play, Pause } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Play,
+  Pause,
+} from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import React, { useState, useEffect, useRef } from "react";
 import Logo from "@/components/Logo";
@@ -699,7 +705,8 @@ export default function Solutions() {
             Solutions
           </h3>
           <p className="text-[#271D1D]/70 text-lg">
-            Choose the solution of your desire to start reviewing your contracts with the power of Maigon.
+            Choose the solution of your desire to start reviewing your contracts
+            with the power of Maigon.
           </p>
         </div>
 

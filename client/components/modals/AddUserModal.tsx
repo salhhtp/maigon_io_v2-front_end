@@ -1,16 +1,22 @@
 import { useState } from "react";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
   DialogDescription,
-  DialogFooter 
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Mail, User, Building, Shield, UserPlus } from "lucide-react";
 
 interface AddUserModalProps {
@@ -19,7 +25,11 @@ interface AddUserModalProps {
   onSuccess?: (userData: any) => void;
 }
 
-export default function AddUserModal({ isOpen, onClose, onSuccess }: AddUserModalProps) {
+export default function AddUserModal({
+  isOpen,
+  onClose,
+  onSuccess,
+}: AddUserModalProps) {
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -27,7 +37,7 @@ export default function AddUserModal({ isOpen, onClose, onSuccess }: AddUserModa
     company: "",
     role: "user",
     department: "",
-    phoneNumber: ""
+    phoneNumber: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -35,10 +45,12 @@ export default function AddUserModal({ isOpen, onClose, onSuccess }: AddUserModa
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.firstName.trim()) newErrors.firstName = "First name is required";
+    if (!formData.firstName.trim())
+      newErrors.firstName = "First name is required";
     if (!formData.lastName.trim()) newErrors.lastName = "Last name is required";
     if (!formData.email.trim()) newErrors.email = "Email is required";
-    else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = "Email is invalid";
+    else if (!/\S+@\S+\.\S+/.test(formData.email))
+      newErrors.email = "Email is invalid";
     if (!formData.company.trim()) newErrors.company = "Company is required";
     if (!formData.role) newErrors.role = "Role is required";
 
@@ -48,11 +60,11 @@ export default function AddUserModal({ isOpen, onClose, onSuccess }: AddUserModa
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) return;
 
     setIsSubmitting(true);
-    
+
     // Simulate API call
     setTimeout(() => {
       const userData = {
@@ -64,13 +76,13 @@ export default function AddUserModal({ isOpen, onClose, onSuccess }: AddUserModa
         department: formData.department,
         phone: formData.phoneNumber,
         status: "active",
-        dateAdded: new Date().toLocaleDateString()
+        dateAdded: new Date().toLocaleDateString(),
       };
 
       setIsSubmitting(false);
       onSuccess?.(userData);
       onClose();
-      
+
       // Reset form
       setFormData({
         firstName: "",
@@ -79,16 +91,16 @@ export default function AddUserModal({ isOpen, onClose, onSuccess }: AddUserModa
         company: "",
         role: "user",
         department: "",
-        phoneNumber: ""
+        phoneNumber: "",
       });
       setErrors({});
     }, 1500);
   };
 
   const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: "" }));
+      setErrors((prev) => ({ ...prev, [field]: "" }));
     }
   };
 
@@ -101,7 +113,8 @@ export default function AddUserModal({ isOpen, onClose, onSuccess }: AddUserModa
             Add New User
           </DialogTitle>
           <DialogDescription>
-            Add a new team member to your Maigon workspace. They'll receive an invitation email to get started.
+            Add a new team member to your Maigon workspace. They'll receive an
+            invitation email to get started.
           </DialogDescription>
         </DialogHeader>
 
@@ -117,12 +130,16 @@ export default function AddUserModal({ isOpen, onClose, onSuccess }: AddUserModa
                   placeholder="John"
                   className="pl-10"
                   value={formData.firstName}
-                  onChange={(e) => handleInputChange("firstName", e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange("firstName", e.target.value)
+                  }
                 />
               </div>
-              {errors.firstName && <p className="text-red-500 text-xs">{errors.firstName}</p>}
+              {errors.firstName && (
+                <p className="text-red-500 text-xs">{errors.firstName}</p>
+              )}
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="lastName">Last Name</Label>
               <Input
@@ -131,7 +148,9 @@ export default function AddUserModal({ isOpen, onClose, onSuccess }: AddUserModa
                 value={formData.lastName}
                 onChange={(e) => handleInputChange("lastName", e.target.value)}
               />
-              {errors.lastName && <p className="text-red-500 text-xs">{errors.lastName}</p>}
+              {errors.lastName && (
+                <p className="text-red-500 text-xs">{errors.lastName}</p>
+              )}
             </div>
           </div>
 
@@ -149,7 +168,9 @@ export default function AddUserModal({ isOpen, onClose, onSuccess }: AddUserModa
                 onChange={(e) => handleInputChange("email", e.target.value)}
               />
             </div>
-            {errors.email && <p className="text-red-500 text-xs">{errors.email}</p>}
+            {errors.email && (
+              <p className="text-red-500 text-xs">{errors.email}</p>
+            )}
           </div>
 
           {/* Company */}
@@ -165,14 +186,19 @@ export default function AddUserModal({ isOpen, onClose, onSuccess }: AddUserModa
                 onChange={(e) => handleInputChange("company", e.target.value)}
               />
             </div>
-            {errors.company && <p className="text-red-500 text-xs">{errors.company}</p>}
+            {errors.company && (
+              <p className="text-red-500 text-xs">{errors.company}</p>
+            )}
           </div>
 
           {/* Role & Department */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="role">Role</Label>
-              <Select value={formData.role} onValueChange={(value) => handleInputChange("role", value)}>
+              <Select
+                value={formData.role}
+                onValueChange={(value) => handleInputChange("role", value)}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select role" />
                 </SelectTrigger>
@@ -191,7 +217,9 @@ export default function AddUserModal({ isOpen, onClose, onSuccess }: AddUserModa
                   </SelectItem>
                 </SelectContent>
               </Select>
-              {errors.role && <p className="text-red-500 text-xs">{errors.role}</p>}
+              {errors.role && (
+                <p className="text-red-500 text-xs">{errors.role}</p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -200,7 +228,9 @@ export default function AddUserModal({ isOpen, onClose, onSuccess }: AddUserModa
                 id="department"
                 placeholder="Legal"
                 value={formData.department}
-                onChange={(e) => handleInputChange("department", e.target.value)}
+                onChange={(e) =>
+                  handleInputChange("department", e.target.value)
+                }
               />
             </div>
           </div>

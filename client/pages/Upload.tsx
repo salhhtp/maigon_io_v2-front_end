@@ -13,7 +13,9 @@ export default function Upload() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [pendingNavigation, setPendingNavigation] = useState<string | null>(null);
+  const [pendingNavigation, setPendingNavigation] = useState<string | null>(
+    null,
+  );
   const [hasStartedProcess, setHasStartedProcess] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadButtonHidden, setUploadButtonHidden] = useState(false);
@@ -28,59 +30,65 @@ export default function Upload() {
   // Block navigation when user is on upload page (always show confirmation), but not during submission
   const blocker = useBlocker(
     ({ currentLocation, nextLocation }) =>
-      currentLocation.pathname === '/upload' &&
+      currentLocation.pathname === "/upload" &&
       currentLocation.pathname !== nextLocation.pathname &&
-      !isSubmitting // Don't block navigation during submission process
+      !isSubmitting, // Don't block navigation during submission process
   );
 
   // Handle browser back/forward buttons and page refresh
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (!showConfirmModal) { // Only show if modal isn't already open
+      if (!showConfirmModal) {
+        // Only show if modal isn't already open
         e.preventDefault();
-        e.returnValue = 'You will lose all your progress and need to start all over again if you leave this page.';
+        e.returnValue =
+          "You will lose all your progress and need to start all over again if you leave this page.";
         return e.returnValue;
       }
     };
 
     const handlePopState = (e: PopStateEvent) => {
-      if (!showConfirmModal) { // Only show if modal isn't already open
+      if (!showConfirmModal) {
+        // Only show if modal isn't already open
         e.preventDefault();
         setShowConfirmModal(true);
-        window.history.pushState(null, '', window.location.href);
+        window.history.pushState(null, "", window.location.href);
       }
     };
 
     // Always add listeners when on upload page
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    window.addEventListener('popstate', handlePopState);
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    window.addEventListener("popstate", handlePopState);
     // Prevent back navigation
-    window.history.pushState(null, '', window.location.href);
+    window.history.pushState(null, "", window.location.href);
 
     return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-      window.removeEventListener('popstate', handlePopState);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      window.removeEventListener("popstate", handlePopState);
     };
   }, [showConfirmModal]);
 
   // Handle React Router navigation blocking
   useEffect(() => {
-    if (blocker.state === 'blocked') {
+    if (blocker.state === "blocked") {
       setShowConfirmModal(true);
     }
   }, [blocker.state]);
 
   const handleFileSelect = (file: File) => {
-    const allowedTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
-    console.log('File selected:', file.name, 'Type:', file.type);
+    const allowedTypes = [
+      "application/pdf",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ];
+    console.log("File selected:", file.name, "Type:", file.type);
 
     if (allowedTypes.includes(file.type)) {
       setSelectedFile(file);
       setHasStartedProcess(true); // Mark that user has started the process
-      console.log('File accepted:', file.name);
+      console.log("File accepted:", file.name);
     } else {
       alert(`Please select a PDF or DOCX file. You selected: ${file.type}`);
-      console.log('File rejected - invalid type:', file.type);
+      console.log("File rejected - invalid type:", file.type);
     }
   };
 
@@ -98,7 +106,7 @@ export default function Upload() {
     setHasStartedProcess(false);
 
     // Check blocker state before resetting it
-    const wasBlocked = blocker.state === 'blocked';
+    const wasBlocked = blocker.state === "blocked";
 
     // Navigate to the pending destination
     if (pendingNavigation) {
@@ -115,7 +123,7 @@ export default function Upload() {
     setShowConfirmModal(false);
     setPendingNavigation(null);
 
-    if (blocker.state === 'blocked') {
+    if (blocker.state === "blocked") {
       blocker.reset();
     }
   };
@@ -151,16 +159,21 @@ export default function Upload() {
   };
 
   const handleSubmit = () => {
-    console.log('Submit clicked. Selected file:', selectedFile?.name, 'Perspective:', perspective);
+    console.log(
+      "Submit clicked. Selected file:",
+      selectedFile?.name,
+      "Perspective:",
+      perspective,
+    );
 
     if (!selectedFile) {
-      alert('Please select a file to upload.');
+      alert("Please select a file to upload.");
       return;
     }
 
     // Step 1: Submit Clicked → Smart Animate - Ease Out - 1500ms
     setIsSubmitting(true);
-    console.log('Starting submission process...');
+    console.log("Starting submission process...");
 
     // Step 2: After Delay - 1ms → Smart Animate - Ease out 1500ms → Disappeared Upload Button
     setTimeout(() => {
@@ -172,36 +185,40 @@ export default function Upload() {
 
         // Navigate to loading page after transition starts
         setTimeout(() => {
-          console.log('Navigating to loading page with data:', {
+          console.log("Navigating to loading page with data:", {
             selectedFile: selectedFile?.name,
             solutionTitle,
-            perspective
+            perspective,
           });
 
           try {
-            navigate('/loading', {
+            navigate("/loading", {
               state: {
                 selectedFile: selectedFile,
                 solutionTitle: solutionTitle,
-                perspective: perspective
-              }
+                perspective: perspective,
+              },
             });
           } catch (error) {
-            console.error('Navigation error:', error);
+            console.error("Navigation error:", error);
             // Fallback: try direct navigation without replace
-            window.location.href = '/loading';
+            window.location.href = "/loading";
           }
         }, 500); // Give time for transition animation to start
-
       }, 1); // 1ms delay
     }, 1501); // 1500ms + 1ms delay
   };
 
   return (
-    <div className={`min-h-screen bg-[#F9F8F8] flex flex-col transition-all duration-[1500ms] ${
-      showLoadingTransition ? 'opacity-0 ease-in-out transform scale-105' :
-      isSubmitting ? 'opacity-80 ease-out' : 'opacity-100'
-    }`}>
+    <div
+      className={`min-h-screen bg-[#F9F8F8] flex flex-col transition-all duration-[1500ms] ${
+        showLoadingTransition
+          ? "opacity-0 ease-in-out transform scale-105"
+          : isSubmitting
+            ? "opacity-80 ease-out"
+            : "opacity-100"
+      }`}
+    >
       {/* Navigation */}
       <nav className="flex items-center justify-between px-8 lg:px-16 py-6">
         <div onClick={handleLinkClick("/home")} className="cursor-pointer">
@@ -235,14 +252,28 @@ export default function Upload() {
               className="flex items-center space-x-2 bg-[#D6CECE] hover:bg-[#D6CECE]/90 px-4 py-2 rounded-lg transition-colors"
             >
               <User className="w-4 h-4 text-[#271D1D]" />
-              <span className="text-[#271D1D] font-medium">@{user?.name?.split(' ')[0] || 'User'}</span>
-              <ChevronDown className={`w-4 h-4 text-[#271D1D] transition-transform ${userDropdownOpen ? 'rotate-180' : ''}`} />
+              <span className="text-[#271D1D] font-medium">
+                @{user?.name?.split(" ")[0] || "User"}
+              </span>
+              <ChevronDown
+                className={`w-4 h-4 text-[#271D1D] transition-transform ${userDropdownOpen ? "rotate-180" : ""}`}
+              />
             </button>
 
             {userDropdownOpen && (
               <div className="absolute right-0 mt-2 w-32 bg-white border border-[#271D1D]/15 rounded-lg shadow-lg py-2 z-10">
-                <a href="#" className="block px-4 py-2 text-sm text-[#271D1D] hover:bg-[#F9F8F8] transition-colors">Profile</a>
-                <a href="#" className="block px-4 py-2 text-sm text-[#271D1D] hover:bg-[#F9F8F8] transition-colors">Settings</a>
+                <a
+                  href="#"
+                  className="block px-4 py-2 text-sm text-[#271D1D] hover:bg-[#F9F8F8] transition-colors"
+                >
+                  Profile
+                </a>
+                <a
+                  href="#"
+                  className="block px-4 py-2 text-sm text-[#271D1D] hover:bg-[#F9F8F8] transition-colors"
+                >
+                  Settings
+                </a>
                 <div
                   onClick={handleLinkClick("/")}
                   className="block px-4 py-2 text-sm text-[#271D1D] hover:bg-[#F9F8F8] transition-colors cursor-pointer"
@@ -257,22 +288,27 @@ export default function Upload() {
 
       {/* Main Content */}
       <main className="flex-1 flex items-center justify-center px-8 lg:px-16 py-20">
-        <div className={`w-full max-w-[800px] flex flex-col items-center gap-8 transition-all duration-[1500ms] ${
-          isSubmitting ? 'ease-out' : ''
-        } ${showLoadingTransition ? 'opacity-0 scale-110' : isSubmitting ? 'opacity-70 scale-98' : 'opacity-100 scale-100'}`}>
-          
+        <div
+          className={`w-full max-w-[800px] flex flex-col items-center gap-8 transition-all duration-[1500ms] ${
+            isSubmitting ? "ease-out" : ""
+          } ${showLoadingTransition ? "opacity-0 scale-110" : isSubmitting ? "opacity-70 scale-98" : "opacity-100 scale-100"}`}
+        >
           {/* Header */}
           <div className="text-center">
             <h1 className="text-[#271D1D] font-lora text-3xl lg:text-5xl font-medium leading-tight lg:leading-[90px] mb-4">
               Upload your document
             </h1>
             <p className="text-black font-roboto text-sm lg:text-base font-normal leading-relaxed">
-              Once your document is uploaded and submitted, Maigon AI will start analysing and generating your review.
+              Once your document is uploaded and submitted, Maigon AI will start
+              analysing and generating your review.
             </p>
             {perspective && (
               <div className="mt-4 inline-flex items-center px-3 py-1 bg-[#9A7C7C]/10 border border-[#9A7C7C]/20 rounded-full">
                 <span className="text-[#9A7C7C] text-sm font-medium">
-                  Analysis Perspective: {perspective === 'data-subject' ? 'Data Subject' : 'Organization'}
+                  Analysis Perspective:{" "}
+                  {perspective === "data-subject"
+                    ? "Data Subject"
+                    : "Organization"}
                 </span>
               </div>
             )}
@@ -283,7 +319,11 @@ export default function Upload() {
             {/* Upload Area */}
             <div
               className={`relative w-full h-14 rounded-lg cursor-pointer transition-colors ${
-                isDragOver ? 'bg-[#C4B5B5]' : selectedFile ? 'bg-[#B6A5A5]' : 'bg-[#D6CECE] hover:bg-[#C4B5B5]'
+                isDragOver
+                  ? "bg-[#C4B5B5]"
+                  : selectedFile
+                    ? "bg-[#B6A5A5]"
+                    : "bg-[#D6CECE] hover:bg-[#C4B5B5]"
               }`}
               onClick={handleUploadClick}
               onDragOver={handleDragOver}
@@ -291,9 +331,11 @@ export default function Upload() {
               onDrop={handleDrop}
             >
               {/* Progress Bar Background */}
-              <div className="absolute left-0.5 top-0 h-full w-0 bg-[#B6A5A5] rounded-lg transition-all duration-300" 
-                   style={{ width: selectedFile ? '100%' : '0%' }} />
-              
+              <div
+                className="absolute left-0.5 top-0 h-full w-0 bg-[#B6A5A5] rounded-lg transition-all duration-300"
+                style={{ width: selectedFile ? "100%" : "0%" }}
+              />
+
               {/* Upload Content */}
               <div className="relative z-10 flex items-center justify-end h-full px-6">
                 <div className="flex items-center gap-4">
@@ -331,9 +373,13 @@ export default function Upload() {
             </div>
 
             {/* Submit Button */}
-            <div className={`absolute right-0 top-[66px] transition-all duration-[1500ms] ease-out ${
-              uploadButtonHidden ? 'opacity-0 scale-0 pointer-events-none' : 'opacity-100 scale-100'
-            }`}>
+            <div
+              className={`absolute right-0 top-[66px] transition-all duration-[1500ms] ease-out ${
+                uploadButtonHidden
+                  ? "opacity-0 scale-0 pointer-events-none"
+                  : "opacity-100 scale-100"
+              }`}
+            >
               <Button
                 onClick={handleSubmit}
                 disabled={isSubmitting}
@@ -347,8 +393,9 @@ export default function Upload() {
           {/* Solution Info */}
           {solutionTitle && perspective && (
             <div className="text-center text-sm text-[#9A7C7C] font-roboto">
-              Selected: <span className="font-medium">{solutionTitle}</span> • 
-              Perspective: <span className="font-medium capitalize">{perspective}</span>
+              Selected: <span className="font-medium">{solutionTitle}</span> •
+              Perspective:{" "}
+              <span className="font-medium capitalize">{perspective}</span>
             </div>
           )}
         </div>

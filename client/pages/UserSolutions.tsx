@@ -1,5 +1,13 @@
 import { Button } from "@/components/ui/button";
-import { ChevronDown, User, CheckCircle, ChevronLeft, ChevronRight, Play, Pause } from "lucide-react";
+import {
+  ChevronDown,
+  User,
+  CheckCircle,
+  ChevronLeft,
+  ChevronRight,
+  Play,
+  Pause,
+} from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import React, { useState, useEffect } from "react";
 import Logo from "@/components/Logo";
@@ -409,8 +417,7 @@ export default function UserSolutions() {
   const location = useLocation();
 
   const { user } = useUser();
-  const userName = user?.name?.split(' ')[0] || 'User';
-
+  const userName = user?.name?.split(" ")[0] || "User";
 
   // Check if user returned from completed review
   useEffect(() => {
@@ -563,7 +570,8 @@ export default function UserSolutions() {
             </h3>
           </div>
           <p className="text-[#271D1D]/70 text-lg">
-            Choose the solution of your desire to start reviewing your contracts with the power of Maigon.
+            Choose the solution of your desire to start reviewing your contracts
+            with the power of Maigon.
           </p>
         </div>
 
@@ -883,7 +891,6 @@ export default function UserSolutions() {
           </button>
         </div>
       )}
-
     </div>
   );
 }

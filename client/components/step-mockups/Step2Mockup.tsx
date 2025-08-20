@@ -7,32 +7,39 @@ export default function Step2Mockup() {
   const contractTypes = [
     {
       title: "Non-Disclosure Agreements",
-      description: "Review non-disclosure agreements for compliance with established standards and best practices. Get instant report with compliance insights and extracted clauses."
+      description:
+        "Review non-disclosure agreements for compliance with established standards and best practices. Get instant report with compliance insights and extracted clauses.",
     },
     {
-      title: "Data Processing Agreements", 
-      description: "Review data processing agreements for compliance with the GDPR and latest EDPB guidelines. Get instant compliance report with extracted clauses, concepts, terms, highlighted risks, and compliance recommendations."
+      title: "Data Processing Agreements",
+      description:
+        "Review data processing agreements for compliance with the GDPR and latest EDPB guidelines. Get instant compliance report with extracted clauses, concepts, terms, highlighted risks, and compliance recommendations.",
     },
     {
       title: "Privacy Policy Documents",
-      description: "Review privacy statements for compliance with the GDPR criteria. Get instant compliance report with extracted clauses and recommendations."
+      description:
+        "Review privacy statements for compliance with the GDPR criteria. Get instant compliance report with extracted clauses and recommendations.",
     },
     {
       title: "Consultancy Agreements",
-      description: "Review consultancy agreements (and other professional services agreements) for compliance with established standards and best practices. Get instant report with insights and extracted clauses."
+      description:
+        "Review consultancy agreements (and other professional services agreements) for compliance with established standards and best practices. Get instant report with insights and extracted clauses.",
     },
     {
-      title: "Product Supply Agreements", 
-      description: "Review product supply agreements for compliance with established standards and best practices. Get instant report with insights and extracted clauses."
+      title: "Product Supply Agreements",
+      description:
+        "Review product supply agreements for compliance with established standards and best practices. Get instant report with insights and extracted clauses.",
     },
     {
       title: "R&D Agreements",
-      description: "Conduct compliance review of R&D agreements to ensure adherence to industry standards. Obtain a report on potential compliance risks and recommendations for risk mitigation."
+      description:
+        "Conduct compliance review of R&D agreements to ensure adherence to industry standards. Obtain a report on potential compliance risks and recommendations for risk mitigation.",
     },
     {
       title: "End User License Agreements",
-      description: "Review end user license agreements for compliance with established standards and best practices. Get instant report with insights and extracted clauses. Used most often for reviewing software license agreements."
-    }
+      description:
+        "Review end user license agreements for compliance with established standards and best practices. Get instant report with insights and extracted clauses. Used most often for reviewing software license agreements.",
+    },
   ];
 
   return (
@@ -41,7 +48,10 @@ export default function Step2Mockup() {
       <div className="mb-20 w-full h-full flex items-center justify-center">
         {/* Desktop Layout */}
         <div className="relative w-full max-w-[1073px] min-h-[590px] mx-auto z-10">
-          <div className="relative w-full h-full z-10" style={{ padding: "10px" }}>
+          <div
+            className="relative w-full h-full z-10"
+            style={{ padding: "10px" }}
+          >
             {contractTypes.map((type, index) => {
               const isActive = activeCard === index;
               // Make Data Processing Agreements (index 1) and Privacy Policy Documents (index 2) taller
@@ -53,7 +63,7 @@ export default function Step2Mockup() {
                 <div
                   key={index}
                   className={`absolute transition-all duration-700 ease-in-out cursor-pointer hover:shadow-md ${
-                    isActive ? 'z-[100]' : 'z-[20]'
+                    isActive ? "z-[100]" : "z-[20]"
                   }`}
                   style={{
                     width: "150px",
@@ -81,7 +91,11 @@ export default function Step2Mockup() {
                   {/* Bottom border - hidden when any card is active and this card is not active */}
                   <div
                     className={`absolute left-0 w-full h-px bg-[#D6CECE] rounded-full transition-opacity duration-300 ${
-                      contractTypes.some((_, i) => i !== index && i === activeCard) ? 'opacity-0' : 'opacity-100'
+                      contractTypes.some(
+                        (_, i) => i !== index && i === activeCard,
+                      )
+                        ? "opacity-0"
+                        : "opacity-100"
                     }`}
                     style={{ top: `${cardHeight - 1}px` }}
                   />
@@ -91,7 +105,13 @@ export default function Step2Mockup() {
                     className={`absolute left-4 right-4 top-[83px] transition-all duration-700 overflow-hidden ${
                       isActive ? "opacity-100" : "opacity-0"
                     }`}
-                    style={{ height: isActive ? (needsTallerCard ? "425px" : "295px") : "0px" }}
+                    style={{
+                      height: isActive
+                        ? needsTallerCard
+                          ? "425px"
+                          : "295px"
+                        : "0px",
+                    }}
                   >
                     <div className="flex flex-col h-full">
                       <div className="flex-1 mb-4">
@@ -100,9 +120,7 @@ export default function Step2Mockup() {
                         </p>
                       </div>
                       <div className="mt-auto">
-                        <Button
-                          className="w-full bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white text-xs py-3 px-6 rounded-lg transition-colors duration-200 min-h-[32px]"
-                        >
+                        <Button className="w-full bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white text-xs py-3 px-6 rounded-lg transition-colors duration-200 min-h-[32px]">
                           Upload a document
                         </Button>
                       </div>

@@ -18,22 +18,22 @@ export const ConfirmationModal = ({
   title = "Are you sure ?",
   message = "You will lose all your progress and need to start all over again if you leave this page.",
   confirmText = "Yes, leave",
-  cancelText = "No, go back"
+  cancelText = "No, go back",
 }: ConfirmationModalProps) => {
   // Handle keyboard events
   useEffect(() => {
     if (!isOpen) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
+      if (e.key === "Escape") {
         onCancel();
-      } else if (e.key === 'Enter') {
+      } else if (e.key === "Enter") {
         onConfirm();
       }
     };
 
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, onCancel, onConfirm]);
 
   if (!isOpen) return null;
@@ -44,7 +44,8 @@ export const ConfirmationModal = ({
       <div
         className="absolute inset-0 border border-white/50 backdrop-blur-[10px]"
         style={{
-          background: 'linear-gradient(122deg, #FFF 0%, rgba(255, 255, 255, 0.00) 100%)'
+          background:
+            "linear-gradient(122deg, #FFF 0%, rgba(255, 255, 255, 0.00) 100%)",
         }}
         onClick={onCancel}
       />

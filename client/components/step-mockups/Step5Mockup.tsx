@@ -98,13 +98,16 @@ export default function Step5Mockup() {
           {/* Processing Info - simulating document processing */}
           <div className="text-center text-sm text-[#9A7C7C] font-roboto mt-4">
             <div>
-              Processing: <span className="font-medium">sample_agreement.pdf</span>
+              Processing:{" "}
+              <span className="font-medium">sample_agreement.pdf</span>
             </div>
             <div>
-              Solution: <span className="font-medium">Data Processing Agreements</span>
+              Solution:{" "}
+              <span className="font-medium">Data Processing Agreements</span>
             </div>
             <div>
-              Perspective: <span className="font-medium capitalize">Organization</span>
+              Perspective:{" "}
+              <span className="font-medium capitalize">Organization</span>
             </div>
           </div>
         </div>
