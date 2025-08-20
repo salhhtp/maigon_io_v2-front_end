@@ -10,6 +10,12 @@ import CallToActionSection from "@/components/CallToActionSection";
 import MobileNavigation from "@/components/MobileNavigation";
 import ContractCardsAnimation from "@/components/ContractCardsAnimation";
 import { useUser } from "@/contexts/UserContext";
+import Step1Mockup from "@/components/step-mockups/Step1Mockup";
+import Step2Mockup from "@/components/step-mockups/Step2Mockup";
+import Step3Mockup from "@/components/step-mockups/Step3Mockup";
+import Step4Mockup from "@/components/step-mockups/Step4Mockup";
+import Step5Mockup from "@/components/step-mockups/Step5Mockup";
+import Step6Mockup from "@/components/step-mockups/Step6Mockup";
 
 const SolutionCard = ({
   title,
