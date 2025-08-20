@@ -12,11 +12,40 @@ export default function SignIn() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+
+  const { setUser } = useUser();
+  const navigate = useNavigate();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle sign in logic here
-    console.log("Sign in attempt:", { email, password, rememberMe });
+    setError("");
+    setIsLoading(true);
+
+    // Simulate loading delay for realistic UX
+    setTimeout(() => {
+      // Check if email matches any of our mock users
+      const userKey = Object.keys(mockUsers).find(key => {
+        const user = mockUsers[key];
+        return user.email === email;
+      });
+
+      if (userKey && password === "demo123") {
+        // Successful login
+        const user = mockUsers[userKey];
+        setUser(user);
+        localStorage.setItem("maigon_current_user", userKey);
+
+        // Navigate to user home
+        navigate("/home");
+      } else {
+        // Failed login
+        setError("Invalid email or password. Please check your credentials.");
+      }
+
+      setIsLoading(false);
+    }, 1000); // 1 second delay for UX
   };
 
   return (
