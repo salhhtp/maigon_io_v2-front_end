@@ -9,6 +9,7 @@ export default function PerspectiveSelection() {
   const navigate = useNavigate();
   const { user } = useUser();
   const [selectedPerspective, setSelectedPerspective] = useState<"data-subject" | "organization" | null>("data-subject");
+  const [userDropdownOpen, setUserDropdownOpen] = useState(false);
 
   const handleContinue = () => {
     if (selectedPerspective) {
