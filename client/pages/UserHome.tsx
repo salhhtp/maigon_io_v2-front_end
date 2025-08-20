@@ -24,8 +24,8 @@ export default function UserHome() {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
 
-  // User data - can be replaced with actual user context/auth later
-  const userName = "Adam";
+  const { user } = useUser();
+  const userName = user?.name?.split(' ')[0] || 'User';
 
   const faqData = [
     {
