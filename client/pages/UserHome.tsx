@@ -24,8 +24,19 @@ export default function UserHome() {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
 
-  const { user } = useUser();
-  const userName = user?.name?.split(" ")[0] || "User";
+  // Add error boundary protection for user context
+  let user = null;
+  let userName = 'User';
+
+  try {
+    const userContext = useUser();
+    user = userContext.user;
+    userName = user?.name?.split(' ')[0] || 'User';
+  } catch (error) {
+    console.error('Error accessing user context in UserHome:', error);
+    // For now, continue with default values
+    // In a real app, you might want to redirect to login or show an error message
+  }
 
   const faqData = [
     {
