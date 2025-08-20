@@ -15,6 +15,7 @@ import Solutions from "./pages/Solutions";
 import UserSolutions from "./pages/UserSolutions";
 import PerspectiveSelection from "./pages/PerspectiveSelection";
 import Upload from "./pages/Upload";
+import ContractReview from "./pages/ContractReview";
 import Loading from "./pages/Loading";
 import News from "./pages/News";
 import UserNews from "./pages/UserNews";
