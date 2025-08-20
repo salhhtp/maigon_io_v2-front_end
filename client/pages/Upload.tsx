@@ -88,13 +88,19 @@ export default function Upload() {
     setShowConfirmModal(false);
     setHasStartedProcess(false);
 
-    if (blocker.state === 'blocked') {
-      blocker.proceed();
-    } else if (pendingNavigation) {
-      navigate(pendingNavigation);
-    }
+    // Clean up browser event listeners before navigating
+    window.removeEventListener('beforeunload', () => {});
+    window.removeEventListener('popstate', () => {});
 
-    setPendingNavigation(null);
+    // Use a timeout to ensure modal state is updated before navigation
+    setTimeout(() => {
+      if (blocker.state === 'blocked') {
+        blocker.proceed();
+      } else if (pendingNavigation) {
+        navigate(pendingNavigation);
+      }
+      setPendingNavigation(null);
+    }, 100);
   };
 
   const handleCancelNavigation = () => {
