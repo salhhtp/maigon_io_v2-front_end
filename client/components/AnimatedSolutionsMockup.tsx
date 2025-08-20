@@ -24,7 +24,7 @@ const AnimatedSolutionsMockup: React.FC = () => {
     },
     {
       icon: Cog,
-      name: "Cons",
+      name: "CA",
       color: "text-orange-500",
       bg: "bg-orange-50",
     },
