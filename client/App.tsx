@@ -13,6 +13,7 @@ import SignIn from "./pages/SignIn";
 import SignUp from "./pages/SignUp";
 import Solutions from "./pages/Solutions";
 import UserSolutions from "./pages/UserSolutions";
+import PerspectiveSelection from "./pages/PerspectiveSelection";
 import Upload from "./pages/Upload";
 import Loading from "./pages/Loading";
 import News from "./pages/News";
