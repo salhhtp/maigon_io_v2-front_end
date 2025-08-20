@@ -15,6 +15,7 @@ import Step3Mockup from "@/components/step-mockups/Step3Mockup";
 import Step4Mockup from "@/components/step-mockups/Step4Mockup";
 import Step5Mockup from "@/components/step-mockups/Step5Mockup";
 import Step6Mockup from "@/components/step-mockups/Step6Mockup";
+import { useUser } from "@/contexts/UserContext";
 
 const SolutionCard = ({
   title,
