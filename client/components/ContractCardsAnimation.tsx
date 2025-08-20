@@ -54,8 +54,8 @@ const ContractCardsAnimation: React.FC<ContractCardsAnimationProps> = ({
   return (
     <div className="mb-20 w-full">
       {/* Desktop Layout - Hidden on mobile/tablet */}
-      <div className="hidden lg:block relative w-full max-w-[1073px] min-h-[590px] mx-auto">
-        <div className="relative w-full h-full" style={{ padding: "10px" }}>
+      <div className="hidden lg:block relative w-full max-w-[1073px] min-h-[590px] mx-auto z-10">
+        <div className="relative w-full h-full z-10" style={{ padding: "10px" }}>
           {contractTypes.map((type, index) => {
             const isActive = activeCard === index;
             // Make Data Processing Agreements (index 1) and Privacy Policy Documents (index 3) taller
