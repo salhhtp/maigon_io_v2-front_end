@@ -86,36 +86,7 @@ export default function Loading() {
     return () => clearTimeout(timer);
   }, []);
 
-  // Mock loading progression for demo
-  useEffect(() => {
-    let progressInterval: NodeJS.Timeout;
-    let navigationTimeout: NodeJS.Timeout;
-
-    // Start loading progression after a short delay
-    const startProgressTimer = setTimeout(() => {
-      progressInterval = setInterval(() => {
-        setLoadingProgress(prev => {
-          const newProgress = prev + 2;
-          if (newProgress >= 100) {
-            clearInterval(progressInterval);
-            return 100;
-          }
-          return newProgress;
-        });
-      }, 50); // Update every 50ms for smooth progression
-
-      // Complete loading and navigate after 5 seconds
-      navigationTimeout = setTimeout(() => {
-        handleLoadingComplete();
-      }, 5000);
-    }, 500); // Start after 500ms
-
-    return () => {
-      clearTimeout(startProgressTimer);
-      clearInterval(progressInterval);
-      clearTimeout(navigationTimeout);
-    };
-  }, []);
+  // The AnimatedLoadingLogo component handles the loading progression and calls handleLoadingComplete when done
 
   // Handle React Router navigation blocking
   useEffect(() => {
