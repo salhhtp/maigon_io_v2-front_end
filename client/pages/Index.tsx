@@ -170,7 +170,7 @@ export default function Index() {
             {/* Card 1 */}
             <div className="flex flex-col items-center relative w-full max-w-md">
               <img
-                src="https://api.builder.io/api/v1/image/assets/TEMP/e33365b24a4962ef5c0529d0c37ac13af63f6f48?width=916"
+                src="https://images.pexels.com/photos/7821937/pexels-photo-7821937.jpeg"
                 alt="Compliance Dashboard Interface"
                 className="w-full h-80 object-cover border border-[#271D1D]/15 rounded-lg"
               />
@@ -195,7 +195,7 @@ export default function Index() {
               <div
                 className="flex justify-between items-center px-24 py-14 w-full h-80 border border-[#271D1D]/15 rounded-lg relative bg-cover bg-center"
                 style={{
-                  backgroundImage: `url('https://api.builder.io/api/v1/image/assets/TEMP/2a007dd35a383d1ae8dd9a022fe6283585484de4?width=916')`,
+                  backgroundImage: `url('https://images.pexels.com/photos/8730374/pexels-photo-8730374.jpeg')`,
                   backgroundPosition: "center center",
                   backgroundSize: "cover",
                 }}
@@ -237,7 +237,7 @@ export default function Index() {
             {/* Card 3 */}
             <div className="flex flex-col items-center relative w-full max-w-md">
               <img
-                src="https://api.builder.io/api/v1/image/assets/TEMP/7c87d01d9be178b894e267d4b9d0734052823086?width=916"
+                src="https://images.pexels.com/photos/590045/pexels-photo-590045.jpeg"
                 alt="Contract Summary Interface"
                 className="w-full h-80 object-cover border border-[#271D1D]/15 rounded-lg"
               />
@@ -259,8 +259,8 @@ export default function Index() {
             {/* Card 4 */}
             <div className="flex flex-col items-center relative w-full max-w-md">
               <img
-                src="https://api.builder.io/api/v1/image/assets/TEMP/72edd72cd0f4d42d5f5a36fcc0d9e59c5460050c?width=916"
-                alt="Card 4"
+                src="https://images.pexels.com/photos/7111601/pexels-photo-7111601.jpeg"
+                alt="Risk Assessment Interface"
                 className="w-full h-80 object-cover border border-[#271D1D]/15 rounded-lg"
               />
 
@@ -284,7 +284,7 @@ export default function Index() {
             <div className="flex flex-col items-center relative w-full max-w-md">
               <div className="h-80 bg-[#D6CECE] flex items-center justify-center p-12 w-full border border-[#271D1D]/15 rounded-lg">
                 <img
-                  src="https://api.builder.io/api/v1/image/assets/TEMP/36565312d2d6200939ff336eb31f7d63d829ac13?width=722"
+                  src="https://images.pexels.com/photos/25626428/pexels-photo-25626428.jpeg"
                   alt="OpenAI"
                   className="w-full h-auto"
                 />
