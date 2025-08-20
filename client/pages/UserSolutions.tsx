@@ -327,10 +327,17 @@ export default function UserSolutions() {
     navigate("/perspective-selection");
   };
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+  const [customSolutionModalOpen, setCustomSolutionModalOpen] = useState(false);
   const location = useLocation();
 
   const { user } = useUser();
   const userName = user?.name?.split(' ')[0] || 'User';
+
+  const handleSolutionCreated = (solutionData: any) => {
+    // In a real app, this would add the solution to the available solutions
+    console.log('New solution created:', solutionData);
+    // Could show a success toast here
+  };
 
   // Check if user returned from completed review
   useEffect(() => {
