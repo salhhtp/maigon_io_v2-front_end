@@ -104,7 +104,7 @@ const AnimatedSolutionsMockup: React.FC = () => {
                   }`}
                 />
                 <div
-                  className={`text-sm text-center mt-2 font-medium ${
+                  className={`text-xs text-center mt-2 font-medium leading-tight ${
                     index === activeContract ? contract.color : "text-gray-500"
                   }`}
                 >
