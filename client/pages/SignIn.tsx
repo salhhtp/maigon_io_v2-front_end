@@ -15,7 +15,7 @@ export default function SignIn() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     // Handle sign in logic here
-    console.log("Sign in attempt:", { email, address, password, rememberMe });
+    console.log("Sign in attempt:", { email, password, rememberMe });
   };
 
   return (
