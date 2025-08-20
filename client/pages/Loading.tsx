@@ -31,13 +31,11 @@ export default function Loading() {
 
   const handleLoadingComplete = () => {
     setIsProcessing(false);
-    // Navigate to results page after review completion
-    // For now, navigate back to user solutions with success message
+    // Navigate to contract review results page
     setTimeout(() => {
-      navigate("/user-solutions", {
+      navigate("/contract-review", {
         state: {
-          reviewCompleted: true,
-          fileName: selectedFile?.name,
+          selectedFile: selectedFile,
           solutionTitle: solutionTitle,
           perspective: perspective,
         },
