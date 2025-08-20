@@ -316,6 +316,16 @@ export default function Profile() {
   const [customSolutionModalOpen, setCustomSolutionModalOpen] = useState(false);
   const { user, isLoggedIn } = useUser();
 
+  const handleUserAdded = (userData: any) => {
+    console.log('New user added:', userData);
+    // In a real app, this would update the user list and show a success message
+  };
+
+  const handleSolutionCreated = (solutionData: any) => {
+    console.log('New solution created:', solutionData);
+    // In a real app, this would update the solutions list and show a success message
+  };
+
   // Redirect if not logged in
   if (!isLoggedIn || !user) {
     return (
