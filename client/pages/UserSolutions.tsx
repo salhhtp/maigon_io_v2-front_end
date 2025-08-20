@@ -17,7 +17,6 @@ import Step5Mockup from "@/components/step-mockups/Step5Mockup";
 import Step6Mockup from "@/components/step-mockups/Step6Mockup";
 import { useUser } from "@/contexts/UserContext";
 import CustomSolutionModal from "@/components/modals/CustomSolutionModal";
-import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 
 const SolutionCard = ({
