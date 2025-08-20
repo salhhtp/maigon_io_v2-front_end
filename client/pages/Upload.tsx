@@ -246,6 +246,13 @@ export default function Upload() {
             <p className="text-black font-roboto text-sm lg:text-base font-normal leading-relaxed">
               Once your document is uploaded and submitted, Maigon AI will start analysing and generating your review.
             </p>
+            {perspective && (
+              <div className="mt-4 inline-flex items-center px-3 py-1 bg-[#9A7C7C]/10 border border-[#9A7C7C]/20 rounded-full">
+                <span className="text-[#9A7C7C] text-sm font-medium">
+                  Analysis Perspective: {perspective === 'data-subject' ? 'Data Subject' : 'Organization'}
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Upload Section */}
