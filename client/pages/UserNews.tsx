@@ -79,8 +79,8 @@ const FAQItem = ({
 export default function UserNews() {
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
 
-  // User data - can be replaced with actual user context/auth later
-  const userName = "Adam";
+  const { user } = useUser();
+  const userName = user?.name?.split(' ')[0] || 'User';
 
   return (
     <div className="min-h-screen bg-[#F9F8F8]">
