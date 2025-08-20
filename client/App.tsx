@@ -63,6 +63,10 @@ const router = createBrowserRouter([
     element: <UserSolutions />,
   },
   {
+    path: "/perspective-selection",
+    element: <PerspectiveSelection />,
+  },
+  {
     path: "/upload",
     element: <Upload />,
   },
