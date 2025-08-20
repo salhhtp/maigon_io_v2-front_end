@@ -85,27 +85,21 @@ export default function Upload() {
   };
 
   const handleConfirmNavigation = () => {
-    // First, clean up all blocking mechanisms
+    // First, clean up modal state
     setShowConfirmModal(false);
     setHasStartedProcess(false);
 
-    // Disable the blocker by resetting any blocked state
-    if (blocker.state === 'blocked') {
-      blocker.reset();
-    }
+    // Check blocker state before resetting it
+    const wasBlocked = blocker.state === 'blocked';
 
     // Navigate to the pending destination
     if (pendingNavigation) {
-      // Small delay to ensure state is cleaned up
-      setTimeout(() => {
-        navigate(pendingNavigation);
-        setPendingNavigation(null);
-      }, 50);
-    } else if (blocker.state === 'blocked') {
-      // If no pending navigation, proceed with the blocked navigation
-      setTimeout(() => {
-        blocker.proceed();
-      }, 50);
+      // We have a specific destination to navigate to
+      navigate(pendingNavigation);
+      setPendingNavigation(null);
+    } else if (wasBlocked) {
+      // No pending navigation, proceed with the blocked navigation
+      blocker.proceed();
     }
   };
 
