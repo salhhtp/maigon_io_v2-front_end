@@ -16,8 +16,6 @@ import Step4Mockup from "@/components/step-mockups/Step4Mockup";
 import Step5Mockup from "@/components/step-mockups/Step5Mockup";
 import Step6Mockup from "@/components/step-mockups/Step6Mockup";
 import { useUser } from "@/contexts/UserContext";
-import CustomSolutionModal from "@/components/modals/CustomSolutionModal";
-import { Plus } from "lucide-react";
 
 const SolutionCard = ({
   title,
@@ -326,17 +324,11 @@ export default function UserSolutions() {
     navigate("/perspective-selection");
   };
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
-  const [customSolutionModalOpen, setCustomSolutionModalOpen] = useState(false);
   const location = useLocation();
 
   const { user } = useUser();
   const userName = user?.name?.split(' ')[0] || 'User';
 
-  const handleSolutionCreated = (solutionData: any) => {
-    // In a real app, this would add the solution to the available solutions
-    console.log('New solution created:', solutionData);
-    // Could show a success toast here
-  };
 
   // Check if user returned from completed review
   useEffect(() => {
@@ -487,14 +479,6 @@ export default function UserSolutions() {
             <h3 className="text-black text-center font-lora text-3xl lg:text-4xl font-medium leading-tight">
               Solutions
             </h3>
-            <Button
-              onClick={() => setCustomSolutionModalOpen(true)}
-              variant="outline"
-              className="border-[#9A7C7C] text-[#9A7C7C] hover:bg-[#9A7C7C] hover:text-white"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Create Custom
-            </Button>
           </div>
           <p className="text-[#271D1D]/70 text-lg">
             Choose the solution of your desire to start reviewing your contracts with the power of Maigon.
@@ -818,12 +802,6 @@ export default function UserSolutions() {
         </div>
       )}
 
-      {/* Custom Solution Modal */}
-      <CustomSolutionModal
-        isOpen={customSolutionModalOpen}
-        onClose={() => setCustomSolutionModalOpen(false)}
-        onSuccess={handleSolutionCreated}
-      />
     </div>
   );
 }
