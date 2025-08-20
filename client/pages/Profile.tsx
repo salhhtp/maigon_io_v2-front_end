@@ -17,6 +17,8 @@ import Logo from "@/components/Logo";
 import Footer from "@/components/Footer";
 import MobileNavigation from "@/components/MobileNavigation";
 import { useUser } from "@/contexts/UserContext";
+import AddUserModal from "@/components/modals/AddUserModal";
+import CustomSolutionModal from "@/components/modals/CustomSolutionModal";
 
 // Dashboard Widget Components
 const StatsCard = ({
@@ -143,13 +145,16 @@ const RecentActivity = ({
   </div>
 );
 
-const AdminUserManagement = () => (
+const AdminUserManagement = ({ onAddUser }: { onAddUser: () => void }) => (
   <div className="bg-white rounded-lg p-6 border border-[#271D1D]/10">
     <div className="flex items-center justify-between mb-4">
       <h3 className="font-lora text-lg font-medium text-[#271D1D]">
         User Management
       </h3>
-      <Button className="bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white px-4 py-2 rounded-lg text-sm">
+      <Button
+        onClick={onAddUser}
+        className="bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white px-4 py-2 rounded-lg text-sm"
+      >
         <Plus className="w-4 h-4 mr-2" />
         Add User
       </Button>
@@ -229,13 +234,16 @@ const AdminUserManagement = () => (
   </div>
 );
 
-const AdminSolutionCreator = () => (
+const AdminSolutionCreator = ({ onCreateSolution }: { onCreateSolution: () => void }) => (
   <div className="bg-white rounded-lg p-6 border border-[#271D1D]/10">
     <div className="flex items-center justify-between mb-4">
       <h3 className="font-lora text-lg font-medium text-[#271D1D]">
         Custom Solutions
       </h3>
-      <Button className="bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white px-4 py-2 rounded-lg text-sm">
+      <Button
+        onClick={onCreateSolution}
+        className="bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white px-4 py-2 rounded-lg text-sm"
+      >
         <Plus className="w-4 h-4 mr-2" />
         Create Solution
       </Button>
