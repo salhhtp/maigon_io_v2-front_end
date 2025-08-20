@@ -319,6 +319,13 @@ export default function UserTeam() {
       </section>
 
       <Footer />
+
+      {/* Add User Modal */}
+      <AddUserModal
+        isOpen={addUserModalOpen}
+        onClose={() => setAddUserModalOpen(false)}
+        onSuccess={handleUserAdded}
+      />
     </div>
   );
 }
