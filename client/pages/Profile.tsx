@@ -647,6 +647,20 @@ export default function Profile() {
       </main>
 
       <Footer />
+
+      {/* Add User Modal */}
+      <AddUserModal
+        isOpen={addUserModalOpen}
+        onClose={() => setAddUserModalOpen(false)}
+        onSuccess={handleUserAdded}
+      />
+
+      {/* Custom Solution Modal */}
+      <CustomSolutionModal
+        isOpen={customSolutionModalOpen}
+        onClose={() => setCustomSolutionModalOpen(false)}
+        onSuccess={handleSolutionCreated}
+      />
     </div>
   );
 }
