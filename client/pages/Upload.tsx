@@ -85,22 +85,28 @@ export default function Upload() {
   };
 
   const handleConfirmNavigation = () => {
+    // First, clean up all blocking mechanisms
     setShowConfirmModal(false);
     setHasStartedProcess(false);
 
-    // Clean up browser event listeners before navigating
-    window.removeEventListener('beforeunload', () => {});
-    window.removeEventListener('popstate', () => {});
+    // Disable the blocker by resetting any blocked state
+    if (blocker.state === 'blocked') {
+      blocker.reset();
+    }
 
-    // Use a timeout to ensure modal state is updated before navigation
-    setTimeout(() => {
-      if (blocker.state === 'blocked') {
-        blocker.proceed();
-      } else if (pendingNavigation) {
+    // Navigate to the pending destination
+    if (pendingNavigation) {
+      // Small delay to ensure state is cleaned up
+      setTimeout(() => {
         navigate(pendingNavigation);
-      }
-      setPendingNavigation(null);
-    }, 100);
+        setPendingNavigation(null);
+      }, 50);
+    } else if (blocker.state === 'blocked') {
+      // If no pending navigation, proceed with the blocked navigation
+      setTimeout(() => {
+        blocker.proceed();
+      }, 50);
+    }
   };
 
   const handleCancelNavigation = () => {
