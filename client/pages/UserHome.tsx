@@ -188,7 +188,7 @@ export default function UserHome() {
           </Button>
         </div>
 
-        <div className="w-full lg:w-auto lg:min-w-[623px] lg:h-[831px]">
+        <div className="hidden lg:block w-full lg:w-auto lg:min-w-[623px] lg:h-[831px]">
           <AnimatedHeroMockup />
         </div>
       </section>
