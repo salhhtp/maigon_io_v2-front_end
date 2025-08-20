@@ -5,8 +5,10 @@ import Logo from "@/components/Logo";
 import Footer from "@/components/Footer";
 import AnimatedLoadingLogo from "@/components/AnimatedLoadingLogo";
 import ConfirmationModal from "@/components/ConfirmationModal";
+import { useUser } from "@/contexts/UserContext";
 
 export default function Loading() {
+  const { user } = useUser();
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -163,7 +165,7 @@ export default function Loading() {
               className="flex items-center space-x-2 bg-[#D6CECE] hover:bg-[#D6CECE]/90 px-4 py-2 rounded-lg transition-colors"
             >
               <User className="w-4 h-4 text-[#271D1D]" />
-              <span className="text-[#271D1D] font-medium">@Salih</span>
+              <span className="text-[#271D1D] font-medium">@{user?.name?.split(' ')[0] || 'User'}</span>
               <ChevronDown
                 className={`w-4 h-4 text-[#271D1D] transition-transform ${userDropdownOpen ? "rotate-180" : ""}`}
               />
