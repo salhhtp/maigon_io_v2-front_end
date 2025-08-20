@@ -14,6 +14,11 @@ import AnimatedQuotes from "@/components/AnimatedQuotes";
 import ContractCardsAnimation from "@/components/ContractCardsAnimation";
 import AnimatedHeroMockup from "@/components/AnimatedHeroMockup";
 import MobileNavigation from "@/components/MobileNavigation";
+import ComplianceScoreMockup from "@/components/mockups/ComplianceScoreMockup";
+import PerspectiveReviewMockup from "@/components/mockups/PerspectiveReviewMockup";
+import FullSummaryMockup from "@/components/mockups/FullSummaryMockup";
+import RiskAssessmentMockup from "@/components/mockups/RiskAssessmentMockup";
+import AIIntegrationMockup from "@/components/mockups/AIIntegrationMockup";
 
 export default function Index() {
   const navigate = useNavigate();
