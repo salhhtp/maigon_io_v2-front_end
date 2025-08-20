@@ -177,7 +177,7 @@ export default function Index() {
 
               {/* Card Description */}
               <div className="flex flex-col items-center w-full relative mt-4">
-                <div className="flex h-[89px] flex-col justify-center w-full text-black text-center font-lora text-xl font-medium leading-[90px] relative">
+                <div className="flex h-[89px] flex-col justify-center w-full text-black text-center font-lora text-xl font-medium leading-tight relative">
                   <span>Learn Your Compliance Score</span>
                 </div>
                 <div className="w-full text-black text-center text-xs font-normal leading-[26px] tracking-[0.12px] relative">
@@ -221,7 +221,7 @@ export default function Index() {
 
               {/* Card Description */}
               <div className="flex flex-col items-center w-full relative mt-4">
-                <div className="flex h-[89px] flex-col justify-center w-full text-black text-center font-lora text-xl font-medium leading-[90px] relative">
+                <div className="flex h-[89px] flex-col justify-center w-full text-black text-center font-lora text-xl font-medium leading-tight relative">
                   <span>Review From Different Perspectives</span>
                 </div>
                 <div className="w-full text-black text-center text-xs font-normal leading-[26px] tracking-[0.12px] relative">
@@ -244,7 +244,7 @@ export default function Index() {
 
               {/* Card Description */}
               <div className="flex flex-col items-center w-full relative mt-4">
-                <div className="flex h-[89px] flex-col justify-center w-full text-black text-center font-lora text-xl font-medium leading-[90px] relative">
+                <div className="flex h-[89px] flex-col justify-center w-full text-black text-center font-lora text-xl font-medium leading-tight relative">
                   <span>Full Summary</span>
                 </div>
                 <div className="w-full text-black text-center text-xs font-normal leading-[26px] tracking-[0.12px] relative">
@@ -266,7 +266,7 @@ export default function Index() {
 
               {/* Card Description */}
               <div className="flex flex-col items-center w-full relative mt-4">
-                <div className="flex h-[89px] flex-col justify-center w-full text-black text-center font-lora text-xl font-medium leading-[90px] relative">
+                <div className="flex h-[89px] flex-col justify-center w-full text-black text-center font-lora text-xl font-medium leading-tight relative">
                   <span>See All The Risks</span>
                 </div>
                 <div className="w-full text-black text-center text-xs font-normal leading-[26px] tracking-[0.12px] relative">
@@ -292,7 +292,7 @@ export default function Index() {
 
               {/* Card Description */}
               <div className="flex flex-col items-center w-full relative mt-4">
-                <div className="flex h-[89px] flex-col justify-center w-full text-black text-center font-lora text-xl font-medium leading-[90px] relative">
+                <div className="flex h-[89px] flex-col justify-center w-full text-black text-center font-lora text-xl font-medium leading-tight relative">
                   <span>OpenAI Integration</span>
                 </div>
                 <div className="w-full text-black text-center text-xs font-normal leading-[26px] tracking-[0.12px] relative">
