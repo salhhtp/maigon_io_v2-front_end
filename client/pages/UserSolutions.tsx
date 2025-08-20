@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { ChevronDown, User, CheckCircle } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import Logo from "@/components/Logo";
 import Footer from "@/components/Footer";
 import AnimatedQuotes from "@/components/AnimatedQuotes";
@@ -9,6 +9,12 @@ import AnimatedSolutionCard from "@/components/AnimatedSolutionCard";
 import MobileNavigation from "@/components/MobileNavigation";
 import ContractCardsAnimation from "@/components/ContractCardsAnimation";
 import AnimatedSolutionsMockup from "@/components/AnimatedSolutionsMockup";
+import Step1Mockup from "@/components/step-mockups/Step1Mockup";
+import Step2Mockup from "@/components/step-mockups/Step2Mockup";
+import Step3Mockup from "@/components/step-mockups/Step3Mockup";
+import Step4Mockup from "@/components/step-mockups/Step4Mockup";
+import Step5Mockup from "@/components/step-mockups/Step5Mockup";
+import Step6Mockup from "@/components/step-mockups/Step6Mockup";
 
 const SolutionCard = ({
   title,
