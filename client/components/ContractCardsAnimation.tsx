@@ -93,9 +93,11 @@ const ContractCardsAnimation: React.FC<ContractCardsAnimationProps> = ({
                   </h4>
                 </div>
 
-                {/* Bottom border */}
+                {/* Bottom border - hidden when any card is active and this card is not active */}
                 <div
-                  className="absolute left-0 w-full h-px bg-[#D6CECE] rounded-full"
+                  className={`absolute left-0 w-full h-px bg-[#D6CECE] rounded-full transition-opacity duration-300 ${
+                    contractTypes.some((_, i) => i !== index && i === activeCard) ? 'opacity-0' : 'opacity-100'
+                  }`}
                   style={{ top: `${cardHeight - 1}px` }}
                 />
 
