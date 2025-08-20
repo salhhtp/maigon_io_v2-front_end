@@ -318,9 +318,9 @@ export default function UserSolutions() {
     },
   ];
 
-  // Handle solution button clicks - navigate to upload for logged-in users
+  // Handle solution button clicks - navigate to perspective selection for logged-in users
   const handleSolutionButtonClick = () => {
-    navigate("/upload");
+    navigate("/perspective-selection");
   };
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const location = useLocation();
