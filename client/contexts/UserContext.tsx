@@ -66,6 +66,7 @@ interface UserContextType {
   updateUser: (updates: Partial<User>) => void;
   isLoggedIn: boolean;
   logout: () => void;
+  isLoading: boolean;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -613,15 +614,24 @@ const mockUsers: Record<string, User> = {
 export const UserProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
-  const [user, setUser] = useState<User | null>(() => {
-    // In a real app, you'd check localStorage, cookies, or make an API call
-    // For demo purposes, we'll simulate a logged-in user
-    const storedUser = localStorage.getItem("maigon_current_user");
-    if (storedUser && mockUsers[storedUser]) {
-      return mockUsers[storedUser];
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Initialize user state in useEffect to avoid SSR issues
+  React.useEffect(() => {
+    try {
+      // In a real app, you'd check localStorage, cookies, or make an API call
+      // For demo purposes, we'll simulate a logged-in user
+      const storedUser = localStorage.getItem("maigon_current_user");
+      if (storedUser && mockUsers[storedUser]) {
+        setUser(mockUsers[storedUser]);
+      }
+    } catch (error) {
+      console.error('Error initializing user:', error);
+    } finally {
+      setIsLoading(false);
     }
-    return null;
-  });
+  }, []);
 
   const updateUser = (updates: Partial<User>) => {
     if (user) {
@@ -655,6 +665,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({
     updateUser,
     isLoggedIn: !!user,
     logout,
+    isLoading,
   };
 
   return <UserContext.Provider value={value}>{children}</UserContext.Provider>;
@@ -663,6 +674,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({
 export const useUser = () => {
   const context = useContext(UserContext);
   if (context === undefined) {
+    console.error('UserContext is undefined. Make sure UserProvider is wrapping the component tree.');
     throw new Error("useUser must be used within a UserProvider");
   }
   return context;
