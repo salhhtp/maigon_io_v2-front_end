@@ -627,7 +627,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({
         setUser(mockUsers[storedUser]);
       }
     } catch (error) {
-      console.error('Error initializing user:', error);
+      console.error("Error initializing user:", error);
     } finally {
       setIsLoading(false);
     }
@@ -674,7 +674,9 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({
 export const useUser = () => {
   const context = useContext(UserContext);
   if (context === undefined) {
-    console.error('UserContext is undefined. Make sure UserProvider is wrapping the component tree.');
+    console.error(
+      "UserContext is undefined. Make sure UserProvider is wrapping the component tree.",
+    );
     throw new Error("useUser must be used within a UserProvider");
   }
   return context;
