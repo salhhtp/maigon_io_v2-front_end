@@ -16,6 +16,7 @@ export default function Loading() {
     null,
   );
   const [isProcessing, setIsProcessing] = useState(true);
+  const [loadingProgress, setLoadingProgress] = useState(0);
   const location = useLocation();
   const navigate = useNavigate();
 
