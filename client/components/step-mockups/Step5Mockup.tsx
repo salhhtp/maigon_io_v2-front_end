@@ -1,97 +1,112 @@
+import { useState, useEffect } from "react";
+
 export default function Step5Mockup() {
+  const [progress, setProgress] = useState(65); // Show at 65% progress to match the loading state
+
+  // Animate to show loading progress
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setProgress(75);
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
     <div className="w-full h-full bg-[#F9F8F8] rounded-lg border border-[#271D1D]/15 overflow-hidden relative">
-      {/* Navigation */}
-      <nav className="flex items-center justify-between px-4 py-3">
-        <div className="text-[#725A5A] font-lora text-lg font-medium">
-          MAIGON
-        </div>
-        <div className="flex items-center space-x-4 text-sm">
-          <span className="text-[#271D1D]">Solutions</span>
-          <span className="text-[#271D1D]">News</span>
-          <span className="text-[#271D1D]">Team</span>
-          <div className="flex items-center space-x-1 bg-[#D6CECE] px-2 py-1 rounded">
-            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"/>
-            </svg>
-            <span className="text-xs">@Salih</span>
+      {/* Main Content - matching Loading page layout */}
+      <div className="flex-1 flex items-center justify-center px-8 lg:px-16 py-20 h-full">
+        <div className="w-full max-w-[554px] flex flex-col items-center gap-7">
+          {/* Header Text - exact same structure as Loading page */}
+          <div className="w-full max-w-[237px] flex flex-col items-center gap-2">
+            <div className="text-center px-2.5 py-2.5">
+              <h1 className="text-black font-lora text-xl lg:text-2xl font-medium leading-6">
+                Don't go anywhere!
+              </h1>
+            </div>
+            <div className="text-center px-2.5 py-2.5">
+              <p className="text-black font-roboto text-xs font-normal leading-6">
+                This won't take too long
+              </p>
+            </div>
           </div>
-        </div>
-      </nav>
 
-      {/* Main Content */}
-      <div className="flex flex-col items-center justify-center px-4 py-12">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-medium text-[#271D1D] font-lora mb-4">
-            Don't go anywhere!
-          </h1>
-          <p className="text-[#4B5563] text-base">
-            This won't take too long
-          </p>
-        </div>
-
-        {/* Animated MAIGON Logo */}
-        <div className="mb-12">
-          <div className="text-[#725A5A]/40 font-lora text-6xl font-medium tracking-wider">
-            MAIGON
-          </div>
-        </div>
-
-        {/* Processing Status */}
-        <div className="w-full max-w-md">
-          {/* Progress Steps */}
-          <div className="space-y-4 mb-8">
-            <div className="flex items-center gap-3">
-              <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
-                <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
+          {/* Animated Loading Logo - exact same component logic */}
+          <div className="w-full px-2.5 py-2.5">
+            <div className="relative w-full max-w-[534px] h-auto aspect-[534/140] mx-auto">
+              {/* Outlined Logo (Always visible) */}
+              <div className="absolute inset-0 flex items-center justify-center">
+                <svg
+                  width="534"
+                  height="140"
+                  viewBox="0 0 534 140"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="w-full h-full"
+                >
+                  <text
+                    x="267"
+                    y="100"
+                    textAnchor="middle"
+                    className="font-lora text-[128px] font-normal"
+                    style={{
+                      fontSize: "clamp(64px, 12vw, 128px)",
+                      fill: "none",
+                      stroke: "#B6A5A5",
+                      strokeWidth: "1px",
+                      filter: "drop-shadow(0 4px 4px rgba(0, 0, 0, 0.25))",
+                    }}
+                  >
+                    MAIGON
+                  </text>
                 </svg>
               </div>
-              <span className="text-[#271D1D] text-sm">Document uploaded successfully</span>
-            </div>
-            
-            <div className="flex items-center gap-3">
-              <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
-                <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
+
+              {/* Filled Logo (Clipped by progress) */}
+              <div
+                className="absolute inset-0 flex items-center justify-center overflow-hidden"
+                style={{
+                  clipPath: `inset(${100 - progress}% 0 0 0)`,
+                  transition: "clip-path 0.1s ease-out",
+                }}
+              >
+                <svg
+                  width="534"
+                  height="140"
+                  viewBox="0 0 534 140"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="w-full h-full"
+                >
+                  <text
+                    x="267"
+                    y="100"
+                    textAnchor="middle"
+                    className="font-lora text-[128px] font-normal"
+                    style={{
+                      fontSize: "clamp(64px, 12vw, 128px)",
+                      fill: "#9A7C7C",
+                      filter: "drop-shadow(0 4px 4px rgba(0, 0, 0, 0.25))",
+                    }}
+                  >
+                    MAIGON
+                  </text>
                 </svg>
               </div>
-              <span className="text-[#271D1D] text-sm">Document parsing completed</span>
-            </div>
-            
-            <div className="flex items-center gap-3">
-              <div className="w-6 h-6 bg-[#725A5A] rounded-full flex items-center justify-center">
-                <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-              </div>
-              <span className="text-[#271D1D] text-sm">AI analysis in progress...</span>
-            </div>
-            
-            <div className="flex items-center gap-3">
-              <div className="w-6 h-6 bg-gray-300 rounded-full flex items-center justify-center">
-                <div className="w-2 h-2 bg-white rounded-full"></div>
-              </div>
-              <span className="text-gray-500 text-sm">Generating compliance report</span>
             </div>
           </div>
 
-          {/* Progress Bar */}
-          <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
-            <div className="bg-[#725A5A] h-2 rounded-full transition-all duration-1000" style={{ width: '65%' }}></div>
+          {/* Processing Info - simulating document processing */}
+          <div className="text-center text-sm text-[#9A7C7C] font-roboto mt-4">
+            <div>
+              Processing: <span className="font-medium">sample_agreement.pdf</span>
+            </div>
+            <div>
+              Solution: <span className="font-medium">Data Processing Agreements</span>
+            </div>
+            <div>
+              Perspective: <span className="font-medium capitalize">Organization</span>
+            </div>
           </div>
-
-          {/* Progress Percentage */}
-          <div className="text-center">
-            <span className="text-[#725A5A] font-medium text-lg">65%</span>
-            <span className="text-gray-500 text-sm ml-2">Complete</span>
-          </div>
-        </div>
-
-        {/* Estimated Time */}
-        <div className="mt-8 text-center">
-          <p className="text-[#4B5563] text-sm">
-            Estimated time remaining: <span className="font-medium">30 seconds</span>
-          </p>
         </div>
       </div>
     </div>
