@@ -70,11 +70,15 @@ export default function Upload() {
 
   const handleFileSelect = (file: File) => {
     const allowedTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+    console.log('File selected:', file.name, 'Type:', file.type);
+
     if (allowedTypes.includes(file.type)) {
       setSelectedFile(file);
       setHasStartedProcess(true); // Mark that user has started the process
+      console.log('File accepted:', file.name);
     } else {
-      alert('Please select a PDF or DOCX file.');
+      alert(`Please select a PDF or DOCX file. You selected: ${file.type}`);
+      console.log('File rejected - invalid type:', file.type);
     }
   };
 
