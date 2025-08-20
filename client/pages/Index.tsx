@@ -174,11 +174,7 @@ export default function Index() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 mb-20 place-items-center">
             {/* Card 1 */}
             <div className="flex flex-col items-center relative w-full max-w-md">
-              <img
-                src="https://images.pexels.com/photos/7821937/pexels-photo-7821937.jpeg"
-                alt="Compliance Dashboard Interface"
-                className="w-full h-80 object-cover border border-[#271D1D]/15 rounded-lg"
-              />
+              <ComplianceScoreMockup />
 
               {/* Card Description */}
               <div className="flex flex-col items-center w-full relative mt-4">
@@ -197,32 +193,7 @@ export default function Index() {
 
             {/* Card 2 */}
             <div className="flex flex-col items-center relative w-full max-w-md">
-              <div
-                className="flex justify-between items-center px-24 py-14 w-full h-80 border border-[#271D1D]/15 rounded-lg relative bg-cover bg-center"
-                style={{
-                  backgroundImage: `url('https://images.pexels.com/photos/8730374/pexels-photo-8730374.jpeg')`,
-                  backgroundPosition: "center center",
-                  backgroundSize: "cover",
-                }}
-              >
-                <div className="w-8 h-8 p-2 flex flex-col items-start gap-2"></div>
-                <svg
-                  className="flex p-1 items-center gap-2"
-                  width="31"
-                  height="31"
-                  viewBox="0 0 31 31"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    d="M4.375 4.14062L13.8017 26.7673L17.1483 16.914L27.0017 13.5673L4.375 4.14062Z"
-                    fill="black"
-                    stroke="black"
-                    strokeWidth="2"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </div>
+              <PerspectiveReviewMockup />
 
               {/* Card Description */}
               <div className="flex flex-col items-center w-full relative mt-4">
@@ -241,11 +212,7 @@ export default function Index() {
 
             {/* Card 3 */}
             <div className="flex flex-col items-center relative w-full max-w-md">
-              <img
-                src="https://images.pexels.com/photos/590045/pexels-photo-590045.jpeg"
-                alt="Contract Summary Interface"
-                className="w-full h-80 object-cover border border-[#271D1D]/15 rounded-lg"
-              />
+              <FullSummaryMockup />
 
               {/* Card Description */}
               <div className="flex flex-col items-center w-full relative mt-4">
@@ -263,11 +230,7 @@ export default function Index() {
 
             {/* Card 4 */}
             <div className="flex flex-col items-center relative w-full max-w-md">
-              <img
-                src="https://images.pexels.com/photos/7111601/pexels-photo-7111601.jpeg"
-                alt="Risk Assessment Interface"
-                className="w-full h-80 object-cover border border-[#271D1D]/15 rounded-lg"
-              />
+              <RiskAssessmentMockup />
 
               {/* Card Description */}
               <div className="flex flex-col items-center w-full relative mt-4">
@@ -287,13 +250,7 @@ export default function Index() {
           {/* OpenAI Integration Card */}
           <div className="flex justify-center mb-20">
             <div className="flex flex-col items-center relative w-full max-w-md">
-              <div className="h-80 bg-[#D6CECE] flex items-center justify-center p-12 w-full border border-[#271D1D]/15 rounded-lg">
-                <img
-                  src="https://images.pexels.com/photos/25626428/pexels-photo-25626428.jpeg"
-                  alt="OpenAI"
-                  className="w-full h-auto"
-                />
-              </div>
+              <AIIntegrationMockup />
 
               {/* Card Description */}
               <div className="flex flex-col items-center w-full relative mt-4">
