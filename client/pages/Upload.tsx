@@ -32,15 +32,19 @@ export default function Upload() {
   // Handle browser back/forward buttons and page refresh
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      e.preventDefault();
-      e.returnValue = 'You will lose all your progress and need to start all over again if you leave this page.';
-      return e.returnValue;
+      if (!showConfirmModal) { // Only show if modal isn't already open
+        e.preventDefault();
+        e.returnValue = 'You will lose all your progress and need to start all over again if you leave this page.';
+        return e.returnValue;
+      }
     };
 
     const handlePopState = (e: PopStateEvent) => {
-      e.preventDefault();
-      setShowConfirmModal(true);
-      window.history.pushState(null, '', window.location.href);
+      if (!showConfirmModal) { // Only show if modal isn't already open
+        e.preventDefault();
+        setShowConfirmModal(true);
+        window.history.pushState(null, '', window.location.href);
+      }
     };
 
     // Always add listeners when on upload page
@@ -53,7 +57,7 @@ export default function Upload() {
       window.removeEventListener('beforeunload', handleBeforeUnload);
       window.removeEventListener('popstate', handlePopState);
     };
-  }, []);
+  }, [showConfirmModal]);
 
   // Handle React Router navigation blocking
   useEffect(() => {
