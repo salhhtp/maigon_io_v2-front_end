@@ -149,6 +149,8 @@ export default function Upload() {
   };
 
   const handleSubmit = () => {
+    console.log('Submit clicked. Selected file:', selectedFile?.name, 'Perspective:', perspective);
+
     if (!selectedFile) {
       alert('Please select a file to upload.');
       return;
@@ -156,6 +158,7 @@ export default function Upload() {
 
     // Step 1: Submit Clicked → Smart Animate - Ease Out - 1500ms
     setIsSubmitting(true);
+    console.log('Starting submission process...');
 
     // Step 2: After Delay - 1ms → Smart Animate - Ease out 1500ms → Disappeared Upload Button
     setTimeout(() => {
