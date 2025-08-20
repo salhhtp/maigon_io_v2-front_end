@@ -8,7 +8,6 @@ import AnimatedQuotes from "@/components/AnimatedQuotes";
 import MobileNavigation from "@/components/MobileNavigation";
 import { useUser } from "@/contexts/UserContext";
 import AddUserModal from "@/components/modals/AddUserModal";
-import { Button } from "@/components/ui/button";
 import { UserPlus } from "lucide-react";
 
 const TeamMemberCard = ({
