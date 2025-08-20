@@ -318,45 +318,39 @@ const AnimatedStepsComponent = () => {
       title: "Create or log into your account",
       description:
         "Create or log into your existing Maigon account in order to experience the power that comes with Maigon.",
-      image:
-        "https://api.builder.io/api/v1/image/assets/TEMP/ab810becba68b895d17259b055eb02fa4e423ca7?width=1376",
+      component: Step1Mockup,
     },
     {
       number: "02",
       title: "Choose your weapon",
       description:
         "Select your desired solution based on your contract's type.",
-      image:
-        "https://api.builder.io/api/v1/image/assets/TEMP/2a3aa41e3700ecfe17563a788c06e994ecf557f2?width=1376",
+      component: Step2Mockup,
     },
     {
       number: "03",
       title: "Select your perspective",
       description:
         'Select between "Data Processer" and "Organization" in order to obtain tailored review results of your contracts.',
-      image:
-        "https://api.builder.io/api/v1/image/assets/TEMP/5618bd7501c5a1c4b2d28e4e25a6db6f8660e172?width=1376",
+      component: Step3Mockup,
     },
     {
       number: "04",
       title: "Upload your contract",
       description: "Upload your contract to let the magic happens.",
-      image:
-        "https://api.builder.io/api/v1/image/assets/TEMP/15cc33264f77c3058e8f3b3572a0dc0618db8461?width=1376",
+      component: Step4Mockup,
     },
     {
       number: "05",
       title: "Sit back and relax",
       description: "Sit back and relax! This will only take a moment.",
-      image:
-        "https://api.builder.io/api/v1/image/assets/TEMP/b2ac06bf0d475ae09b33f0c014469cf778bf87a8?width=1376",
+      component: Step5Mockup,
     },
     {
       number: "06",
       title: "Voilà!",
       description: "Get your review and enjoy all the insights.",
-      image:
-        "https://api.builder.io/api/v1/image/assets/TEMP/b9df8a89a44e419b87b2f12be6bcc732bd80a24c?width=1376",
+      component: Step6Mockup,
     },
   ];
 
