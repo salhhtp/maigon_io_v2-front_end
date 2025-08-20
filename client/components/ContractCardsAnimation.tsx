@@ -54,7 +54,7 @@ const ContractCardsAnimation: React.FC<ContractCardsAnimationProps> = ({
   return (
     <div className="mb-20 w-full">
       {/* Desktop Layout - Hidden on mobile/tablet */}
-      <div className="hidden lg:block relative w-full max-w-[1073px] h-[590px] mx-auto overflow-hidden">
+      <div className="hidden lg:block relative w-full max-w-[1073px] min-h-[590px] mx-auto">
         <div className="relative w-full h-full" style={{ padding: "10px" }}>
           {contractTypes.map((type, index) => {
             const isActive = activeCard === index;
