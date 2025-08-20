@@ -14,6 +14,10 @@ import AnimatedQuotes from "@/components/AnimatedQuotes";
 import ContractCardsAnimation from "@/components/ContractCardsAnimation";
 import AnimatedHeroMockup from "@/components/AnimatedHeroMockup";
 import MobileNavigation from "@/components/MobileNavigation";
+import ComplianceScoreMockup from "@/components/mockups/ComplianceScoreMockup";
+import PerspectiveReviewMockup from "@/components/mockups/PerspectiveReviewMockup";
+import FullSummaryMockup from "@/components/mockups/FullSummaryMockup";
+import RiskAssessmentMockup from "@/components/mockups/RiskAssessmentMockup";
 
 export default function UserHome() {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
@@ -206,15 +210,11 @@ export default function UserHome() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 mb-20 place-items-center">
             {/* Card 1 */}
             <div className="flex flex-col items-center relative w-full max-w-md">
-              <img
-                src="https://api.builder.io/api/v1/image/assets/TEMP/e33365b24a4962ef5c0529d0c37ac13af63f6f48?width=916"
-                alt="Compliance Dashboard Interface"
-                className="w-full h-80 object-cover border border-[#271D1D]/15 rounded-lg"
-              />
+              <ComplianceScoreMockup />
 
               {/* Card Description */}
               <div className="flex flex-col items-center w-full relative mt-4">
-                <div className="flex h-[89px] flex-col justify-center w-full text-black text-center font-lora text-xl font-medium leading-[90px] relative">
+                <div className="flex h-[89px] flex-col justify-center w-full text-black text-center font-lora text-xl font-medium leading-tight relative">
                   <span>Learn Your Compliance Score</span>
                 </div>
                 <div className="w-full text-black text-center text-xs font-normal leading-[26px] tracking-[0.12px] relative">
@@ -229,36 +229,11 @@ export default function UserHome() {
 
             {/* Card 2 */}
             <div className="flex flex-col items-center relative w-full max-w-md">
-              <div
-                className="flex justify-between items-center px-24 py-14 w-full h-80 border border-[#271D1D]/15 rounded-lg relative bg-cover bg-center"
-                style={{
-                  backgroundImage: `url('https://api.builder.io/api/v1/image/assets/TEMP/2a007dd35a383d1ae8dd9a022fe6283585484de4?width=916')`,
-                  backgroundPosition: "center center",
-                  backgroundSize: "cover",
-                }}
-              >
-                <div className="w-8 h-8 p-2 flex flex-col items-start gap-2"></div>
-                <svg
-                  className="flex p-1 items-center gap-2"
-                  width="31"
-                  height="31"
-                  viewBox="0 0 31 31"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    d="M4.375 4.14062L13.8017 26.7673L17.1483 16.914L27.0017 13.5673L4.375 4.14062Z"
-                    fill="black"
-                    stroke="black"
-                    strokeWidth="2"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </div>
+              <PerspectiveReviewMockup />
 
               {/* Card Description */}
               <div className="flex flex-col items-center w-full relative mt-4">
-                <div className="flex h-[89px] flex-col justify-center w-full text-black text-center font-lora text-xl font-medium leading-[90px] relative">
+                <div className="flex h-[89px] flex-col justify-center w-full text-black text-center font-lora text-xl font-medium leading-tight relative">
                   <span>Review From Different Perspectives</span>
                 </div>
                 <div className="w-full text-black text-center text-xs font-normal leading-[26px] tracking-[0.12px] relative">
@@ -273,15 +248,11 @@ export default function UserHome() {
 
             {/* Card 3 */}
             <div className="flex flex-col items-center relative w-full max-w-md">
-              <img
-                src="https://api.builder.io/api/v1/image/assets/TEMP/7c87d01d9be178b894e267d4b9d0734052823086?width=916"
-                alt="Contract Summary Interface"
-                className="w-full h-80 object-cover border border-[#271D1D]/15 rounded-lg"
-              />
+              <FullSummaryMockup />
 
               {/* Card Description */}
               <div className="flex flex-col items-center w-full relative mt-4">
-                <div className="flex h-[89px] flex-col justify-center w-full text-black text-center font-lora text-xl font-medium leading-[90px] relative">
+                <div className="flex h-[89px] flex-col justify-center w-full text-black text-center font-lora text-xl font-medium leading-tight relative">
                   <span>Full Summary</span>
                 </div>
                 <div className="w-full text-black text-center text-xs font-normal leading-[26px] tracking-[0.12px] relative">
@@ -295,15 +266,11 @@ export default function UserHome() {
 
             {/* Card 4 */}
             <div className="flex flex-col items-center relative w-full max-w-md">
-              <img
-                src="https://api.builder.io/api/v1/image/assets/TEMP/72edd72cd0f4d42d5f5a36fcc0d9e59c5460050c?width=916"
-                alt="Card 4"
-                className="w-full h-80 object-cover border border-[#271D1D]/15 rounded-lg"
-              />
+              <RiskAssessmentMockup />
 
               {/* Card Description */}
               <div className="flex flex-col items-center w-full relative mt-4">
-                <div className="flex h-[89px] flex-col justify-center w-full text-black text-center font-lora text-xl font-medium leading-[90px] relative">
+                <div className="flex h-[89px] flex-col justify-center w-full text-black text-center font-lora text-xl font-medium leading-tight relative">
                   <span>See All The Risks</span>
                 </div>
                 <div className="w-full text-black text-center text-xs font-normal leading-[26px] tracking-[0.12px] relative">
@@ -329,7 +296,7 @@ export default function UserHome() {
 
               {/* Card Description */}
               <div className="flex flex-col items-center w-full relative mt-4">
-                <div className="flex h-[89px] flex-col justify-center w-full text-black text-center font-lora text-xl font-medium leading-[90px] relative">
+                <div className="flex h-[89px] flex-col justify-center w-full text-black text-center font-lora text-xl font-medium leading-tight relative">
                   <span>OpenAI Integration</span>
                 </div>
                 <div className="w-full text-black text-center text-xs font-normal leading-[26px] tracking-[0.12px] relative">
