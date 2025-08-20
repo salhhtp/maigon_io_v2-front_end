@@ -549,8 +549,8 @@ export default function Profile() {
             <div className="space-y-8">
               {isAdmin ? (
                 <>
-                  <AdminUserManagement />
-                  <AdminSolutionCreator />
+                  <AdminUserManagement onAddUser={() => setAddUserModalOpen(true)} />
+                  <AdminSolutionCreator onCreateSolution={() => setCustomSolutionModalOpen(true)} />
                 </>
               ) : (
                 <>
