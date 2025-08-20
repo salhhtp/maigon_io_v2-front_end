@@ -56,7 +56,7 @@ export default function PerspectiveSelection() {
         </div>
 
         {/* Mobile Navigation */}
-        <MobileNavigation />
+        <MobileNavigation isLoggedIn={true} userName={user?.name?.split(' ')[0] || 'User'} />
       </nav>
 
       {/* Main Content */}
