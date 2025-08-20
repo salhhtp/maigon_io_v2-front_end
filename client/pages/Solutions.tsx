@@ -445,11 +445,9 @@ const AnimatedStepsComponent = () => {
         </div>
 
         {/* Image Section */}
-        <img
-          src={steps[currentStep].image}
-          alt={`Step ${steps[currentStep].number} demonstration`}
-          className="hidden lg:block w-[688px] h-[660px] rounded-lg border border-[#271D1D]/15 absolute right-0 left-[522px] top-0 object-cover"
-        />
+        <div className="hidden lg:block w-[688px] h-[660px] absolute right-0 left-[522px] top-0">
+          {React.createElement(steps[currentStep].component)}
+        </div>
       </div>
     </div>
   );
