@@ -72,6 +72,7 @@ const ContractCardsAnimation: React.FC<ContractCardsAnimationProps> = ({
                   height: `${cardHeight}px`,
                   left: `${leftPosition}px`,
                   top: "16px",
+                  zIndex: isActive ? 50 : 10,
                 }}
                 onClick={() => handleCardClick(index)}
               >
