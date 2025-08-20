@@ -78,7 +78,7 @@ export default function PerspectiveSelection() {
       </nav>
 
       {/* Main Content */}
-      <div className="max-w-4xl mx-auto px-8 lg:px-16 py-12">
+      <div className="max-w-4xl mx-auto px-8 lg:px-16 py-12 pt-24 lg:pt-32">
         <div className="max-w-2xl mx-auto">
           {/* Header */}
           <div className="text-center mb-8">
