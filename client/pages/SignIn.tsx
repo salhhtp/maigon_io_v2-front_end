@@ -165,8 +165,17 @@ export default function SignIn() {
                 </div>
               </div>
 
+              {/* Error Message */}
+              {error && (
+                <div className="flex w-full mt-4">
+                  <div className="w-full p-3 bg-red-50 border border-red-200 rounded-lg">
+                    <p className="text-red-700 text-sm font-medium">{error}</p>
+                  </div>
+                </div>
+              )}
+
               {/* Login Button Container */}
-              <div className="flex w-full lg:w-[448px] h-[50px] mt-9">
+              <div className="flex w-full lg:w-[448px] h-[50px] mt-6">
                 <Button
                   type="submit"
                   className="flex h-[50px] py-[15.5px] justify-center items-center w-full rounded-lg border border-transparent bg-[#9A7C7C] shadow-[0_1px_2px_0_rgba(0,0,0,0.05)] hover:bg-[#9A7C7C]/90"
