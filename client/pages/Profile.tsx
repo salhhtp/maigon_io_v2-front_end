@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import {
   ChevronDown,
+  ChevronUp,
   User,
   DollarSign,
   FileText,
@@ -10,9 +11,12 @@ import {
   Plus,
   Edit,
   Trash2,
+  Maximize2,
+  Minimize2,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useState } from "react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import Logo from "@/components/Logo";
 import Footer from "@/components/Footer";
 import MobileNavigation from "@/components/MobileNavigation";
@@ -64,33 +68,65 @@ const UsageChart = ({
   monthlyUsage,
 }: {
   monthlyUsage: Array<{ month: string; reviews: number; max: number }>;
-}) => (
-  <div className="bg-white rounded-lg p-6 border border-[#271D1D]/10">
-    <h3 className="font-lora text-lg font-medium text-[#271D1D] mb-4">
-      Contract Review Usage
-    </h3>
-    <div className="space-y-4">
-      {monthlyUsage.map((data, index) => (
-        <div key={index} className="flex items-center gap-4">
-          <span className="text-sm font-medium text-[#271D1D] w-8">
-            {data.month}
-          </span>
-          <div className="flex-1 bg-[#F3F3F3] rounded-full h-2 relative">
-            <div
-              className="bg-[#9A7C7C] h-2 rounded-full transition-all duration-300"
-              style={{
-                width: `${data.max > 0 ? (data.reviews / data.max) * 100 : 0}%`,
-              }}
-            />
+}) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const displayedUsage = isExpanded ? monthlyUsage : monthlyUsage.slice(0, 3);
+
+  return (
+    <div className="bg-white rounded-lg p-6 border border-[#271D1D]/10">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="font-lora text-lg font-medium text-[#271D1D]">
+          Contract Review Usage
+        </h3>
+        {monthlyUsage.length > 3 && (
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="flex items-center gap-2 text-sm text-[#9A7C7C] hover:text-[#9A7C7C]/90 transition-colors"
+          >
+            {isExpanded ? (
+              <>
+                <Minimize2 className="w-4 h-4" />
+                Show Less
+              </>
+            ) : (
+              <>
+                <Maximize2 className="w-4 h-4" />
+                Show All ({monthlyUsage.length})
+              </>
+            )}
+          </button>
+        )}
+      </div>
+      <div className="space-y-4">
+        {displayedUsage.map((data, index) => (
+          <div key={index} className="flex items-center gap-4">
+            <span className="text-sm font-medium text-[#271D1D] w-8">
+              {data.month}
+            </span>
+            <div className="flex-1 bg-[#F3F3F3] rounded-full h-2 relative">
+              <div
+                className="bg-[#9A7C7C] h-2 rounded-full transition-all duration-300"
+                style={{
+                  width: `${data.max > 0 ? (data.reviews / data.max) * 100 : 0}%`,
+                }}
+              />
+            </div>
+            <span className="text-sm text-[#271D1D]/70 w-16">
+              {data.reviews}/{data.max === -1 ? "∞" : data.max}
+            </span>
           </div>
-          <span className="text-sm text-[#271D1D]/70 w-16">
-            {data.reviews}/{data.max === -1 ? "∞" : data.max}
-          </span>
-        </div>
-      ))}
+        ))}
+        {!isExpanded && monthlyUsage.length > 3 && (
+          <div className="text-center pt-2 border-t border-[#F3F3F3]">
+            <span className="text-xs text-[#271D1D]/50">
+              +{monthlyUsage.length - 3} more months
+            </span>
+          </div>
+        )}
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 const RecentActivity = ({
   activities,
@@ -101,138 +137,233 @@ const RecentActivity = ({
     time: string;
     status: string;
   }>;
-}) => (
-  <div className="bg-white rounded-lg p-6 border border-[#271D1D]/10">
-    <h3 className="font-lora text-lg font-medium text-[#271D1D] mb-4">
-      Recent Activity
-    </h3>
-    <div className="space-y-4">
-      {activities.length > 0 ? (
-        activities.map((activity, index) => (
+}) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const displayedActivities = isExpanded ? activities : activities.slice(0, 5);
+
+  return (
+    <div className="bg-white rounded-lg p-6 border border-[#271D1D]/10">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="font-lora text-lg font-medium text-[#271D1D]">
+          Recent Activity
+        </h3>
+        {activities.length > 5 && (
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="flex items-center gap-2 text-sm text-[#9A7C7C] hover:text-[#9A7C7C]/90 transition-colors"
+          >
+            {isExpanded ? (
+              <>
+                <Minimize2 className="w-4 h-4" />
+                Show Less
+              </>
+            ) : (
+              <>
+                <Maximize2 className="w-4 h-4" />
+                Show All ({activities.length})
+              </>
+            )}
+          </button>
+        )}
+      </div>
+      <div className="space-y-4">
+        {displayedActivities.length > 0 ? (
+          <>
+            {displayedActivities.map((activity, index) => (
+              <div
+                key={index}
+                className="flex items-center justify-between py-2 border-b border-[#F3F3F3] last:border-b-0"
+              >
+                <div className="flex items-center gap-3">
+                  <div
+                    className={`w-2 h-2 rounded-full ${
+                      activity.status === "completed"
+                        ? "bg-green-500"
+                        : activity.status === "processing"
+                          ? "bg-yellow-500"
+                          : "bg-red-500"
+                    }`}
+                  />
+                  <div>
+                    <p className="text-sm font-medium text-[#271D1D]">
+                      {activity.action}
+                    </p>
+                    <p className="text-xs text-[#271D1D]/70">{activity.file}</p>
+                  </div>
+                </div>
+                <span className="text-xs text-[#271D1D]/50">{activity.time}</span>
+              </div>
+            ))}
+            {!isExpanded && activities.length > 5 && (
+              <div className="text-center pt-2 border-t border-[#F3F3F3]">
+                <span className="text-xs text-[#271D1D]/50">
+                  +{activities.length - 5} more activities
+                </span>
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="text-center py-8 text-[#271D1D]/50">
+            <p className="text-sm">No recent activity</p>
+            <p className="text-xs mt-1">
+              Start reviewing contracts to see your activity here
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const AdminUserManagement = ({ onAddUser }: { onAddUser: () => void }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const allUsers = [
+    {
+      name: "John Doe",
+      email: "john@company.com",
+      plan: "Enterprise",
+      status: "active",
+      usage: "78/100",
+    },
+    {
+      name: "Sarah Wilson",
+      email: "sarah@startup.io",
+      plan: "Professional",
+      status: "active",
+      usage: "45/50",
+    },
+    {
+      name: "Mike Chen",
+      email: "mike@legal.com",
+      plan: "Basic",
+      status: "inactive",
+      usage: "12/20",
+    },
+    {
+      name: "Emma Davis",
+      email: "emma@corp.com",
+      plan: "Enterprise",
+      status: "active",
+      usage: "92/100",
+    },
+    {
+      name: "Alex Johnson",
+      email: "alex@techcorp.com",
+      plan: "Professional",
+      status: "active",
+      usage: "23/50",
+    },
+    {
+      name: "Lisa Martinez",
+      email: "lisa@lawfirm.com",
+      plan: "Basic",
+      status: "active",
+      usage: "15/20",
+    },
+    {
+      name: "David Brown",
+      email: "david@consultant.com",
+      plan: "Enterprise",
+      status: "active",
+      usage: "156/200",
+    },
+    {
+      name: "Maria Garcia",
+      email: "maria@startup.co",
+      plan: "Professional",
+      status: "inactive",
+      usage: "8/50",
+    }
+  ];
+  const displayedUsers = isExpanded ? allUsers : allUsers.slice(0, 4);
+
+  return (
+    <div className="bg-white rounded-lg p-6 border border-[#271D1D]/10">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-4">
+          <h3 className="font-lora text-lg font-medium text-[#271D1D]">
+            User Management
+          </h3>
+          {allUsers.length > 4 && (
+            <button
+              onClick={() => setIsExpanded(!isExpanded)}
+              className="flex items-center gap-2 text-sm text-[#9A7C7C] hover:text-[#9A7C7C]/90 transition-colors"
+            >
+              {isExpanded ? (
+                <>
+                  <Minimize2 className="w-4 h-4" />
+                  Show Less
+                </>
+              ) : (
+                <>
+                  <Maximize2 className="w-4 h-4" />
+                  Show All ({allUsers.length})
+                </>
+              )}
+            </button>
+          )}
+        </div>
+        <Button
+          onClick={onAddUser}
+          className="bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white px-4 py-2 rounded-lg text-sm"
+        >
+          <Plus className="w-4 h-4 mr-2" />
+          Add User
+        </Button>
+      </div>
+      <div className="space-y-3">
+        {displayedUsers.map((user, index) => (
           <div
             key={index}
-            className="flex items-center justify-between py-2 border-b border-[#F3F3F3] last:border-b-0"
+            className="flex items-center justify-between p-3 bg-[#F9F8F8] rounded-lg"
           >
-            <div className="flex items-center gap-3">
-              <div
-                className={`w-2 h-2 rounded-full ${
-                  activity.status === "completed"
-                    ? "bg-green-500"
-                    : activity.status === "processing"
-                      ? "bg-yellow-500"
-                      : "bg-red-500"
-                }`}
-              />
+            <div className="flex items-center gap-4">
+              <div className="w-8 h-8 bg-[#D6CECE] rounded-full flex items-center justify-center">
+                <User className="w-4 h-4 text-[#271D1D]" />
+              </div>
               <div>
-                <p className="text-sm font-medium text-[#271D1D]">
-                  {activity.action}
-                </p>
-                <p className="text-xs text-[#271D1D]/70">{activity.file}</p>
+                <p className="text-sm font-medium text-[#271D1D]">{user.name}</p>
+                <p className="text-xs text-[#271D1D]/70">{user.email}</p>
               </div>
             </div>
-            <span className="text-xs text-[#271D1D]/50">{activity.time}</span>
-          </div>
-        ))
-      ) : (
-        <div className="text-center py-8 text-[#271D1D]/50">
-          <p className="text-sm">No recent activity</p>
-          <p className="text-xs mt-1">
-            Start reviewing contracts to see your activity here
-          </p>
-        </div>
-      )}
-    </div>
-  </div>
-);
-
-const AdminUserManagement = ({ onAddUser }: { onAddUser: () => void }) => (
-  <div className="bg-white rounded-lg p-6 border border-[#271D1D]/10">
-    <div className="flex items-center justify-between mb-4">
-      <h3 className="font-lora text-lg font-medium text-[#271D1D]">
-        User Management
-      </h3>
-      <Button
-        onClick={onAddUser}
-        className="bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white px-4 py-2 rounded-lg text-sm"
-      >
-        <Plus className="w-4 h-4 mr-2" />
-        Add User
-      </Button>
-    </div>
-    <div className="space-y-3">
-      {[
-        {
-          name: "John Doe",
-          email: "john@company.com",
-          plan: "Enterprise",
-          status: "active",
-          usage: "78/100",
-        },
-        {
-          name: "Sarah Wilson",
-          email: "sarah@startup.io",
-          plan: "Professional",
-          status: "active",
-          usage: "45/50",
-        },
-        {
-          name: "Mike Chen",
-          email: "mike@legal.com",
-          plan: "Basic",
-          status: "inactive",
-          usage: "12/20",
-        },
-        {
-          name: "Emma Davis",
-          email: "emma@corp.com",
-          plan: "Enterprise",
-          status: "active",
-          usage: "92/100",
-        },
-      ].map((user, index) => (
-        <div
-          key={index}
-          className="flex items-center justify-between p-3 bg-[#F9F8F8] rounded-lg"
-        >
-          <div className="flex items-center gap-4">
-            <div className="w-8 h-8 bg-[#D6CECE] rounded-full flex items-center justify-center">
-              <User className="w-4 h-4 text-[#271D1D]" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-[#271D1D]">{user.name}</p>
-              <p className="text-xs text-[#271D1D]/70">{user.email}</p>
+            <div className="flex items-center gap-4">
+              <div className="text-right">
+                <p className="text-sm font-medium text-[#271D1D]">{user.plan}</p>
+                <p className="text-xs text-[#271D1D]/70">
+                  {user.usage} contracts
+                </p>
+              </div>
+              <div
+                className={`px-2 py-1 rounded-full text-xs font-medium ${
+                  user.status === "active"
+                    ? "bg-green-100 text-green-800"
+                    : "bg-gray-100 text-gray-800"
+                }`}
+              >
+                {user.status}
+              </div>
+              <div className="flex gap-1">
+                <button className="p-1 hover:bg-[#D6CECE] rounded">
+                  <Edit className="w-3 h-3 text-[#271D1D]" />
+                </button>
+                <button className="p-1 hover:bg-red-100 rounded">
+                  <Trash2 className="w-3 h-3 text-red-600" />
+                </button>
+              </div>
             </div>
           </div>
-          <div className="flex items-center gap-4">
-            <div className="text-right">
-              <p className="text-sm font-medium text-[#271D1D]">{user.plan}</p>
-              <p className="text-xs text-[#271D1D]/70">
-                {user.usage} contracts
-              </p>
-            </div>
-            <div
-              className={`px-2 py-1 rounded-full text-xs font-medium ${
-                user.status === "active"
-                  ? "bg-green-100 text-green-800"
-                  : "bg-gray-100 text-gray-800"
-              }`}
-            >
-              {user.status}
-            </div>
-            <div className="flex gap-1">
-              <button className="p-1 hover:bg-[#D6CECE] rounded">
-                <Edit className="w-3 h-3 text-[#271D1D]" />
-              </button>
-              <button className="p-1 hover:bg-red-100 rounded">
-                <Trash2 className="w-3 h-3 text-red-600" />
-              </button>
-            </div>
+        ))}
+        {!isExpanded && allUsers.length > 4 && (
+          <div className="text-center pt-2 border-t border-[#F3F3F3]">
+            <span className="text-xs text-[#271D1D]/50">
+              +{allUsers.length - 4} more users
+            </span>
           </div>
-        </div>
-      ))}
+        )}
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 const AdminSolutionCreator = ({ onCreateSolution }: { onCreateSolution: () => void }) => (
   <div className="bg-white rounded-lg p-6 border border-[#271D1D]/10">
