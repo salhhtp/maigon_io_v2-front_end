@@ -341,48 +341,55 @@ export default function UserHome() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16">
-            <Card className="border border-[#271D1D]/15 rounded-lg overflow-hidden">
-              <img
-                src="https://api.builder.io/api/v1/image/assets/TEMP/defadcd8445be3dc8712f81677c887b3ef4db62b?width=820"
-                alt="News article"
-                className="w-full h-64 object-cover"
-              />
-              <CardContent className="p-6">
-                <div className="flex flex-col space-y-1 mb-4">
-                  <span className="text-xs font-medium text-[#271D1D]">
-                    Published
-                  </span>
-                  <span className="text-xs text-[#271D1D] font-lora">
-                    Feb 24, 2025
-                  </span>
-                </div>
-                <CardTitle className="text-2xl font-medium font-lora leading-tight">
-                  Smarter Legal Solutions: How Maigon is Redefining Contract
-                  Review
-                </CardTitle>
-              </CardContent>
-            </Card>
+            <Link
+              to="/articles/smarter-legal-solutions"
+              className="group"
+            >
+              <Card className="border border-[#271D1D]/15 rounded-lg overflow-hidden hover:border-[#9A7C7C]/50 transition-colors">
+                <img
+                  src="https://api.builder.io/api/v1/image/assets/TEMP/defadcd8445be3dc8712f81677c887b3ef4db62b?width=820"
+                  alt="News article"
+                  className="w-full h-64 object-cover"
+                />
+                <CardContent className="p-6">
+                  <div className="flex flex-col space-y-1 mb-4">
+                    <span className="text-xs font-medium text-[#271D1D]">
+                      Published
+                    </span>
+                    <span className="text-xs text-[#271D1D] font-lora">
+                      Feb 24, 2025
+                    </span>
+                  </div>
+                  <CardTitle className="text-2xl font-medium font-lora leading-tight group-hover:text-[#9A7C7C] transition-colors">
+                    Smarter Legal Solutions: How Maigon is Redefining Contract
+                    Review
+                  </CardTitle>
+                </CardContent>
+              </Card>
+            </Link>
 
-            <Card className="border border-[#271D1D]/15 rounded-lg overflow-hidden">
-              <img
-                src="https://api.builder.io/api/v1/image/assets/TEMP/c498213c0b4214c6db0aac491c03b8a8739f2f72?width=820"
-                alt="News article"
-                className="w-full h-64 object-cover"
-              />
-              <CardContent className="p-6">
-                <div className="flex flex-col space-y-1 mb-4">
-                  <span className="text-xs font-medium text-[#271D1D]">
-                    Published
-                  </span>
-                  <span className="text-xs text-[#271D1D] font-lora">
-                    Mar 19, 2025
-                  </span>
-                </div>
-                <CardTitle className="text-2xl font-medium font-lora leading-tight">
-                  Code to Clause: The Engineering Behind AI's Contract Review
-                </CardTitle>
-              </CardContent>
-            </Card>
+            <Link to="/articles/code-to-clause" className="group">
+              <Card className="border border-[#271D1D]/15 rounded-lg overflow-hidden hover:border-[#9A7C7C]/50 transition-colors">
+                <img
+                  src="https://api.builder.io/api/v1/image/assets/TEMP/c498213c0b4214c6db0aac491c03b8a8739f2f72?width=820"
+                  alt="News article"
+                  className="w-full h-64 object-cover"
+                />
+                <CardContent className="p-6">
+                  <div className="flex flex-col space-y-1 mb-4">
+                    <span className="text-xs font-medium text-[#271D1D]">
+                      Published
+                    </span>
+                    <span className="text-xs text-[#271D1D] font-lora">
+                      Mar 19, 2025
+                    </span>
+                  </div>
+                  <CardTitle className="text-2xl font-medium font-lora leading-tight group-hover:text-[#9A7C7C] transition-colors">
+                    Code to Clause: The Engineering Behind AI's Contract Review
+                  </CardTitle>
+                </CardContent>
+              </Card>
+            </Link>
           </div>
         </div>
       </section>
