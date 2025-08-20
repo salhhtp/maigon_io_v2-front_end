@@ -66,13 +66,14 @@ const ContractCardsAnimation: React.FC<ContractCardsAnimationProps> = ({
             return (
               <div
                 key={index}
-                className="absolute transition-all duration-700 ease-in-out cursor-pointer hover:shadow-md"
+                className={`absolute transition-all duration-700 ease-in-out cursor-pointer hover:shadow-md ${
+                  isActive ? 'z-[100]' : 'z-[20]'
+                }`}
                 style={{
                   width: "150px",
                   height: `${cardHeight}px`,
                   left: `${leftPosition}px`,
                   top: "16px",
-                  zIndex: isActive ? 50 : 10,
                 }}
                 onClick={() => handleCardClick(index)}
               >
