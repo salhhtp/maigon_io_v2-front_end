@@ -179,12 +179,21 @@ export default function UserTeam() {
               <h1 className="text-4xl lg:text-5xl font-medium text-[#171614] font-lora mb-8 leading-tight">
                 Meet the Team!
               </h1>
-              <p className="text-lg text-[#171614] leading-relaxed">
+              <p className="text-lg text-[#171614] leading-relaxed mb-8">
                 Our team has been working tirelessly to make sure you, the next
                 person who's about to experience the future of contract review,
                 will enjoy and witness what's possible; Also, what the tomorrow
                 will bring to our lives.
               </p>
+
+              {/* Add User Button */}
+              <Button
+                onClick={() => setAddUserModalOpen(true)}
+                className="bg-[#9A7C7C] hover:bg-[#725A5A] text-white"
+              >
+                <UserPlus className="w-4 h-4 mr-2" />
+                Add Team Member
+              </Button>
             </div>
 
             {/* Right Image */}
