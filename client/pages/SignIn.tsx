@@ -9,7 +9,6 @@ import Logo from "@/components/Logo";
 
 export default function SignIn() {
   const [email, setEmail] = useState("");
-  const [address, setAddress] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
 
