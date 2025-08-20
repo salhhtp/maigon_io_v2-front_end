@@ -1,14 +1,14 @@
 export default function PerspectiveReviewMockup() {
   return (
-    <div className="w-full h-80 bg-gray-50 border border-[#271D1D]/15 rounded-lg p-6 flex flex-col">
+    <div className="w-full h-80 bg-gray-50 border border-[#271D1D]/15 rounded-lg p-4 flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between mb-2">
         <h3 className="text-base font-semibold text-[#271D1D]">Perspective Analysis</h3>
         <div className="text-xs text-gray-500">Privacy Policy</div>
       </div>
 
       {/* Perspective Toggle */}
-      <div className="flex bg-white rounded-lg p-1 mb-3">
+      <div className="flex bg-white rounded-lg p-1 mb-2">
         <button className="flex-1 py-2 px-3 text-sm font-medium bg-[#271D1D] text-white rounded-md">
           Data Subject
         </button>
