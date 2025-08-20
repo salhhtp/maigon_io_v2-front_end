@@ -68,8 +68,15 @@ const FAQItem = ({
 
 export default function UserTeam() {
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+  const [addUserModalOpen, setAddUserModalOpen] = useState(false);
   const { user } = useUser();
   const userName = user?.name?.split(' ')[0] || 'User';
+
+  const handleUserAdded = (userData: any) => {
+    // In a real app, this would refresh the team list or update state
+    console.log('New user added:', userData);
+    // Could show a success toast here
+  };
 
   return (
     <div className="min-h-screen bg-[#F9F8F8]">
