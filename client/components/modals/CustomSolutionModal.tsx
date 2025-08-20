@@ -45,16 +45,13 @@ export default function CustomSolutionModal({ isOpen, onClose, onSuccess }: Cust
   ];
 
   const contractTypes = [
-    "Non-Disclosure Agreement (NDA)",
-    "Data Processing Agreement (DPA)", 
-    "Service Level Agreement (SLA)",
-    "Software License Agreement",
-    "Employment Contract",
-    "Vendor Agreement",
-    "Partnership Agreement",
-    "Consultancy Agreement",
-    "Privacy Policy",
-    "Terms of Service"
+    "Non-Disclosure Agreements",
+    "Data Processing Agreements",
+    "Consultancy Agreements",
+    "Privacy Policy Documents",
+    "Product Supply Agreements",
+    "R&D Agreements",
+    "End User License Agreements"
   ];
 
   const validateForm = () => {
