@@ -1,14 +1,14 @@
 export default function Step3Mockup() {
   return (
-    <div className="w-full h-full bg-gradient-to-br from-white to-[#F9F8F8] rounded-lg border border-[#271D1D]/15 overflow-hidden relative p-6">
+    <div className="w-full h-full bg-gradient-to-br from-white to-[#F9F8F8] rounded-lg border border-[#271D1D]/15 overflow-hidden relative p-4">
       {/* Header */}
-      <div className="text-center mb-6">
-        <h2 className="text-xl font-bold text-[#271D1D] font-lora mb-2">Select Your Perspective</h2>
-        <p className="text-gray-600 text-sm">Choose the viewpoint for contract analysis</p>
+      <div className="text-center mb-4">
+        <h2 className="text-lg font-bold text-[#271D1D] font-lora mb-1">Select Your Perspective</h2>
+        <p className="text-gray-600 text-xs">Choose the viewpoint for contract analysis</p>
       </div>
 
       {/* Perspective Options */}
-      <div className="space-y-4 mb-6">
+      <div className="space-y-3 mb-4">
         {/* Data Subject Perspective */}
         <div className="bg-white rounded-lg border-2 border-[#9A7C7C] p-4 shadow-md">
           <div className="flex items-start gap-4">
