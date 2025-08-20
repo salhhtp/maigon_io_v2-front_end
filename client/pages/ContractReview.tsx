@@ -25,68 +25,40 @@ export default function ContractReview() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F9F8F8]">
-      {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-8 lg:px-16 py-6 bg-[#F9F8F8]">
-        <Link to="/home">
-          <Logo size="xl" />
-        </Link>
-        
-        <div className="hidden md:flex items-center space-x-8">
-          <Link to="/user-solutions" className="text-[#271D1D] hover:text-[#9A7C7C] transition-colors">
-            Solutions
-          </Link>
-          <Link to="/pricing" className="text-[#271D1D] hover:text-[#9A7C7C] transition-colors">
-            Pricing
-          </Link>
-          <Link to="/user-news" className="text-[#271D1D] hover:text-[#9A7C7C] transition-colors">
-            News
-          </Link>
-          <Link to="/user-team" className="text-[#271D1D] hover:text-[#9A7C7C] transition-colors">
-            Team
-          </Link>
-          
-          {/* User Button */}
-          <div className="relative">
-            <button
-              onClick={() => setUserDropdownOpen(!userDropdownOpen)}
-              className="flex items-center space-x-2 bg-[#D6CECE] hover:bg-[#D6CECE]/90 px-4 py-2 rounded-lg transition-colors"
-            >
-              <User className="w-4 h-4 text-[#271D1D]" />
-              <span className="text-[#271D1D] font-medium">@{user?.name?.split(' ')[0] || 'User'}</span>
-              <ChevronDown
-                className={`w-4 h-4 text-[#271D1D] transition-transform ${userDropdownOpen ? "rotate-180" : ""}`}
-              />
-            </button>
-
-            {userDropdownOpen && (
-              <div className="absolute right-0 mt-2 w-32 bg-white border border-[#271D1D]/15 rounded-lg shadow-lg py-2 z-10">
-                <Link
-                  to="/profile"
-                  className="block px-4 py-2 text-sm text-[#271D1D] hover:bg-[#F9F8F8] transition-colors"
-                >
-                  Profile
-                </Link>
-                <Link
-                  to="/settings"
-                  className="block px-4 py-2 text-sm text-[#271D1D] hover:bg-[#F9F8F8] transition-colors"
-                >
-                  Settings
-                </Link>
-                <Link
-                  to="/"
-                  className="block px-4 py-2 text-sm text-[#271D1D] hover:bg-[#F9F8F8] transition-colors"
-                >
-                  Log Out
-                </Link>
-              </div>
-            )}
-          </div>
+    <div className="min-h-screen bg-white">
+      {/* Minimal Header Bar */}
+      <div className="print:hidden bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <button
+            onClick={handleBackToSolutions}
+            className="flex items-center gap-2 text-[#9A7C7C] hover:text-[#725A5A] transition-colors text-sm"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to Solutions
+          </button>
+          <div className="text-gray-300">|</div>
+          <Logo />
         </div>
 
-        {/* Mobile Navigation */}
-        <MobileNavigation isLoggedIn={true} userName={user?.name?.split(' ')[0] || 'User'} />
-      </nav>
+        <div className="flex items-center gap-3">
+          <Button
+            onClick={handleNewReview}
+            variant="outline"
+            size="sm"
+            className="border-[#9A7C7C] text-[#9A7C7C] hover:bg-[#9A7C7C] hover:text-white"
+          >
+            New Review
+          </Button>
+          <Button
+            onClick={() => window.print()}
+            size="sm"
+            className="bg-[#9A7C7C] hover:bg-[#725A5A] text-white"
+          >
+            <Download className="w-4 h-4 mr-2" />
+            Print Report
+          </Button>
+        </div>
+      </div>
 
       {/* Main Content */}
       <div className="pt-24 lg:pt-32 pb-16">
