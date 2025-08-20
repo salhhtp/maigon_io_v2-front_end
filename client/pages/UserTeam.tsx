@@ -7,8 +7,6 @@ import Footer from "@/components/Footer";
 import AnimatedQuotes from "@/components/AnimatedQuotes";
 import MobileNavigation from "@/components/MobileNavigation";
 import { useUser } from "@/contexts/UserContext";
-import AddUserModal from "@/components/modals/AddUserModal";
-import { UserPlus } from "lucide-react";
 
 const TeamMemberCard = ({
   name,
@@ -67,15 +65,9 @@ const FAQItem = ({
 
 export default function UserTeam() {
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
-  const [addUserModalOpen, setAddUserModalOpen] = useState(false);
   const { user } = useUser();
   const userName = user?.name?.split(' ')[0] || 'User';
 
-  const handleUserAdded = (userData: any) => {
-    // In a real app, this would refresh the team list or update state
-    console.log('New user added:', userData);
-    // Could show a success toast here
-  };
 
   return (
     <div className="min-h-screen bg-[#F9F8F8]">
@@ -185,14 +177,6 @@ export default function UserTeam() {
                 will bring to our lives.
               </p>
 
-              {/* Add User Button */}
-              <Button
-                onClick={() => setAddUserModalOpen(true)}
-                className="bg-[#9A7C7C] hover:bg-[#725A5A] text-white"
-              >
-                <UserPlus className="w-4 h-4 mr-2" />
-                Add Team Member
-              </Button>
             </div>
 
             {/* Right Image */}
@@ -319,12 +303,6 @@ export default function UserTeam() {
 
       <Footer />
 
-      {/* Add User Modal */}
-      <AddUserModal
-        isOpen={addUserModalOpen}
-        onClose={() => setAddUserModalOpen(false)}
-        onSuccess={handleUserAdded}
-      />
     </div>
   );
 }
