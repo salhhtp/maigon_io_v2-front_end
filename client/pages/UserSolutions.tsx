@@ -818,6 +818,13 @@ export default function UserSolutions() {
           </button>
         </div>
       )}
+
+      {/* Custom Solution Modal */}
+      <CustomSolutionModal
+        isOpen={customSolutionModalOpen}
+        onClose={() => setCustomSolutionModalOpen(false)}
+        onSuccess={handleSolutionCreated}
+      />
     </div>
   );
 }
