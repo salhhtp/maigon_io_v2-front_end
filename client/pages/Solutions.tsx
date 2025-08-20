@@ -985,7 +985,7 @@ export default function Solutions() {
         }}
         secondaryButton={{
           text: "View Pricing",
-          href: "/pricing",
+          href: "/public-pricing",
           variant: "outline",
         }}
         className="py-20 max-w-4xl mx-auto px-8 lg:px-16"
