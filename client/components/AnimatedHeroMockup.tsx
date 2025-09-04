@@ -40,15 +40,8 @@ const AnimatedHeroMockup: React.FC = () => {
 
   return (
     <div className="w-full h-full bg-gradient-to-br from-[#F9F8F8] to-[#F0F0F0] rounded-lg border border-[#271D1D]/15 p-6 overflow-hidden relative">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div className="flex items-center gap-3">
-          <div className="w-4 h-4 rounded-full bg-red-400"></div>
-          <div className="w-4 h-4 rounded-full bg-yellow-400"></div>
-          <div className="w-4 h-4 rounded-full bg-green-400"></div>
-        </div>
-        <div className="text-sm text-[#271D1D]/60 font-mono">maigon.ai</div>
-      </div>
+      {/* Header removed to avoid mac-window visual */}
+      <div className="mb-4" />
 
       {/* Main Content */}
       <div className="relative h-full">
