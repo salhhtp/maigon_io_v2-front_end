@@ -174,6 +174,40 @@ const ContractCardsAnimation: React.FC<ContractCardsAnimationProps> = ({
             );
           })}
         </div>
+
+        {/* Controls: prev/next and play/pause */}
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute left-4 top-1/2 transform -translate-y-1/2 pointer-events-auto">
+            <button
+              onClick={handlePrev}
+              aria-label="Previous"
+              className="p-2 rounded-full bg-white/80 hover:bg-white text-[#271D1D] shadow-md"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+          </div>
+
+          <div className="absolute right-4 top-1/2 transform -translate-y-1/2 pointer-events-auto">
+            <button
+              onClick={handleNext}
+              aria-label="Next"
+              className="p-2 rounded-full bg-white/80 hover:bg-white text-[#271D1D] shadow-md"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+          </div>
+
+          <div className="absolute right-4 top-4 pointer-events-auto">
+            <button
+              onClick={togglePlay}
+              aria-label={isPlaying ? 'Pause' : 'Play'}
+              className="flex items-center gap-2 px-3 py-2 rounded-md bg-white/90 shadow-md text-[#271D1D]"
+            >
+              {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+              <span className="text-xs">{isPlaying ? 'Pause' : 'Play'}</span>
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Mobile/Tablet Layout - Vertical Stack */}
