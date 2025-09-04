@@ -110,14 +110,14 @@ const ContractCardsAnimation: React.FC<ContractCardsAnimationProps> = ({
 
                 {/* Expanded content - only visible when active */}
                 <div
-                  className={`absolute left-4 right-4 top-[83px] transition-all duration-700 overflow-hidden ${
-                    isActive ? "opacity-100" : "opacity-0"
+                  className={`absolute left-6 right-6 top-[83px] transition-all duration-700 overflow-hidden ${
+                    isActive ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"
                   }`}
                   style={{
                     height: isActive
                       ? needsTallerCard
-                        ? "425px"
-                        : "295px"
+                        ? "320px"
+                        : "240px"
                       : "0px",
                   }}
                 >
