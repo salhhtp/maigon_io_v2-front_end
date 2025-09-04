@@ -66,6 +66,14 @@ const ContractCardsAnimation: React.FC<ContractCardsAnimationProps> = ({
             const cardHeight = isActive ? (needsTallerCard ? 520 : 390) : 76;
             const leftPosition = 16 + index * 142; // 150px width - 8px overlap
 
+            // Determine overlap against the active (opened) card bounds
+            const activeLeft = 16 + activeCard * 142 - 180;
+            const activeRight = activeLeft + 520;
+            const nonActiveWidth = 120;
+            const thisLeft = leftPosition;
+            const thisRight = thisLeft + (isActive ? 520 : nonActiveWidth);
+            const isOverlapped = !isActive && thisLeft < activeRight && thisRight > activeLeft;
+
             return (
               <div
                 key={index}
@@ -82,8 +90,9 @@ const ContractCardsAnimation: React.FC<ContractCardsAnimationProps> = ({
               >
                 {/* Top border */}
                 <div className="absolute top-0 left-0 w-full h-px bg-[#D6CECE] rounded-full" />
-                {!isActive && (
-                  <div className="absolute inset-0 rounded-lg bg-white/30 backdrop-blur-sm transition-opacity duration-300 pointer-events-none" />
+                {/* Glass blur overlay only when this card lies behind the opened card */}
+                {isOverlapped && (
+                  <div className="absolute inset-0 rounded-lg bg-white/30 backdrop-blur-sm transition-opacity duration-300 pointer-events-none z-40" />
                 )}
 
                 {/* Progress indicator for active card */}
@@ -94,7 +103,7 @@ const ContractCardsAnimation: React.FC<ContractCardsAnimationProps> = ({
 
                 {/* Card title */}
                 <div className="absolute top-1 left-0 right-0 flex flex-col justify-center items-center h-[59px] px-2">
-                  <h4 className={`text-[#271D1D] text-center font-bold leading-[26px] text-sm transition-all duration-300 ${isActive ? '' : 'blur-sm'}`}>
+                  <h4 className={`text-[#271D1D] text-center font-bold leading-[26px] text-sm transition-all duration-300 ${isOverlapped ? 'blur-sm' : ''}`}>
                     {type.title}
                   </h4>
                 </div>
