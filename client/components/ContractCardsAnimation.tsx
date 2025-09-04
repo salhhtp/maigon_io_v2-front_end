@@ -82,6 +82,9 @@ const ContractCardsAnimation: React.FC<ContractCardsAnimationProps> = ({
               >
                 {/* Top border */}
                 <div className="absolute top-0 left-0 w-full h-px bg-[#D6CECE] rounded-full" />
+                {!isActive && (
+                  <div className="absolute inset-0 rounded-lg bg-white/30 backdrop-blur-sm transition-opacity duration-300 pointer-events-none" />
+                )}
 
                 {/* Progress indicator for active card */}
                 <div
