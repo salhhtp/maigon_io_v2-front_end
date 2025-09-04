@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { ChevronLeft, ChevronRight, Play, Pause } from "lucide-react";
+import { useEffect, useState } from "react";
 
 interface ContractType {
   title: string;
