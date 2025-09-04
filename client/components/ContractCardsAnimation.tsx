@@ -174,37 +174,43 @@ const ContractCardsAnimation: React.FC<ContractCardsAnimationProps> = ({
           })}
         </div>
 
-        {/* Controls: prev/next and play/pause */}
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute left-4 top-1/2 transform -translate-y-1/2 pointer-events-auto">
+        {/* Controls: centered small buttons with dots and play/pause */}
+        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 pointer-events-auto z-50">
+          <div className="flex items-center gap-3 bg-transparent">
             <button
               onClick={handlePrev}
               aria-label="Previous"
-              className="p-2 rounded-full bg-white/80 hover:bg-white text-[#271D1D] shadow-md"
+              className="w-8 h-8 rounded-full bg-white/90 hover:bg-white text-[#271D1D] shadow-sm flex items-center justify-center"
             >
-              <ChevronLeft className="w-5 h-5" />
+              <ChevronLeft className="w-4 h-4" />
             </button>
-          </div>
 
-          <div className="absolute right-4 top-1/2 transform -translate-y-1/2 pointer-events-auto">
+            {/* Dots */}
+            <div className="flex items-center gap-2 px-2 py-1 bg-white/90 rounded-full shadow-sm">
+              {contractTypes.map((_, i) => (
+                <div
+                  key={i}
+                  onClick={() => { setActiveCard(i); setIsPlaying(false); }}
+                  className={`w-2 h-2 rounded-full transition-colors cursor-pointer ${i === activeCard ? 'bg-[#271D1D]' : 'bg-[#D6CECE]'}`}
+                />
+              ))}
+            </div>
+
             <button
               onClick={handleNext}
               aria-label="Next"
-              className="p-2 rounded-full bg-white/80 hover:bg-white text-[#271D1D] shadow-md"
+              className="w-8 h-8 rounded-full bg-white/90 hover:bg-white text-[#271D1D] shadow-sm flex items-center justify-center"
             >
-              <ChevronRight className="w-5 h-5" />
+              <ChevronRight className="w-4 h-4" />
             </button>
-          </div>
 
-          <div className="absolute right-4 top-4 pointer-events-auto">
-            <button
-              onClick={togglePlay}
-              aria-label={isPlaying ? 'Pause' : 'Play'}
-              className="flex items-center gap-2 px-3 py-2 rounded-md bg-white/90 shadow-md text-[#271D1D]"
-            >
-              {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-              <span className="text-xs">{isPlaying ? 'Pause' : 'Play'}</span>
-            </button>
+            {/* Play/Pause and count */}
+            <div className="ml-3 flex items-center gap-2 bg-white/90 rounded-full px-2 py-1 shadow-sm">
+              <button onClick={togglePlay} aria-label={isPlaying ? 'Pause' : 'Play'} className="w-7 h-7 rounded-full bg-transparent flex items-center justify-center text-[#271D1D]">
+                {isPlaying ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
+              </button>
+              <div className="text-sm text-[#271D1D]">{activeCard + 1}/{contractTypes.length}</div>
+            </div>
           </div>
         </div>
       </div>
