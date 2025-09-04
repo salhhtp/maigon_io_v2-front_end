@@ -22,17 +22,34 @@ const ContractCardsAnimation: React.FC<ContractCardsAnimationProps> = ({
   onButtonClick,
 }) => {
   const [activeCard, setActiveCard] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(true);
 
-  // Auto-animate cards every 10 seconds
+  // Autoplay behavior: advance when isPlaying
   useEffect(() => {
-    if (contractTypes.length > 0) {
-      const interval = setInterval(() => {
-        setActiveCard((prev) => (prev + 1) % contractTypes.length);
-      }, 10000);
+    if (!isPlaying || contractTypes.length === 0) return;
+    const interval = setInterval(() => {
+      setActiveCard((prev) => (prev + 1) % contractTypes.length);
+    }, 6000); // 6s for smoother demo
 
-      return () => clearInterval(interval);
-    }
-  }, [contractTypes.length]);
+    return () => clearInterval(interval);
+  }, [isPlaying, contractTypes.length]);
+
+  const handlePrev = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setActiveCard((prev) => (prev - 1 + contractTypes.length) % contractTypes.length);
+    setIsPlaying(false);
+  };
+
+  const handleNext = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setActiveCard((prev) => (prev + 1) % contractTypes.length);
+    setIsPlaying(false);
+  };
+
+  const togglePlay = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setIsPlaying((v) => !v);
+  };
 
   // Ensure we have contract types
   if (!contractTypes || contractTypes.length === 0) {
