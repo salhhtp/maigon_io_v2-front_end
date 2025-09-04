@@ -94,7 +94,7 @@ const ContractCardsAnimation: React.FC<ContractCardsAnimationProps> = ({
 
                 {/* Card title */}
                 <div className="absolute top-1 left-0 right-0 flex flex-col justify-center items-center h-[59px] px-2">
-                  <h4 className="text-[#271D1D] text-center font-bold leading-[26px] text-sm">
+                  <h4 className={`text-[#271D1D] text-center font-bold leading-[26px] text-sm transition-all duration-300 ${isActive ? '' : 'blur-sm'}`}>
                     {type.title}
                   </h4>
                 </div>
