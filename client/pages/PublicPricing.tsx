@@ -275,7 +275,7 @@ export default function PublicPricing() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
             {/* Free Trial */}
             <PricingCard
               tier="free_trial"
@@ -329,7 +329,7 @@ export default function PublicPricing() {
                 "Team collaboration tools",
                 "Usage analytics",
               ]}
-              buttonText="Start 14-Day Trial"
+              buttonText="Get Started"
               buttonAction={() => handlePlanSelect("monthly_10")}
             />
 
@@ -348,9 +348,55 @@ export default function PublicPricing() {
                 "API access",
                 "Custom integrations",
               ]}
-              buttonText="Start 14-Day Trial"
+              buttonText="Get Started"
               buttonAction={() => handlePlanSelect("monthly_15")}
             />
+
+            {/* Enterprise & Custom Solutions */}
+            <Card>
+              <CardContent className="p-8">
+                <h3 className="text-xl font-medium text-[#271D1D] font-lora mb-4">
+                  Enterprise & Custom Solutions
+                </h3>
+                <p className="text-lg mb-2">
+                  For 15+ Contracts Monthly - Custom Pricing
+                </p>
+                <p className="text-[#271D1D]/70 mb-6">
+                  Tailored solutions for large organizations with specific
+                  needs.
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                  <div>
+                    <h4 className="font-medium text-[#271D1D] mb-2">
+                      Enterprise Features
+                    </h4>
+                    <ul className="text-sm space-y-1">
+                      <li>• Custom pricing based on exact volume</li>
+                      <li>• Feature customization assessment</li>
+                      <li>• Dedicated account manager</li>
+                      <li>• On-premise deployment options</li>
+                    </ul>
+                  </div>
+                  <div>
+                    <h4 className="font-medium text-[#271D1D] mb-2">
+                      Additional Benefits
+                    </h4>
+                    <ul className="text-sm space-y-1">
+                      <li>• Custom SLA agreements</li>
+                      <li>• Advanced security compliance</li>
+                      <li>• Training & onboarding support</li>
+                      <li>• Priority feature requests</li>
+                    </ul>
+                  </div>
+                </div>
+                <Button
+                  onClick={() => navigate("/signin")}
+                  className="bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white px-8"
+                >
+                  Contact Sales
+                </Button>
+              </CardContent>
+            </Card>
           </div>
 
           {/* Enterprise */}

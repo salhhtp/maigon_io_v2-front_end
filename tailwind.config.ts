@@ -14,7 +14,7 @@ export default {
     },
     extend: {
       fontFamily: {
-        lora: ['Lora', 'serif'],
+        lora: ['Roboto', 'sans-serif'],
       },
       colors: {
         border: "hsl(var(--border))",
