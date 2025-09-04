@@ -174,7 +174,7 @@ export default function Index() {
             </h2>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 mb-20 place-items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 mb-20 place-items-center mt-8">
             {/* Card 1 */}
             <div className="flex flex-col items-center relative w-full max-w-md">
               <ComplianceScoreMockup />
