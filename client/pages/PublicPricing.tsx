@@ -420,6 +420,7 @@ export default function PublicPricing() {
                 "Email support (48-hour response)",
                 "Permanent report storage",
                 "Basic playbook templates",
+                "Unlimited report storage",
                 "Download reports in multiple formats",
               ]}
               buttonText="Get Started"
@@ -469,48 +470,45 @@ export default function PublicPricing() {
               buttonAction={() => handlePlanSelect("monthly_15")}
             />
 
-            {/* Enterprise & Custom Solutions */}
-            <Card className="relative">
-              <CardContent className="p-6">
-                <div className="text-center mb-4">
-                  <h3 className="text-lg font-medium text-[#271D1D] font-lora mb-2">
-                    Enterprise Plan
-                  </h3>
-                  <div className="text-3xl font-bold text-[#9A7C7C] mb-1">
-                    Custom
-                  </div>
-                  <div className="text-sm text-[#271D1D]/70">pricing</div>
+            {/* Enterprise Plan */}
+            <div className="rounded-lg border bg-card text-card-foreground shadow-sm relative">
+              <div className="bg-gradient-to-r from-[#9A7C7C] to-[#B6A5A5] rounded-lg p-6 text-white text-center h-full flex flex-col">
+                <Phone className="w-8 h-8 mx-auto mb-3" />
+                <h3 className="font-lora text-lg font-medium mb-2">
+                  Enterprise Plan
+                </h3>
+                <div className="text-2xl font-bold text-white mb-1">
+                  Custom
                 </div>
+                <div className="text-sm text-white/90 mb-4">pricing</div>
 
-                <div className="space-y-4 mb-6">
-                  <div>
-                    <h4 className="text-xs font-medium text-[#271D1D] mb-2 uppercase tracking-wider">
-                      Enterprise Features
-                    </h4>
-                    <ul className="space-y-2">
+                <div className="space-y-3 mb-6 flex-grow">
+                  <div className="text-left">
+                    <h4 className="text-xs font-medium mb-2 uppercase tracking-wider">Enterprise Features</h4>
+                    <ul className="space-y-1">
                       <li className="flex items-center gap-2 text-xs">
-                        <Check className="w-3 h-3 text-green-500 flex-shrink-0" />
-                        <span className="text-[#271D1D]">Custom volume pricing</span>
+                        <Check className="w-3 h-3 text-white flex-shrink-0" />
+                        <span>Unlimited contract reviews</span>
                       </li>
                       <li className="flex items-center gap-2 text-xs">
-                        <Check className="w-3 h-3 text-green-500 flex-shrink-0" />
-                        <span className="text-[#271D1D]">Dedicated account manager</span>
+                        <Check className="w-3 h-3 text-white flex-shrink-0" />
+                        <span>Custom pricing based on volume</span>
                       </li>
                       <li className="flex items-center gap-2 text-xs">
-                        <Check className="w-3 h-3 text-green-500 flex-shrink-0" />
-                        <span className="text-[#271D1D]">On-premise deployment</span>
+                        <Check className="w-3 h-3 text-white flex-shrink-0" />
+                        <span>Dedicated account manager</span>
                       </li>
                       <li className="flex items-center gap-2 text-xs">
-                        <Check className="w-3 h-3 text-green-500 flex-shrink-0" />
-                        <span className="text-[#271D1D]">Custom SLA agreements</span>
+                        <Check className="w-3 h-3 text-white flex-shrink-0" />
+                        <span>Custom integrations & API access</span>
                       </li>
                       <li className="flex items-center gap-2 text-xs">
-                        <Check className="w-3 h-3 text-green-500 flex-shrink-0" />
-                        <span className="text-[#271D1D]">Advanced security compliance</span>
+                        <Check className="w-3 h-3 text-white flex-shrink-0" />
+                        <span>Advanced analytics & reporting</span>
                       </li>
                       <li className="flex items-center gap-2 text-xs">
-                        <Check className="w-3 h-3 text-green-500 flex-shrink-0" />
-                        <span className="text-[#271D1D]">Priority support & training</span>
+                        <Check className="w-3 h-3 text-white flex-shrink-0" />
+                        <span>Priority support & training</span>
                       </li>
                     </ul>
                   </div>
@@ -518,12 +516,12 @@ export default function PublicPricing() {
 
                 <Button
                   onClick={() => navigate("/signin")}
-                  className="w-full bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white"
+                  className="w-full bg-white text-[#9A7C7C] hover:bg-white/90 mt-auto"
                 >
                   Contact Sales
                 </Button>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </div>
 
         </div>
