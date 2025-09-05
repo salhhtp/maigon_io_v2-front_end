@@ -23,7 +23,6 @@ import Team from "./pages/Team";
 import UserTeam from "./pages/UserTeam";
 import Profile from "./pages/Profile";
 import Dashboard from "./pages/Dashboard";
-import Analytics from "./pages/Analytics";
 import Settings from "./pages/Settings";
 import Pricing from "./pages/Pricing";
 import PublicPricing from "./pages/PublicPricing";
@@ -104,10 +103,6 @@ const router = createBrowserRouter([
   {
     path: "/dashboard",
     element: <Dashboard />,
-  },
-  {
-    path: "/analytics",
-    element: <Analytics />,
   },
   {
     path: "/settings",
