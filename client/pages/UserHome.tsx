@@ -23,6 +23,7 @@ import { useUser } from "@/contexts/UserContext";
 export default function UserHome() {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+  const location = useLocation();
 
   const { user, isLoading } = useUser();
   const userName = user?.name?.split(" ")[0] || "User";
