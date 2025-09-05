@@ -43,7 +43,7 @@ const queryClient = new QueryClient();
 const router = createBrowserRouter([
   {
     path: "/",
-    element: <Index />,
+    element: <RootRedirect />,
   },
   {
     path: "/home",
