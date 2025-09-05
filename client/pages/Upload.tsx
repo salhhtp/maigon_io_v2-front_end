@@ -412,9 +412,19 @@ export default function Upload() {
           {/* Solution Info */}
           {solutionTitle && perspective && (
             <div className="text-center text-sm text-[#9A7C7C] font-roboto">
-              Selected: <span className="font-medium">{solutionTitle}</span> •
-              Perspective:{" "}
-              <span className="font-medium capitalize">{perspective}</span>
+              {quickUpload ? (
+                <>
+                  <span className="font-medium">{solutionTitle}</span> Analysis •{" "}
+                  <span className="font-medium capitalize">{perspective.replace("-", " ")}</span> Perspective
+                  {adminAccess && <span className="ml-2 px-2 py-1 bg-[#9A7C7C]/10 rounded text-xs">Admin Mode</span>}
+                </>
+              ) : (
+                <>
+                  Selected: <span className="font-medium">{solutionTitle}</span> •
+                  Perspective:{" "}
+                  <span className="font-medium capitalize">{perspective}</span>
+                </>
+              )}
             </div>
           )}
         </div>
