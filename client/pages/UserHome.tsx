@@ -110,25 +110,41 @@ export default function UserHome() {
         <div className="hidden md:flex items-center space-x-8">
           <Link
             to="/user-solutions"
-            className="text-[#271D1D] hover:text-[#9A7C7C] transition-colors"
+            className={`transition-colors ${
+              location.pathname === "/user-solutions"
+                ? "text-[#9A7C7C] font-medium"
+                : "text-[#271D1D] hover:text-[#9A7C7C]"
+            }`}
           >
             Solutions
           </Link>
           <Link
             to="/pricing"
-            className="text-[#271D1D] hover:text-[#9A7C7C] transition-colors"
+            className={`transition-colors ${
+              location.pathname === "/pricing"
+                ? "text-[#9A7C7C] font-medium"
+                : "text-[#271D1D] hover:text-[#9A7C7C]"
+            }`}
           >
             Pricing
           </Link>
           <Link
             to="/user-news"
-            className="text-[#271D1D] hover:text-[#9A7C7C] transition-colors"
+            className={`transition-colors ${
+              location.pathname === "/user-news"
+                ? "text-[#9A7C7C] font-medium"
+                : "text-[#271D1D] hover:text-[#9A7C7C]"
+            }`}
           >
             News
           </Link>
           <Link
             to="/user-team"
-            className="text-[#271D1D] hover:text-[#9A7C7C] transition-colors"
+            className={`transition-colors ${
+              location.pathname === "/user-team"
+                ? "text-[#9A7C7C] font-medium"
+                : "text-[#271D1D] hover:text-[#9A7C7C]"
+            }`}
           >
             Team
           </Link>
