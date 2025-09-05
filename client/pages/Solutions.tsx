@@ -800,6 +800,7 @@ export default function Solutions() {
             }
             title="On-premise availability"
             description="On-premise option is available to meet the strictest security standards."
+            label="Enterprise"
           />
 
           <FeatureCard
