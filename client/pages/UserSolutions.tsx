@@ -750,6 +750,7 @@ export default function UserSolutions() {
             }
             title="Custom playbook"
             description="We help you add your own rules into our standard solutions to address your organization's review guidelines and practices."
+            label="Enterprise"
           />
 
           <FeatureCard
