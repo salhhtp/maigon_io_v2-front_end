@@ -8,6 +8,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { UserProvider } from "@/contexts/UserContext";
 import Index from "./pages/Index";
+import RootRedirect from "@/components/RootRedirect";
 import UserHome from "./pages/UserHome";
 import SignIn from "./pages/SignIn";
 import SignUp from "./pages/SignUp";
