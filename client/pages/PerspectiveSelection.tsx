@@ -338,7 +338,7 @@ export default function PerspectiveSelection() {
               onClick={handleBack}
               className="flex-1 bg-gray-100 text-gray-700 py-3 px-6 rounded-lg font-medium hover:bg-gray-200 transition-colors"
             >
-              Back to Solutions
+              {quickUpload ? "Back to Dashboard" : "Back to Solutions"}
             </button>
             <button
               onClick={handleContinue}
