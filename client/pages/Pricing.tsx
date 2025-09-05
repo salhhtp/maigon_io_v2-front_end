@@ -275,15 +275,15 @@ export default function Pricing() {
 
     .slider-tooltip {
       position: absolute;
-      top: -45px;
+      top: -30px;
       transform: translateX(-50%);
       background: #9A7C7C;
       color: white;
-      padding: 8px 12px;
+      padding: 6px 10px;
       border-radius: 8px;
-      font-size: 16px;
+      font-size: 14px;
       font-weight: 600;
-      min-width: 40px;
+      min-width: 35px;
       text-align: center;
       transition: left 0.1s ease;
     }
