@@ -275,7 +275,7 @@ export default function Pricing() {
 
     .slider-tooltip {
       position: absolute;
-      top: -30px;
+      top: -15px;
       transform: translateX(-50%);
       background: #9A7C7C;
       color: white;
@@ -674,7 +674,7 @@ export default function Pricing() {
                   <div className="text-left">
                     <h4 className="font-medium mb-2">Enterprise Features:</h4>
                     <ul className="text-sm space-y-1">
-                      <li>• Unlimited contract reviews</li>
+                      <li>��� Unlimited contract reviews</li>
                       <li>• Priority support & dedicated account manager</li>
                       <li>• Custom integrations & API access</li>
                       <li>• Advanced analytics & reporting</li>
