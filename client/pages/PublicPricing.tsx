@@ -101,7 +101,7 @@ const PricingCalculator = ({
         savings: payAsYouGo - monthly15,
       };
     }
-    return { plan: "Professional", price: "Custom", savings: "Contact us" };
+    return { plan: "Enterprise", price: "Custom", savings: "Contact us" };
   };
 
   const result = calculatePricing(contractCount);
@@ -474,7 +474,7 @@ export default function PublicPricing() {
               <CardContent className="p-6">
                 <div className="text-center mb-4">
                   <h3 className="text-lg font-medium text-[#271D1D] font-lora mb-2">
-                    Enterprise & Custom Solutions
+                    Enterprise Plan
                   </h3>
                   <div className="text-3xl font-bold text-[#9A7C7C] mb-1">
                     Custom
