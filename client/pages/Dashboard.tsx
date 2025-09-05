@@ -55,7 +55,7 @@ import { useUser } from "@/contexts/UserContext";
 import AddUserModal from "@/components/modals/AddUserModal";
 import CustomSolutionModal from "@/components/modals/CustomSolutionModal";
 
-// Analytics Data
+// Enhanced Analytics Data
 const analyticsData = {
   overview: {
     totalUsers: 2847,
@@ -66,6 +66,104 @@ const analyticsData = {
     revenueGrowth: 18.2,
     activeUsersGrowth: 8.7,
     contractsGrowth: 23.1,
+    avgSessionDuration: 24.5,
+    conversionRate: 3.2,
+    churnRate: 2.1,
+    customerSatisfaction: 4.7,
+  },
+  timeBasedData: {
+    "7d": {
+      users: [
+        { date: "2024-01-01", value: 1847, previous: 1792 },
+        { date: "2024-01-02", value: 1923, previous: 1845 },
+        { date: "2024-01-03", value: 1965, previous: 1889 },
+        { date: "2024-01-04", value: 2012, previous: 1923 },
+        { date: "2024-01-05", value: 2089, previous: 1965 },
+        { date: "2024-01-06", value: 2156, previous: 2012 },
+        { date: "2024-01-07", value: 2234, previous: 2089 },
+      ],
+      revenue: [
+        { date: "2024-01-01", value: 67890, previous: 65230 },
+        { date: "2024-01-02", value: 73240, previous: 67890 },
+        { date: "2024-01-03", value: 78560, previous: 73240 },
+        { date: "2024-01-04", value: 81290, previous: 78560 },
+        { date: "2024-01-05", value: 85430, previous: 81290 },
+        { date: "2024-01-06", value: 89245, previous: 85430 },
+        { date: "2024-01-07", value: 92180, previous: 89245 },
+      ],
+      contracts: [
+        { date: "2024-01-01", value: 234, previous: 218 },
+        { date: "2024-01-02", value: 267, previous: 234 },
+        { date: "2024-01-03", value: 289, previous: 267 },
+        { date: "2024-01-04", value: 312, previous: 289 },
+        { date: "2024-01-05", value: 334, previous: 312 },
+        { date: "2024-01-06", value: 356, previous: 334 },
+        { date: "2024-01-07", value: 378, previous: 356 },
+      ],
+    },
+    "30d": {
+      users: [
+        { date: "Week 1", value: 2156, previous: 2089 },
+        { date: "Week 2", value: 2298, previous: 2156 },
+        { date: "Week 3", value: 2523, previous: 2298 },
+        { date: "Week 4", value: 2847, previous: 2523 },
+      ],
+      revenue: [
+        { date: "Week 1", value: 67890, previous: 62340 },
+        { date: "Week 2", value: 73240, previous: 67890 },
+        { date: "Week 3", value: 81290, previous: 73240 },
+        { date: "Week 4", value: 89245, previous: 81290 },
+      ],
+      contracts: [
+        { date: "Week 1", value: 1203, previous: 1089 },
+        { date: "Week 2", value: 1456, previous: 1203 },
+        { date: "Week 3", value: 1892, previous: 1456 },
+        { date: "Week 4", value: 2456, previous: 1892 },
+      ],
+    },
+  },
+  userBehavior: {
+    sessionDuration: [
+      { range: "0-5 min", users: 423, percentage: 14.9 },
+      { range: "5-15 min", users: 892, percentage: 31.3 },
+      { range: "15-30 min", users: 1076, percentage: 37.8 },
+      { range: "30-60 min", users: 367, percentage: 12.9 },
+      { range: "60+ min", users: 89, percentage: 3.1 },
+    ],
+    userJourney: [
+      { step: "Landing Page", users: 15430, conversion: 100 },
+      { step: "Sign Up", users: 4629, conversion: 30.0 },
+      { step: "First Contract", users: 2314, conversion: 15.0 },
+      { step: "Paid Plan", users: 1157, conversion: 7.5 },
+      { step: "Active User", users: 925, conversion: 6.0 },
+    ],
+    deviceUsage: [
+      { device: "Desktop", users: 1982, percentage: 69.6 },
+      { device: "Mobile", users: 651, percentage: 22.9 },
+      { device: "Tablet", users: 214, percentage: 7.5 },
+    ],
+  },
+  advancedMetrics: {
+    cohortAnalysis: [
+      { cohort: "Jan 2024", week1: 100, week2: 87, week3: 76, week4: 68 },
+      { cohort: "Feb 2024", week1: 100, week2: 89, week3: 79, week4: 71 },
+      { cohort: "Mar 2024", week1: 100, week2: 91, week3: 82, week4: 75 },
+      { cohort: "Apr 2024", week1: 100, week2: 93, week3: 85, week4: 78 },
+    ],
+    revenueMetrics: [
+      { metric: "MRR", value: 234560, change: 18.2, trend: "up" },
+      { metric: "ARR", value: 2814720, change: 22.1, trend: "up" },
+      { metric: "ARPU", value: 156.8, change: 8.9, trend: "up" },
+      { metric: "LTV", value: 2340, change: 15.3, trend: "up" },
+      { metric: "CAC", value: 89, change: -12.5, trend: "down" },
+      { metric: "LTV/CAC", value: 26.3, change: 31.2, trend: "up" },
+    ],
+    errorAnalysis: [
+      { error: "API Timeout", count: 23, severity: "medium" },
+      { error: "Authentication Failed", count: 12, severity: "high" },
+      { error: "File Upload Error", count: 8, severity: "low" },
+      { error: "Payment Processing", count: 4, severity: "critical" },
+    ],
   },
   userMetrics: {
     byPlan: [
@@ -1199,6 +1297,10 @@ export default function Dashboard() {
   const [addUserModalOpen, setAddUserModalOpen] = useState(false);
   const [customSolutionModalOpen, setCustomSolutionModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"overview" | "analytics">("overview");
+  const [analyticsTimeRange, setAnalyticsTimeRange] = useState<string>("30d");
+  const [analyticsView, setAnalyticsView] = useState<"overview" | "users" | "revenue" | "performance" | "engagement">("overview");
+  const [selectedMetric, setSelectedMetric] = useState<string>("users");
+  const [comparisonMode, setComparisonMode] = useState<boolean>(false);
   const location = useLocation();
   const { user, isLoggedIn } = useUser();
 
