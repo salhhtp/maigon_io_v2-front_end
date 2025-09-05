@@ -32,7 +32,7 @@ export default function MobileNavigation({
   // Navigation links based on authentication state
   const navLinks = isLoggedIn
     ? [
-        { label: "Home", href: "/home" },
+        { label: "Dashboard", href: "/dashboard" },
         { label: "Solutions", href: "/user-solutions" },
         { label: "News", href: "/user-news" },
         { label: "Team", href: "/user-team" },
