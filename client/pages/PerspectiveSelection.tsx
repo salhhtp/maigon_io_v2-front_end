@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { User, ChevronDown } from "lucide-react";
 import Logo from "@/components/Logo";
 import MobileNavigation from "@/components/MobileNavigation";
