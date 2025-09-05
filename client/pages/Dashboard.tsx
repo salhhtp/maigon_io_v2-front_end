@@ -25,6 +25,21 @@ import {
   Search,
   Filter,
   X,
+  TrendingUp,
+  TrendingDown,
+  Activity,
+  Calendar,
+  Globe,
+  Download,
+  RefreshCw,
+  Eye,
+  Target,
+  Zap,
+  AlertTriangle,
+  CheckCircle,
+  Clock,
+  MapPin,
+  Calculator,
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useState } from "react";
@@ -983,6 +998,7 @@ export default function Dashboard() {
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [addUserModalOpen, setAddUserModalOpen] = useState(false);
   const [customSolutionModalOpen, setCustomSolutionModalOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<"overview" | "analytics">("overview");
   const location = useLocation();
   const { user, isLoggedIn } = useUser();
 
