@@ -7,7 +7,7 @@ import {
   Phone,
   Calculator,
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useState } from "react";
 import Logo from "@/components/Logo";
 import Footer from "@/components/Footer";
@@ -642,7 +642,7 @@ export default function Pricing() {
                   <td className="p-4 text-[#271D1D]">API Access</td>
                   <td className="p-4 text-center text-[#271D1D]/70">❌</td>
                   <td className="p-4 text-center text-[#271D1D]/70">❌</td>
-                  <td className="p-4 text-center text-[#271D1D]/70">❌</td>
+                  <td className="p-4 text-center text-[#271D1D]/70">���</td>
                   <td className="p-4 text-center text-[#271D1D]/70">✅</td>
                 </tr>
                 <tr>
