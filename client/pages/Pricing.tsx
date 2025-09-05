@@ -156,7 +156,7 @@ const PricingCalculator = ({
           max="20"
           value={contractCount}
           onChange={(e) => setContractCount(parseInt(e.target.value))}
-          className="w-full h-2 bg-[#F3F3F3] rounded-lg appearance-none cursor-pointer"
+          className="w-full h-2 bg-[#F3F3F3] rounded-lg appearance-none cursor-pointer custom-range-slider"
           style={{
             background: `linear-gradient(to right, #9A7C7C 0%, #9A7C7C ${(contractCount / 20) * 100}%, #F3F3F3 ${(contractCount / 20) * 100}%, #F3F3F3 100%)`,
           }}
@@ -205,6 +205,65 @@ export default function Pricing() {
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const location = useLocation();
 
+  // Custom styles for range slider
+  const rangeSliderStyles = `
+    .custom-range-slider::-webkit-slider-thumb {
+      appearance: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #9A7C7C;
+      cursor: pointer;
+      border: 2px solid #ffffff;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      transition: all 0.2s ease;
+    }
+
+    .custom-range-slider::-webkit-slider-thumb:hover {
+      background: #8B6F6F;
+      transform: scale(1.1);
+      box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
+    }
+
+    .custom-range-slider::-webkit-slider-thumb:active {
+      background: #7A5F5F;
+      transform: scale(1.05);
+    }
+
+    .custom-range-slider::-moz-range-thumb {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #9A7C7C;
+      cursor: pointer;
+      border: 2px solid #ffffff;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      transition: all 0.2s ease;
+    }
+
+    .custom-range-slider::-moz-range-thumb:hover {
+      background: #8B6F6F;
+      transform: scale(1.1);
+      box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
+    }
+
+    .custom-range-slider::-moz-range-thumb:active {
+      background: #7A5F5F;
+      transform: scale(1.05);
+    }
+
+    .custom-range-slider::-webkit-slider-runnable-track {
+      height: 8px;
+      border-radius: 4px;
+    }
+
+    .custom-range-slider::-moz-range-track {
+      height: 8px;
+      border-radius: 4px;
+      border: none;
+    }
+  `;
+
   const handlePlanSelect = (planType: string) => {
     if (isLoggedIn) {
       // Navigate to plan selection/upgrade page
@@ -236,6 +295,7 @@ export default function Pricing() {
 
   return (
     <div className="min-h-screen bg-[#F9F8F8]">
+      <style>{rangeSliderStyles}</style>
       {/* Navigation */}
       <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-8 lg:px-16 py-6 bg-[#F9F8F8]">
         <Link to={isLoggedIn ? "/home" : "/"}>
