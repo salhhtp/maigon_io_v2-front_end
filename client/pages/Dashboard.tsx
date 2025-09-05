@@ -1688,6 +1688,160 @@ export default function Dashboard() {
           {/* Overview Tab Content */}
           {(!isAdmin || activeTab === "overview") && (
             <>
+              {/* Quick Upload Section - Prominently displayed at the top */}
+              <div className="bg-gradient-to-r from-[#9A7C7C]/5 to-[#B6A5A5]/5 rounded-lg border border-[#9A7C7C]/20 p-6 mb-8">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h2 className="text-xl font-lora font-medium text-[#271D1D] mb-1">
+                      Quick Upload Access
+                    </h2>
+                    <p className="text-sm text-[#271D1D]/70">
+                      {isAdmin
+                        ? "Skip the navigation and test solutions directly - all seven contract types available instantly"
+                        : "Skip the selection process and upload directly to any of our seven AI solutions"
+                      }
+                    </p>
+                  </div>
+                  <div className="px-3 py-1 bg-[#9A7C7C] text-white rounded-full text-sm font-medium">
+                    {isAdmin ? "Admin Fast Track" : "Fast Track"}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                  <Link
+                    to="/perspective-selection"
+                    state={{
+                      solutionTitle: "Data Processing Agreement",
+                      quickUpload: true,
+                      adminAccess: isAdmin
+                    }}
+                  >
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full justify-start text-[#271D1D] border-[#271D1D]/20 hover:bg-[#9A7C7C]/10 hover:border-[#9A7C7C] transition-all"
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      {isAdmin ? "Test DPA" : "Upload DPA"}
+                    </Button>
+                  </Link>
+
+                  <Link
+                    to="/perspective-selection"
+                    state={{
+                      solutionTitle: "Non-Disclosure Agreement",
+                      quickUpload: true,
+                      adminAccess: isAdmin
+                    }}
+                  >
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full justify-start text-[#271D1D] border-[#271D1D]/20 hover:bg-[#9A7C7C]/10 hover:border-[#9A7C7C] transition-all"
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      {isAdmin ? "Test NDA" : "Upload NDA"}
+                    </Button>
+                  </Link>
+
+                  <Link
+                    to="/perspective-selection"
+                    state={{
+                      solutionTitle: "Privacy Policy Document",
+                      quickUpload: true,
+                      adminAccess: isAdmin
+                    }}
+                  >
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full justify-start text-[#271D1D] border-[#271D1D]/20 hover:bg-[#9A7C7C]/10 hover:border-[#9A7C7C] transition-all"
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      {isAdmin ? "Test Privacy Policy" : "Upload Privacy Policy"}
+                    </Button>
+                  </Link>
+
+                  <Link
+                    to="/perspective-selection"
+                    state={{
+                      solutionTitle: "Consultancy Agreement",
+                      quickUpload: true,
+                      adminAccess: isAdmin
+                    }}
+                  >
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full justify-start text-[#271D1D] border-[#271D1D]/20 hover:bg-[#9A7C7C]/10 hover:border-[#9A7C7C] transition-all"
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      {isAdmin ? "Test Consultancy" : "Upload Consultancy"}
+                    </Button>
+                  </Link>
+
+                  <Link
+                    to="/perspective-selection"
+                    state={{
+                      solutionTitle: "Product Supply Agreement",
+                      quickUpload: true,
+                      adminAccess: isAdmin
+                    }}
+                  >
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full justify-start text-[#271D1D] border-[#271D1D]/20 hover:bg-[#9A7C7C]/10 hover:border-[#9A7C7C] transition-all"
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      {isAdmin ? "Test Supply Agreement" : "Upload Supply Agreement"}
+                    </Button>
+                  </Link>
+
+                  <Link
+                    to="/perspective-selection"
+                    state={{
+                      solutionTitle: "R&D Agreement",
+                      quickUpload: true,
+                      adminAccess: isAdmin
+                    }}
+                  >
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full justify-start text-[#271D1D] border-[#271D1D]/20 hover:bg-[#9A7C7C]/10 hover:border-[#9A7C7C] transition-all"
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      {isAdmin ? "Test R&D Agreement" : "Upload R&D Agreement"}
+                    </Button>
+                  </Link>
+
+                  <Link
+                    to="/perspective-selection"
+                    state={{
+                      solutionTitle: "End User License Agreement",
+                      quickUpload: true,
+                      adminAccess: isAdmin
+                    }}
+                  >
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full justify-start text-[#271D1D] border-[#271D1D]/20 hover:bg-[#9A7C7C]/10 hover:border-[#9A7C7C] transition-all"
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      {isAdmin ? "Test EULA" : "Upload EULA"}
+                    </Button>
+                  </Link>
+                </div>
+
+                <div className="mt-4 flex items-center justify-center">
+                  <Link to="/user-solutions" className="text-sm text-[#9A7C7C] hover:text-[#9A7C7C]/80 transition-colors">
+                    Need more details? Browse all solutions →
+                  </Link>
+                </div>
+              </div>
+
               {/* Stats Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <StatsCard
