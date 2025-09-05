@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { X, Menu, User, ChevronDown } from "lucide-react";
+import { useUser } from "@/contexts/UserContext";
 
 interface MobileNavigationProps {
   isLoggedIn?: boolean;
@@ -13,6 +14,8 @@ export default function MobileNavigation({
 }: MobileNavigationProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+  const { logout } = useUser();
+  const navigate = useNavigate();
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
@@ -160,13 +163,16 @@ export default function MobileNavigation({
                         >
                           Settings
                         </a>
-                        <Link
-                          to="/"
-                          onClick={closeMenu}
-                          className="block px-4 py-3 text-base text-[#271D1D] hover:bg-[#F9F8F8] transition-colors"
+                        <button
+                          onClick={() => {
+                            logout();
+                            navigate("/");
+                            closeMenu();
+                          }}
+                          className="block w-full text-left px-4 py-3 text-base text-[#271D1D] hover:bg-[#F9F8F8] transition-colors"
                         >
                           Log Out
-                        </Link>
+                        </button>
                       </div>
                     )}
                   </div>
