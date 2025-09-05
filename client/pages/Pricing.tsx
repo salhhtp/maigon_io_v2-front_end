@@ -7,7 +7,7 @@ import {
   Building2,
   Calculator,
 } from "lucide-react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import Logo from "@/components/Logo";
 import Footer from "@/components/Footer";
@@ -210,7 +210,8 @@ const PricingCalculator = ({
 };
 
 export default function Pricing() {
-  const { user, isLoggedIn } = useUser();
+  const { user, isLoggedIn, logout } = useUser();
+  const navigate = useNavigate();
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const location = useLocation();
 
@@ -417,12 +418,15 @@ export default function Pricing() {
                   >
                     Profile & Settings
                   </Link>
-                  <Link
-                    to="/"
-                    className="block px-4 py-2 text-sm text-[#271D1D] hover:bg-[#F9F8F8] transition-colors"
+                  <button
+                    onClick={() => {
+                      logout();
+                      navigate("/");
+                    }}
+                    className="block w-full text-left px-4 py-2 text-sm text-[#271D1D] hover:bg-[#F9F8F8] transition-colors"
                   >
                     Log Out
-                  </Link>
+                  </button>
                 </div>
               )}
             </div>
