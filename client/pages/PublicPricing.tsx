@@ -84,19 +84,24 @@ const PricingCalculator = ({
   const calculatePricing = (contracts: number) => {
     if (contracts <= 1) return { plan: "Free Trial", price: 0, savings: 0 };
     if (contracts <= 10) {
-      const price = contracts * 12;
-      return { plan: "Pay-as-you-go", price, savings: 0 };
+      const payAsYouGo = contracts * 89;
+      const monthly10 = 799;
+      return {
+        plan: contracts <= 9 ? "Pay-as-you-go" : "Monthly 10",
+        price: contracts <= 9 ? payAsYouGo : monthly10,
+        savings: contracts <= 9 ? 0 : payAsYouGo - monthly10,
+      };
     }
     if (contracts <= 15) {
-      const monthlyPrice = 79;
-      const payAsYouGoPrice = contracts * 12;
-      const savings = payAsYouGoPrice - monthlyPrice;
-      return { plan: "Monthly 10 Plan", price: monthlyPrice, savings };
+      const payAsYouGo = contracts * 89;
+      const monthly15 = 1199;
+      return {
+        plan: "Monthly 15",
+        price: monthly15,
+        savings: payAsYouGo - monthly15,
+      };
     }
-    const monthlyPrice = 99;
-    const payAsYouGoPrice = contracts * 12;
-    const savings = payAsYouGoPrice - monthlyPrice;
-    return { plan: "Monthly 15 Plan", price: monthlyPrice, savings };
+    return { plan: "Professional", price: "Custom", savings: "Contact us" };
   };
 
   const result = calculatePricing(contractCount);
@@ -137,8 +142,10 @@ const PricingCalculator = ({
                   Recommended: {result.plan}
                 </p>
                 <p className="text-sm text-[#271D1D]/70">
-                  €{result.price}
-                  {result.price > 0 ? "/month" : ""}
+                  {typeof result.price === "number"
+                    ? `€${result.price}${result.price > 0 ? "/month" : ""}`
+                    : result.price
+                  }
                 </p>
               </div>
               {result.savings > 0 && (
@@ -297,17 +304,19 @@ export default function PublicPricing() {
             {/* Pay-as-you-go */}
             <PricingCard
               tier="pay_as_you_go"
-              title="Pay-as-you-go"
+              title="Pay-As-You-Go"
               subtitle="Perfect for Occasional Use"
-              price={12}
+              price={89}
               period="per contract"
               features={[
-                "€12 per contract review",
-                "Full compliance analysis",
-                "Detailed insights report",
-                "Priority email support",
-                "No monthly commitment",
-                "Bulk discounts available",
+                "Instant compliance reports",
+                "All 7 contract type modules",
+                "Risk assessment and scoring",
+                "Clause extraction with recommendations",
+                "Email support (48-hour response)",
+                "Permanent report storage",
+                "Basic playbook templates",
+                "Download reports in multiple formats",
               ]}
               buttonText="Get Started"
               buttonAction={() => handlePlanSelect("pay_as_you_go")}
@@ -317,17 +326,19 @@ export default function PublicPricing() {
             <PricingCard
               tier="monthly_10"
               title="Monthly 10"
-              subtitle="Best for Small Teams"
-              price={79}
+              subtitle="Save with Volume Package"
+              price={799}
               period="per month"
               popular={true}
               features={[
-                "10 contract reviews/month",
-                "Advanced AI analysis",
-                "Custom compliance rules",
-                "Priority support",
-                "Team collaboration tools",
-                "Usage analytics",
+                "10 contracts per month (€79.90 each)",
+                "10% savings vs. pay-as-you-go",
+                "Priority processing",
+                "Enhanced email support (48-hour response)",
+                "90-day usage analytics and reporting",
+                "Advanced playbook templates",
+                "Monthly billing cycle",
+                "Cancel anytime with 30-day notice",
               ]}
               buttonText="Get Started"
               buttonAction={() => handlePlanSelect("monthly_10")}
@@ -337,16 +348,18 @@ export default function PublicPricing() {
             <PricingCard
               tier="monthly_15"
               title="Monthly 15"
-              subtitle="Growing Business Solution"
-              price={99}
+              subtitle="Maximum Value Package"
+              price={1199}
               period="per month"
               features={[
-                "15 contract reviews/month",
-                "Premium AI features",
-                "Advanced reporting",
-                "Phone & email support",
-                "API access",
-                "Custom integrations",
+                "15 contracts per month (€79.93 each)",
+                "10% savings vs. pay-as-you-go",
+                "Priority processing",
+                "Enhanced email support (24-hour response)",
+                "90-day usage analytics and reporting",
+                "Advanced playbook templates",
+                "Monthly billing cycle",
+                "Cancel anytime with 30-day notice",
               ]}
               buttonText="Get Started"
               buttonAction={() => handlePlanSelect("monthly_15")}
