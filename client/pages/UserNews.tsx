@@ -131,6 +131,16 @@ export default function UserNews() {
           >
             Team
           </Link>
+          <Link
+            to="/dashboard"
+            className={`transition-colors ${
+              location.pathname === "/dashboard"
+                ? "text-[#9A7C7C] font-medium"
+                : "text-[#271D1D] hover:text-[#9A7C7C]"
+            }`}
+          >
+            Dashboard
+          </Link>
 
           {/* User Button */}
           <div className="relative">
@@ -146,18 +156,12 @@ export default function UserNews() {
             </button>
 
             {userDropdownOpen && (
-              <div className="absolute right-0 mt-2 w-32 bg-white border border-[#271D1D]/15 rounded-lg shadow-lg py-2 z-10">
+              <div className="absolute right-0 mt-2 w-48 bg-white border border-[#271D1D]/15 rounded-lg shadow-lg py-2 z-10">
                 <Link
                   to="/profile"
                   className="block px-4 py-2 text-sm text-[#271D1D] hover:bg-[#F9F8F8] transition-colors"
                 >
-                  Profile
-                </Link>
-                <Link
-                  to="/settings"
-                  className="block px-4 py-2 text-sm text-[#271D1D] hover:bg-[#F9F8F8] transition-colors"
-                >
-                  Settings
+                  Profile & Settings
                 </Link>
                 <Link
                   to="/"
