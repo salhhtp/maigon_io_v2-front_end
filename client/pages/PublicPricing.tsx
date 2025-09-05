@@ -124,7 +124,10 @@ const PricingCalculator = ({
               max="20"
               value={contractCount}
               onChange={(e) => setContractCount(parseInt(e.target.value))}
-              className="w-full h-2 bg-[#D6CECE] rounded-lg appearance-none cursor-pointer"
+              className="w-full h-2 bg-[#F3F3F3] rounded-lg appearance-none cursor-pointer"
+              style={{
+                background: `linear-gradient(to right, #9A7C7C 0%, #9A7C7C ${(contractCount / 20) * 100}%, #F3F3F3 ${(contractCount / 20) * 100}%, #F3F3F3 100%)`,
+              }}
             />
             <div className="flex justify-between text-xs text-[#271D1D]/60 mt-1">
               <span>1</span>
