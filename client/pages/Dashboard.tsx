@@ -671,14 +671,20 @@ const AdminUserManagement = ({ onAddUser }: { onAddUser: () => void }) => {
               <DropdownMenuItem onClick={() => setPlanFilter("all")}>
                 All Plans
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setPlanFilter("enterprise")}>
-                Enterprise
+              <DropdownMenuItem onClick={() => setPlanFilter("enterprise plan")}>
+                Enterprise Plan
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setPlanFilter("professional")}>
-                Professional
+              <DropdownMenuItem onClick={() => setPlanFilter("monthly 15")}>
+                Monthly 15
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setPlanFilter("basic")}>
-                Basic
+              <DropdownMenuItem onClick={() => setPlanFilter("monthly 10")}>
+                Monthly 10
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setPlanFilter("pay-as-you-go")}>
+                Pay-As-You-Go
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setPlanFilter("free trial")}>
+                Free Trial
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
