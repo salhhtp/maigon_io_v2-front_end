@@ -338,7 +338,7 @@ export default function Pricing() {
       <style>{rangeSliderStyles}</style>
       {/* Navigation */}
       <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-8 lg:px-16 py-6 bg-[#F9F8F8]">
-        <Link to={isLoggedIn ? "/home" : "/"}>
+        <Link to={isLoggedIn ? "/dashboard" : "/"}>
           <Logo size="xl" />
         </Link>
 
@@ -600,7 +600,7 @@ export default function Pricing() {
               tier="monthly_10"
               title="Monthly 10"
               subtitle="Save with Volume Package"
-              price="€799"
+              price="���799"
               period="per month"
               description="10 contracts per month"
               savings="Save €91/month vs pay-as-you-go"
