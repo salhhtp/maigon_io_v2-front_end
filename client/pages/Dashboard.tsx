@@ -244,11 +244,30 @@ const UsageChart = ({
             </span>
           </div>
         ))}
-        {!isExpanded && monthlyUsage.length > 3 && (
+        {!isExpanded && filteredUsage.length > 3 && (
           <div className="text-center pt-2 border-t border-[#F3F3F3]">
             <span className="text-xs text-[#271D1D]/50">
-              +{monthlyUsage.length - 3} more months
+              +{filteredUsage.length - 3} more months
             </span>
+          </div>
+        )}
+        {filteredUsage.length === 0 && (
+          <div className="text-center py-8 text-[#271D1D]/50">
+            <BarChart3 className="w-8 h-8 mx-auto mb-3 text-[#271D1D]/30" />
+            <p className="text-sm">No usage data matches your filters</p>
+            <p className="text-xs mt-1">
+              Try adjusting your filter criteria
+            </p>
+            {hasActiveFilters && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearFilters}
+                className="mt-2 text-[#9A7C7C] hover:text-[#9A7C7C]/90"
+              >
+                Clear all filters
+              </Button>
+            )}
           </div>
         )}
       </div>
