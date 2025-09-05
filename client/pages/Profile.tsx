@@ -1,475 +1,86 @@
 import { Button } from "@/components/ui/button";
 import {
   ChevronDown,
-  ChevronUp,
   User,
-  DollarSign,
-  FileText,
-  Users,
-  BarChart3,
-  Settings,
-  Plus,
-  Edit,
+  Bell,
+  Shield,
+  CreditCard,
+  Globe,
+  Palette,
+  Download,
   Trash2,
-  Maximize2,
-  Minimize2,
+  Eye,
+  EyeOff,
+  Edit,
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useState } from "react";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
 import Logo from "@/components/Logo";
 import Footer from "@/components/Footer";
 import MobileNavigation from "@/components/MobileNavigation";
 import { useUser } from "@/contexts/UserContext";
-import AddUserModal from "@/components/modals/AddUserModal";
-import CustomSolutionModal from "@/components/modals/CustomSolutionModal";
 
-// Dashboard Widget Components
-const StatsCard = ({
+const SettingsSection = ({
   title,
-  value,
-  subtitle,
-  icon,
-  trend,
+  children,
 }: {
   title: string;
-  value: string;
-  subtitle: string;
-  icon: React.ReactNode;
-  trend?: { value: string; positive: boolean };
+  children: React.ReactNode;
 }) => (
   <div className="bg-white rounded-lg p-6 border border-[#271D1D]/10">
-    <div className="flex items-center justify-between mb-4">
-      <div className="flex items-center gap-3">
-        <div className="p-2 bg-[#F3F3F3] rounded-lg">{icon}</div>
-        <h3 className="font-lora text-sm font-medium text-[#271D1D]">
-          {title}
-        </h3>
-      </div>
-      {trend && (
-        <span
-          className={`text-xs font-medium ${trend.positive ? "text-green-600" : "text-red-600"}`}
-        >
-          {trend.positive ? "+" : ""}
-          {trend.value}
-        </span>
-      )}
-    </div>
-    <div>
-      <p className="font-lora text-2xl font-medium text-[#271D1D] mb-1">
-        {value}
-      </p>
-      <p className="text-xs text-[#271D1D]/70">{subtitle}</p>
-    </div>
+    <h3 className="font-lora text-lg font-medium text-[#271D1D] mb-6">
+      {title}
+    </h3>
+    {children}
   </div>
 );
 
-const UsageChart = ({
-  monthlyUsage,
+const SettingItem = ({
+  label,
+  description,
+  children,
 }: {
-  monthlyUsage: Array<{ month: string; reviews: number; max: number }>;
-}) => {
-  const [isExpanded, setIsExpanded] = useState(false);
-  const displayedUsage = isExpanded ? monthlyUsage : monthlyUsage.slice(0, 3);
-
-  return (
-    <div className="bg-white rounded-lg p-6 border border-[#271D1D]/10">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="font-lora text-lg font-medium text-[#271D1D]">
-          Contract Review Usage
-        </h3>
-        {monthlyUsage.length > 3 && (
-          <button
-            onClick={() => setIsExpanded(!isExpanded)}
-            className="flex items-center gap-2 text-sm text-[#9A7C7C] hover:text-[#9A7C7C]/90 transition-colors"
-          >
-            {isExpanded ? (
-              <>
-                <Minimize2 className="w-4 h-4" />
-                Show Less
-              </>
-            ) : (
-              <>
-                <Maximize2 className="w-4 h-4" />
-                Show All ({monthlyUsage.length})
-              </>
-            )}
-          </button>
-        )}
-      </div>
-      <div className="space-y-4">
-        {displayedUsage.map((data, index) => (
-          <div key={index} className="flex items-center gap-4">
-            <span className="text-sm font-medium text-[#271D1D] w-8">
-              {data.month}
-            </span>
-            <div className="flex-1 bg-[#F3F3F3] rounded-full h-2 relative">
-              <div
-                className="bg-[#9A7C7C] h-2 rounded-full transition-all duration-300"
-                style={{
-                  width: `${data.max > 0 ? (data.reviews / data.max) * 100 : 0}%`,
-                }}
-              />
-            </div>
-            <span className="text-sm text-[#271D1D]/70 w-16">
-              {data.reviews}/{data.max === -1 ? "∞" : data.max}
-            </span>
-          </div>
-        ))}
-        {!isExpanded && monthlyUsage.length > 3 && (
-          <div className="text-center pt-2 border-t border-[#F3F3F3]">
-            <span className="text-xs text-[#271D1D]/50">
-              +{monthlyUsage.length - 3} more months
-            </span>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-};
-
-const RecentActivity = ({
-  activities,
-}: {
-  activities: Array<{
-    action: string;
-    file: string;
-    time: string;
-    status: string;
-  }>;
-}) => {
-  const [isExpanded, setIsExpanded] = useState(false);
-  const displayedActivities = isExpanded ? activities : activities.slice(0, 5);
-
-  return (
-    <div className="bg-white rounded-lg p-6 border border-[#271D1D]/10">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="font-lora text-lg font-medium text-[#271D1D]">
-          Recent Activity
-        </h3>
-        {activities.length > 5 && (
-          <button
-            onClick={() => setIsExpanded(!isExpanded)}
-            className="flex items-center gap-2 text-sm text-[#9A7C7C] hover:text-[#9A7C7C]/90 transition-colors"
-          >
-            {isExpanded ? (
-              <>
-                <Minimize2 className="w-4 h-4" />
-                Show Less
-              </>
-            ) : (
-              <>
-                <Maximize2 className="w-4 h-4" />
-                Show All ({activities.length})
-              </>
-            )}
-          </button>
-        )}
-      </div>
-      <div className="space-y-4">
-        {displayedActivities.length > 0 ? (
-          <>
-            {displayedActivities.map((activity, index) => (
-              <div
-                key={index}
-                className="flex items-center justify-between py-2 border-b border-[#F3F3F3] last:border-b-0"
-              >
-                <div className="flex items-center gap-3">
-                  <div
-                    className={`w-2 h-2 rounded-full ${
-                      activity.status === "completed"
-                        ? "bg-green-500"
-                        : activity.status === "processing"
-                          ? "bg-yellow-500"
-                          : "bg-red-500"
-                    }`}
-                  />
-                  <div>
-                    <p className="text-sm font-medium text-[#271D1D]">
-                      {activity.action}
-                    </p>
-                    <p className="text-xs text-[#271D1D]/70">{activity.file}</p>
-                  </div>
-                </div>
-                <span className="text-xs text-[#271D1D]/50">
-                  {activity.time}
-                </span>
-              </div>
-            ))}
-            {!isExpanded && activities.length > 5 && (
-              <div className="text-center pt-2 border-t border-[#F3F3F3]">
-                <span className="text-xs text-[#271D1D]/50">
-                  +{activities.length - 5} more activities
-                </span>
-              </div>
-            )}
-          </>
-        ) : (
-          <div className="text-center py-8 text-[#271D1D]/50">
-            <p className="text-sm">No recent activity</p>
-            <p className="text-xs mt-1">
-              Start reviewing contracts to see your activity here
-            </p>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-};
-
-const AdminUserManagement = ({ onAddUser }: { onAddUser: () => void }) => {
-  const [isExpanded, setIsExpanded] = useState(false);
-  const allUsers = [
-    {
-      name: "John Doe",
-      email: "john@company.com",
-      plan: "Enterprise",
-      status: "active",
-      usage: "78/100",
-    },
-    {
-      name: "Sarah Wilson",
-      email: "sarah@startup.io",
-      plan: "Professional",
-      status: "active",
-      usage: "45/50",
-    },
-    {
-      name: "Mike Chen",
-      email: "mike@legal.com",
-      plan: "Basic",
-      status: "inactive",
-      usage: "12/20",
-    },
-    {
-      name: "Emma Davis",
-      email: "emma@corp.com",
-      plan: "Enterprise",
-      status: "active",
-      usage: "92/100",
-    },
-    {
-      name: "Alex Johnson",
-      email: "alex@techcorp.com",
-      plan: "Professional",
-      status: "active",
-      usage: "23/50",
-    },
-    {
-      name: "Lisa Martinez",
-      email: "lisa@lawfirm.com",
-      plan: "Basic",
-      status: "active",
-      usage: "15/20",
-    },
-    {
-      name: "David Brown",
-      email: "david@consultant.com",
-      plan: "Enterprise",
-      status: "active",
-      usage: "156/200",
-    },
-    {
-      name: "Maria Garcia",
-      email: "maria@startup.co",
-      plan: "Professional",
-      status: "inactive",
-      usage: "8/50",
-    },
-  ];
-  const displayedUsers = isExpanded ? allUsers : allUsers.slice(0, 4);
-
-  return (
-    <div className="bg-white rounded-lg p-6 border border-[#271D1D]/10">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-4">
-          <h3 className="font-lora text-lg font-medium text-[#271D1D]">
-            User Management
-          </h3>
-          {allUsers.length > 4 && (
-            <button
-              onClick={() => setIsExpanded(!isExpanded)}
-              className="flex items-center gap-2 text-sm text-[#9A7C7C] hover:text-[#9A7C7C]/90 transition-colors"
-            >
-              {isExpanded ? (
-                <>
-                  <Minimize2 className="w-4 h-4" />
-                  Show Less
-                </>
-              ) : (
-                <>
-                  <Maximize2 className="w-4 h-4" />
-                  Show All ({allUsers.length})
-                </>
-              )}
-            </button>
-          )}
-        </div>
-        <Button
-          onClick={onAddUser}
-          className="bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white px-4 py-2 rounded-lg text-sm"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Add User
-        </Button>
-      </div>
-      <div className="space-y-3">
-        {displayedUsers.map((user, index) => (
-          <div
-            key={index}
-            className="flex items-center justify-between p-3 bg-[#F9F8F8] rounded-lg"
-          >
-            <div className="flex items-center gap-4">
-              <div className="w-8 h-8 bg-[#D6CECE] rounded-full flex items-center justify-center">
-                <User className="w-4 h-4 text-[#271D1D]" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-[#271D1D]">
-                  {user.name}
-                </p>
-                <p className="text-xs text-[#271D1D]/70">{user.email}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-4">
-              <div className="text-right">
-                <p className="text-sm font-medium text-[#271D1D]">
-                  {user.plan}
-                </p>
-                <p className="text-xs text-[#271D1D]/70">
-                  {user.usage} contracts
-                </p>
-              </div>
-              <div
-                className={`px-2 py-1 rounded-full text-xs font-medium ${
-                  user.status === "active"
-                    ? "bg-green-100 text-green-800"
-                    : "bg-gray-100 text-gray-800"
-                }`}
-              >
-                {user.status}
-              </div>
-              <div className="flex gap-1">
-                <button className="p-1 hover:bg-[#D6CECE] rounded">
-                  <Edit className="w-3 h-3 text-[#271D1D]" />
-                </button>
-                <button className="p-1 hover:bg-red-100 rounded">
-                  <Trash2 className="w-3 h-3 text-red-600" />
-                </button>
-              </div>
-            </div>
-          </div>
-        ))}
-        {!isExpanded && allUsers.length > 4 && (
-          <div className="text-center pt-2 border-t border-[#F3F3F3]">
-            <span className="text-xs text-[#271D1D]/50">
-              +{allUsers.length - 4} more users
-            </span>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-};
-
-const AdminSolutionCreator = ({
-  onCreateSolution,
-}: {
-  onCreateSolution: () => void;
+  label: string;
+  description?: string;
+  children: React.ReactNode;
 }) => (
-  <div className="bg-white rounded-lg p-6 border border-[#271D1D]/10">
-    <div className="flex items-center justify-between mb-4">
-      <h3 className="font-lora text-lg font-medium text-[#271D1D]">
-        Custom Solutions
-      </h3>
-      <Button
-        onClick={onCreateSolution}
-        className="bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white px-4 py-2 rounded-lg text-sm"
-      >
-        <Plus className="w-4 h-4 mr-2" />
-        Create Solution
-      </Button>
+  <div className="flex items-center justify-between py-4 border-b border-[#F3F3F3] last:border-b-0">
+    <div className="flex-1">
+      <p className="text-sm font-medium text-[#271D1D]">{label}</p>
+      {description && (
+        <p className="text-xs text-[#271D1D]/70 mt-1">{description}</p>
+      )}
     </div>
-    <div className="space-y-3">
-      {[
-        {
-          name: "Healthcare Compliance Suite",
-          client: "MedCorp Inc.",
-          status: "active",
-          contracts: 245,
-        },
-        {
-          name: "Financial Services Package",
-          client: "BankTech Ltd.",
-          status: "development",
-          contracts: 0,
-        },
-        {
-          name: "Manufacturing Agreements",
-          client: "Industrial Co.",
-          status: "active",
-          contracts: 89,
-        },
-      ].map((solution, index) => (
-        <div
-          key={index}
-          className="flex items-center justify-between p-4 border border-[#F3F3F3] rounded-lg"
-        >
-          <div>
-            <p className="text-sm font-medium text-[#271D1D]">
-              {solution.name}
-            </p>
-            <p className="text-xs text-[#271D1D]/70">
-              Client: {solution.client}
-            </p>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="text-right">
-              <p className="text-sm font-medium text-[#271D1D]">
-                {solution.contracts} contracts
-              </p>
-              <div
-                className={`px-2 py-1 rounded-full text-xs font-medium ${
-                  solution.status === "active"
-                    ? "bg-green-100 text-green-800"
-                    : "bg-yellow-100 text-yellow-800"
-                }`}
-              >
-                {solution.status}
-              </div>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              className="text-[#271D1D] border-[#271D1D]/20"
-            >
-              Configure
-            </Button>
-          </div>
-        </div>
-      ))}
-    </div>
+    <div className="ml-4">{children}</div>
   </div>
+);
+
+const Toggle = ({
+  enabled,
+  onChange,
+}: {
+  enabled: boolean;
+  onChange: (enabled: boolean) => void;
+}) => (
+  <button
+    onClick={() => onChange(!enabled)}
+    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+      enabled ? "bg-[#9A7C7C]" : "bg-[#D6CECE]"
+    }`}
+  >
+    <span
+      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+        enabled ? "translate-x-6" : "translate-x-1"
+      }`}
+    />
+  </button>
 );
 
 export default function Profile() {
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
-  const [addUserModalOpen, setAddUserModalOpen] = useState(false);
-  const [customSolutionModalOpen, setCustomSolutionModalOpen] = useState(false);
-  const { user, isLoggedIn } = useUser();
-
-  const handleUserAdded = (userData: any) => {
-    console.log("New user added:", userData);
-    // In a real app, this would update the user list and show a success message
-  };
-
-  const handleSolutionCreated = (solutionData: any) => {
-    console.log("New solution created:", solutionData);
-    // In a real app, this would update the solutions list and show a success message
-  };
+  const [showPassword, setShowPassword] = useState(false);
+  const location = useLocation();
+  const { user, isLoggedIn, updateUser } = useUser();
 
   // Redirect if not logged in
   if (!isLoggedIn || !user) {
@@ -492,6 +103,78 @@ export default function Profile() {
     );
   }
 
+  // Settings state from user context
+  const [emailNotifications, setEmailNotifications] = useState(
+    user.settings.email_notifications,
+  );
+  const [pushNotifications, setPushNotifications] = useState(
+    user.settings.push_notifications,
+  );
+  const [marketingEmails, setMarketingEmails] = useState(
+    user.settings.marketing_emails,
+  );
+  const [twoFactorAuth, setTwoFactorAuth] = useState(
+    user.settings.two_factor_auth,
+  );
+  const [autoSave, setAutoSave] = useState(user.settings.auto_save);
+  const [language, setLanguage] = useState(user.settings.language);
+  const [timezone, setTimezone] = useState(user.settings.timezone);
+
+  // Form data
+  const [formData, setFormData] = useState({
+    name: user.name,
+    email: user.email,
+    company: user.company,
+    phone: user.phone,
+  });
+
+  const handleSettingChange = (setting: string, value: boolean) => {
+    const newSettings = { ...user.settings, [setting]: value };
+    updateUser({ settings: newSettings });
+
+    // Update local state
+    switch (setting) {
+      case "email_notifications":
+        setEmailNotifications(value);
+        break;
+      case "push_notifications":
+        setPushNotifications(value);
+        break;
+      case "marketing_emails":
+        setMarketingEmails(value);
+        break;
+      case "two_factor_auth":
+        setTwoFactorAuth(value);
+        break;
+      case "auto_save":
+        setAutoSave(value);
+        break;
+    }
+  };
+
+  const handleFormSubmit = () => {
+    updateUser({
+      name: formData.name,
+      email: formData.email,
+      company: formData.company,
+      phone: formData.phone,
+    });
+    // Show success message
+    alert("Profile updated successfully!");
+  };
+
+  const handleLanguageChange = (newLanguage: string) => {
+    setLanguage(newLanguage);
+    const newSettings = { ...user.settings, language: newLanguage };
+    updateUser({ settings: newSettings });
+  };
+
+  const handleTimezoneChange = (newTimezone: string) => {
+    setTimezone(newTimezone);
+    const newSettings = { ...user.settings, timezone: newTimezone };
+    updateUser({ settings: newSettings });
+  };
+
   const isAdmin = user.role === "admin";
 
   return (
@@ -505,27 +188,53 @@ export default function Profile() {
         <div className="hidden md:flex items-center space-x-8">
           <Link
             to="/user-solutions"
-            className="text-[#271D1D] hover:text-[#9A7C7C] transition-colors"
+            className={`transition-colors ${
+              location.pathname === "/user-solutions"
+                ? "text-[#9A7C7C] font-medium"
+                : "text-[#271D1D] hover:text-[#9A7C7C]"
+            }`}
           >
             Solutions
           </Link>
           <Link
             to="/pricing"
-            className="text-[#271D1D] hover:text-[#9A7C7C] transition-colors"
+            className={`transition-colors ${
+              location.pathname === "/pricing"
+                ? "text-[#9A7C7C] font-medium"
+                : "text-[#271D1D] hover:text-[#9A7C7C]"
+            }`}
           >
             Pricing
           </Link>
           <Link
             to="/user-news"
-            className="text-[#271D1D] hover:text-[#9A7C7C] transition-colors"
+            className={`transition-colors ${
+              location.pathname === "/user-news"
+                ? "text-[#9A7C7C] font-medium"
+                : "text-[#271D1D] hover:text-[#9A7C7C]"
+            }`}
           >
             News
           </Link>
           <Link
             to="/user-team"
-            className="text-[#271D1D] hover:text-[#9A7C7C] transition-colors"
+            className={`transition-colors ${
+              location.pathname === "/user-team"
+                ? "text-[#9A7C7C] font-medium"
+                : "text-[#271D1D] hover:text-[#9A7C7C]"
+            }`}
           >
             Team
+          </Link>
+          <Link
+            to="/dashboard"
+            className={`transition-colors ${
+              location.pathname === "/dashboard"
+                ? "text-[#9A7C7C] font-medium"
+                : "text-[#271D1D] hover:text-[#9A7C7C]"
+            }`}
+          >
+            Dashboard
           </Link>
 
           {/* User Button */}
@@ -544,18 +253,12 @@ export default function Profile() {
             </button>
 
             {userDropdownOpen && (
-              <div className="absolute right-0 mt-2 w-32 bg-white border border-[#271D1D]/15 rounded-lg shadow-lg py-2 z-10">
+              <div className="absolute right-0 mt-2 w-48 bg-white border border-[#271D1D]/15 rounded-lg shadow-lg py-2 z-10">
                 <Link
                   to="/profile"
                   className="block px-4 py-2 text-sm text-[#271D1D] hover:bg-[#F9F8F8] transition-colors"
                 >
-                  Profile
-                </Link>
-                <Link
-                  to="/settings"
-                  className="block px-4 py-2 text-sm text-[#271D1D] hover:bg-[#F9F8F8] transition-colors"
-                >
-                  Settings
+                  Profile & Settings
                 </Link>
                 <Link
                   to="/"
@@ -577,12 +280,12 @@ export default function Profile() {
 
       {/* Main Content */}
       <main className="pt-24 lg:pt-32 pb-20 px-8 lg:px-16">
-        <div className="max-w-7xl mx-auto">
+        <div className="max-w-4xl mx-auto">
           {/* Header */}
           <div className="mb-8">
             <div className="flex items-center justify-between mb-4">
               <h1 className="text-3xl lg:text-4xl font-medium text-[#271D1D] font-lora">
-                {isAdmin ? "Admin Dashboard" : "Profile Dashboard"}
+                Profile & Settings
               </h1>
               <div className="flex items-center gap-3">
                 {isAdmin && (
@@ -590,226 +293,452 @@ export default function Profile() {
                     Administrator
                   </div>
                 )}
-                <Link to="/settings">
+                <Link to="/dashboard">
                   <Button
                     variant="outline"
                     className="text-[#271D1D] border-[#271D1D]/20"
                   >
-                    <Settings className="w-4 h-4 mr-2" />
-                    Settings
+                    Back to Dashboard
                   </Button>
                 </Link>
               </div>
             </div>
             <p className="text-lg text-[#271D1D]/70">
-              Welcome back, {user.name.split(" ")[0]}!{" "}
-              {isAdmin
-                ? "Manage your platform and users from here."
-                : "Track your contract reviews and billing information."}
+              Manage your account information, preferences, and security settings.
             </p>
           </div>
 
-          {/* Stats Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <StatsCard
-              title="Total Reviews"
-              value={user.usage.total_reviews.toString()}
-              subtitle="All time"
-              icon={<FileText className="w-5 h-5 text-[#9A7C7C]" />}
-              trend={
-                user.usage.this_month_reviews > 0
-                  ? { value: "Active", positive: true }
-                  : undefined
-              }
-            />
-            <StatsCard
-              title="Current Bill"
-              value={
-                user.plan.billing_cycle === "trial"
-                  ? "€0"
-                  : `€${user.billing.current_bill}`
-              }
-              subtitle={
-                user.plan.billing_cycle === "trial"
-                  ? "Free trial"
-                  : user.plan.next_billing_date
-                    ? `Due ${user.plan.next_billing_date}`
-                    : "Pay per use"
-              }
-              icon={<DollarSign className="w-5 h-5 text-[#9A7C7C]" />}
-            />
-            {isAdmin && (
-              <>
-                <StatsCard
-                  title="Active Users"
-                  value="127"
-                  subtitle="Across all plans"
-                  icon={<Users className="w-5 h-5 text-[#9A7C7C]" />}
-                  trend={{ value: "15%", positive: true }}
-                />
-                <StatsCard
-                  title="Revenue"
-                  value="€48,230"
-                  subtitle="This month"
-                  icon={<BarChart3 className="w-5 h-5 text-[#9A7C7C]" />}
-                  trend={{ value: "23%", positive: true }}
-                />
-              </>
-            )}
-            {!isAdmin && (
-              <>
-                <StatsCard
-                  title="Plan Usage"
-                  value={
-                    user.plan.contracts_limit === -1
-                      ? `${user.plan.contracts_used}/∞`
-                      : `${user.plan.contracts_used}/${user.plan.contracts_limit}`
-                  }
-                  subtitle={
-                    user.plan.contracts_limit === -1
-                      ? "Unlimited"
-                      : "Contracts remaining"
-                  }
-                  icon={<BarChart3 className="w-5 h-5 text-[#9A7C7C]" />}
-                />
-                <StatsCard
-                  title="Success Rate"
-                  value={`${user.usage.success_rate}%`}
-                  subtitle="Reviews completed"
-                  icon={<BarChart3 className="w-5 h-5 text-[#9A7C7C]" />}
-                />
-              </>
-            )}
+          {/* Profile Overview */}
+          <div className="bg-white rounded-lg p-6 border border-[#271D1D]/10 mb-8">
+            <div className="flex items-center gap-6">
+              <div className="w-20 h-20 bg-[#D6CECE] rounded-full flex items-center justify-center">
+                <User className="w-10 h-10 text-[#271D1D]" />
+              </div>
+              <div className="flex-1">
+                <h2 className="text-2xl font-medium text-[#271D1D] font-lora mb-2">
+                  {user.name}
+                </h2>
+                <p className="text-[#271D1D]/70 mb-1">{user.email}</p>
+                <p className="text-sm text-[#271D1D]/60">
+                  {user.company} • {user.role === "admin" ? "Administrator" : "User"}
+                </p>
+                <div className="mt-3 flex items-center gap-4">
+                  <div className="text-sm">
+                    <span className="text-[#271D1D]/60">Plan: </span>
+                    <span className="font-medium text-[#9A7C7C]">{user.plan.name}</span>
+                  </div>
+                  <div className="text-sm">
+                    <span className="text-[#271D1D]/60">Member since: </span>
+                    <span className="text-[#271D1D]">Jan 2024</span>
+                  </div>
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                className="text-[#271D1D] border-[#271D1D]/20"
+              >
+                <Edit className="w-4 h-4 mr-2" />
+                Edit Photo
+              </Button>
+            </div>
           </div>
 
-          {/* Dashboard Content */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Left Column */}
-            <div className="space-y-8">
-              <UsageChart monthlyUsage={user.usage.monthly_usage} />
-              <RecentActivity activities={user.recent_activity} />
-            </div>
-
-            {/* Right Column */}
-            <div className="space-y-8">
-              {isAdmin ? (
-                <>
-                  <AdminUserManagement
-                    onAddUser={() => setAddUserModalOpen(true)}
-                  />
-                  <AdminSolutionCreator
-                    onCreateSolution={() => setCustomSolutionModalOpen(true)}
-                  />
-                </>
-              ) : (
-                <>
-                  {/* Billing Information */}
-                  <div className="bg-white rounded-lg p-6 border border-[#271D1D]/10">
-                    <h3 className="font-lora text-lg font-medium text-[#271D1D] mb-4">
-                      Billing Information
-                    </h3>
-                    <div className="space-y-4">
-                      <div className="flex justify-between items-center p-3 bg-[#F9F8F8] rounded-lg">
-                        <span className="text-sm font-medium text-[#271D1D]">
-                          Current Plan
-                        </span>
-                        <span className="text-sm text-[#271D1D]/70">
-                          {user.plan.name}
-                          {user.plan.billing_cycle !== "trial" &&
-                            ` (€${user.plan.price}${user.plan.billing_cycle === "monthly" ? "/month" : user.plan.billing_cycle === "per_contract" ? "/contract" : ""})`}
-                        </span>
-                      </div>
-                      {user.plan.next_billing_date && (
-                        <div className="flex justify-between items-center p-3 bg-[#F9F8F8] rounded-lg">
-                          <span className="text-sm font-medium text-[#271D1D]">
-                            Next Billing Date
-                          </span>
-                          <span className="text-sm text-[#271D1D]/70">
-                            {user.plan.next_billing_date}
-                          </span>
-                        </div>
-                      )}
-                      {user.plan.trial_days_remaining && (
-                        <div className="flex justify-between items-center p-3 bg-[#F9F8F8] rounded-lg">
-                          <span className="text-sm font-medium text-[#271D1D]">
-                            Trial Days Remaining
-                          </span>
-                          <span className="text-sm text-[#271D1D]/70">
-                            {user.plan.trial_days_remaining} days
-                          </span>
-                        </div>
-                      )}
-                      <div className="flex justify-between items-center p-3 bg-[#F9F8F8] rounded-lg">
-                        <span className="text-sm font-medium text-[#271D1D]">
-                          Payment Method
-                        </span>
-                        <span className="text-sm text-[#271D1D]/70">
-                          {user.billing.payment_method}
-                        </span>
-                      </div>
-                      <Link to="/pricing">
-                        <Button className="w-full bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white">
-                          {user.plan.type === "free_trial"
-                            ? "Upgrade Plan"
-                            : "Manage Billing"}
-                        </Button>
-                      </Link>
-                    </div>
+          {/* Settings Grid */}
+          <div className="space-y-8">
+            {/* Account Information */}
+            <SettingsSection title="Account Information">
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-[#271D1D] mb-2">
+                      Full Name
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.name}
+                      onChange={(e) =>
+                        setFormData({ ...formData, name: e.target.value })
+                      }
+                      className="w-full px-3 py-2 border border-[#271D1D]/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#9A7C7C] focus:border-transparent"
+                    />
                   </div>
+                  <div>
+                    <label className="block text-sm font-medium text-[#271D1D] mb-2">
+                      Email Address
+                    </label>
+                    <input
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) =>
+                        setFormData({ ...formData, email: e.target.value })
+                      }
+                      className="w-full px-3 py-2 border border-[#271D1D]/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#9A7C7C] focus:border-transparent"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-[#271D1D] mb-2">
+                      Company
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.company}
+                      onChange={(e) =>
+                        setFormData({ ...formData, company: e.target.value })
+                      }
+                      className="w-full px-3 py-2 border border-[#271D1D]/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#9A7C7C] focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-[#271D1D] mb-2">
+                      Phone Number
+                    </label>
+                    <input
+                      type="tel"
+                      value={formData.phone}
+                      onChange={(e) =>
+                        setFormData({ ...formData, phone: e.target.value })
+                      }
+                      className="w-full px-3 py-2 border border-[#271D1D]/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#9A7C7C] focus:border-transparent"
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-end">
+                  <Button
+                    onClick={handleFormSubmit}
+                    className="bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white"
+                  >
+                    Save Changes
+                  </Button>
+                </div>
+              </div>
+            </SettingsSection>
 
-                  {/* Quick Actions */}
-                  <div className="bg-white rounded-lg p-6 border border-[#271D1D]/10">
-                    <h3 className="font-lora text-lg font-medium text-[#271D1D] mb-4">
-                      Quick Actions
-                    </h3>
-                    <div className="space-y-3">
-                      <Link to="/user-solutions">
+            {/* Security Settings */}
+            <SettingsSection title="Security">
+              <div className="space-y-6">
+                <div>
+                  <label className="block text-sm font-medium text-[#271D1D] mb-2">
+                    Current Password
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      placeholder="Enter current password"
+                      className="w-full px-3 py-2 pr-10 border border-[#271D1D]/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#9A7C7C] focus:border-transparent"
+                    />
+                    <button
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2"
+                    >
+                      {showPassword ? (
+                        <EyeOff className="w-4 h-4 text-[#271D1D]/50" />
+                      ) : (
+                        <Eye className="w-4 h-4 text-[#271D1D]/50" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-[#271D1D] mb-2">
+                      New Password
+                    </label>
+                    <input
+                      type="password"
+                      placeholder="Enter new password"
+                      className="w-full px-3 py-2 border border-[#271D1D]/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#9A7C7C] focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-[#271D1D] mb-2">
+                      Confirm Password
+                    </label>
+                    <input
+                      type="password"
+                      placeholder="Confirm new password"
+                      className="w-full px-3 py-2 border border-[#271D1D]/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#9A7C7C] focus:border-transparent"
+                    />
+                  </div>
+                </div>
+                <SettingItem
+                  label="Two-Factor Authentication"
+                  description="Add an extra layer of security to your account"
+                >
+                  <div className="flex items-center gap-3">
+                    <Toggle
+                      enabled={twoFactorAuth}
+                      onChange={(value) =>
+                        handleSettingChange("two_factor_auth", value)
+                      }
+                    />
+                    {twoFactorAuth && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-[#271D1D] border-[#271D1D]/20"
+                      >
+                        Configure
+                      </Button>
+                    )}
+                  </div>
+                </SettingItem>
+                <div className="flex justify-end">
+                  <Button className="bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white">
+                    Update Password
+                  </Button>
+                </div>
+              </div>
+            </SettingsSection>
+
+            {/* Notification Settings */}
+            <SettingsSection title="Notifications">
+              <div className="space-y-1">
+                <SettingItem
+                  label="Email Notifications"
+                  description="Receive contract review updates via email"
+                >
+                  <Toggle
+                    enabled={emailNotifications}
+                    onChange={(value) =>
+                      handleSettingChange("email_notifications", value)
+                    }
+                  />
+                </SettingItem>
+                <SettingItem
+                  label="Push Notifications"
+                  description="Get instant notifications in your browser"
+                >
+                  <Toggle
+                    enabled={pushNotifications}
+                    onChange={(value) =>
+                      handleSettingChange("push_notifications", value)
+                    }
+                  />
+                </SettingItem>
+                <SettingItem
+                  label="Marketing Emails"
+                  description="Receive updates about new features and offers"
+                >
+                  <Toggle
+                    enabled={marketingEmails}
+                    onChange={(value) =>
+                      handleSettingChange("marketing_emails", value)
+                    }
+                  />
+                </SettingItem>
+              </div>
+            </SettingsSection>
+
+            {/* Preferences */}
+            <SettingsSection title="Preferences">
+              <div className="space-y-1">
+                <SettingItem
+                  label="Auto-Save Documents"
+                  description="Automatically save uploaded documents"
+                >
+                  <Toggle
+                    enabled={autoSave}
+                    onChange={(value) =>
+                      handleSettingChange("auto_save", value)
+                    }
+                  />
+                </SettingItem>
+                <SettingItem
+                  label="Language"
+                  description="Choose your preferred language"
+                >
+                  <select
+                    value={language}
+                    onChange={(e) => handleLanguageChange(e.target.value)}
+                    className="px-3 py-2 border border-[#271D1D]/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#9A7C7C] focus:border-transparent"
+                  >
+                    <option value="en">English</option>
+                    <option value="es">Spanish</option>
+                    <option value="fr">French</option>
+                    <option value="de">German</option>
+                  </select>
+                </SettingItem>
+                <SettingItem
+                  label="Time Zone"
+                  description="Set your local time zone"
+                >
+                  <select
+                    value={timezone}
+                    onChange={(e) => handleTimezoneChange(e.target.value)}
+                    className="px-3 py-2 border border-[#271D1D]/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#9A7C7C] focus:border-transparent"
+                  >
+                    <option value="UTC-8">Pacific Time (UTC-8)</option>
+                    <option value="UTC-7">Mountain Time (UTC-7)</option>
+                    <option value="UTC-6">Central Time (UTC-6)</option>
+                    <option value="UTC-5">Eastern Time (UTC-5)</option>
+                    <option value="UTC+0">GMT (UTC+0)</option>
+                    <option value="UTC+1">Central European Time (UTC+1)</option>
+                  </select>
+                </SettingItem>
+              </div>
+            </SettingsSection>
+
+            {/* Billing & Subscription */}
+            <SettingsSection title="Billing & Subscription">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-4 bg-[#F9F8F8] rounded-lg">
+                  <div>
+                    <p className="text-sm font-medium text-[#271D1D]">
+                      Current Plan
+                    </p>
+                    <p className="text-xs text-[#271D1D]/70">
+                      {user.plan.name}
+                      {user.plan.billing_cycle !== "trial" &&
+                        ` - €${user.plan.price}${user.plan.billing_cycle === "monthly" ? "/month" : user.plan.billing_cycle === "per_contract" ? "/contract" : ""}`}
+                    </p>
+                  </div>
+                  <Link to="/pricing">
+                    <Button
+                      variant="outline"
+                      className="text-[#271D1D] border-[#271D1D]/20"
+                    >
+                      {user.plan.type === "free_trial"
+                        ? "Upgrade Plan"
+                        : "Change Plan"}
+                    </Button>
+                  </Link>
+                </div>
+                <div className="flex items-center justify-between p-4 bg-[#F9F8F8] rounded-lg">
+                  <div>
+                    <p className="text-sm font-medium text-[#271D1D]">
+                      Payment Method
+                    </p>
+                    <p className="text-xs text-[#271D1D]/70">
+                      {user.billing.payment_method}
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    className="text-[#271D1D] border-[#271D1D]/20"
+                  >
+                    {user.billing.payment_method === "No payment method"
+                      ? "Add Payment"
+                      : "Update"}
+                  </Button>
+                </div>
+                <div className="flex items-center justify-between">
+                  <Button
+                    variant="outline"
+                    className="text-[#271D1D] border-[#271D1D]/20"
+                    disabled={user.billing.billing_history.length === 0}
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Download Invoice
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="text-[#271D1D] border-[#271D1D]/20"
+                    disabled={user.billing.billing_history.length === 0}
+                  >
+                    View Billing History
+                  </Button>
+                </div>
+              </div>
+            </SettingsSection>
+
+            {/* Data & Privacy */}
+            <SettingsSection title="Data & Privacy">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-[#271D1D]">
+                      Export Your Data
+                    </p>
+                    <p className="text-xs text-[#271D1D]/70">
+                      Download a copy of all your data
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    className="text-[#271D1D] border-[#271D1D]/20"
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Export
+                  </Button>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-[#271D1D]">
+                      Delete Account
+                    </p>
+                    <p className="text-xs text-[#271D1D]/70">
+                      Permanently delete your account and all data
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    className="text-red-600 border-red-200 hover:bg-red-50"
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Delete
+                  </Button>
+                </div>
+              </div>
+            </SettingsSection>
+
+            {/* API Access */}
+            {isAdmin && (
+              <SettingsSection title="API Access">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-[#271D1D]">
+                        API Keys
+                      </p>
+                      <p className="text-xs text-[#271D1D]/70">
+                        Manage your API keys for integrations
+                      </p>
+                    </div>
+                    <Button
+                      variant="outline"
+                      className="text-[#271D1D] border-[#271D1D]/20"
+                    >
+                      Manage Keys
+                    </Button>
+                  </div>
+                  <div className="p-4 bg-[#F9F8F8] rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-[#271D1D]">
+                          Production Key
+                        </p>
+                        <p className="text-xs text-[#271D1D]/70 font-mono">
+                          mk_live_••••••••••••••••••••••••••••
+                        </p>
+                      </div>
+                      <div className="flex gap-2">
                         <Button
                           variant="outline"
-                          className="w-full justify-start text-[#271D1D] border-[#271D1D]/20"
+                          size="sm"
+                          className="text-[#271D1D] border-[#271D1D]/20"
                         >
-                          <FileText className="w-4 h-4 mr-3" />
-                          Review New Contract
+                          Copy
                         </Button>
-                      </Link>
-                      <Button
-                        variant="outline"
-                        className="w-full justify-start text-[#271D1D] border-[#271D1D]/20"
-                      >
-                        <DollarSign className="w-4 h-4 mr-3" />
-                        Download Invoice
-                      </Button>
-                      <Button
-                        variant="outline"
-                        className="w-full justify-start text-[#271D1D] border-[#271D1D]/20"
-                      >
-                        <BarChart3 className="w-4 h-4 mr-3" />
-                        View Usage Report
-                      </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-red-600 border-red-200"
+                        >
+                          Revoke
+                        </Button>
+                      </div>
                     </div>
                   </div>
-                </>
-              )}
-            </div>
+                </div>
+              </SettingsSection>
+            )}
           </div>
         </div>
       </main>
 
       <Footer />
-
-      {/* Add User Modal */}
-      <AddUserModal
-        isOpen={addUserModalOpen}
-        onClose={() => setAddUserModalOpen(false)}
-        onSuccess={handleUserAdded}
-      />
-
-      {/* Custom Solution Modal */}
-      <CustomSolutionModal
-        isOpen={customSolutionModalOpen}
-        onClose={() => setCustomSolutionModalOpen(false)}
-        onSuccess={handleSolutionCreated}
-      />
     </div>
   );
 }
