@@ -654,9 +654,14 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({
     }
   };
 
-  // Expose loginUser for demo purposes
+  // Expose loginUser and clearAuth for demo purposes
   if (typeof window !== "undefined") {
     (window as any).maigonLogin = loginUser;
+    (window as any).maigonClearAuth = () => {
+      localStorage.removeItem("maigon_current_user");
+      setUser(null);
+      console.log("Authentication cleared");
+    };
   }
 
   const value = {
