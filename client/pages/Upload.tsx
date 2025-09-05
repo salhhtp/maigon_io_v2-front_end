@@ -25,7 +25,7 @@ export default function Upload() {
   const navigate = useNavigate();
 
   // Get the solution info from navigation state
-  const { solutionTitle, perspective } = location.state || {};
+  const { solutionTitle, perspective, quickUpload, adminAccess } = location.state || {};
 
   // Block navigation when user is on upload page (always show confirmation), but not during submission
   const blocker = useBlocker(
