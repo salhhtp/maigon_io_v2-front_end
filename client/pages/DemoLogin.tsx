@@ -80,7 +80,7 @@ export default function DemoLogin() {
     if (user) {
       setUser(user);
       localStorage.setItem("maigon_current_user", userName);
-      navigate("/profile");
+      navigate("/dashboard");
     }
   };
 
