@@ -148,6 +148,16 @@ export default function UserHome() {
           >
             Team
           </Link>
+          <Link
+            to="/dashboard"
+            className={`transition-colors ${
+              location.pathname === "/dashboard"
+                ? "text-[#9A7C7C] font-medium"
+                : "text-[#271D1D] hover:text-[#9A7C7C]"
+            }`}
+          >
+            Dashboard
+          </Link>
 
           {/* User Button */}
           <div className="relative">
