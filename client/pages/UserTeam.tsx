@@ -65,6 +65,7 @@ const FAQItem = ({
 
 export default function UserTeam() {
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+  const location = useLocation();
   const { user } = useUser();
   const userName = user?.name?.split(" ")[0] || "User";
 
