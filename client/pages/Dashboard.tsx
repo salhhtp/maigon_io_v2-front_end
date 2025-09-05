@@ -306,6 +306,134 @@ const SimpleChart = ({
   </div>
 );
 
+const TrendChart = ({
+  data,
+  title,
+  metric,
+  showComparison = false,
+}: {
+  data: any[];
+  title: string;
+  metric: string;
+  showComparison?: boolean;
+}) => (
+  <div className="bg-white rounded-lg p-6 border border-[#271D1D]/10">
+    <div className="flex items-center justify-between mb-4">
+      <h3 className="font-lora text-lg font-medium text-[#271D1D]">{title}</h3>
+      <div className="flex items-center gap-2">
+        {showComparison && (
+          <span className="text-xs text-[#271D1D]/70 bg-[#F3F3F3] px-2 py-1 rounded">
+            vs Previous Period
+          </span>
+        )}
+        <TrendingUp className="w-4 h-4 text-green-600" />
+      </div>
+    </div>
+    <div className="space-y-4">
+      {data.map((item, index) => {
+        const growth = showComparison && item.previous
+          ? ((item.value - item.previous) / item.previous * 100).toFixed(1)
+          : null;
+        return (
+          <div key={index} className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-[#271D1D]">{item.date}</span>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-[#271D1D]">
+                  {typeof item.value === 'number' && item.value > 1000
+                    ? (item.value / 1000).toFixed(1) + 'k'
+                    : item.value}
+                </span>
+                {growth && (
+                  <span className={`text-xs font-medium ${
+                    parseFloat(growth) > 0 ? 'text-green-600' : 'text-red-600'
+                  }`}>
+                    {parseFloat(growth) > 0 ? '+' : ''}{growth}%
+                  </span>
+                )}
+              </div>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div
+                className="bg-gradient-to-r from-[#9A7C7C] to-[#B6A5A5] h-2 rounded-full"
+                style={{
+                  width: `${Math.min((item.value / Math.max(...data.map(d => d.value))) * 100, 100)}%`,
+                }}
+              />
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  </div>
+);
+
+const FunnelChart = ({
+  data,
+  title,
+}: {
+  data: any[];
+  title: string;
+}) => (
+  <div className="bg-white rounded-lg p-6 border border-[#271D1D]/10">
+    <h3 className="font-lora text-lg font-medium text-[#271D1D] mb-4">{title}</h3>
+    <div className="space-y-3">
+      {data.map((item, index) => (
+        <div key={index} className="relative">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium text-[#271D1D]">{item.step}</span>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-[#271D1D]">{item.users.toLocaleString()}</span>
+              <span className="text-xs text-[#271D1D]/70">({item.conversion}%)</span>
+            </div>
+          </div>
+          <div className="w-full bg-gray-200 rounded-full h-3">
+            <div
+              className="bg-gradient-to-r from-[#9A7C7C] to-[#B6A5A5] h-3 rounded-full"
+              style={{ width: `${item.conversion}%` }}
+            />
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
+const RevenueMetricCard = ({
+  metric,
+  value,
+  change,
+  trend,
+}: {
+  metric: string;
+  value: number;
+  change: number;
+  trend: "up" | "down";
+}) => (
+  <div className="bg-white rounded-lg p-4 border border-[#271D1D]/10">
+    <div className="flex items-center justify-between mb-2">
+      <h4 className="text-sm font-medium text-[#271D1D]">{metric}</h4>
+      <div className="flex items-center gap-1">
+        {trend === "up" ? (
+          <TrendingUp className="w-3 h-3 text-green-600" />
+        ) : (
+          <TrendingDown className="w-3 h-3 text-red-600" />
+        )}
+        <span className={`text-xs font-medium ${
+          trend === "up" ? "text-green-600" : "text-red-600"
+        }`}>
+          {trend === "up" ? "+" : ""}{change}%
+        </span>
+      </div>
+    </div>
+    <p className="text-lg font-bold text-[#271D1D]">
+      {metric.includes("LTV") || metric.includes("CAC") || metric.includes("ARPU")
+        ? `€${value}`
+        : value.toLocaleString()}
+    </p>
+  </div>
+);
+
 const PerformanceIndicator = ({
   label,
   value,
