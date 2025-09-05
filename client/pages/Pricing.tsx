@@ -393,18 +393,6 @@ export default function Pricing() {
             >
               Dashboard
             </Link>
-            {user?.role === "admin" && (
-              <Link
-                to="/analytics"
-                className={`inline-flex items-center justify-center px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
-                  location.pathname === "/analytics"
-                    ? "bg-[#9A7C7C] text-white shadow-md transform scale-105"
-                    : "bg-[#D6CECE] text-[#271D1D] hover:bg-[#9A7C7C] hover:text-white hover:shadow-md hover:transform hover:scale-105"
-                }`}
-              >
-                Analytics
-              </Link>
-            )}
 
             {/* User Button */}
             <div className="relative">

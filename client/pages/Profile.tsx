@@ -236,18 +236,6 @@ export default function Profile() {
           >
             Dashboard
           </Link>
-          {isAdmin && (
-            <Link
-              to="/analytics"
-              className={`transition-colors ${
-                location.pathname === "/analytics"
-                  ? "text-[#9A7C7C] font-medium"
-                  : "text-[#271D1D] hover:text-[#9A7C7C]"
-              }`}
-            >
-              Analytics
-            </Link>
-          )}
 
           {/* User Button */}
           <div className="relative">
@@ -722,7 +710,7 @@ export default function Profile() {
                           Production Key
                         </p>
                         <p className="text-xs text-[#271D1D]/70 font-mono">
-                          mk_live_•••••••••••••���••••••••••••••
+                          mk_live_••••••••••••••••••••••••••••
                         </p>
                       </div>
                       <div className="flex gap-2">
