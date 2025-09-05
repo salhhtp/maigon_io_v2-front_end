@@ -72,7 +72,7 @@ const UserCard = ({
 );
 
 export default function DemoLogin() {
-  const { setUser, isLoggedIn } = useUser();
+  const { setUser, isLoggedIn, logout } = useUser();
   const navigate = useNavigate();
 
   const handleLogin = (userName: string) => {
