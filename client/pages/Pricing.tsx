@@ -150,21 +150,31 @@ const PricingCalculator = ({
         <label className="block text-sm font-medium text-[#271D1D] mb-3">
           How many contracts do you review per month?
         </label>
-        <input
-          type="range"
-          min="1"
-          max="20"
-          value={contractCount}
-          onChange={(e) => setContractCount(parseInt(e.target.value))}
-          className="w-full h-2 bg-[#F3F3F3] rounded-lg appearance-none cursor-pointer custom-range-slider"
-          style={{
-            background: `linear-gradient(to right, #9A7C7C 0%, #9A7C7C ${(contractCount / 20) * 100}%, #F3F3F3 ${(contractCount / 20) * 100}%, #F3F3F3 100%)`,
-          }}
-        />
-        <div className="flex justify-between text-xs text-[#271D1D]/50 mt-1">
-          <span>1</span>
-          <span className="font-medium text-[#271D1D]">{contractCount}</span>
-          <span>20+</span>
+        <div className="slider-container">
+          <div
+            className="slider-tooltip"
+            style={{
+              left: `${((contractCount - 1) / 19) * 100}%`
+            }}
+          >
+            {contractCount}
+          </div>
+          <input
+            type="range"
+            min="1"
+            max="20"
+            value={contractCount}
+            onChange={(e) => setContractCount(parseInt(e.target.value))}
+            className="custom-range-slider"
+            style={{
+              background: `linear-gradient(to right, #9A7C7C 0%, #9A7C7C ${((contractCount - 1) / 19) * 100}%, #E5E5E5 ${((contractCount - 1) / 19) * 100}%, #E5E5E5 100%)`,
+            }}
+          />
+          <div className="flex justify-between text-xs text-[#271D1D]/50 mt-3">
+            <span>1</span>
+            <span className="font-medium text-[#271D1D]">{contractCount}</span>
+            <span>20+</span>
+          </div>
         </div>
       </div>
 
@@ -207,60 +217,86 @@ export default function Pricing() {
 
   // Custom styles for range slider
   const rangeSliderStyles = `
+    .slider-container {
+      position: relative;
+      padding-top: 50px;
+    }
+
+    .custom-range-slider {
+      width: 100%;
+      height: 8px;
+      border-radius: 20px;
+      appearance: none;
+      cursor: pointer;
+      outline: none;
+    }
+
     .custom-range-slider::-webkit-slider-thumb {
       appearance: none;
-      width: 20px;
-      height: 20px;
+      width: 24px;
+      height: 24px;
       border-radius: 50%;
-      background: #9A7C7C;
+      background: #ffffff;
       cursor: pointer;
-      border: 2px solid #ffffff;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      border: none;
+      box-shadow: 0 4px 12px rgba(154, 124, 124, 0.3);
       transition: all 0.2s ease;
+      position: relative;
     }
 
     .custom-range-slider::-webkit-slider-thumb:hover {
-      background: #8B6F6F;
       transform: scale(1.1);
-      box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
+      box-shadow: 0 6px 16px rgba(154, 124, 124, 0.4);
     }
 
     .custom-range-slider::-webkit-slider-thumb:active {
-      background: #7A5F5F;
       transform: scale(1.05);
     }
 
     .custom-range-slider::-moz-range-thumb {
-      width: 20px;
-      height: 20px;
+      width: 24px;
+      height: 24px;
       border-radius: 50%;
-      background: #9A7C7C;
+      background: #ffffff;
       cursor: pointer;
-      border: 2px solid #ffffff;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      border: none;
+      box-shadow: 0 4px 12px rgba(154, 124, 124, 0.3);
       transition: all 0.2s ease;
     }
 
     .custom-range-slider::-moz-range-thumb:hover {
-      background: #8B6F6F;
       transform: scale(1.1);
-      box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
+      box-shadow: 0 6px 16px rgba(154, 124, 124, 0.4);
     }
 
     .custom-range-slider::-moz-range-thumb:active {
-      background: #7A5F5F;
       transform: scale(1.05);
     }
 
-    .custom-range-slider::-webkit-slider-runnable-track {
-      height: 8px;
-      border-radius: 4px;
+    .slider-tooltip {
+      position: absolute;
+      top: -45px;
+      transform: translateX(-50%);
+      background: #9A7C7C;
+      color: white;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      min-width: 40px;
+      text-align: center;
+      transition: left 0.1s ease;
     }
 
-    .custom-range-slider::-moz-range-track {
-      height: 8px;
-      border-radius: 4px;
-      border: none;
+    .slider-tooltip::after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      margin-left: -6px;
+      border-width: 6px;
+      border-style: solid;
+      border-color: #9A7C7C transparent transparent transparent;
     }
   `;
 
