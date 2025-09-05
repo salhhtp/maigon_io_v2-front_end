@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Check, X, Building2 } from "lucide-react";
+import { Check, X, Building2, Calculator } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import Logo from "@/components/Logo";
@@ -101,82 +101,84 @@ const PricingCalculator = ({
         savings: payAsYouGo - monthly15,
       };
     }
-    return { plan: "Enterprise", price: "Custom", savings: "Contact us" };
+    return { plan: "Enterprise Plan", price: "Custom", savings: "Contact us" };
   };
 
   const result = calculatePricing(contractCount);
 
   return (
-    <Card className="bg-[#F9F8F8] border-[#271D1D]/10">
-      <CardContent className="p-6">
+    <div className="bg-white rounded-lg p-6 border border-[#271D1D]/10 max-w-md mx-auto">
+      <div className="text-center mb-6">
+        <Calculator className="w-8 h-8 text-[#9A7C7C] mx-auto mb-3" />
         <h3 className="font-lora text-lg font-medium text-[#271D1D] mb-2">
           Pricing Calculator
         </h3>
-        <p className="text-sm text-[#271D1D]/70 mb-4">
-          How many contracts do you review monthly?
+        <p className="text-sm text-[#271D1D]/70">
+          Find the perfect plan for your needs
         </p>
+      </div>
 
-        <div className="space-y-4">
-          <div className="slider-container">
-            <div
-              className="slider-tooltip"
-              style={{
-                left: `${((contractCount - 1) / 19) * 100}%`
-              }}
-            >
-              {contractCount}
-            </div>
-            <input
-              type="range"
-              min="1"
-              max="20"
-              value={contractCount}
-              onChange={(e) => setContractCount(parseInt(e.target.value))}
-              className="custom-range-slider"
-              style={{
-                background: `linear-gradient(to right, #9A7C7C 0%, #9A7C7C ${((contractCount - 1) / 19) * 100}%, #E5E5E5 ${((contractCount - 1) / 19) * 100}%, #E5E5E5 100%)`,
-              }}
-            />
-            <div className="flex justify-between text-xs text-[#271D1D]/60 mt-3">
-              <span>1</span>
-              <span className="font-medium text-[#271D1D]">
-                {contractCount} contracts
-              </span>
-              <span>20+</span>
-            </div>
+      <div className="mb-6">
+        <label className="block text-sm font-medium text-[#271D1D] mb-3">
+          How many contracts do you review per month?
+        </label>
+        <div className="slider-container">
+          <div
+            className="slider-tooltip"
+            style={{
+              left: `${((contractCount - 1) / 19) * 100}%`
+            }}
+          >
+            {contractCount}
           </div>
-
-          <div className="bg-white rounded-lg p-4 border border-[#271D1D]/10">
-            <div className="flex justify-between items-center">
-              <div>
-                <p className="font-medium text-[#271D1D]">
-                  Recommended: {result.plan}
-                </p>
-                <p className="text-sm text-[#271D1D]/70">
-                  {typeof result.price === "number"
-                    ? `€${result.price}${result.price > 0 ? "/month" : ""}`
-                    : result.price
-                  }
-                </p>
-              </div>
-              {typeof result.savings === "number" && result.savings > 0 && (
-                <div className="text-right">
-                  <p className="text-sm text-green-600 font-medium">
-                    Save €{result.savings}/month
-                  </p>
-                </div>
-              )}
-            </div>
-            <Button
-              onClick={() => onPlanSelect(result.plan)}
-              className="w-full mt-3 bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white"
-            >
-              Get Started
-            </Button>
+          <input
+            type="range"
+            min="1"
+            max="20"
+            value={contractCount}
+            onChange={(e) => setContractCount(parseInt(e.target.value))}
+            className="custom-range-slider"
+            style={{
+              background: `linear-gradient(to right, #9A7C7C 0%, #9A7C7C ${((contractCount - 1) / 19) * 100}%, #E5E5E5 ${((contractCount - 1) / 19) * 100}%, #E5E5E5 100%)`,
+            }}
+          />
+          <div className="flex justify-between text-xs text-[#271D1D]/50 mt-3">
+            <span>1</span>
+            <span className="font-medium text-[#271D1D]">{contractCount}</span>
+            <span>20+</span>
           </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+
+      <div className="bg-[#F9F8F8] rounded-lg p-4 mb-4">
+        <div className="text-center">
+          <p className="text-sm text-[#271D1D]/70 mb-1">Recommended Plan</p>
+          <p className="font-lora text-lg font-medium text-[#271D1D]">
+            {result.plan}
+          </p>
+          <p className="font-lora text-2xl font-bold text-[#9A7C7C]">
+            {typeof result.price === "number"
+              ? `€${result.price}`
+              : result.price}
+            {typeof result.price === "number" && (
+              <span className="text-sm font-normal">/month</span>
+            )}
+          </p>
+          {typeof result.savings === "number" && result.savings > 0 && (
+            <p className="text-sm text-green-600 font-medium">
+              Save €{result.savings}/month
+            </p>
+          )}
+        </div>
+      </div>
+
+      <Button
+        onClick={() => onPlanSelect(result.plan)}
+        className="w-full bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white"
+      >
+        Get Started
+      </Button>
+    </div>
   );
 };
 
