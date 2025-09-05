@@ -176,6 +176,65 @@ export default function PublicPricing() {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Custom styles for range slider
+  const rangeSliderStyles = `
+    .custom-range-slider::-webkit-slider-thumb {
+      appearance: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #9A7C7C;
+      cursor: pointer;
+      border: 2px solid #ffffff;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      transition: all 0.2s ease;
+    }
+
+    .custom-range-slider::-webkit-slider-thumb:hover {
+      background: #8B6F6F;
+      transform: scale(1.1);
+      box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
+    }
+
+    .custom-range-slider::-webkit-slider-thumb:active {
+      background: #7A5F5F;
+      transform: scale(1.05);
+    }
+
+    .custom-range-slider::-moz-range-thumb {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #9A7C7C;
+      cursor: pointer;
+      border: 2px solid #ffffff;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      transition: all 0.2s ease;
+    }
+
+    .custom-range-slider::-moz-range-thumb:hover {
+      background: #8B6F6F;
+      transform: scale(1.1);
+      box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
+    }
+
+    .custom-range-slider::-moz-range-thumb:active {
+      background: #7A5F5F;
+      transform: scale(1.05);
+    }
+
+    .custom-range-slider::-webkit-slider-runnable-track {
+      height: 8px;
+      border-radius: 4px;
+    }
+
+    .custom-range-slider::-moz-range-track {
+      height: 8px;
+      border-radius: 4px;
+      border: none;
+    }
+  `;
+
   const handlePlanSelect = (plan: string) => {
     // Redirect to sign up for public users
     navigate("/signin");
@@ -188,6 +247,7 @@ export default function PublicPricing() {
 
   return (
     <div className="min-h-screen bg-[#F9F8F8]">
+      <style>{rangeSliderStyles}</style>
       {/* Navigation */}
       <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-8 lg:px-16 py-6 bg-[#F9F8F8]">
         <Link to="/">
