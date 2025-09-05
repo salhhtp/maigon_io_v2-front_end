@@ -101,6 +101,10 @@ const router = createBrowserRouter([
     element: <Profile />,
   },
   {
+    path: "/dashboard",
+    element: <Dashboard />,
+  },
+  {
     path: "/settings",
     element: <Settings />,
   },
