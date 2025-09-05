@@ -661,7 +661,12 @@ const AdminUserManagement = ({ onAddUser }: { onAddUser: () => void }) => {
                 }`}
               >
                 <Filter className="w-4 h-4 mr-2" />
-                Plan: {planFilter === "all" ? "All" : planFilter}
+                Plan: {planFilter === "all" ? "All" :
+                  planFilter === "enterprise plan" ? "Enterprise Plan" :
+                  planFilter === "monthly 15" ? "Monthly 15" :
+                  planFilter === "monthly 10" ? "Monthly 10" :
+                  planFilter === "pay-as-you-go" ? "Pay-As-You-Go" :
+                  planFilter === "free trial" ? "Free Trial" : planFilter}
                 <ChevronDown className="w-4 h-4 ml-2" />
               </Button>
             </DropdownMenuTrigger>
