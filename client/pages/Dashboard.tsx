@@ -286,7 +286,28 @@ const RecentActivity = ({
   }>;
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
-  const displayedActivities = isExpanded ? activities : activities.slice(0, 5);
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [searchTerm, setSearchTerm] = useState("");
+
+  // Filter activities based on search and status
+  const filteredActivities = activities.filter((activity) => {
+    const matchesSearch =
+      activity.action.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      activity.file.toLowerCase().includes(searchTerm.toLowerCase());
+
+    const matchesStatus = statusFilter === "all" || activity.status === statusFilter;
+
+    return matchesSearch && matchesStatus;
+  });
+
+  const displayedActivities = isExpanded ? filteredActivities : filteredActivities.slice(0, 5);
+
+  const clearFilters = () => {
+    setSearchTerm("");
+    setStatusFilter("all");
+  };
+
+  const hasActiveFilters = searchTerm || statusFilter !== "all";
 
   return (
     <div className="bg-white rounded-lg p-6 border border-[#271D1D]/10">
