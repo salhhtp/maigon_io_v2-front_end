@@ -1370,8 +1370,43 @@ export default function Dashboard() {
             </p>
           </div>
 
-          {/* Stats Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          {/* Tab Navigation - Only show for admins */}
+          {isAdmin && (
+            <div className="mb-8">
+              <div className="border-b border-[#271D1D]/20">
+                <div className="flex space-x-8">
+                  <button
+                    onClick={() => setActiveTab("overview")}
+                    className={`py-3 px-1 border-b-2 font-medium text-sm transition-colors ${
+                      activeTab === "overview"
+                        ? "border-[#9A7C7C] text-[#9A7C7C]"
+                        : "border-transparent text-[#271D1D]/70 hover:text-[#271D1D] hover:border-[#271D1D]/30"
+                    }`}
+                  >
+                    <BarChart3 className="w-4 h-4 inline mr-2" />
+                    Overview
+                  </button>
+                  <button
+                    onClick={() => setActiveTab("analytics")}
+                    className={`py-3 px-1 border-b-2 font-medium text-sm transition-colors ${
+                      activeTab === "analytics"
+                        ? "border-[#9A7C7C] text-[#9A7C7C]"
+                        : "border-transparent text-[#271D1D]/70 hover:text-[#271D1D] hover:border-[#271D1D]/30"
+                    }`}
+                  >
+                    <Activity className="w-4 h-4 inline mr-2" />
+                    Analytics
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Overview Tab Content */}
+          {(!isAdmin || activeTab === "overview") && (
+            <>
+              {/* Stats Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <StatsCard
               title="Total Reviews"
               value={user.usage.total_reviews.toString()}
@@ -1553,6 +1588,172 @@ export default function Dashboard() {
               )}
             </div>
           </div>
+            </>
+          )}
+
+          {/* Analytics Tab Content */}
+          {isAdmin && activeTab === "analytics" && (
+            <div className="space-y-8">
+              {/* Analytics Overview Metrics */}
+              <section>
+                <h2 className="text-xl font-medium text-[#271D1D] font-lora mb-4">
+                  Platform Overview
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  <MetricCard
+                    title="Total Users"
+                    value={analyticsData.overview.totalUsers.toLocaleString()}
+                    change={analyticsData.overview.userGrowth}
+                    icon={<Users className="w-5 h-5 text-[#9A7C7C]" />}
+                    trend="up"
+                  />
+                  <MetricCard
+                    title="Active Users"
+                    value={analyticsData.overview.activeUsers.toLocaleString()}
+                    change={analyticsData.overview.activeUsersGrowth}
+                    icon={<Activity className="w-5 h-5 text-[#9A7C7C]" />}
+                    trend="up"
+                  />
+                  <MetricCard
+                    title="Total Revenue"
+                    value={`€${(analyticsData.overview.totalRevenue / 1000).toFixed(0)}k`}
+                    change={analyticsData.overview.revenueGrowth}
+                    icon={<DollarSign className="w-5 h-5 text-[#9A7C7C]" />}
+                    trend="up"
+                  />
+                  <MetricCard
+                    title="Contracts Reviewed"
+                    value={analyticsData.overview.contractsReviewed.toLocaleString()}
+                    change={analyticsData.overview.contractsGrowth}
+                    icon={<FileText className="w-5 h-5 text-[#9A7C7C]" />}
+                    trend="up"
+                  />
+                </div>
+              </section>
+
+              {/* Charts Section */}
+              <section>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-medium text-[#271D1D] font-lora">
+                    Usage Analytics
+                  </h2>
+                  <Button className="bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white">
+                    <Download className="w-4 h-4 mr-2" />
+                    Export Report
+                  </Button>
+                </div>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <SimpleChart
+                    data={analyticsData.platformMetrics.usage}
+                    title="Monthly Platform Usage"
+                    type="bar"
+                  />
+                  <SimpleChart
+                    data={analyticsData.userMetrics.byPlan}
+                    title="Users by Plan Distribution"
+                    type="pie"
+                  />
+                  <SimpleChart
+                    data={analyticsData.platformMetrics.contractTypes}
+                    title="Contract Types Analysis"
+                    type="bar"
+                  />
+                  <SimpleChart
+                    data={analyticsData.userMetrics.geography}
+                    title="Geographic Distribution"
+                    type="bar"
+                  />
+                </div>
+              </section>
+
+              {/* Performance Indicators */}
+              <section>
+                <h2 className="text-xl font-medium text-[#271D1D] font-lora mb-4">
+                  Platform Performance
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <PerformanceIndicator
+                    label="Avg. Processing Time"
+                    value={analyticsData.platformMetrics.performance.avgProcessingTime}
+                    unit="s"
+                    status="good"
+                  />
+                  <PerformanceIndicator
+                    label="Success Rate"
+                    value={analyticsData.platformMetrics.performance.successRate}
+                    unit="%"
+                    status="good"
+                  />
+                  <PerformanceIndicator
+                    label="Error Rate"
+                    value={analyticsData.platformMetrics.performance.errorRate}
+                    unit="%"
+                    status="good"
+                  />
+                  <PerformanceIndicator
+                    label="API Uptime"
+                    value={analyticsData.platformMetrics.performance.apiUptime}
+                    unit="%"
+                    status="good"
+                  />
+                </div>
+              </section>
+
+              {/* Additional Analytics */}
+              <section>
+                <h2 className="text-xl font-medium text-[#271D1D] font-lora mb-4">
+                  Detailed Insights
+                </h2>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <SimpleChart
+                    data={analyticsData.userMetrics.retention}
+                    title="User Retention Rates"
+                    type="line"
+                  />
+                  <SimpleChart
+                    data={analyticsData.platformMetrics.topFeatures}
+                    title="Feature Usage Analysis"
+                    type="bar"
+                  />
+                </div>
+              </section>
+
+              {/* Real-time Status */}
+              <section>
+                <h2 className="text-xl font-medium text-[#271D1D] font-lora mb-4">
+                  Real-time System Status
+                </h2>
+                <div className="bg-white rounded-lg p-6 border border-[#271D1D]/10">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-medium text-[#271D1D]">System Health</h3>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                      <span className="text-sm text-green-600 font-medium">
+                        All Systems Operational
+                      </span>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="text-center p-4 bg-green-50 rounded-lg">
+                      <Zap className="w-6 h-6 text-green-600 mx-auto mb-2" />
+                      <p className="text-sm font-medium text-green-800">API Response</p>
+                      <p className="text-lg font-bold text-green-600">142ms</p>
+                    </div>
+                    <div className="text-center p-4 bg-blue-50 rounded-lg">
+                      <Globe className="w-6 h-6 text-blue-600 mx-auto mb-2" />
+                      <p className="text-sm font-medium text-blue-800">Active Sessions</p>
+                      <p className="text-lg font-bold text-blue-600">1,247</p>
+                    </div>
+                    <div className="text-center p-4 bg-purple-50 rounded-lg">
+                      <Target className="w-6 h-6 text-purple-600 mx-auto mb-2" />
+                      <p className="text-sm font-medium text-purple-800">Queue Processing</p>
+                      <p className="text-lg font-bold text-purple-600">97.8%</p>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            </div>
+          )}
         </div>
       </main>
 
