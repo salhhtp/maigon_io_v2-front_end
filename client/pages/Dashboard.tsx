@@ -2027,7 +2027,7 @@ export default function Dashboard() {
                 <>
                   <section>
                     <h3 className="text-lg font-medium text-[#271D1D] font-lora mb-4">
-                      User Analytics & Behavior
+                      User Demographics & Distribution
                     </h3>
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                       <SimpleChart
@@ -2041,19 +2041,40 @@ export default function Dashboard() {
                         type="bar"
                       />
                       <SimpleChart
-                        data={analyticsData.userBehavior.sessionDuration}
-                        title="Session Duration Distribution"
-                        type="bar"
-                      />
-                      <SimpleChart
                         data={analyticsData.userBehavior.deviceUsage}
                         title="Device Usage Breakdown"
                         type="pie"
+                      />
+                      <SimpleChart
+                        data={analyticsData.userBehavior.pageViews}
+                        title="Most Visited Pages"
+                        type="bar"
                       />
                     </div>
                   </section>
 
                   <section>
+                    <h3 className="text-lg font-medium text-[#271D1D] font-lora mb-4">
+                      User Behavior & Engagement
+                    </h3>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      <SimpleChart
+                        data={analyticsData.userBehavior.sessionDuration}
+                        title="Session Duration Distribution"
+                        type="bar"
+                      />
+                      <SimpleChart
+                        data={analyticsData.userBehavior.timeBasedActivity}
+                        title="Activity by Hour (24h)"
+                        type="bar"
+                      />
+                    </div>
+                  </section>
+
+                  <section>
+                    <h3 className="text-lg font-medium text-[#271D1D] font-lora mb-4">
+                      Conversion & Retention Analysis
+                    </h3>
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                       <FunnelChart
                         data={analyticsData.userBehavior.userJourney}
@@ -2064,6 +2085,49 @@ export default function Dashboard() {
                         title="User Retention Rates"
                         type="line"
                       />
+                    </div>
+                  </section>
+
+                  <section>
+                    <h3 className="text-lg font-medium text-[#271D1D] font-lora mb-4">
+                      Advanced User Insights
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                      <div className="bg-white rounded-lg p-4 border border-[#271D1D]/10">
+                        <div className="flex items-center gap-3 mb-2">
+                          <Users className="w-5 h-5 text-[#9A7C7C]" />
+                          <h4 className="font-medium text-[#271D1D]">New Users Today</h4>
+                        </div>
+                        <p className="text-2xl font-bold text-[#271D1D]">127</p>
+                        <p className="text-xs text-green-600">+12% vs yesterday</p>
+                      </div>
+
+                      <div className="bg-white rounded-lg p-4 border border-[#271D1D]/10">
+                        <div className="flex items-center gap-3 mb-2">
+                          <Activity className="w-5 h-5 text-[#9A7C7C]" />
+                          <h4 className="font-medium text-[#271D1D]">Avg. Session</h4>
+                        </div>
+                        <p className="text-2xl font-bold text-[#271D1D]">24.5min</p>
+                        <p className="text-xs text-green-600">+8% vs last week</p>
+                      </div>
+
+                      <div className="bg-white rounded-lg p-4 border border-[#271D1D]/10">
+                        <div className="flex items-center gap-3 mb-2">
+                          <Target className="w-5 h-5 text-[#9A7C7C]" />
+                          <h4 className="font-medium text-[#271D1D]">Bounce Rate</h4>
+                        </div>
+                        <p className="text-2xl font-bold text-[#271D1D]">23.4%</p>
+                        <p className="text-xs text-red-600">-5% vs last month</p>
+                      </div>
+
+                      <div className="bg-white rounded-lg p-4 border border-[#271D1D]/10">
+                        <div className="flex items-center gap-3 mb-2">
+                          <Clock className="w-5 h-5 text-[#9A7C7C]" />
+                          <h4 className="font-medium text-[#271D1D]">Page Load Time</h4>
+                        </div>
+                        <p className="text-2xl font-bold text-[#271D1D]">1.2s</p>
+                        <p className="text-xs text-green-600">-200ms improvement</p>
+                      </div>
                     </div>
                   </section>
                 </>
