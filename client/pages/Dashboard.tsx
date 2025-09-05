@@ -86,7 +86,33 @@ const UsageChart = ({
   monthlyUsage: Array<{ month: string; reviews: number; max: number }>;
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
-  const displayedUsage = isExpanded ? monthlyUsage : monthlyUsage.slice(0, 3);
+  const [periodFilter, setPeriodFilter] = useState<string>("all");
+  const [usageFilter, setUsageFilter] = useState<string>("all");
+
+  // Filter usage data based on selected filters
+  const filteredUsage = monthlyUsage.filter((data) => {
+    const usagePercentage = data.max > 0 ? (data.reviews / data.max) * 100 : 0;
+
+    const matchesPeriod = periodFilter === "all" ||
+      (periodFilter === "recent" && monthlyUsage.indexOf(data) < 6) ||
+      (periodFilter === "last3" && monthlyUsage.indexOf(data) < 3);
+
+    const matchesUsage = usageFilter === "all" ||
+      (usageFilter === "high" && usagePercentage >= 75) ||
+      (usageFilter === "medium" && usagePercentage >= 25 && usagePercentage < 75) ||
+      (usageFilter === "low" && usagePercentage < 25);
+
+    return matchesPeriod && matchesUsage;
+  });
+
+  const displayedUsage = isExpanded ? filteredUsage : filteredUsage.slice(0, 3);
+
+  const clearFilters = () => {
+    setPeriodFilter("all");
+    setUsageFilter("all");
+  };
+
+  const hasActiveFilters = periodFilter !== "all" || usageFilter !== "all";
 
   return (
     <div className="bg-white rounded-lg p-6 border border-[#271D1D]/10">
