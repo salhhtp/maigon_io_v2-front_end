@@ -6,7 +6,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { ChevronDown, User } from "lucide-react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import Logo from "@/components/Logo";
 import Footer from "@/components/Footer";
@@ -25,7 +25,8 @@ export default function UserHome() {
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const location = useLocation();
 
-  const { user, isLoading } = useUser();
+  const { user, isLoading, logout } = useUser();
+  const navigate = useNavigate();
   const userName = user?.name?.split(" ")[0] || "User";
 
   // Show loading spinner while context is initializing
@@ -180,12 +181,15 @@ export default function UserHome() {
                 >
                   Profile & Settings
                 </Link>
-                <Link
-                  to="/"
-                  className="block px-4 py-2 text-sm text-[#271D1D] hover:bg-[#F9F8F8] transition-colors"
+                <button
+                  onClick={() => {
+                    logout();
+                    navigate("/");
+                  }}
+                  className="block w-full text-left px-4 py-2 text-sm text-[#271D1D] hover:bg-[#F9F8F8] transition-colors"
                 >
                   Log Out
-                </Link>
+                </button>
               </div>
             )}
           </div>
