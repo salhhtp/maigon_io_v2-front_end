@@ -1078,6 +1078,18 @@ export default function Dashboard() {
           >
             Dashboard
           </Link>
+          {isAdmin && (
+            <Link
+              to="/analytics"
+              className={`transition-colors ${
+                location.pathname === "/analytics"
+                  ? "text-[#9A7C7C] font-medium"
+                  : "text-[#271D1D] hover:text-[#9A7C7C]"
+              }`}
+            >
+              Analytics
+            </Link>
+          )}
 
           {/* User Button */}
           <div className="relative">
