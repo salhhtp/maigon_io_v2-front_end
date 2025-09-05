@@ -370,13 +370,31 @@ export default function PublicPricing() {
                     <h4 className="text-xs font-medium text-[#271D1D] mb-2 uppercase tracking-wider">
                       Enterprise Features
                     </h4>
-                    <ul className="text-xs space-y-1 text-[#271D1D]/80">
-                      <li>• Custom volume pricing</li>
-                      <li>• Dedicated account manager</li>
-                      <li>• On-premise deployment</li>
-                      <li>• Custom SLA agreements</li>
-                      <li>• Advanced security compliance</li>
-                      <li>• Priority support & training</li>
+                    <ul className="space-y-2">
+                      <li className="flex items-center gap-2 text-xs">
+                        <Check className="w-3 h-3 text-green-500 flex-shrink-0" />
+                        <span className="text-[#271D1D]">Custom volume pricing</span>
+                      </li>
+                      <li className="flex items-center gap-2 text-xs">
+                        <Check className="w-3 h-3 text-green-500 flex-shrink-0" />
+                        <span className="text-[#271D1D]">Dedicated account manager</span>
+                      </li>
+                      <li className="flex items-center gap-2 text-xs">
+                        <Check className="w-3 h-3 text-green-500 flex-shrink-0" />
+                        <span className="text-[#271D1D]">On-premise deployment</span>
+                      </li>
+                      <li className="flex items-center gap-2 text-xs">
+                        <Check className="w-3 h-3 text-green-500 flex-shrink-0" />
+                        <span className="text-[#271D1D]">Custom SLA agreements</span>
+                      </li>
+                      <li className="flex items-center gap-2 text-xs">
+                        <Check className="w-3 h-3 text-green-500 flex-shrink-0" />
+                        <span className="text-[#271D1D]">Advanced security compliance</span>
+                      </li>
+                      <li className="flex items-center gap-2 text-xs">
+                        <Check className="w-3 h-3 text-green-500 flex-shrink-0" />
+                        <span className="text-[#271D1D]">Priority support & training</span>
+                      </li>
                     </ul>
                   </div>
                 </div>
