@@ -53,13 +53,22 @@ const FeatureCard = ({
   icon,
   title,
   description,
+  label,
 }: {
   icon: React.ReactNode;
   title: string;
   description: string;
+  label?: string;
 }) => (
   <div className="flex flex-col items-center text-center p-6 lg:p-8 transition-colors duration-300 hover:bg-[#D6CECE] group">
-    <div className="mb-4">{icon}</div>
+    {label && (
+      <div className="w-full flex justify-end mb-3">
+        <span className="text-xs font-medium text-white bg-[#9A7C7C] px-3 py-1 rounded-full">
+          {label}
+        </span>
+      </div>
+    )}
+    <div className={`${label ? 'mb-4' : 'mb-4'}`}>{icon}</div>
     <h3 className="text-base font-medium text-[#271D1D] font-lora mb-3 leading-[30px] tracking-[0.16px] self-stretch">
       {title}
     </h3>
