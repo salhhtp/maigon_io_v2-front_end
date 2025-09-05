@@ -385,10 +385,10 @@ export default function Pricing() {
             </Link>
             <Link
               to="/dashboard"
-              className={`inline-flex items-center justify-center px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+              className={`transition-colors ${
                 location.pathname === "/dashboard"
-                  ? "bg-[#9A7C7C] text-white shadow-md transform scale-105"
-                  : "bg-[#D6CECE] text-[#271D1D] hover:bg-[#9A7C7C] hover:text-white hover:shadow-md hover:transform hover:scale-105"
+                  ? "text-[#9A7C7C] font-medium"
+                  : "text-[#271D1D] hover:text-[#9A7C7C]"
               }`}
             >
               Dashboard
