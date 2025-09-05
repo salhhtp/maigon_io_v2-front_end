@@ -600,7 +600,7 @@ export default function Pricing() {
               tier="monthly_10"
               title="Monthly 10"
               subtitle="Save with Volume Package"
-              price="���799"
+              price="$799"
               period="per month"
               description="10 contracts per month"
               savings="Save €91/month vs pay-as-you-go"
