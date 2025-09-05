@@ -244,7 +244,7 @@ export default function PublicPricing() {
 
     .slider-tooltip {
       position: absolute;
-      top: -15px;
+      top: -8px;
       transform: translateX(-50%);
       background: #9A7C7C;
       color: white;
