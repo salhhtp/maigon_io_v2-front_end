@@ -128,7 +128,7 @@ const PricingCalculator = ({
         savings: payAsYouGo - monthly15,
       };
     }
-    return { plan: "Professional", price: "Custom", savings: "Contact us" };
+    return { plan: "Enterprise Plan", price: "Custom", savings: "Contact us" };
   };
 
   const result = calculatePricing(contractCount);
