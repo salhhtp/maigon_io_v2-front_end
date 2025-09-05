@@ -318,7 +318,7 @@ export default function Pricing() {
   const handleCalculatorSelect = (contracts: number) => {
     if (contracts >= 15) {
       // Trigger consultation request
-      console.log("Requesting consultation for professional plan");
+      console.log("Requesting consultation for enterprise plan");
     } else {
       const planType =
         contracts <= 1
