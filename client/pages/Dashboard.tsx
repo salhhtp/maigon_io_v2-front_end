@@ -55,6 +55,206 @@ import { useUser } from "@/contexts/UserContext";
 import AddUserModal from "@/components/modals/AddUserModal";
 import CustomSolutionModal from "@/components/modals/CustomSolutionModal";
 
+// Analytics Data
+const analyticsData = {
+  overview: {
+    totalUsers: 2847,
+    activeUsers: 1923,
+    totalRevenue: 892450,
+    contractsReviewed: 15643,
+    userGrowth: 12.5,
+    revenueGrowth: 18.2,
+    activeUsersGrowth: 8.7,
+    contractsGrowth: 23.1,
+  },
+  userMetrics: {
+    byPlan: [
+      { plan: "Free Trial", users: 1156, revenue: 0, percentage: 40.6 },
+      { plan: "Pay-As-You-Go", users: 687, revenue: 175230, percentage: 24.1 },
+      { plan: "Monthly 10", users: 523, revenue: 318540, percentage: 18.4 },
+      { plan: "Monthly 15", users: 312, revenue: 298680, percentage: 11.0 },
+      { plan: "Enterprise Plan", users: 169, revenue: 100000, percentage: 5.9 },
+    ],
+    retention: [
+      { period: "1 Week", rate: 87.3 },
+      { period: "1 Month", rate: 74.8 },
+      { period: "3 Months", rate: 62.1 },
+      { period: "6 Months", rate: 48.9 },
+      { period: "1 Year", rate: 34.2 },
+    ],
+    geography: [
+      { country: "United States", users: 1124, percentage: 39.5 },
+      { country: "United Kingdom", users: 487, percentage: 17.1 },
+      { country: "Germany", users: 382, percentage: 13.4 },
+      { country: "France", users: 295, percentage: 10.4 },
+      { country: "Canada", users: 201, percentage: 7.1 },
+      { country: "Others", users: 358, percentage: 12.5 },
+    ],
+  },
+  platformMetrics: {
+    usage: [
+      { month: "Jan", contracts: 1203, users: 2156, revenue: 67890 },
+      { month: "Feb", contracts: 1456, users: 2298, revenue: 73240 },
+      { month: "Mar", contracts: 1678, users: 2401, revenue: 78560 },
+      { month: "Apr", contracts: 1892, users: 2523, revenue: 81290 },
+      { month: "May", contracts: 2134, users: 2687, revenue: 85430 },
+      { month: "Jun", contracts: 2456, users: 2847, revenue: 89245 },
+    ],
+    contractTypes: [
+      { type: "Data Processing Agreements", count: 4234, percentage: 27.1 },
+      { type: "Non-Disclosure Agreements", count: 3876, percentage: 24.8 },
+      { type: "Consultancy Agreements", count: 2891, percentage: 18.5 },
+      { type: "Privacy Policy Documents", count: 2156, percentage: 13.8 },
+      { type: "Product Supply Agreements", count: 1542, percentage: 9.9 },
+      { type: "Others", count: 944, percentage: 6.0 },
+    ],
+    performance: {
+      avgProcessingTime: 24.6,
+      successRate: 98.7,
+      errorRate: 1.3,
+      apiUptime: 99.92,
+    },
+    topFeatures: [
+      { feature: "Compliance Reports", usage: 94.2 },
+      { feature: "Clause Extraction", usage: 87.5 },
+      { feature: "Risk Assessment", usage: 82.1 },
+      { feature: "API Integration", usage: 34.7 },
+      { feature: "Custom Rules", usage: 28.9 },
+    ],
+  },
+};
+
+const MetricCard = ({
+  title,
+  value,
+  change,
+  icon,
+  trend,
+}: {
+  title: string;
+  value: string | number;
+  change: number;
+  icon: React.ReactNode;
+  trend: "up" | "down";
+}) => (
+  <div className="bg-white rounded-lg p-6 border border-[#271D1D]/10">
+    <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center gap-3">
+        <div className="p-2 bg-[#F3F3F3] rounded-lg">{icon}</div>
+        <h3 className="font-lora text-sm font-medium text-[#271D1D]">
+          {title}
+        </h3>
+      </div>
+      <div className="flex items-center gap-1">
+        {trend === "up" ? (
+          <TrendingUp className="w-4 h-4 text-green-600" />
+        ) : (
+          <TrendingDown className="w-4 h-4 text-red-600" />
+        )}
+        <span
+          className={`text-xs font-medium ${
+            trend === "up" ? "text-green-600" : "text-red-600"
+          }`}
+        >
+          {trend === "up" ? "+" : ""}
+          {change}%
+        </span>
+      </div>
+    </div>
+    <p className="font-lora text-2xl font-medium text-[#271D1D]">{value}</p>
+  </div>
+);
+
+const SimpleChart = ({
+  data,
+  title,
+  type = "bar",
+}: {
+  data: any[];
+  title: string;
+  type?: "bar" | "line" | "pie";
+}) => (
+  <div className="bg-white rounded-lg p-6 border border-[#271D1D]/10">
+    <h3 className="font-lora text-lg font-medium text-[#271D1D] mb-4">
+      {title}
+    </h3>
+    <div className="space-y-3">
+      {data.map((item, index) => (
+        <div key={index} className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div
+              className="w-3 h-3 rounded-full"
+              style={{
+                backgroundColor: `hsl(${(index * 60) % 360}, 70%, 50%)`,
+              }}
+            />
+            <span className="text-sm text-[#271D1D]">
+              {item.month || item.plan || item.type || item.country || item.feature}
+            </span>
+          </div>
+          <div className="text-right">
+            <span className="text-sm font-medium text-[#271D1D]">
+              {item.contracts || item.users || item.count || item.revenue || item.usage}
+              {item.percentage && (
+                <span className="text-xs text-[#271D1D]/70 ml-1">
+                  ({item.percentage}%)
+                </span>
+              )}
+            </span>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
+const PerformanceIndicator = ({
+  label,
+  value,
+  unit,
+  status,
+}: {
+  label: string;
+  value: number;
+  unit: string;
+  status: "good" | "warning" | "critical";
+}) => {
+  const getStatusIcon = () => {
+    switch (status) {
+      case "good":
+        return <CheckCircle className="w-5 h-5 text-green-600" />;
+      case "warning":
+        return <AlertTriangle className="w-5 h-5 text-yellow-600" />;
+      case "critical":
+        return <AlertTriangle className="w-5 h-5 text-red-600" />;
+    }
+  };
+
+  const getStatusColor = () => {
+    switch (status) {
+      case "good":
+        return "text-green-600";
+      case "warning":
+        return "text-yellow-600";
+      case "critical":
+        return "text-red-600";
+    }
+  };
+
+  return (
+    <div className="flex items-center justify-between p-4 bg-white rounded-lg border border-[#271D1D]/10">
+      <div className="flex items-center gap-3">
+        {getStatusIcon()}
+        <span className="font-medium text-[#271D1D]">{label}</span>
+      </div>
+      <span className={`font-bold ${getStatusColor()}`}>
+        {value}
+        {unit}
+      </span>
+    </div>
+  );
+};
+
 // Dashboard Widget Components
 const StatsCard = ({
   title,
