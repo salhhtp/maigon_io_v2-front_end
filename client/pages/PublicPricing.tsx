@@ -32,8 +32,8 @@ const PricingCard = ({
     className={`relative ${popular ? "ring-2 ring-[#9A7C7C] scale-105" : ""}`}
   >
     {popular && (
-      <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 z-10">
-        <span className="bg-[#9A7C7C] text-white px-4 py-1 text-sm rounded-full shadow-md">
+      <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 scale-95 z-10">
+        <span className="bg-[#9A7C7C] text-white px-4 py-1 text-sm rounded-full shadow-md whitespace-nowrap">
           Most Popular
         </span>
       </div>
