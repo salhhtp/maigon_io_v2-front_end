@@ -353,45 +353,37 @@ export default function PublicPricing() {
             />
 
             {/* Enterprise & Custom Solutions */}
-            <Card>
-              <CardContent className="p-8">
-                <h3 className="text-xl font-medium text-[#271D1D] font-lora mb-4">
-                  Enterprise & Custom Solutions
-                </h3>
-                <p className="text-lg mb-2">
-                  For 15+ Contracts Monthly - Custom Pricing
-                </p>
-                <p className="text-[#271D1D]/70 mb-6">
-                  Tailored solutions for large organizations with specific
-                  needs.
-                </p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <Card className="relative">
+              <CardContent className="p-6">
+                <div className="text-center mb-4">
+                  <h3 className="text-lg font-medium text-[#271D1D] font-lora mb-2">
+                    Enterprise & Custom Solutions
+                  </h3>
+                  <div className="text-3xl font-bold text-[#9A7C7C] mb-1">
+                    Custom
+                  </div>
+                  <div className="text-sm text-[#271D1D]/70">pricing</div>
+                </div>
+
+                <div className="space-y-4 mb-6">
                   <div>
-                    <h4 className="font-medium text-[#271D1D] mb-2">
+                    <h4 className="text-xs font-medium text-[#271D1D] mb-2 uppercase tracking-wider">
                       Enterprise Features
                     </h4>
-                    <ul className="text-sm space-y-1">
-                      <li>• Custom pricing based on exact volume</li>
-                      <li>• Feature customization assessment</li>
+                    <ul className="text-xs space-y-1 text-[#271D1D]/80">
+                      <li>• Custom volume pricing</li>
                       <li>• Dedicated account manager</li>
-                      <li>• On-premise deployment options</li>
-                    </ul>
-                  </div>
-                  <div>
-                    <h4 className="font-medium text-[#271D1D] mb-2">
-                      Additional Benefits
-                    </h4>
-                    <ul className="text-sm space-y-1">
+                      <li>• On-premise deployment</li>
                       <li>• Custom SLA agreements</li>
                       <li>• Advanced security compliance</li>
-                      <li>• Training & onboarding support</li>
-                      <li>• Priority feature requests</li>
+                      <li>• Priority support & training</li>
                     </ul>
                   </div>
                 </div>
+
                 <Button
                   onClick={() => navigate("/signin")}
-                  className="bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white px-8"
+                  className="w-full bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white"
                 >
                   Contact Sales
                 </Button>
