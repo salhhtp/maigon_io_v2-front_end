@@ -533,81 +533,195 @@ const AdminSolutionCreator = ({
   onCreateSolution,
 }: {
   onCreateSolution: () => void;
-}) => (
-  <div className="bg-white rounded-lg p-6 border border-[#271D1D]/10">
-    <div className="flex items-center justify-between mb-4">
-      <h3 className="font-lora text-lg font-medium text-[#271D1D]">
-        Custom Solutions
-      </h3>
-      <Button
-        onClick={onCreateSolution}
-        className="bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white px-4 py-2 rounded-lg text-sm"
-      >
-        <Plus className="w-4 h-4 mr-2" />
-        Create Solution
-      </Button>
-    </div>
-    <div className="space-y-3">
-      {[
-        {
-          name: "Healthcare Compliance Suite",
-          client: "MedCorp Inc.",
-          status: "active",
-          contracts: 245,
-        },
-        {
-          name: "Financial Services Package",
-          client: "BankTech Ltd.",
-          status: "development",
-          contracts: 0,
-        },
-        {
-          name: "Manufacturing Agreements",
-          client: "Industrial Co.",
-          status: "active",
-          contracts: 89,
-        },
-      ].map((solution, index) => (
-        <div
-          key={index}
-          className="flex items-center justify-between p-4 border border-[#F3F3F3] rounded-lg"
+}) => {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+
+  const allSolutions = [
+    {
+      name: "Healthcare Compliance Suite",
+      client: "MedCorp Inc.",
+      status: "active",
+      contracts: 245,
+    },
+    {
+      name: "Financial Services Package",
+      client: "BankTech Ltd.",
+      status: "development",
+      contracts: 0,
+    },
+    {
+      name: "Manufacturing Agreements",
+      client: "Industrial Co.",
+      status: "active",
+      contracts: 89,
+    },
+  ];
+
+  // Filter solutions based on search and status
+  const filteredSolutions = allSolutions.filter((solution) => {
+    const matchesSearch =
+      solution.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      solution.client.toLowerCase().includes(searchTerm.toLowerCase());
+
+    const matchesStatus = statusFilter === "all" || solution.status === statusFilter;
+
+    return matchesSearch && matchesStatus;
+  });
+
+  const clearFilters = () => {
+    setSearchTerm("");
+    setStatusFilter("all");
+  };
+
+  const hasActiveFilters = searchTerm || statusFilter !== "all";
+
+  return (
+    <div className="bg-white rounded-lg p-6 border border-[#271D1D]/10">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-4">
+          <h3 className="font-lora text-lg font-medium text-[#271D1D]">
+            Custom Solutions
+          </h3>
+          {hasActiveFilters && (
+            <span className="text-xs text-[#9A7C7C] bg-[#9A7C7C]/10 px-2 py-1 rounded-full">
+              {filteredSolutions.length} of {allSolutions.length} solutions
+            </span>
+          )}
+        </div>
+        <Button
+          onClick={onCreateSolution}
+          className="bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white px-4 py-2 rounded-lg text-sm"
         >
-          <div>
-            <p className="text-sm font-medium text-[#271D1D]">
-              {solution.name}
-            </p>
-            <p className="text-xs text-[#271D1D]/70">
-              Client: {solution.client}
-            </p>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="text-right">
-              <p className="text-sm font-medium text-[#271D1D]">
-                {solution.contracts} contracts
-              </p>
-              <div
-                className={`px-2 py-1 rounded-full text-xs font-medium ${
-                  solution.status === "active"
-                    ? "bg-green-100 text-green-800"
-                    : "bg-yellow-100 text-yellow-800"
+          <Plus className="w-4 h-4 mr-2" />
+          Create Solution
+        </Button>
+      </div>
+
+      {/* Search and Filter Controls */}
+      <div className="mb-4 space-y-3">
+        {/* Search Bar */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[#271D1D]/50" />
+          <Input
+            type="text"
+            placeholder="Search solutions or clients..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10 pr-4 py-2 border-[#271D1D]/20 focus:border-[#9A7C7C] focus:ring-[#9A7C7C]"
+          />
+        </div>
+
+        {/* Filter Controls */}
+        <div className="flex items-center gap-3 flex-wrap">
+          {/* Status Filter */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className={`text-[#271D1D] border-[#271D1D]/20 ${
+                  statusFilter !== "all" ? "bg-[#9A7C7C]/10 border-[#9A7C7C]" : ""
                 }`}
               >
-                {solution.status}
+                <Filter className="w-4 h-4 mr-2" />
+                Status: {statusFilter === "all" ? "All" : statusFilter}
+                <ChevronDown className="w-4 h-4 ml-2" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              <DropdownMenuLabel>Filter by Status</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => setStatusFilter("all")}>
+                All Status
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setStatusFilter("active")}>
+                Active
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setStatusFilter("development")}>
+                Development
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Clear Filters */}
+          {hasActiveFilters && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={clearFilters}
+              className="text-[#271D1D]/70 hover:text-[#271D1D]"
+            >
+              <X className="w-4 h-4 mr-2" />
+              Clear filters
+            </Button>
+          )}
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        {filteredSolutions.length > 0 ? (
+          filteredSolutions.map((solution, index) => (
+            <div
+              key={index}
+              className="flex items-center justify-between p-4 border border-[#F3F3F3] rounded-lg"
+            >
+              <div>
+                <p className="text-sm font-medium text-[#271D1D]">
+                  {solution.name}
+                </p>
+                <p className="text-xs text-[#271D1D]/70">
+                  Client: {solution.client}
+                </p>
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="text-right">
+                  <p className="text-sm font-medium text-[#271D1D]">
+                    {solution.contracts} contracts
+                  </p>
+                  <div
+                    className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      solution.status === "active"
+                        ? "bg-green-100 text-green-800"
+                        : "bg-yellow-100 text-yellow-800"
+                    }`}
+                  >
+                    {solution.status}
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-[#271D1D] border-[#271D1D]/20"
+                >
+                  Configure
+                </Button>
               </div>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              className="text-[#271D1D] border-[#271D1D]/20"
-            >
-              Configure
-            </Button>
+          ))
+        ) : (
+          <div className="text-center py-8 text-[#271D1D]/50">
+            <Settings className="w-8 h-8 mx-auto mb-3 text-[#271D1D]/30" />
+            <p className="text-sm">No solutions match your filters</p>
+            <p className="text-xs mt-1">
+              Try adjusting your search term or filters
+            </p>
+            {hasActiveFilters && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearFilters}
+                className="mt-2 text-[#9A7C7C] hover:text-[#9A7C7C]/90"
+              >
+                Clear all filters
+              </Button>
+            )}
           </div>
-        </div>
-      ))}
+        )}
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 export default function Dashboard() {
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
