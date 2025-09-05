@@ -312,27 +312,98 @@ const RecentActivity = ({
   return (
     <div className="bg-white rounded-lg p-6 border border-[#271D1D]/10">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="font-lora text-lg font-medium text-[#271D1D]">
-          Recent Activity
-        </h3>
-        {activities.length > 5 && (
-          <button
-            onClick={() => setIsExpanded(!isExpanded)}
-            className="flex items-center gap-2 text-sm text-[#9A7C7C] hover:text-[#9A7C7C]/90 transition-colors"
-          >
-            {isExpanded ? (
-              <>
-                <Minimize2 className="w-4 h-4" />
-                Show Less
-              </>
-            ) : (
-              <>
-                <Maximize2 className="w-4 h-4" />
-                Show All ({activities.length})
-              </>
-            )}
-          </button>
-        )}
+        <div className="flex items-center gap-4">
+          <h3 className="font-lora text-lg font-medium text-[#271D1D]">
+            Recent Activity
+          </h3>
+          {filteredActivities.length > 5 && (
+            <button
+              onClick={() => setIsExpanded(!isExpanded)}
+              className="flex items-center gap-2 text-sm text-[#9A7C7C] hover:text-[#9A7C7C]/90 transition-colors"
+            >
+              {isExpanded ? (
+                <>
+                  <Minimize2 className="w-4 h-4" />
+                  Show Less
+                </>
+              ) : (
+                <>
+                  <Maximize2 className="w-4 h-4" />
+                  Show All ({filteredActivities.length})
+                </>
+              )}
+            </button>
+          )}
+          {hasActiveFilters && (
+            <span className="text-xs text-[#9A7C7C] bg-[#9A7C7C]/10 px-2 py-1 rounded-full">
+              {filteredActivities.length} of {activities.length} activities
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Search and Filter Controls */}
+      <div className="mb-4 space-y-3">
+        {/* Search Bar */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[#271D1D]/50" />
+          <Input
+            type="text"
+            placeholder="Search activities or files..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10 pr-4 py-2 border-[#271D1D]/20 focus:border-[#9A7C7C] focus:ring-[#9A7C7C]"
+          />
+        </div>
+
+        {/* Filter Controls */}
+        <div className="flex items-center gap-3 flex-wrap">
+          {/* Status Filter */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className={`text-[#271D1D] border-[#271D1D]/20 ${
+                  statusFilter !== "all" ? "bg-[#9A7C7C]/10 border-[#9A7C7C]" : ""
+                }`}
+              >
+                <Filter className="w-4 h-4 mr-2" />
+                Status: {statusFilter === "all" ? "All" : statusFilter}
+                <ChevronDown className="w-4 h-4 ml-2" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              <DropdownMenuLabel>Filter by Status</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => setStatusFilter("all")}>
+                All Status
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setStatusFilter("completed")}>
+                Completed
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setStatusFilter("processing")}>
+                Processing
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setStatusFilter("failed")}>
+                Failed
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Clear Filters */}
+          {hasActiveFilters && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={clearFilters}
+              className="text-[#271D1D]/70 hover:text-[#271D1D]"
+            >
+              <X className="w-4 h-4 mr-2" />
+              Clear filters
+            </Button>
+          )}
+        </div>
       </div>
       <div className="space-y-4">
         {displayedActivities.length > 0 ? (
