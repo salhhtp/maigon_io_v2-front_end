@@ -693,10 +693,10 @@ export default function Pricing() {
                 </div>
 
                 <Button
-                  onClick={() => handlePlanSelect("professional")}
+                  onClick={() => handlePlanSelect("enterprise")}
                   className="w-full bg-white text-[#9A7C7C] hover:bg-white/90 mt-auto"
                 >
-                  {user?.plan.type === "professional"
+                  {user?.plan.type === "enterprise"
                     ? "Current Plan"
                     : "Request Consultation"}
                 </Button>
