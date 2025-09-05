@@ -236,20 +236,22 @@ export default function Pricing() {
       width: 24px;
       height: 24px;
       border-radius: 50%;
-      background: #ffffff;
+      background: #9A7C7C;
       cursor: pointer;
-      border: none;
+      border: 2px solid #ffffff;
       box-shadow: 0 4px 12px rgba(154, 124, 124, 0.3);
       transition: all 0.2s ease;
       position: relative;
     }
 
     .custom-range-slider::-webkit-slider-thumb:hover {
+      background: #8B6F6F;
       transform: scale(1.1);
       box-shadow: 0 6px 16px rgba(154, 124, 124, 0.4);
     }
 
     .custom-range-slider::-webkit-slider-thumb:active {
+      background: #7A5F5F;
       transform: scale(1.05);
     }
 
@@ -257,19 +259,21 @@ export default function Pricing() {
       width: 24px;
       height: 24px;
       border-radius: 50%;
-      background: #ffffff;
+      background: #9A7C7C;
       cursor: pointer;
-      border: none;
+      border: 2px solid #ffffff;
       box-shadow: 0 4px 12px rgba(154, 124, 124, 0.3);
       transition: all 0.2s ease;
     }
 
     .custom-range-slider::-moz-range-thumb:hover {
+      background: #8B6F6F;
       transform: scale(1.1);
       box-shadow: 0 6px 16px rgba(154, 124, 124, 0.4);
     }
 
     .custom-range-slider::-moz-range-thumb:active {
+      background: #7A5F5F;
       transform: scale(1.05);
     }
 
