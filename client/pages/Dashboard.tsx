@@ -1824,164 +1824,396 @@ export default function Dashboard() {
           {/* Analytics Tab Content */}
           {isAdmin && activeTab === "analytics" && (
             <div className="space-y-8">
-              {/* Analytics Overview Metrics */}
-              <section>
-                <h2 className="text-xl font-medium text-[#271D1D] font-lora mb-4">
-                  Platform Overview
-                </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                  <MetricCard
-                    title="Total Users"
-                    value={analyticsData.overview.totalUsers.toLocaleString()}
-                    change={analyticsData.overview.userGrowth}
-                    icon={<Users className="w-5 h-5 text-[#9A7C7C]" />}
-                    trend="up"
-                  />
-                  <MetricCard
-                    title="Active Users"
-                    value={analyticsData.overview.activeUsers.toLocaleString()}
-                    change={analyticsData.overview.activeUsersGrowth}
-                    icon={<Activity className="w-5 h-5 text-[#9A7C7C]" />}
-                    trend="up"
-                  />
-                  <MetricCard
-                    title="Total Revenue"
-                    value={`€${(analyticsData.overview.totalRevenue / 1000).toFixed(0)}k`}
-                    change={analyticsData.overview.revenueGrowth}
-                    icon={<DollarSign className="w-5 h-5 text-[#9A7C7C]" />}
-                    trend="up"
-                  />
-                  <MetricCard
-                    title="Contracts Reviewed"
-                    value={analyticsData.overview.contractsReviewed.toLocaleString()}
-                    change={analyticsData.overview.contractsGrowth}
-                    icon={<FileText className="w-5 h-5 text-[#9A7C7C]" />}
-                    trend="up"
-                  />
-                </div>
-              </section>
-
-              {/* Charts Section */}
-              <section>
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-xl font-medium text-[#271D1D] font-lora">
-                    Usage Analytics
-                  </h2>
-                  <Button className="bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white">
-                    <Download className="w-4 h-4 mr-2" />
-                    Export Report
-                  </Button>
-                </div>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <SimpleChart
-                    data={analyticsData.platformMetrics.usage}
-                    title="Monthly Platform Usage"
-                    type="bar"
-                  />
-                  <SimpleChart
-                    data={analyticsData.userMetrics.byPlan}
-                    title="Users by Plan Distribution"
-                    type="pie"
-                  />
-                  <SimpleChart
-                    data={analyticsData.platformMetrics.contractTypes}
-                    title="Contract Types Analysis"
-                    type="bar"
-                  />
-                  <SimpleChart
-                    data={analyticsData.userMetrics.geography}
-                    title="Geographic Distribution"
-                    type="bar"
-                  />
-                </div>
-              </section>
-
-              {/* Performance Indicators */}
-              <section>
-                <h2 className="text-xl font-medium text-[#271D1D] font-lora mb-4">
-                  Platform Performance
-                </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <PerformanceIndicator
-                    label="Avg. Processing Time"
-                    value={analyticsData.platformMetrics.performance.avgProcessingTime}
-                    unit="s"
-                    status="good"
-                  />
-                  <PerformanceIndicator
-                    label="Success Rate"
-                    value={analyticsData.platformMetrics.performance.successRate}
-                    unit="%"
-                    status="good"
-                  />
-                  <PerformanceIndicator
-                    label="Error Rate"
-                    value={analyticsData.platformMetrics.performance.errorRate}
-                    unit="%"
-                    status="good"
-                  />
-                  <PerformanceIndicator
-                    label="API Uptime"
-                    value={analyticsData.platformMetrics.performance.apiUptime}
-                    unit="%"
-                    status="good"
-                  />
-                </div>
-              </section>
-
-              {/* Additional Analytics */}
-              <section>
-                <h2 className="text-xl font-medium text-[#271D1D] font-lora mb-4">
-                  Detailed Insights
-                </h2>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <SimpleChart
-                    data={analyticsData.userMetrics.retention}
-                    title="User Retention Rates"
-                    type="line"
-                  />
-                  <SimpleChart
-                    data={analyticsData.platformMetrics.topFeatures}
-                    title="Feature Usage Analysis"
-                    type="bar"
-                  />
-                </div>
-              </section>
-
-              {/* Real-time Status */}
-              <section>
-                <h2 className="text-xl font-medium text-[#271D1D] font-lora mb-4">
-                  Real-time System Status
-                </h2>
-                <div className="bg-white rounded-lg p-6 border border-[#271D1D]/10">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-medium text-[#271D1D]">System Health</h3>
+              {/* Analytics Controls */}
+              <section className="bg-white rounded-lg p-6 border border-[#271D1D]/10">
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <div className="flex items-center gap-4">
+                    <h2 className="text-xl font-medium text-[#271D1D] font-lora">
+                      Advanced Analytics
+                    </h2>
                     <div className="flex items-center gap-2">
                       <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                      <span className="text-sm text-green-600 font-medium">
-                        All Systems Operational
-                      </span>
+                      <span className="text-sm text-green-600 font-medium">Live Data</span>
                     </div>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="text-center p-4 bg-green-50 rounded-lg">
-                      <Zap className="w-6 h-6 text-green-600 mx-auto mb-2" />
-                      <p className="text-sm font-medium text-green-800">API Response</p>
-                      <p className="text-lg font-bold text-green-600">142ms</p>
-                    </div>
-                    <div className="text-center p-4 bg-blue-50 rounded-lg">
-                      <Globe className="w-6 h-6 text-blue-600 mx-auto mb-2" />
-                      <p className="text-sm font-medium text-blue-800">Active Sessions</p>
-                      <p className="text-lg font-bold text-blue-600">1,247</p>
-                    </div>
-                    <div className="text-center p-4 bg-purple-50 rounded-lg">
-                      <Target className="w-6 h-6 text-purple-600 mx-auto mb-2" />
-                      <p className="text-sm font-medium text-purple-800">Queue Processing</p>
-                      <p className="text-lg font-bold text-purple-600">97.8%</p>
-                    </div>
+
+                  <div className="flex items-center gap-3">
+                    {/* Time Range Filter */}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" className="text-[#271D1D] border-[#271D1D]/20">
+                          <Calendar className="w-4 h-4 mr-2" />
+                          {analyticsTimeRange === "7d" ? "Last 7 days" :
+                           analyticsTimeRange === "30d" ? "Last 30 days" :
+                           analyticsTimeRange === "90d" ? "Last 90 days" : "Last year"}
+                          <ChevronDown className="w-4 h-4 ml-2" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent>
+                        <DropdownMenuItem onClick={() => setAnalyticsTimeRange("7d")}>
+                          Last 7 days
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setAnalyticsTimeRange("30d")}>
+                          Last 30 days
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setAnalyticsTimeRange("90d")}>
+                          Last 90 days
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setAnalyticsTimeRange("1y")}>
+                          Last year
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+
+                    {/* View Toggle */}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" className="text-[#271D1D] border-[#271D1D]/20">
+                          <Eye className="w-4 h-4 mr-2" />
+                          {analyticsView === "overview" ? "Overview" :
+                           analyticsView === "users" ? "Users" :
+                           analyticsView === "revenue" ? "Revenue" :
+                           analyticsView === "performance" ? "Performance" : "Engagement"}
+                          <ChevronDown className="w-4 h-4 ml-2" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent>
+                        <DropdownMenuItem onClick={() => setAnalyticsView("overview")}>
+                          <BarChart3 className="w-4 h-4 mr-2" />Overview
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setAnalyticsView("users")}>
+                          <Users className="w-4 h-4 mr-2" />Users
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setAnalyticsView("revenue")}>
+                          <DollarSign className="w-4 h-4 mr-2" />Revenue
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setAnalyticsView("performance")}>
+                          <Activity className="w-4 h-4 mr-2" />Performance
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setAnalyticsView("engagement")}>
+                          <Target className="w-4 h-4 mr-2" />Engagement
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+
+                    {/* Comparison Toggle */}
+                    <Button
+                      variant={comparisonMode ? "default" : "outline"}
+                      onClick={() => setComparisonMode(!comparisonMode)}
+                      className={comparisonMode ? "bg-[#9A7C7C] text-white" : "text-[#271D1D] border-[#271D1D]/20"}
+                    >
+                      <RefreshCw className="w-4 h-4 mr-2" />
+                      Compare
+                    </Button>
+
+                    {/* Export Button */}
+                    <Button className="bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white">
+                      <Download className="w-4 h-4 mr-2" />
+                      Export
+                    </Button>
                   </div>
                 </div>
               </section>
+
+              {/* Key Metrics Overview */}
+              {(analyticsView === "overview") && (
+                <>
+                  <section>
+                    <h3 className="text-lg font-medium text-[#271D1D] font-lora mb-4">
+                      Key Performance Indicators
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                      <MetricCard
+                        title="Total Users"
+                        value={analyticsData.overview.totalUsers.toLocaleString()}
+                        change={analyticsData.overview.userGrowth}
+                        icon={<Users className="w-5 h-5 text-[#9A7C7C]" />}
+                        trend="up"
+                      />
+                      <MetricCard
+                        title="Active Users"
+                        value={analyticsData.overview.activeUsers.toLocaleString()}
+                        change={analyticsData.overview.activeUsersGrowth}
+                        icon={<Activity className="w-5 h-5 text-[#9A7C7C]" />}
+                        trend="up"
+                      />
+                      <MetricCard
+                        title="Total Revenue"
+                        value={`€${(analyticsData.overview.totalRevenue / 1000).toFixed(0)}k`}
+                        change={analyticsData.overview.revenueGrowth}
+                        icon={<DollarSign className="w-5 h-5 text-[#9A7C7C]" />}
+                        trend="up"
+                      />
+                      <MetricCard
+                        title="Contracts Reviewed"
+                        value={analyticsData.overview.contractsReviewed.toLocaleString()}
+                        change={analyticsData.overview.contractsGrowth}
+                        icon={<FileText className="w-5 h-5 text-[#9A7C7C]" />}
+                        trend="up"
+                      />
+                    </div>
+                  </section>
+
+                  <section>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      <TrendChart
+                        data={analyticsData.timeBasedData[analyticsTimeRange]?.users || []}
+                        title="User Growth Trend"
+                        metric="users"
+                        showComparison={comparisonMode}
+                      />
+                      <TrendChart
+                        data={analyticsData.timeBasedData[analyticsTimeRange]?.revenue || []}
+                        title="Revenue Growth Trend"
+                        metric="revenue"
+                        showComparison={comparisonMode}
+                      />
+                    </div>
+                  </section>
+                </>
+              )}
+
+              {/* Users Analytics */}
+              {analyticsView === "users" && (
+                <>
+                  <section>
+                    <h3 className="text-lg font-medium text-[#271D1D] font-lora mb-4">
+                      User Analytics & Behavior
+                    </h3>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      <SimpleChart
+                        data={analyticsData.userMetrics.byPlan}
+                        title="Users by Plan Distribution"
+                        type="pie"
+                      />
+                      <SimpleChart
+                        data={analyticsData.userMetrics.geography}
+                        title="Geographic Distribution"
+                        type="bar"
+                      />
+                      <SimpleChart
+                        data={analyticsData.userBehavior.sessionDuration}
+                        title="Session Duration Distribution"
+                        type="bar"
+                      />
+                      <SimpleChart
+                        data={analyticsData.userBehavior.deviceUsage}
+                        title="Device Usage Breakdown"
+                        type="pie"
+                      />
+                    </div>
+                  </section>
+
+                  <section>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      <FunnelChart
+                        data={analyticsData.userBehavior.userJourney}
+                        title="User Conversion Funnel"
+                      />
+                      <SimpleChart
+                        data={analyticsData.userMetrics.retention}
+                        title="User Retention Rates"
+                        type="line"
+                      />
+                    </div>
+                  </section>
+                </>
+              )}
+
+              {/* Revenue Analytics */}
+              {analyticsView === "revenue" && (
+                <>
+                  <section>
+                    <h3 className="text-lg font-medium text-[#271D1D] font-lora mb-4">
+                      Revenue Analytics & Financial Metrics
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {analyticsData.advancedMetrics.revenueMetrics.map((metric, index) => (
+                        <RevenueMetricCard
+                          key={index}
+                          metric={metric.metric}
+                          value={metric.value}
+                          change={metric.change}
+                          trend={metric.trend}
+                        />
+                      ))}
+                    </div>
+                  </section>
+
+                  <section>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      <TrendChart
+                        data={analyticsData.timeBasedData[analyticsTimeRange]?.revenue || []}
+                        title="Revenue Trend Analysis"
+                        metric="revenue"
+                        showComparison={comparisonMode}
+                      />
+                      <div className="bg-white rounded-lg p-6 border border-[#271D1D]/10">
+                        <h3 className="font-lora text-lg font-medium text-[#271D1D] mb-4">
+                          Cohort Retention Analysis
+                        </h3>
+                        <div className="space-y-3">
+                          {analyticsData.advancedMetrics.cohortAnalysis.map((cohort, index) => (
+                            <div key={index} className="space-y-2">
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm font-medium text-[#271D1D]">{cohort.cohort}</span>
+                                <span className="text-xs text-[#271D1D]/70">Week 4: {cohort.week4}%</span>
+                              </div>
+                              <div className="flex space-x-1">
+                                <div className="flex-1 bg-green-200 h-3 rounded" style={{ opacity: cohort.week1 / 100 }}></div>
+                                <div className="flex-1 bg-blue-200 h-3 rounded" style={{ opacity: cohort.week2 / 100 }}></div>
+                                <div className="flex-1 bg-yellow-200 h-3 rounded" style={{ opacity: cohort.week3 / 100 }}></div>
+                                <div className="flex-1 bg-red-200 h-3 rounded" style={{ opacity: cohort.week4 / 100 }}></div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </section>
+                </>
+              )}
+
+              {/* Performance Analytics */}
+              {analyticsView === "performance" && (
+                <>
+                  <section>
+                    <h3 className="text-lg font-medium text-[#271D1D] font-lora mb-4">
+                      System Performance & Health
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                      <PerformanceIndicator
+                        label="Avg. Processing Time"
+                        value={analyticsData.platformMetrics.performance.avgProcessingTime}
+                        unit="s"
+                        status="good"
+                      />
+                      <PerformanceIndicator
+                        label="Success Rate"
+                        value={analyticsData.platformMetrics.performance.successRate}
+                        unit="%"
+                        status="good"
+                      />
+                      <PerformanceIndicator
+                        label="Error Rate"
+                        value={analyticsData.platformMetrics.performance.errorRate}
+                        unit="%"
+                        status="good"
+                      />
+                      <PerformanceIndicator
+                        label="API Uptime"
+                        value={analyticsData.platformMetrics.performance.apiUptime}
+                        unit="%"
+                        status="good"
+                      />
+                    </div>
+                  </section>
+
+                  <section>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      <div className="bg-white rounded-lg p-6 border border-[#271D1D]/10">
+                        <h3 className="font-lora text-lg font-medium text-[#271D1D] mb-4">
+                          Error Analysis
+                        </h3>
+                        <div className="space-y-3">
+                          {analyticsData.advancedMetrics.errorAnalysis.map((error, index) => (
+                            <div key={index} className="flex items-center justify-between p-3 rounded-lg border border-[#271D1D]/10">
+                              <div className="flex items-center gap-3">
+                                <AlertTriangle className={`w-4 h-4 ${
+                                  error.severity === "critical" ? "text-red-600" :
+                                  error.severity === "high" ? "text-orange-600" :
+                                  error.severity === "medium" ? "text-yellow-600" : "text-gray-600"
+                                }`} />
+                                <span className="text-sm text-[#271D1D]">{error.error}</span>
+                              </div>
+                              <span className="text-sm font-medium text-[#271D1D]">{error.count}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="bg-white rounded-lg p-6 border border-[#271D1D]/10">
+                        <h3 className="font-lora text-lg font-medium text-[#271D1D] mb-4">
+                          Real-time System Status
+                        </h3>
+                        <div className="grid grid-cols-1 gap-4">
+                          <div className="text-center p-4 bg-green-50 rounded-lg">
+                            <Zap className="w-6 h-6 text-green-600 mx-auto mb-2" />
+                            <p className="text-sm font-medium text-green-800">API Response</p>
+                            <p className="text-lg font-bold text-green-600">142ms</p>
+                          </div>
+                          <div className="text-center p-4 bg-blue-50 rounded-lg">
+                            <Globe className="w-6 h-6 text-blue-600 mx-auto mb-2" />
+                            <p className="text-sm font-medium text-blue-800">Active Sessions</p>
+                            <p className="text-lg font-bold text-blue-600">1,247</p>
+                          </div>
+                          <div className="text-center p-4 bg-purple-50 rounded-lg">
+                            <Target className="w-6 h-6 text-purple-600 mx-auto mb-2" />
+                            <p className="text-sm font-medium text-purple-800">Queue Processing</p>
+                            <p className="text-lg font-bold text-purple-600">97.8%</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </section>
+                </>
+              )}
+
+              {/* Engagement Analytics */}
+              {analyticsView === "engagement" && (
+                <>
+                  <section>
+                    <h3 className="text-lg font-medium text-[#271D1D] font-lora mb-4">
+                      User Engagement & Feature Usage
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                      <MetricCard
+                        title="Avg Session Duration"
+                        value={`${analyticsData.overview.avgSessionDuration}min`}
+                        change={8.3}
+                        icon={<Clock className="w-5 h-5 text-[#9A7C7C]" />}
+                        trend="up"
+                      />
+                      <MetricCard
+                        title="Conversion Rate"
+                        value={`${analyticsData.overview.conversionRate}%`}
+                        change={analyticsData.overview.conversionRate}
+                        icon={<Target className="w-5 h-5 text-[#9A7C7C]" />}
+                        trend="up"
+                      />
+                      <MetricCard
+                        title="Churn Rate"
+                        value={`${analyticsData.overview.churnRate}%`}
+                        change={-0.8}
+                        icon={<TrendingDown className="w-5 h-5 text-[#9A7C7C]" />}
+                        trend="down"
+                      />
+                      <MetricCard
+                        title="Satisfaction Score"
+                        value={`${analyticsData.overview.customerSatisfaction}/5`}
+                        change={4.2}
+                        icon={<CheckCircle className="w-5 h-5 text-[#9A7C7C]" />}
+                        trend="up"
+                      />
+                    </div>
+                  </section>
+
+                  <section>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      <SimpleChart
+                        data={analyticsData.platformMetrics.topFeatures}
+                        title="Feature Usage Analysis"
+                        type="bar"
+                      />
+                      <SimpleChart
+                        data={analyticsData.platformMetrics.contractTypes}
+                        title="Contract Types Analysis"
+                        type="bar"
+                      />
+                    </div>
+                  </section>
+                </>
+              )}
             </div>
           )}
         </div>
