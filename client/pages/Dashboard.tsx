@@ -435,20 +435,42 @@ const RecentActivity = ({
                 </span>
               </div>
             ))}
-            {!isExpanded && activities.length > 5 && (
+            {!isExpanded && filteredActivities.length > 5 && (
               <div className="text-center pt-2 border-t border-[#F3F3F3]">
                 <span className="text-xs text-[#271D1D]/50">
-                  +{activities.length - 5} more activities
+                  +{filteredActivities.length - 5} more activities
                 </span>
               </div>
             )}
           </>
         ) : (
           <div className="text-center py-8 text-[#271D1D]/50">
-            <p className="text-sm">No recent activity</p>
-            <p className="text-xs mt-1">
-              Start reviewing contracts to see your activity here
-            </p>
+            {activities.length === 0 ? (
+              <>
+                <p className="text-sm">No recent activity</p>
+                <p className="text-xs mt-1">
+                  Start reviewing contracts to see your activity here
+                </p>
+              </>
+            ) : (
+              <>
+                <FileText className="w-8 h-8 mx-auto mb-3 text-[#271D1D]/30" />
+                <p className="text-sm">No activities match your filters</p>
+                <p className="text-xs mt-1">
+                  Try adjusting your search term or filters
+                </p>
+                {hasActiveFilters && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={clearFilters}
+                    className="mt-2 text-[#9A7C7C] hover:text-[#9A7C7C]/90"
+                  >
+                    Clear all filters
+                  </Button>
+                )}
+              </>
+            )}
           </div>
         )}
       </div>
