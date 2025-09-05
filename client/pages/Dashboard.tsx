@@ -117,26 +117,112 @@ const UsageChart = ({
   return (
     <div className="bg-white rounded-lg p-6 border border-[#271D1D]/10">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="font-lora text-lg font-medium text-[#271D1D]">
-          Contract Review Usage
-        </h3>
-        {monthlyUsage.length > 3 && (
-          <button
-            onClick={() => setIsExpanded(!isExpanded)}
-            className="flex items-center gap-2 text-sm text-[#9A7C7C] hover:text-[#9A7C7C]/90 transition-colors"
+        <div className="flex items-center gap-4">
+          <h3 className="font-lora text-lg font-medium text-[#271D1D]">
+            Contract Review Usage
+          </h3>
+          {filteredUsage.length > 3 && (
+            <button
+              onClick={() => setIsExpanded(!isExpanded)}
+              className="flex items-center gap-2 text-sm text-[#9A7C7C] hover:text-[#9A7C7C]/90 transition-colors"
+            >
+              {isExpanded ? (
+                <>
+                  <Minimize2 className="w-4 h-4" />
+                  Show Less
+                </>
+              ) : (
+                <>
+                  <Maximize2 className="w-4 h-4" />
+                  Show All ({filteredUsage.length})
+                </>
+              )}
+            </button>
+          )}
+          {hasActiveFilters && (
+            <span className="text-xs text-[#9A7C7C] bg-[#9A7C7C]/10 px-2 py-1 rounded-full">
+              {filteredUsage.length} of {monthlyUsage.length} months
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Filter Controls */}
+      <div className="mb-4 flex items-center gap-3 flex-wrap">
+        {/* Period Filter */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className={`text-[#271D1D] border-[#271D1D]/20 ${
+                periodFilter !== "all" ? "bg-[#9A7C7C]/10 border-[#9A7C7C]" : ""
+              }`}
+            >
+              <Filter className="w-4 h-4 mr-2" />
+              Period: {periodFilter === "all" ? "All" : periodFilter === "recent" ? "Last 6" : "Last 3"}
+              <ChevronDown className="w-4 h-4 ml-2" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start">
+            <DropdownMenuLabel>Filter by Period</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => setPeriodFilter("all")}>
+              All Months
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setPeriodFilter("recent")}>
+              Last 6 Months
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setPeriodFilter("last3")}>
+              Last 3 Months
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        {/* Usage Level Filter */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className={`text-[#271D1D] border-[#271D1D]/20 ${
+                usageFilter !== "all" ? "bg-[#9A7C7C]/10 border-[#9A7C7C]" : ""
+              }`}
+            >
+              <Filter className="w-4 h-4 mr-2" />
+              Usage: {usageFilter === "all" ? "All" : usageFilter}
+              <ChevronDown className="w-4 h-4 ml-2" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start">
+            <DropdownMenuLabel>Filter by Usage Level</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => setUsageFilter("all")}>
+              All Levels
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setUsageFilter("high")}>
+              High (75%+)
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setUsageFilter("medium")}>
+              Medium (25-74%)
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setUsageFilter("low")}>
+              Low (&lt;25%)
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        {/* Clear Filters */}
+        {hasActiveFilters && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={clearFilters}
+            className="text-[#271D1D]/70 hover:text-[#271D1D]"
           >
-            {isExpanded ? (
-              <>
-                <Minimize2 className="w-4 h-4" />
-                Show Less
-              </>
-            ) : (
-              <>
-                <Maximize2 className="w-4 h-4" />
-                Show All ({monthlyUsage.length})
-              </>
-            )}
-          </button>
+            <X className="w-4 h-4 mr-2" />
+            Clear filters
+          </Button>
         )}
       </div>
       <div className="space-y-4">
