@@ -527,17 +527,17 @@ export default function PublicPricing() {
         </div>
       </section>
 
-      {/* Comparison Table */}
-      <section className="py-16 px-8 lg:px-16">
+      {/* Features Comparison */}
+      <section className="py-16 px-8 lg:px-16 bg-white">
         <div className="max-w-6xl mx-auto">
-          <h2 className="text-2xl font-medium text-[#271D1D] font-lora mb-8 text-center">
-            Feature Comparison
+          <h2 className="text-2xl lg:text-3xl font-medium text-[#271D1D] font-lora text-center mb-12">
+            Plan Comparison
           </h2>
 
           <div className="overflow-x-auto">
-            <table className="w-full border border-[#271D1D]/20 rounded-lg">
+            <table className="w-full border-collapse">
               <thead>
-                <tr className="bg-[#F9F8F8]">
+                <tr className="border-b border-[#271D1D]/10">
                   <th className="text-left p-4 font-medium text-[#271D1D]">
                     Features
                   </th>
@@ -548,76 +548,69 @@ export default function PublicPricing() {
                     Pay-as-you-go
                   </th>
                   <th className="text-center p-4 font-medium text-[#271D1D]">
-                    Monthly 10
+                    Monthly Plans
                   </th>
                   <th className="text-center p-4 font-medium text-[#271D1D]">
-                    Monthly 15
+                    Enterprise Plan
                   </th>
                 </tr>
               </thead>
-              <tbody>
-                {[
-                  {
-                    feature: "Contract Reviews",
-                    trial: "1",
-                    paygo: "Unlimited",
-                    monthly10: "10/month",
-                    monthly15: "15/month",
-                  },
-                  {
-                    feature: "AI Analysis",
-                    trial: "Basic",
-                    paygo: "Full",
-                    monthly10: "Advanced",
-                    monthly15: "Premium",
-                  },
-                  {
-                    feature: "Compliance Reports",
-                    trial: "✓",
-                    paygo: "✓",
-                    monthly10: "✓",
-                    monthly15: "✓",
-                  },
-                  {
-                    feature: "Custom Rules",
-                    trial: "✗",
-                    paygo: "Limited",
-                    monthly10: "✓",
-                    monthly15: "✓",
-                  },
-                  {
-                    feature: "API Access",
-                    trial: "✗",
-                    paygo: "✗",
-                    monthly10: "✗",
-                    monthly15: "✓",
-                  },
-                  {
-                    feature: "Priority Support",
-                    trial: "✗",
-                    paygo: "✓",
-                    monthly10: "✓",
-                    monthly15: "✓",
-                  },
-                ].map((row, index) => (
-                  <tr key={index} className="border-t border-[#271D1D]/10">
-                    <td className="p-4 font-medium text-[#271D1D]">
-                      {row.feature}
-                    </td>
-                    <td className="p-4 text-center text-[#271D1D]">
-                      {row.trial}
-                    </td>
-                    <td className="p-4 text-center text-[#271D1D]">
-                      {row.paygo}
-                    </td>
-                    <td className="p-4 text-center text-[#271D1D]">
-                      {row.monthly10}
-                    </td>
-                    <td className="p-4 text-center text-[#271D1D]">
-                      {row.monthly15}
-                    </td>
-                  </tr>
-                ))}
+              <tbody className="text-sm">
+                <tr className="border-b border-[#271D1D]/5">
+                  <td className="p-4 text-[#271D1D]">Contract Reviews</td>
+                  <td className="p-4 text-center text-[#271D1D]/70">1</td>
+                  <td className="p-4 text-center text-[#271D1D]/70">
+                    Unlimited
+                  </td>
+                  <td className="p-4 text-center text-[#271D1D]/70">
+                    10 or 15/month
+                  </td>
+                  <td className="p-4 text-center text-[#271D1D]/70">
+                    Unlimited
+                  </td>
+                </tr>
+                <tr className="border-b border-[#271D1D]/5">
+                  <td className="p-4 text-[#271D1D]">Report Storage</td>
+                  <td className="p-4 text-center text-[#271D1D]/70">7 days</td>
+                  <td className="p-4 text-center text-[#271D1D]/70">
+                    Permanent
+                  </td>
+                  <td className="p-4 text-center text-[#271D1D]/70">
+                    Permanent
+                  </td>
+                  <td className="p-4 text-center text-[#271D1D]/70">
+                    Permanent
+                  </td>
+                </tr>
+                <tr className="border-b border-[#271D1D]/5">
+                  <td className="p-4 text-[#271D1D]">Support Response</td>
+                  <td className="p-4 text-center text-[#271D1D]/70">
+                    Email only
+                  </td>
+                  <td className="p-4 text-center text-[#271D1D]/70">
+                    48 hours
+                  </td>
+                  <td className="p-4 text-center text-[#271D1D]/70">
+                    24-48 hours
+                  </td>
+                  <td className="p-4 text-center text-[#271D1D]/70">
+                    Priority + dedicated
+                  </td>
+                </tr>
+                <tr className="border-b border-[#271D1D]/5">
+                  <td className="p-4 text-[#271D1D]">API Access</td>
+                  <td className="p-4 text-center text-[#271D1D]/70">❌</td>
+                  <td className="p-4 text-center text-[#271D1D]/70">❌</td>
+                  <td className="p-4 text-center text-[#271D1D]/70">❌</td>
+                  <td className="p-4 text-center text-[#271D1D]/70">✅</td>
+                </tr>
+                <tr>
+                  <td className="p-4 text-[#271D1D]">Custom Integrations</td>
+                  <td className="p-4 text-center text-[#271D1D]/70">❌</td>
+                  <td className="p-4 text-center text-[#271D1D]/70">❌</td>
+                  <td className="p-4 text-center text-[#271D1D]/70">❌</td>
+                  <td className="p-4 text-center text-[#271D1D]/70">✅</td>
+                </tr>
               </tbody>
             </table>
           </div>
