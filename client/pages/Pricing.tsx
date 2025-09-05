@@ -328,33 +328,43 @@ export default function Pricing() {
           <div className="hidden md:flex items-center space-x-8">
             <Link
               to="/solutions"
-              className="text-[#271D1D] hover:text-[#9A7C7C] transition-colors"
+              className={`transition-colors ${
+                location.pathname === "/solutions"
+                  ? "text-[#9A7C7C] font-medium"
+                  : "text-[#271D1D] hover:text-[#9A7C7C]"
+              }`}
             >
               Solutions
             </Link>
             <Link
               to="/public-pricing"
-              className="text-[#271D1D] hover:text-[#9A7C7C] transition-colors"
+              className={`transition-colors ${
+                location.pathname === "/public-pricing"
+                  ? "text-[#9A7C7C] font-medium"
+                  : "text-[#271D1D] hover:text-[#9A7C7C]"
+              }`}
             >
               Pricing
             </Link>
             <Link
               to="/news"
-              className="text-[#271D1D] hover:text-[#9A7C7C] transition-colors"
+              className={`transition-colors ${
+                location.pathname === "/news"
+                  ? "text-[#9A7C7C] font-medium"
+                  : "text-[#271D1D] hover:text-[#9A7C7C]"
+              }`}
             >
               News
             </Link>
             <Link
               to="/team"
-              className="text-[#271D1D] hover:text-[#9A7C7C] transition-colors"
+              className={`transition-colors ${
+                location.pathname === "/team"
+                  ? "text-[#9A7C7C] font-medium"
+                  : "text-[#271D1D] hover:text-[#9A7C7C]"
+              }`}
             >
               Team
-            </Link>
-            <Link
-              to="/pricing"
-              className="text-[#271D1D] hover:text-[#9A7C7C] transition-colors"
-            >
-              Pricing
             </Link>
             <Button
               asChild
