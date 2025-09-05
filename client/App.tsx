@@ -41,122 +41,135 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
+const Layout = () => (
+  <>
+    <ScrollToTop />
+    <Outlet />
+  </>
+);
+
 const router = createBrowserRouter([
   {
     path: "/",
-    element: <RootRedirect />,
-  },
-  {
-    path: "/home",
-    element: <UserHome />,
-  },
-  {
-    path: "/signin",
-    element: <SignIn />,
-  },
-  {
-    path: "/signup",
-    element: <SignUp />,
-  },
-  {
-    path: "/solutions",
-    element: <Solutions />,
-  },
-  {
-    path: "/user-solutions",
-    element: <UserSolutions />,
-  },
-  {
-    path: "/perspective-selection",
-    element: <PerspectiveSelection />,
-  },
-  {
-    path: "/upload",
-    element: <Upload />,
-  },
-  {
-    path: "/loading",
-    element: <Loading />,
-  },
-  {
-    path: "/contract-review",
-    element: <ContractReview />,
-  },
-  {
-    path: "/news",
-    element: <News />,
-  },
-  {
-    path: "/user-news",
-    element: <UserNews />,
-  },
-  {
-    path: "/team",
-    element: <Team />,
-  },
-  {
-    path: "/user-team",
-    element: <UserTeam />,
-  },
-  {
-    path: "/profile",
-    element: <Profile />,
-  },
-  {
-    path: "/dashboard",
-    element: <Dashboard />,
-  },
-  {
-    path: "/settings",
-    element: <Settings />,
-  },
-  {
-    path: "/pricing",
-    element: <Pricing />,
-  },
-  {
-    path: "/public-pricing",
-    element: <PublicPricing />,
-  },
-  {
-    path: "/demo-login",
-    element: <DemoLogin />,
-  },
-  {
-    path: "/articles/smarter-legal-solutions",
-    element: <SmarterLegalSolutions />,
-  },
-  {
-    path: "/articles/code-to-clause",
-    element: <CodeToClause />,
-  },
-  {
-    path: "/articles/llms-and-lawyers",
-    element: <LLMsAndLawyers />,
-  },
-  {
-    path: "/articles/finding-contract-solution",
-    element: <FindingContractSolution />,
-  },
-  {
-    path: "/public-articles/smarter-legal-solutions",
-    element: <PublicSmarterLegalSolutions />,
-  },
-  {
-    path: "/public-articles/code-to-clause",
-    element: <PublicCodeToClause />,
-  },
-  {
-    path: "/public-articles/llms-and-lawyers",
-    element: <PublicLLMsAndLawyers />,
-  },
-  {
-    path: "/public-articles/finding-contract-solution",
-    element: <PublicFindingContractSolution />,
-  },
-  {
-    path: "*",
-    element: <NotFound />,
+    element: <Layout />,
+    children: [
+      {
+        index: true,
+        element: <RootRedirect />,
+      },
+      {
+        path: "home",
+        element: <UserHome />,
+      },
+      {
+        path: "signin",
+        element: <SignIn />,
+      },
+      {
+        path: "signup",
+        element: <SignUp />,
+      },
+      {
+        path: "solutions",
+        element: <Solutions />,
+      },
+      {
+        path: "user-solutions",
+        element: <UserSolutions />,
+      },
+      {
+        path: "perspective-selection",
+        element: <PerspectiveSelection />,
+      },
+      {
+        path: "upload",
+        element: <Upload />,
+      },
+      {
+        path: "loading",
+        element: <Loading />,
+      },
+      {
+        path: "contract-review",
+        element: <ContractReview />,
+      },
+      {
+        path: "news",
+        element: <News />,
+      },
+      {
+        path: "user-news",
+        element: <UserNews />,
+      },
+      {
+        path: "team",
+        element: <Team />,
+      },
+      {
+        path: "user-team",
+        element: <UserTeam />,
+      },
+      {
+        path: "profile",
+        element: <Profile />,
+      },
+      {
+        path: "dashboard",
+        element: <Dashboard />,
+      },
+      {
+        path: "settings",
+        element: <Settings />,
+      },
+      {
+        path: "pricing",
+        element: <Pricing />,
+      },
+      {
+        path: "public-pricing",
+        element: <PublicPricing />,
+      },
+      {
+        path: "demo-login",
+        element: <DemoLogin />,
+      },
+      {
+        path: "articles/smarter-legal-solutions",
+        element: <SmarterLegalSolutions />,
+      },
+      {
+        path: "articles/code-to-clause",
+        element: <CodeToClause />,
+      },
+      {
+        path: "articles/llms-and-lawyers",
+        element: <LLMsAndLawyers />,
+      },
+      {
+        path: "articles/finding-contract-solution",
+        element: <FindingContractSolution />,
+      },
+      {
+        path: "public-articles/smarter-legal-solutions",
+        element: <PublicSmarterLegalSolutions />,
+      },
+      {
+        path: "public-articles/code-to-clause",
+        element: <PublicCodeToClause />,
+      },
+      {
+        path: "public-articles/llms-and-lawyers",
+        element: <PublicLLMsAndLawyers />,
+      },
+      {
+        path: "public-articles/finding-contract-solution",
+        element: <PublicFindingContractSolution />,
+      },
+      {
+        path: "*",
+        element: <NotFound />,
+      },
+    ],
   },
 ]);
 
