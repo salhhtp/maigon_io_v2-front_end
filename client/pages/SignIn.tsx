@@ -37,8 +37,8 @@ export default function SignIn() {
         setUser(user);
         localStorage.setItem("maigon_current_user", userKey);
 
-        // Navigate to user home
-        navigate("/home");
+        // Navigate to dashboard
+        navigate("/dashboard");
       } else {
         // Failed login
         setError("Invalid email or password. Please check your credentials.");
