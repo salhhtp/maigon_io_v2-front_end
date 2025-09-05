@@ -7,21 +7,33 @@ import { useUser } from "@/contexts/UserContext";
 
 export default function PerspectiveSelection() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useUser();
   const [selectedPerspective, setSelectedPerspective] = useState<
     "data-subject" | "organization" | null
   >("data-subject");
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
 
+  // Get quick upload data from navigation state
+  const { solutionTitle, quickUpload, adminAccess } = location.state || {};
+
   const handleContinue = () => {
     if (selectedPerspective) {
-      // Navigate to upload page with the selected perspective
-      navigate("/upload", { state: { perspective: selectedPerspective } });
+      // Navigate to upload page with the selected perspective and solution info
+      navigate("/upload", {
+        state: {
+          perspective: selectedPerspective,
+          solutionTitle,
+          quickUpload,
+          adminAccess
+        }
+      });
     }
   };
 
   const handleBack = () => {
-    navigate("/user-solutions");
+    // If this is a quick upload, go back to dashboard, otherwise to solutions
+    navigate(quickUpload ? "/dashboard" : "/user-solutions");
   };
 
   return (
