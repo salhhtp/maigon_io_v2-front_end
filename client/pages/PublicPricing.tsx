@@ -148,7 +148,7 @@ const PricingCalculator = ({
                   }
                 </p>
               </div>
-              {result.savings > 0 && (
+              {typeof result.savings === "number" && result.savings > 0 && (
                 <div className="text-right">
                   <p className="text-sm text-green-600 font-medium">
                     Save €{result.savings}/month
@@ -291,11 +291,14 @@ export default function PublicPricing() {
               price={0}
               period=""
               features={[
-                "1 contract review",
-                "Basic compliance check",
-                "Standard report",
-                "Email support",
-                "No credit card required",
+                "One complete contract review",
+                "Full compliance report with risk assessment",
+                "Clause extraction and recommendations",
+                "Access to all 7 contract type modules",
+                "Professional-grade analysis (worth ���89)",
+                "Personal dashboard access",
+                "Contract review history tracking",
+                "Report storage for 7 days only",
               ]}
               buttonText="Start Free Trial"
               buttonAction={() => handlePlanSelect("free_trial")}
