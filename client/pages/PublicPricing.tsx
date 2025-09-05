@@ -124,7 +124,7 @@ const PricingCalculator = ({
               max="20"
               value={contractCount}
               onChange={(e) => setContractCount(parseInt(e.target.value))}
-              className="w-full h-2 bg-[#F3F3F3] rounded-lg appearance-none cursor-pointer"
+              className="w-full h-2 bg-[#F3F3F3] rounded-lg appearance-none cursor-pointer custom-range-slider"
               style={{
                 background: `linear-gradient(to right, #9A7C7C 0%, #9A7C7C ${(contractCount / 20) * 100}%, #F3F3F3 ${(contractCount / 20) * 100}%, #F3F3F3 100%)`,
               }}
