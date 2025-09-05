@@ -123,13 +123,31 @@ export default function PerspectiveSelection() {
         <div className="max-w-2xl mx-auto">
           {/* Header */}
           <div className="text-center mb-8">
-            <h1 className="text-3xl lg:text-4xl font-medium text-[#271D1D] font-lora mb-4">
-              Select Your Perspective
-            </h1>
-            <p className="text-gray-600 text-lg">
-              Choose the viewpoint for contract analysis to get tailored
-              insights
-            </p>
+            {quickUpload && solutionTitle ? (
+              <>
+                <div className="flex items-center justify-center gap-2 mb-2">
+                  <div className="px-3 py-1 bg-[#9A7C7C]/10 text-[#9A7C7C] rounded-full text-sm font-medium">
+                    {adminAccess ? "Admin Quick Upload" : "Quick Upload"}
+                  </div>
+                </div>
+                <h1 className="text-3xl lg:text-4xl font-medium text-[#271D1D] font-lora mb-4">
+                  {solutionTitle} Analysis
+                </h1>
+                <p className="text-gray-600 text-lg">
+                  Choose your perspective for this {solutionTitle.toLowerCase()} review
+                </p>
+              </>
+            ) : (
+              <>
+                <h1 className="text-3xl lg:text-4xl font-medium text-[#271D1D] font-lora mb-4">
+                  Select Your Perspective
+                </h1>
+                <p className="text-gray-600 text-lg">
+                  Choose the viewpoint for contract analysis to get tailored
+                  insights
+                </p>
+              </>
+            )}
           </div>
 
           {/* Perspective Options */}
