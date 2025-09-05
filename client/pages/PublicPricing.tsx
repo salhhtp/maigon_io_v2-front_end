@@ -396,7 +396,7 @@ export default function PublicPricing() {
                 "Full compliance report with risk assessment",
                 "Clause extraction and recommendations",
                 "Access to all 7 contract type modules",
-                "Professional-grade analysis (worth ���89)",
+                "Professional-grade analysis (worth €89)",
                 "Personal dashboard access",
                 "Contract review history tracking",
                 "Report storage for 7 days only",
