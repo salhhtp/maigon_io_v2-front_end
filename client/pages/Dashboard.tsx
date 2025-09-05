@@ -1697,7 +1697,7 @@ export default function Dashboard() {
                     </h2>
                     <p className="text-sm text-[#271D1D]/70">
                       {isAdmin
-                        ? "Skip the navigation and test solutions directly - all seven contract types available instantly"
+                        ? "Skip the navigation and use the solutions directly - all seven contract types available instantly"
                         : "Skip the selection process and upload directly to any of our seven AI solutions"
                       }
                     </p>
@@ -1722,7 +1722,7 @@ export default function Dashboard() {
                       className="w-full justify-start text-[#271D1D] border-[#271D1D]/20 hover:bg-[#9A7C7C]/10 hover:border-[#9A7C7C] transition-all"
                     >
                       <Plus className="w-4 h-4 mr-2" />
-                      {isAdmin ? "Test DPA" : "Upload DPA"}
+                      {isAdmin ? "DPA" : "Upload DPA"}
                     </Button>
                   </Link>
 
@@ -1740,7 +1740,7 @@ export default function Dashboard() {
                       className="w-full justify-start text-[#271D1D] border-[#271D1D]/20 hover:bg-[#9A7C7C]/10 hover:border-[#9A7C7C] transition-all"
                     >
                       <Plus className="w-4 h-4 mr-2" />
-                      {isAdmin ? "Test NDA" : "Upload NDA"}
+                      {isAdmin ? "NDA" : "Upload NDA"}
                     </Button>
                   </Link>
 
@@ -1758,7 +1758,7 @@ export default function Dashboard() {
                       className="w-full justify-start text-[#271D1D] border-[#271D1D]/20 hover:bg-[#9A7C7C]/10 hover:border-[#9A7C7C] transition-all"
                     >
                       <Plus className="w-4 h-4 mr-2" />
-                      {isAdmin ? "Test Privacy Policy" : "Upload Privacy Policy"}
+                      {isAdmin ? "Privacy Policy" : "Upload Privacy Policy"}
                     </Button>
                   </Link>
 
@@ -1776,7 +1776,7 @@ export default function Dashboard() {
                       className="w-full justify-start text-[#271D1D] border-[#271D1D]/20 hover:bg-[#9A7C7C]/10 hover:border-[#9A7C7C] transition-all"
                     >
                       <Plus className="w-4 h-4 mr-2" />
-                      {isAdmin ? "Test Consultancy" : "Upload Consultancy"}
+                      {isAdmin ? "Consultancy" : "Upload Consultancy"}
                     </Button>
                   </Link>
 
@@ -1794,7 +1794,7 @@ export default function Dashboard() {
                       className="w-full justify-start text-[#271D1D] border-[#271D1D]/20 hover:bg-[#9A7C7C]/10 hover:border-[#9A7C7C] transition-all"
                     >
                       <Plus className="w-4 h-4 mr-2" />
-                      {isAdmin ? "Test Supply Agreement" : "Upload Supply Agreement"}
+                      {isAdmin ? "Supply Agreement" : "Upload Supply Agreement"}
                     </Button>
                   </Link>
 
@@ -1812,7 +1812,7 @@ export default function Dashboard() {
                       className="w-full justify-start text-[#271D1D] border-[#271D1D]/20 hover:bg-[#9A7C7C]/10 hover:border-[#9A7C7C] transition-all"
                     >
                       <Plus className="w-4 h-4 mr-2" />
-                      {isAdmin ? "Test R&D Agreement" : "Upload R&D Agreement"}
+                      {isAdmin ? "R&D Agreement" : "Upload R&D Agreement"}
                     </Button>
                   </Link>
 
@@ -1830,7 +1830,7 @@ export default function Dashboard() {
                       className="w-full justify-start text-[#271D1D] border-[#271D1D]/20 hover:bg-[#9A7C7C]/10 hover:border-[#9A7C7C] transition-all"
                     >
                       <Plus className="w-4 h-4 mr-2" />
-                      {isAdmin ? "Test EULA" : "Upload EULA"}
+                      {isAdmin ? "EULA" : "Upload EULA"}
                     </Button>
                   </Link>
                 </div>
