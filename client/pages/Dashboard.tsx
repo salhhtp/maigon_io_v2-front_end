@@ -1837,7 +1837,7 @@ export default function Dashboard() {
 
                 <div className="mt-4 flex items-center justify-center">
                   <Link to="/user-solutions" className="text-sm text-[#9A7C7C] hover:text-[#9A7C7C]/80 transition-colors">
-                    Need more details? Browse all solutions →
+                    Need more details? Browse the solutions page →
                   </Link>
                 </div>
               </div>
