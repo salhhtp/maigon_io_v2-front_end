@@ -1479,7 +1479,8 @@ export default function Dashboard() {
   const [selectedMetric, setSelectedMetric] = useState<string>("users");
   const [comparisonMode, setComparisonMode] = useState<boolean>(false);
   const location = useLocation();
-  const { user, isLoggedIn } = useUser();
+  const { user, isLoggedIn, logout } = useUser();
+  const navigate = useNavigate();
 
   const handleUserAdded = (userData: any) => {
     console.log("New user added:", userData);
@@ -1597,12 +1598,15 @@ export default function Dashboard() {
                 >
                   Profile & Settings
                 </Link>
-                <Link
-                  to="/"
-                  className="block px-4 py-2 text-sm text-[#271D1D] hover:bg-[#F9F8F8] transition-colors"
+                <button
+                  onClick={() => {
+                    logout();
+                    navigate("/");
+                  }}
+                  className="block w-full text-left px-4 py-2 text-sm text-[#271D1D] hover:bg-[#F9F8F8] transition-colors"
                 >
                   Log Out
-                </Link>
+                </button>
               </div>
             )}
           </div>
