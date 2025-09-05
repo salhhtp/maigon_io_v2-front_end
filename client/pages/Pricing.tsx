@@ -730,7 +730,7 @@ export default function Pricing() {
                     Monthly Plans
                   </th>
                   <th className="text-center p-4 font-medium text-[#271D1D]">
-                    Enterprise Plans
+                    Enterprise Plan
                   </th>
                 </tr>
               </thead>
