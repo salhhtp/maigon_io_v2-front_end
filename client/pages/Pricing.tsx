@@ -4,7 +4,7 @@ import {
   User,
   Check,
   Star,
-  Phone,
+  Building2,
   Calculator,
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
@@ -651,7 +651,7 @@ export default function Pricing() {
             {/* Enterprise Plan */}
             <div className="rounded-lg border bg-card text-card-foreground shadow-sm relative">
               <div className="bg-gradient-to-r from-[#9A7C7C] to-[#B6A5A5] rounded-lg p-6 text-white text-center h-full flex flex-col">
-                <Phone className="w-8 h-8 mx-auto mb-3" />
+                <Building2 className="w-8 h-8 mx-auto mb-3" />
                 <h3 className="font-lora text-lg font-medium mb-2">
                   Enterprise Plan
                 </h3>

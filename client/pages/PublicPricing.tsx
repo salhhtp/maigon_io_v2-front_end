@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Check, X, Phone } from "lucide-react";
+import { Check, X, Building2 } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import Logo from "@/components/Logo";
@@ -473,7 +473,7 @@ export default function PublicPricing() {
             {/* Enterprise Plan */}
             <div className="rounded-lg border bg-card text-card-foreground shadow-sm relative">
               <div className="bg-gradient-to-r from-[#9A7C7C] to-[#B6A5A5] rounded-lg p-6 text-white text-center h-full flex flex-col">
-                <Phone className="w-8 h-8 mx-auto mb-3" />
+                <Building2 className="w-8 h-8 mx-auto mb-3" />
                 <h3 className="font-lora text-lg font-medium mb-2">
                   Enterprise Plan
                 </h3>
