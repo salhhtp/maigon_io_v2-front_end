@@ -203,6 +203,7 @@ const PricingCalculator = ({
 export default function Pricing() {
   const { user, isLoggedIn } = useUser();
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+  const location = useLocation();
 
   const handlePlanSelect = (planType: string) => {
     if (isLoggedIn) {
