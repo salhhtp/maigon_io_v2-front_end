@@ -103,8 +103,8 @@ export default function DemoLogin() {
             <Button
               variant="outline"
               onClick={() => {
-                setUser(null);
-                localStorage.removeItem("maigon_current_user");
+                logout();
+                navigate("/");
               }}
               className="text-[#271D1D] border-[#271D1D]/20"
             >
