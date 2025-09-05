@@ -124,11 +124,11 @@ const analyticsData = {
   },
   userBehavior: {
     sessionDuration: [
-      { range: "0-5 min", users: 423, percentage: 14.9 },
-      { range: "5-15 min", users: 892, percentage: 31.3 },
-      { range: "15-30 min", users: 1076, percentage: 37.8 },
-      { range: "30-60 min", users: 367, percentage: 12.9 },
-      { range: "60+ min", users: 89, percentage: 3.1 },
+      { range: "0-5 min", users: 423, percentage: 14.9, count: 423 },
+      { range: "5-15 min", users: 892, percentage: 31.3, count: 892 },
+      { range: "15-30 min", users: 1076, percentage: 37.8, count: 1076 },
+      { range: "30-60 min", users: 367, percentage: 12.9, count: 367 },
+      { range: "60+ min", users: 89, percentage: 3.1, count: 89 },
     ],
     userJourney: [
       { step: "Landing Page", users: 15430, conversion: 100 },
@@ -138,9 +138,32 @@ const analyticsData = {
       { step: "Active User", users: 925, conversion: 6.0 },
     ],
     deviceUsage: [
-      { device: "Desktop", users: 1982, percentage: 69.6 },
-      { device: "Mobile", users: 651, percentage: 22.9 },
-      { device: "Tablet", users: 214, percentage: 7.5 },
+      { device: "Desktop", users: 1982, percentage: 69.6, count: 1982 },
+      { device: "Mobile", users: 651, percentage: 22.9, count: 651 },
+      { device: "Tablet", users: 214, percentage: 7.5, count: 214 },
+    ],
+    pageViews: [
+      { page: "Dashboard", views: 8934, percentage: 32.1 },
+      { page: "Contract Review", views: 6752, percentage: 24.3 },
+      { page: "Pricing", views: 4681, percentage: 16.8 },
+      { page: "Solutions", views: 3247, percentage: 11.7 },
+      { page: "Settings", views: 2156, percentage: 7.8 },
+      { page: "Team", views: 1430, percentage: 5.1 },
+      { page: "News", views: 612, percentage: 2.2 },
+    ],
+    timeBasedActivity: [
+      { hour: "00:00", users: 45, percentage: 2.3 },
+      { hour: "02:00", users: 23, percentage: 1.2 },
+      { hour: "04:00", users: 12, percentage: 0.6 },
+      { hour: "06:00", users: 89, percentage: 4.6 },
+      { hour: "08:00", users: 234, percentage: 12.2 },
+      { hour: "10:00", users: 445, percentage: 23.1 },
+      { hour: "12:00", users: 523, percentage: 27.2 },
+      { hour: "14:00", users: 467, percentage: 24.3 },
+      { hour: "16:00", users: 356, percentage: 18.5 },
+      { hour: "18:00", users: 234, percentage: 12.2 },
+      { hour: "20:00", users: 156, percentage: 8.1 },
+      { hour: "22:00", users: 78, percentage: 4.1 },
     ],
   },
   advancedMetrics: {
@@ -277,31 +300,57 @@ const SimpleChart = ({
       {title}
     </h3>
     <div className="space-y-3">
-      {data.map((item, index) => (
-        <div key={index} className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div
-              className="w-3 h-3 rounded-full"
-              style={{
-                backgroundColor: `hsl(${(index * 60) % 360}, 70%, 50%)`,
-              }}
-            />
-            <span className="text-sm text-[#271D1D]">
-              {item.month || item.plan || item.type || item.country || item.feature}
-            </span>
+      {data && data.length > 0 ? data.map((item, index) => {
+        // Determine the label and value based on available properties
+        const label = item.month || item.plan || item.type || item.country ||
+                     item.feature || item.range || item.device || item.page ||
+                     item.hour || item.period || 'Unknown';
+
+        const value = item.contracts || item.users || item.count ||
+                     item.revenue || item.usage || item.rate || item.views || 0;
+
+        return (
+          <div key={index} className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div
+                className="w-3 h-3 rounded-full"
+                style={{
+                  backgroundColor: `hsl(${(index * 60) % 360}, 70%, 50%)`,
+                }}
+              />
+              <span className="text-sm text-[#271D1D]">
+                {label}
+              </span>
+            </div>
+            <div className="text-right">
+              <span className="text-sm font-medium text-[#271D1D]">
+                {typeof value === 'number' && value > 1000
+                  ? (value / 1000).toFixed(1) + 'k'
+                  : value}
+                {item.percentage && (
+                  <span className="text-xs text-[#271D1D]/70 ml-1">
+                    ({item.percentage}%)
+                  </span>
+                )}
+              </span>
+              {/* Progress Bar */}
+              <div className="w-20 bg-gray-200 rounded-full h-1.5 mt-1">
+                <div
+                  className="bg-gradient-to-r from-[#9A7C7C] to-[#B6A5A5] h-1.5 rounded-full"
+                  style={{
+                    width: `${item.percentage || Math.min((value / Math.max(...data.map(d => d.users || d.count || d.revenue || d.usage || d.rate || d.views || 1))) * 100, 100)}%`,
+                  }}
+                />
+              </div>
+            </div>
           </div>
-          <div className="text-right">
-            <span className="text-sm font-medium text-[#271D1D]">
-              {item.contracts || item.users || item.count || item.revenue || item.usage}
-              {item.percentage && (
-                <span className="text-xs text-[#271D1D]/70 ml-1">
-                  ({item.percentage}%)
-                </span>
-              )}
-            </span>
-          </div>
+        );
+      }) : (
+        <div className="text-center py-8 text-[#271D1D]/50">
+          <BarChart3 className="w-8 h-8 mx-auto mb-2" />
+          <p className="text-sm">No data available</p>
         </div>
-      ))}
+      )}
     </div>
   </div>
 );
