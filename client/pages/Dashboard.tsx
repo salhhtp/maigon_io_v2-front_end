@@ -1,4 +1,13 @@
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
+} from "@/components/ui/dropdown-menu";
 import {
   ChevronDown,
   ChevronUp,
@@ -13,6 +22,9 @@ import {
   Trash2,
   Maximize2,
   Minimize2,
+  Search,
+  Filter,
+  X,
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useState } from "react";
@@ -223,6 +235,9 @@ const RecentActivity = ({
 
 const AdminUserManagement = ({ onAddUser }: { onAddUser: () => void }) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [planFilter, setPlanFilter] = useState<string>("all");
   const allUsers = [
     {
       name: "John Doe",
@@ -281,7 +296,28 @@ const AdminUserManagement = ({ onAddUser }: { onAddUser: () => void }) => {
       usage: "8/50",
     },
   ];
-  const displayedUsers = isExpanded ? allUsers : allUsers.slice(0, 4);
+  // Filter users based on search term and filters
+  const filteredUsers = allUsers.filter((user) => {
+    const matchesSearch =
+      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.email.toLowerCase().includes(searchTerm.toLowerCase());
+
+    const matchesStatus = statusFilter === "all" || user.status === statusFilter;
+    const matchesPlan = planFilter === "all" || user.plan.toLowerCase() === planFilter.toLowerCase();
+
+    return matchesSearch && matchesStatus && matchesPlan;
+  });
+
+  const displayedUsers = isExpanded ? filteredUsers : filteredUsers.slice(0, 4);
+
+  // Clear all filters
+  const clearFilters = () => {
+    setSearchTerm("");
+    setStatusFilter("all");
+    setPlanFilter("all");
+  };
+
+  const hasActiveFilters = searchTerm || statusFilter !== "all" || planFilter !== "all";
 
   return (
     <div className="bg-white rounded-lg p-6 border border-[#271D1D]/10">
@@ -290,7 +326,7 @@ const AdminUserManagement = ({ onAddUser }: { onAddUser: () => void }) => {
           <h3 className="font-lora text-lg font-medium text-[#271D1D]">
             User Management
           </h3>
-          {allUsers.length > 4 && (
+          {filteredUsers.length > 4 && (
             <button
               onClick={() => setIsExpanded(!isExpanded)}
               className="flex items-center gap-2 text-sm text-[#9A7C7C] hover:text-[#9A7C7C]/90 transition-colors"
@@ -303,10 +339,15 @@ const AdminUserManagement = ({ onAddUser }: { onAddUser: () => void }) => {
               ) : (
                 <>
                   <Maximize2 className="w-4 h-4" />
-                  Show All ({allUsers.length})
+                  Show All ({filteredUsers.length})
                 </>
               )}
             </button>
+          )}
+          {hasActiveFilters && (
+            <span className="text-xs text-[#9A7C7C] bg-[#9A7C7C]/10 px-2 py-1 rounded-full">
+              {filteredUsers.length} of {allUsers.length} users
+            </span>
           )}
         </div>
         <Button
@@ -316,6 +357,100 @@ const AdminUserManagement = ({ onAddUser }: { onAddUser: () => void }) => {
           <Plus className="w-4 h-4 mr-2" />
           Add User
         </Button>
+      </div>
+
+      {/* Search and Filter Controls */}
+      <div className="mb-4 space-y-3">
+        {/* Search Bar */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[#271D1D]/50" />
+          <Input
+            type="text"
+            placeholder="Search users by name or email..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10 pr-4 py-2 border-[#271D1D]/20 focus:border-[#9A7C7C] focus:ring-[#9A7C7C]"
+          />
+        </div>
+
+        {/* Filter Controls */}
+        <div className="flex items-center gap-3 flex-wrap">
+          {/* Status Filter */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className={`text-[#271D1D] border-[#271D1D]/20 ${
+                  statusFilter !== "all" ? "bg-[#9A7C7C]/10 border-[#9A7C7C]" : ""
+                }`}
+              >
+                <Filter className="w-4 h-4 mr-2" />
+                Status: {statusFilter === "all" ? "All" : statusFilter}
+                <ChevronDown className="w-4 h-4 ml-2" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              <DropdownMenuLabel>Filter by Status</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => setStatusFilter("all")}>
+                All Status
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setStatusFilter("active")}>
+                Active
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setStatusFilter("inactive")}>
+                Inactive
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Plan Filter */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className={`text-[#271D1D] border-[#271D1D]/20 ${
+                  planFilter !== "all" ? "bg-[#9A7C7C]/10 border-[#9A7C7C]" : ""
+                }`}
+              >
+                <Filter className="w-4 h-4 mr-2" />
+                Plan: {planFilter === "all" ? "All" : planFilter}
+                <ChevronDown className="w-4 h-4 ml-2" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              <DropdownMenuLabel>Filter by Plan</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => setPlanFilter("all")}>
+                All Plans
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setPlanFilter("enterprise")}>
+                Enterprise
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setPlanFilter("professional")}>
+                Professional
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setPlanFilter("basic")}>
+                Basic
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Clear Filters */}
+          {hasActiveFilters && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={clearFilters}
+              className="text-[#271D1D]/70 hover:text-[#271D1D]"
+            >
+              <X className="w-4 h-4 mr-2" />
+              Clear filters
+            </Button>
+          )}
+        </div>
       </div>
       <div className="space-y-3">
         {displayedUsers.map((user, index) => (
@@ -363,11 +498,30 @@ const AdminUserManagement = ({ onAddUser }: { onAddUser: () => void }) => {
             </div>
           </div>
         ))}
-        {!isExpanded && allUsers.length > 4 && (
+        {!isExpanded && filteredUsers.length > 4 && (
           <div className="text-center pt-2 border-t border-[#F3F3F3]">
             <span className="text-xs text-[#271D1D]/50">
-              +{allUsers.length - 4} more users
+              +{filteredUsers.length - 4} more users
             </span>
+          </div>
+        )}
+        {filteredUsers.length === 0 && (
+          <div className="text-center py-8 text-[#271D1D]/50">
+            <User className="w-8 h-8 mx-auto mb-3 text-[#271D1D]/30" />
+            <p className="text-sm">No users match your filters</p>
+            <p className="text-xs mt-1">
+              Try adjusting your search term or filters
+            </p>
+            {hasActiveFilters && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearFilters}
+                className="mt-2 text-[#9A7C7C] hover:text-[#9A7C7C]/90"
+              >
+                Clear all filters
+              </Button>
+            )}
           </div>
         )}
       </div>
