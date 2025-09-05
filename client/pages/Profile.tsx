@@ -13,7 +13,7 @@ import {
   EyeOff,
   Edit,
 } from "lucide-react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import Logo from "@/components/Logo";
 import Footer from "@/components/Footer";
@@ -80,7 +80,8 @@ export default function Profile() {
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const location = useLocation();
-  const { user, isLoggedIn, updateUser } = useUser();
+  const { user, isLoggedIn, updateUser, logout } = useUser();
+  const navigate = useNavigate();
 
   // Redirect if not logged in
   if (!isLoggedIn || !user) {
@@ -260,12 +261,15 @@ export default function Profile() {
                 >
                   Profile & Settings
                 </Link>
-                <Link
-                  to="/"
-                  className="block px-4 py-2 text-sm text-[#271D1D] hover:bg-[#F9F8F8] transition-colors"
+                <button
+                  onClick={() => {
+                    logout();
+                    navigate("/");
+                  }}
+                  className="block w-full text-left px-4 py-2 text-sm text-[#271D1D] hover:bg-[#F9F8F8] transition-colors"
                 >
                   Log Out
-                </Link>
+                </button>
               </div>
             )}
           </div>
