@@ -49,8 +49,8 @@ const PricingCard = ({
     }`}
   >
     {popular && (
-      <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-        <div className="bg-[#9A7C7C] text-white px-4 py-1 rounded-full text-sm font-medium flex items-center gap-1">
+      <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 z-10">
+        <div className="bg-[#9A7C7C] text-white px-4 py-1 rounded-full text-sm font-medium flex items-center gap-1 shadow-lg">
           <Star className="w-3 h-3" />
           Most Popular
         </div>
