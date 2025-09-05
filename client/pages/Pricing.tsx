@@ -540,7 +540,7 @@ export default function Pricing() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
             {/* Free Trial */}
             <PricingCard
               tier="free_trial"
@@ -648,46 +648,54 @@ export default function Pricing() {
               buttonAction={() => handlePlanSelect("monthly_15")}
               highlighted={user?.plan.type === "monthly_15"}
             />
-          </div>
 
-          {/* Professional Plan */}
-          <div className="mt-8">
-            <div className="bg-gradient-to-r from-[#9A7C7C] to-[#B6A5A5] rounded-lg p-8 text-white text-center">
-              <div className="max-w-3xl mx-auto">
-                <Phone className="w-12 h-12 mx-auto mb-4" />
-                <h3 className="font-lora text-2xl font-medium mb-4">
-                  Professional Plan
+            {/* Enterprise Plan */}
+            <div className="rounded-lg border bg-card text-card-foreground shadow-sm relative">
+              <div className="bg-gradient-to-r from-[#9A7C7C] to-[#B6A5A5] rounded-lg p-6 text-white text-center h-full flex flex-col">
+                <Phone className="w-8 h-8 mx-auto mb-3" />
+                <h3 className="font-lora text-lg font-medium mb-2">
+                  Enterprise Plan
                 </h3>
-                <p className="text-lg mb-2">
-                  For 15+ Contracts Monthly - Custom Pricing
-                </p>
-                <p className="text-white/90 mb-6">
-                  Perfect for large law firms and enterprises requiring custom
-                  integrations, advanced features, and dedicated support.
-                </p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div className="text-2xl font-bold text-white mb-1">
+                  Custom
+                </div>
+                <div className="text-sm text-white/90 mb-4">pricing</div>
+
+                <div className="space-y-3 mb-6 flex-grow">
                   <div className="text-left">
-                    <h4 className="font-medium mb-2">What's Included:</h4>
-                    <ul className="text-sm space-y-1">
-                      <li>• Custom pricing based on exact volume</li>
-                      <li>• Feature customization assessment</li>
-                      <li>• Integration requirements discussion</li>
-                      <li>• Implementation timeline planning</li>
-                    </ul>
-                  </div>
-                  <div className="text-left">
-                    <h4 className="font-medium mb-2">Enterprise Features:</h4>
-                    <ul className="text-sm space-y-1">
-                      <li>• Unlimited contract reviews</li>
-                      <li>• Priority support & dedicated account manager</li>
-                      <li>• Custom integrations & API access</li>
-                      <li>• Advanced analytics & reporting</li>
+                    <h4 className="text-xs font-medium mb-2 uppercase tracking-wider">Enterprise Features</h4>
+                    <ul className="space-y-1">
+                      <li className="flex items-center gap-2 text-xs">
+                        <Check className="w-3 h-3 text-white flex-shrink-0" />
+                        <span>Unlimited contract reviews</span>
+                      </li>
+                      <li className="flex items-center gap-2 text-xs">
+                        <Check className="w-3 h-3 text-white flex-shrink-0" />
+                        <span>Custom pricing based on volume</span>
+                      </li>
+                      <li className="flex items-center gap-2 text-xs">
+                        <Check className="w-3 h-3 text-white flex-shrink-0" />
+                        <span>Dedicated account manager</span>
+                      </li>
+                      <li className="flex items-center gap-2 text-xs">
+                        <Check className="w-3 h-3 text-white flex-shrink-0" />
+                        <span>Custom integrations & API access</span>
+                      </li>
+                      <li className="flex items-center gap-2 text-xs">
+                        <Check className="w-3 h-3 text-white flex-shrink-0" />
+                        <span>Advanced analytics & reporting</span>
+                      </li>
+                      <li className="flex items-center gap-2 text-xs">
+                        <Check className="w-3 h-3 text-white flex-shrink-0" />
+                        <span>Priority support & training</span>
+                      </li>
                     </ul>
                   </div>
                 </div>
+
                 <Button
                   onClick={() => handlePlanSelect("professional")}
-                  className="bg-white text-[#9A7C7C] hover:bg-white/90 px-8 py-3"
+                  className="w-full bg-white text-[#9A7C7C] hover:bg-white/90 mt-auto"
                 >
                   {user?.plan.type === "professional"
                     ? "Current Plan"
