@@ -500,7 +500,7 @@ export default function Pricing() {
             <div className="bg-white rounded-lg p-4 border border-[#9A7C7C]/20 mb-8 max-w-md mx-auto">
               <p className="text-sm text-[#271D1D] mb-1">Current Plan</p>
               <p className="font-medium text-[#9A7C7C]">{user.plan.name}</p>
-              {user.plan.type !== "professional" && (
+              {user.plan.type !== "enterprise" && (
                 <p className="text-xs text-[#271D1D]/70">
                   Looking to upgrade? Choose a new plan below.
                 </p>
