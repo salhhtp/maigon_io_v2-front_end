@@ -22,6 +22,7 @@ import UserNews from "./pages/UserNews";
 import Team from "./pages/Team";
 import UserTeam from "./pages/UserTeam";
 import Profile from "./pages/Profile";
+import Dashboard from "./pages/Dashboard";
 import Settings from "./pages/Settings";
 import Pricing from "./pages/Pricing";
 import PublicPricing from "./pages/PublicPricing";
