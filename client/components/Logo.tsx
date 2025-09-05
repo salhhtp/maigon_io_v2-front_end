@@ -22,8 +22,8 @@ const Logo: React.FC<LogoProps> = ({ className = '', size = 'lg', align = 'cente
 
   return (
     <div className={`flex ${alignClasses[align]} items-center ${className}`}>
-      <img 
-        src="https://api.builder.io/api/v1/image/assets/TEMP/b0949329babe110fdd188f56bd092ac7588362ee?width=400" 
+      <img
+        src="https://cdn.builder.io/api/v1/image/assets%2F4c5b06bbdfb6468489995bc62588cb90%2Fa83cb15a032a4c21a65e4974c98ce161?format=webp&width=800"
         alt="MAIGON"
         className={`${sizeClasses[size]} w-auto object-contain`}
       />
