@@ -216,8 +216,8 @@ const ContractCardsAnimation: React.FC<ContractCardsAnimationProps> = ({
       </div>
 
       {/* Mobile/Tablet Layout - Vertical Stack */}
-      <div className="lg:hidden w-full max-w-lg mx-auto px-4">
-        <div className="space-y-4">
+      <div className="lg:hidden w-full max-w-2xl mx-auto px-4 sm:px-6">
+        <div className="space-y-3 sm:space-y-4">
           {contractTypes.map((type, index) => {
             const isActive = activeCard === index;
 
@@ -232,9 +232,9 @@ const ContractCardsAnimation: React.FC<ContractCardsAnimationProps> = ({
                 onClick={() => handleCardClick(index)}
               >
                 {/* Card Header */}
-                <div className="p-4 border-b border-[#D6CECE]">
+                <div className="p-3 sm:p-4 border-b border-[#D6CECE]">
                   <div className="flex items-center justify-between">
-                    <h4 className={`text-[#271D1D] font-bold text-base md:text-lg leading-tight transition-all duration-300 ${isActive ? '' : 'blur-sm'}`}>
+                    <h4 className="text-[#271D1D] font-bold text-base md:text-lg leading-tight transition-all duration-300">
                       {type.title}
                     </h4>
                     <div
@@ -259,15 +259,15 @@ const ContractCardsAnimation: React.FC<ContractCardsAnimationProps> = ({
                     isActive ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
                   }`}
                 >
-                  <div className="p-4 space-y-4">
-                    <p className="text-[#271D1D] text-sm md:text-base leading-relaxed">
+                  <div className="p-3 sm:p-4 space-y-3 sm:space-y-4">
+                    <p className="text-[#271D1D] text-sm sm:text-base leading-relaxed">
                       {type.description}
                     </p>
 
                     {onButtonClick && (
                       <Button
                         onClick={(e) => handleButtonClick(e, index)}
-                        className="w-full bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white text-sm md:text-base py-3 px-6 rounded-lg transition-colors duration-200 min-h-[44px]"
+                        className="w-full bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white text-sm sm:text-base py-3 px-6 rounded-lg transition-colors duration-200 min-h-[40px] sm:min-h-[44px]"
                       >
                         {buttonText}
                       </Button>
