@@ -282,7 +282,7 @@ const MetricCard = ({
         </span>
       </div>
     </div>
-    <p className="font-lora text-2xl font-medium text-[#271D1D]">{value}</p>
+    <p className="font-lora text-xl sm:text-2xl font-medium text-[#271D1D]">{value}</p>
   </div>
 );
 
