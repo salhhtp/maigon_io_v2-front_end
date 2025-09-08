@@ -122,7 +122,7 @@ export default function MobileNavigation({
                     className="flex px-2.5 py-2.5 justify-center items-center gap-2.5"
                   >
                     <span
-                      className={`text-black font-lora text-[32px] leading-[72px] ${
+                      className={`text-black font-lora text-2xl sm:text-3xl leading-relaxed ${
                         index === 0 ? "font-semibold" : "font-medium"
                       }`}
                     >
