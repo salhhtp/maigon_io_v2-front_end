@@ -258,11 +258,11 @@ const MetricCard = ({
   icon: React.ReactNode;
   trend: "up" | "down";
 }) => (
-  <div className="bg-white rounded-lg p-6 border border-[#271D1D]/10">
-    <div className="flex items-center justify-between mb-4">
-      <div className="flex items-center gap-3">
-        <div className="p-2 bg-[#F3F3F3] rounded-lg">{icon}</div>
-        <h3 className="font-lora text-sm font-medium text-[#271D1D]">
+  <div className="bg-white rounded-lg p-4 sm:p-6 border border-[#271D1D]/10">
+    <div className="flex items-center justify-between mb-3 sm:mb-4">
+      <div className="flex items-center gap-2 sm:gap-3">
+        <div className="p-1.5 sm:p-2 bg-[#F3F3F3] rounded-lg">{icon}</div>
+        <h3 className="font-lora text-xs sm:text-sm font-medium text-[#271D1D]">
           {title}
         </h3>
       </div>
