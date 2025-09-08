@@ -562,7 +562,7 @@ const StatsCard = ({
       )}
     </div>
     <div>
-      <p className="font-lora text-2xl font-medium text-[#271D1D] mb-1">
+      <p className="font-lora text-xl sm:text-2xl font-medium text-[#271D1D] mb-1">
         {value}
       </p>
       <p className="text-xs text-[#271D1D]/70">{subtitle}</p>
