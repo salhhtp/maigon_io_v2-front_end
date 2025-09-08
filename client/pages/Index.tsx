@@ -160,8 +160,14 @@ export default function Index() {
           </Button>
         </div>
 
+        {/* Desktop Animated Mockup */}
         <div className="hidden lg:block w-full lg:w-auto lg:min-w-[623px] lg:h-[831px]">
           <AnimatedHeroMockup />
+        </div>
+
+        {/* Mobile/Tablet Animated Mockup */}
+        <div className="block lg:hidden w-full mt-8">
+          <AnimatedHeroMockupMobile />
         </div>
       </section>
 
