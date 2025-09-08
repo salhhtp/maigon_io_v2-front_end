@@ -130,7 +130,7 @@ export default function Index() {
       </nav>
 
       {/* Hero Section */}
-      <section className="flex flex-col lg:flex-row justify-center items-center gap-8 lg:gap-[67px] px-8 lg:px-16 py-12 lg:py-20 max-w-[1270px] mx-auto pt-24 lg:pt-32">
+      <section className="flex flex-col lg:flex-row justify-center items-center gap-6 sm:gap-8 lg:gap-[67px] px-4 sm:px-8 lg:px-16 py-8 sm:py-12 lg:py-20 max-w-[1270px] mx-auto pt-20 sm:pt-24 lg:pt-32">
         <div className="flex flex-col items-start gap-6 lg:gap-[71px] w-full lg:w-[579px] mb-8 lg:mb-0 flex-shrink-0">
           <div className="flex flex-col items-start gap-8 lg:gap-[137px] w-full">
             <div className="flex flex-col items-start gap-2 lg:gap-[17px] w-full">
@@ -172,7 +172,7 @@ export default function Index() {
       </section>
 
       {/* Solutions Section */}
-      <section id="solutions" className="px-8 lg:px-16 py-16 lg:py-24">
+      <section id="solutions" className="px-4 sm:px-8 lg:px-16 py-12 sm:py-16 lg:py-24">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <p className="text-[#271D1D] text-lg mb-4">Solutions</p>
