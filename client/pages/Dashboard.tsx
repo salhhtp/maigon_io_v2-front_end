@@ -1620,7 +1620,7 @@ export default function Dashboard() {
       </nav>
 
       {/* Main Content */}
-      <main className="pt-24 lg:pt-32 pb-20 px-8 lg:px-16">
+      <main className="pt-20 sm:pt-24 lg:pt-32 pb-16 sm:pb-20 px-4 sm:px-8 lg:px-16">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className="mb-8">
@@ -1689,10 +1689,10 @@ export default function Dashboard() {
           {(!isAdmin || activeTab === "overview") && (
             <>
               {/* Quick Upload Section - Prominently displayed at the top */}
-              <div className="bg-gradient-to-r from-[#9A7C7C]/5 to-[#B6A5A5]/5 rounded-lg border border-[#9A7C7C]/20 p-6 mb-8">
+              <div className="bg-gradient-to-r from-[#9A7C7C]/5 to-[#B6A5A5]/5 rounded-lg border border-[#9A7C7C]/20 p-4 sm:p-6 mb-6 sm:mb-8">
                 <div className="flex items-center justify-between mb-4">
                   <div>
-                    <h2 className="text-xl font-lora font-medium text-[#271D1D] mb-1">
+                    <h2 className="text-lg sm:text-xl font-lora font-medium text-[#271D1D] mb-1">
                       Quick Upload Access
                     </h2>
                     <p className="text-sm text-[#271D1D]/70">
@@ -1707,7 +1707,7 @@ export default function Dashboard() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3">
                   <Link
                     to="/perspective-selection"
                     state={{
@@ -1843,7 +1843,7 @@ export default function Dashboard() {
               </div>
 
               {/* Stats Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
             <StatsCard
               title="Total Reviews"
               value={user.usage.total_reviews.toString()}
@@ -1916,7 +1916,7 @@ export default function Dashboard() {
           </div>
 
           {/* Dashboard Content */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
             {/* Left Column */}
             <div className="space-y-8">
               <UsageChart monthlyUsage={user.usage.monthly_usage} />
