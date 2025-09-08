@@ -13,6 +13,7 @@ import Footer from "@/components/Footer";
 import AnimatedQuotes from "@/components/AnimatedQuotes";
 import ContractCardsAnimation from "@/components/ContractCardsAnimation";
 import AnimatedHeroMockup from "@/components/AnimatedHeroMockup";
+import AnimatedHeroMockupMobile from "@/components/AnimatedHeroMockupMobile";
 import MobileNavigation from "@/components/MobileNavigation";
 import ComplianceScoreMockup from "@/components/mockups/ComplianceScoreMockup";
 import PerspectiveReviewMockup from "@/components/mockups/PerspectiveReviewMockup";
