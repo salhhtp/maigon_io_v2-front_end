@@ -23,9 +23,14 @@ const ContractCardsAnimation: React.FC<ContractCardsAnimationProps> = ({
   const [activeCard, setActiveCard] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
 
-  // Autoplay behavior: advance when isPlaying
+  // Autoplay behavior: advance when isPlaying (only on desktop)
   useEffect(() => {
     if (!isPlaying || contractTypes.length === 0) return;
+
+    // Disable autoplay on mobile/tablet for better UX
+    const isMobile = window.innerWidth < 1024; // lg breakpoint
+    if (isMobile) return;
+
     const interval = setInterval(() => {
       setActiveCard((prev) => (prev + 1) % contractTypes.length);
     }, 6000); // 6s for smoother demo
