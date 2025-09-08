@@ -76,7 +76,7 @@ export default function MobileNavigation({
 
       {/* Mobile Menu Overlay */}
       {isMenuOpen && (
-        <div className="fixed inset-0 z-50 md:hidden">
+        <div className="fixed inset-0 z-[60] md:hidden">
           {/* Background overlay */}
           <div
             className="absolute inset-0 bg-black/20 backdrop-blur-sm"
@@ -84,7 +84,7 @@ export default function MobileNavigation({
           ></div>
 
           {/* Menu Content */}
-          <div className="absolute top-0 left-0 right-0 bg-[#F9F8F8] shadow-lg">
+          <div className="absolute top-0 left-0 right-0 bg-[#F9F8F8] shadow-lg z-[70]">
             {/* Close button */}
             <div className="flex justify-end p-6">
               <button
