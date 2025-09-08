@@ -111,15 +111,15 @@ export default function MobileNavigation({
               </button>
             </div>
 
-            <div className="flex flex-col px-7 pb-28 gap-7">
+            <div className="flex flex-col px-6 pb-20 gap-6">
               {/* Navigation Links */}
-              <div className="flex flex-col items-start gap-7">
+              <div className="flex flex-col items-start gap-5">
                 {navLinks.map((link, index) => (
                   <Link
                     key={link.href}
                     to={link.href}
                     onClick={closeMenu}
-                    className="flex px-2.5 py-2.5 justify-center items-center gap-2.5"
+                    className="flex px-3 py-3 justify-center items-center gap-2.5"
                   >
                     <span
                       className={`text-black font-lora text-2xl sm:text-3xl leading-relaxed ${
