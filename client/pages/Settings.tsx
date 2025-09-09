@@ -185,6 +185,42 @@ export default function Settings() {
     updateUser({ settings: newSettings });
   };
 
+  // Handle data export
+  const handleDataExport = async () => {
+    if (!user) return;
+
+    try {
+      toast({
+        title: "Exporting data",
+        description: "Preparing your data for download...",
+      });
+
+      const exportData = await DataService.exportUserData(user.id, 'json');
+
+      const blob = new Blob([exportData], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `maigon-data-export-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toast({
+        title: "Export successful",
+        description: "Your data has been downloaded successfully.",
+      });
+    } catch (error) {
+      console.error('Export error:', error);
+      toast({
+        title: "Export failed",
+        description: "There was an error exporting your data. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#F9F8F8]">
       {/* Navigation */}
