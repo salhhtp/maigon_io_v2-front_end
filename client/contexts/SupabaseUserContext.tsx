@@ -295,63 +295,6 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       setIsLoading(true);
 
-      // Enhanced mock users for testing purposes
-      const mockUsers = {
-        'mockuser@maigon.io': {
-          password: 'MockPassword123!',
-          user: {
-            id: 'mock-user-id',
-            name: 'Mock User',
-            email: 'mockuser@maigon.io',
-            company: 'Maigon Test',
-            phone: '+1234567890',
-            role: 'admin' as const,
-          }
-        },
-        'arunendu.mazumder@maigon.io': {
-          password: 'TestPassword123!',
-          user: {
-            id: 'arunendu-mock-id',
-            name: 'Arunendu Mazumder',
-            email: 'arunendu.mazumder@maigon.io',
-            company: 'Maigon',
-            phone: '+4748629416',
-            role: 'admin' as const,
-          }
-        },
-        'admin@maigon.io': {
-          password: 'AdminTest123!',
-          user: {
-            id: 'admin-mock-id',
-            name: 'Admin User',
-            email: 'admin@maigon.io',
-            company: 'Maigon',
-            phone: '+1234567890',
-            role: 'admin' as const,
-          }
-        }
-      };
-
-      const mockUserConfig = mockUsers[email as keyof typeof mockUsers];
-      if (mockUserConfig && password === mockUserConfig.password) {
-        const mockUser: User = {
-          ...mockUserConfig.user,
-          ...getDefaultUserData({
-            id: mockUserConfig.user.id,
-            email: mockUserConfig.user.email,
-            first_name: mockUserConfig.user.name.split(' ')[0],
-            last_name: mockUserConfig.user.name.split(' ').slice(1).join(' '),
-            company: mockUserConfig.user.company,
-            phone: mockUserConfig.user.phone,
-            role: mockUserConfig.user.role,
-          } as UserProfile),
-        };
-
-        console.log(`Mock user signed in: ${email}`);
-        setUser(mockUser);
-        return { success: true, message: `Mock user signed in successfully! (${email})`, user: mockUser };
-      }
-
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -360,23 +303,12 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (error) {
         console.error('Sign in error:', error);
 
-        // Enhanced error handling for debugging
         if (error.message.includes('Email not confirmed')) {
           return { success: false, message: 'Please check your email and click the verification link before signing in.' };
         }
 
         if (error.message.includes('Invalid login credentials')) {
-          // For development - provide testing credentials
-          const testAccounts = [
-            'mockuser@maigon.io / MockPassword123!',
-            'arunendu.mazumder@maigon.io / TestPassword123!',
-            'admin@maigon.io / AdminTest123!'
-          ];
-
-          return {
-            success: false,
-            message: `Invalid credentials. Try these test accounts:\n${testAccounts.join('\n')}`
-          };
+          return { success: false, message: 'Invalid email or password. Please check your credentials.' };
         }
 
         return { success: false, message: `Authentication error: ${error.message}` };
