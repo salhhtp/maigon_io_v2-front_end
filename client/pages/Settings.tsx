@@ -640,6 +640,7 @@ export default function Settings() {
                   <Button
                     variant="outline"
                     className="text-[#271D1D] border-[#271D1D]/20"
+                    onClick={handleDataExport}
                   >
                     <Download className="w-4 h-4 mr-2" />
                     Export
