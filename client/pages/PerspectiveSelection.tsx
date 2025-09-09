@@ -3,7 +3,7 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { User, ChevronDown } from "lucide-react";
 import Logo from "@/components/Logo";
 import MobileNavigation from "@/components/MobileNavigation";
-import { useUser } from "@/contexts/UserContext";
+import { useUser } from "@/contexts/SupabaseUserContext";
 
 export default function PerspectiveSelection() {
   const navigate = useNavigate();

@@ -5,7 +5,7 @@ import Logo from "@/components/Logo";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import ConfirmationModal from "@/components/ConfirmationModal";
-import { useUser } from "@/contexts/UserContext";
+import { useUser } from "@/contexts/SupabaseUserContext";
 
 export default function Upload() {
   const { user } = useUser();

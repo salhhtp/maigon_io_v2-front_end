@@ -15,7 +15,7 @@ import AnimatedSolutionsMockup from "@/components/AnimatedSolutionsMockup";
 import CallToActionSection from "@/components/CallToActionSection";
 import MobileNavigation from "@/components/MobileNavigation";
 import ContractCardsAnimation from "@/components/ContractCardsAnimation";
-import { useUser } from "@/contexts/UserContext";
+import { useUser } from "@/contexts/SupabaseUserContext";
 import Step1Mockup from "@/components/step-mockups/Step1Mockup";
 import Step2Mockup from "@/components/step-mockups/Step2Mockup";
 import Step3Mockup from "@/components/step-mockups/Step3Mockup";
