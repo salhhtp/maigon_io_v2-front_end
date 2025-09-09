@@ -81,6 +81,16 @@ export default function Settings() {
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const { user, isLoggedIn, updateUser } = useUser();
+  const { toast } = useToast();
+
+  // Track settings page visit
+  useEffect(() => {
+    if (user && isLoggedIn) {
+      DataService.userUsageStats.updateLastActivity(user.id).catch(error => {
+        console.error('Error updating last activity:', error);
+      });
+    }
+  }, [user, isLoggedIn]);
 
   // Redirect if not logged in
   if (!isLoggedIn || !user) {
