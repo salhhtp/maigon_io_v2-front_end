@@ -266,6 +266,16 @@ export default function SignIn() {
               </Link>
             </div>
           </div>
+
+          {/* Debug Link - Development Only */}
+          <div className="flex w-full justify-center mt-4">
+            <Link
+              to="/auth-debug"
+              className="text-xs text-gray-400 hover:text-gray-600 underline"
+            >
+              🔧 Auth Debug
+            </Link>
+          </div>
         </div>
       </div>
     </div>
