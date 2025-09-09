@@ -30,7 +30,12 @@ const RootRedirect: React.FC = () => {
 
     // Only redirect after the user context has finished loading
     if (!isLoading && isLoggedIn) {
-      navigate("/dashboard", { replace: true });
+      // Check if user has temporary password and needs to change it
+      if (user?.hasTemporaryPassword) {
+        navigate("/change-password", { replace: true });
+      } else {
+        navigate("/dashboard", { replace: true });
+      }
     }
   }, [isLoggedIn, isLoading, navigate]);
 
