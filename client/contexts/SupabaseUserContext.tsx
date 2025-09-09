@@ -152,7 +152,10 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [isLoading, setIsLoading] = useState(true);
 
   // Convert UserProfile to User format
-  const convertProfileToUser = (profile: UserProfile): User => {
+  const convertProfileToUser = (profile: UserProfile, authUser?: SupabaseUser): User => {
+    // Check if user has temporary password from auth metadata
+    const hasTemporaryPassword = authUser?.user_metadata?.is_temporary_password === true;
+
     return {
       id: profile.id,
       name: `${profile.first_name} ${profile.last_name}`,
@@ -160,6 +163,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       company: profile.company,
       phone: profile.phone,
       role: profile.role as "user" | "admin",
+      hasTemporaryPassword,
       ...getDefaultUserData(profile),
     };
   };
