@@ -149,6 +149,10 @@ const router = createBrowserRouter([
         element: <AdminPasswordReset />,
       },
       {
+        path: "auth-debug",
+        element: <AuthDebug />,
+      },
+      {
         path: "settings",
         element: <Settings />,
       },
