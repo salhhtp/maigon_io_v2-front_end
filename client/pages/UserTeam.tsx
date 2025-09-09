@@ -6,7 +6,7 @@ import Logo from "@/components/Logo";
 import Footer from "@/components/Footer";
 import AnimatedQuotes from "@/components/AnimatedQuotes";
 import MobileNavigation from "@/components/MobileNavigation";
-import { useUser } from "@/contexts/UserContext";
+import { useUser } from "@/contexts/SupabaseUserContext";
 
 const TeamMemberCard = ({
   name,

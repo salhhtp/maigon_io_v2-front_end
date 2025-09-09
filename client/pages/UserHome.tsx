@@ -18,7 +18,7 @@ import ComplianceScoreMockup from "@/components/mockups/ComplianceScoreMockup";
 import PerspectiveReviewMockup from "@/components/mockups/PerspectiveReviewMockup";
 import FullSummaryMockup from "@/components/mockups/FullSummaryMockup";
 import RiskAssessmentMockup from "@/components/mockups/RiskAssessmentMockup";
-import { useUser } from "@/contexts/UserContext";
+import { useUser } from "@/contexts/SupabaseUserContext";
 
 export default function UserHome() {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
