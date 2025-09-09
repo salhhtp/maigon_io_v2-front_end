@@ -14,6 +14,7 @@ export interface User {
   company: string;
   phone: string | null;
   role: "user" | "admin";
+  hasTemporaryPassword?: boolean; // Flag to indicate if user needs to change password
   // Mock plan and usage data for now - will be replaced with real data later
   plan: {
     type: "free_trial" | "pay_as_you_go" | "monthly_10" | "monthly_15" | "professional";
