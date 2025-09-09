@@ -172,7 +172,7 @@ export default function SignIn() {
                   <Input
                     id="password"
                     type="password"
-                    placeholder="���•••••••"
+                    placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="flex w-full h-[50px] py-[13px] pr-[13px] pl-[41px] items-center rounded-lg border border-[#D1D5DB] bg-white/80 text-base placeholder:text-[#CCC] font-inter"
@@ -255,6 +255,13 @@ export default function SignIn() {
               </Link>
             </div>
           </div>
+
+          {/* Temporary Setup - Remove after running once */}
+          {process.env.NODE_ENV === 'development' && (
+            <div className="w-full max-w-md mt-8">
+              <SetupArunendu />
+            </div>
+          )}
         </div>
       </div>
     </div>
