@@ -351,6 +351,15 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             console.error('Error tracking login:', trackError);
           }
 
+          // Check if user has temporary password and needs to change it
+          if (userProfile.hasTemporaryPassword) {
+            return {
+              success: true,
+              message: 'Signed in successfully! You must change your temporary password before continuing.',
+              user: userProfile
+            };
+          }
+
           return { success: true, message: 'Signed in successfully!', user: userProfile };
         }
       }
