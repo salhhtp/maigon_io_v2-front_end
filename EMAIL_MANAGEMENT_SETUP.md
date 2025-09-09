@@ -49,12 +49,13 @@ The application implements a professional email management system using **SendGr
 In development, email credentials are logged to console:
 
 ```
-=== WELCOME EMAIL (DEV MODE) ===
+=== WELCOME EMAIL (DEV MODE - SendGrid) ===
 To: user@example.com
 Subject: Welcome to Maigon - Your Login Credentials
 Temporary Password: Abc123!@#
 Login URL: http://localhost:5173/signin
-================================
+Template: Welcome Template with Dynamic Data
+==========================================
 ```
 
 ## Production Setup
@@ -62,27 +63,67 @@ Login URL: http://localhost:5173/signin
 ### 1. Deploy Supabase Edge Functions
 
 ```bash
-supabase functions deploy send-welcome-email
-supabase functions deploy send-password-reset
+supabase functions deploy send-welcome-email-sendgrid
+supabase functions deploy send-password-reset-sendgrid
 ```
 
-### 2. Configure Email Service (Resend)
+### 2. Configure SendGrid
 
-1. Sign up for [Resend](https://resend.com)
-2. Get your API key
-3. Set environment variable in Supabase:
+#### Step 1: Create SendGrid Account
+1. Sign up for [SendGrid](https://sendgrid.com)
+2. Verify your account and complete setup
 
+#### Step 2: Get API Key
+1. Go to Settings > API Keys
+2. Create a new API key with "Full Access" or "Mail Send" permissions
+3. Copy the API key (you won't see it again)
+
+#### Step 3: Set Environment Variables
 ```bash
-supabase secrets set RESEND_API_KEY=your_api_key_here
+supabase secrets set SENDGRID_API_KEY=your_sendgrid_api_key_here
+supabase secrets set SENDGRID_FROM_EMAIL=noreply@yourdomain.com
 ```
 
-### 3. Configure Email Domain
+### 3. Configure Email Domain Authentication
 
-- Add your domain to Resend
-- Update the `from` field in Edge Functions to use your domain:
-  ```typescript
-  from: 'Maigon <noreply@yourdomain.com>'
-  ```
+#### Step 1: Domain Authentication
+1. In SendGrid, go to Settings > Sender Authentication
+2. Click "Authenticate Your Domain"
+3. Add your domain (e.g., `maigon.io`)
+4. Follow DNS setup instructions
+5. Verify domain authentication
+
+#### Step 2: Single Sender Verification (Alternative)
+If you don't have domain access:
+1. Go to Settings > Sender Authentication
+2. Click "Create a Single Sender"
+3. Verify the email address you'll send from
+
+### 4. (Optional) Create Dynamic Templates
+
+SendGrid's dynamic templates provide better email design and management:
+
+#### Step 1: Create Welcome Email Template
+1. Go to Email API > Dynamic Templates
+2. Create new template called "Welcome Email"
+3. Add a version with your design
+4. Use these dynamic variables:
+   - `{{firstName}}` - User's first name
+   - `{{temporaryPassword}}` - Generated password
+   - `{{loginUrl}}` - Login page URL
+   - `{{year}}` - Current year
+
+#### Step 2: Create Password Reset Template
+1. Create another template called "Password Reset"
+2. Use these dynamic variables:
+   - `{{resetUrl}}` - Password reset URL
+   - `{{year}}` - Current year
+
+#### Step 3: Configure Template IDs
+```bash
+supabase secrets set SENDGRID_WELCOME_TEMPLATE_ID=d-your_welcome_template_id
+supabase secrets set SENDGRID_PASSWORD_RESET_TEMPLATE_ID=d-your_reset_template_id
+```
 
 ## User Flow
 
