@@ -13,11 +13,13 @@ import {
   EyeOff,
 } from "lucide-react";
 import { Link } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Logo from "@/components/Logo";
 import Footer from "@/components/Footer";
 import MobileNavigation from "@/components/MobileNavigation";
 import { useUser } from "@/contexts/SupabaseUserContext";
+import { DataService } from "@/services/dataService";
+import { useToast } from "@/hooks/use-toast";
 
 const SettingsSection = ({
   title,
