@@ -8,6 +8,26 @@ const RootRedirect: React.FC = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    // Check if this is an email verification callback
+    const hash = window.location.hash;
+    const searchParams = new URLSearchParams(window.location.search);
+
+    // Check for Supabase auth tokens in URL hash or search params
+    const hashParams = new URLSearchParams(hash.substring(1));
+    const hasAuthTokens =
+      hashParams.get('access_token') ||
+      searchParams.get('access_token') ||
+      hashParams.get('type') === 'signup' ||
+      searchParams.get('type') === 'signup' ||
+      hashParams.get('type') === 'recovery' ||
+      searchParams.get('type') === 'recovery';
+
+    if (hasAuthTokens) {
+      // Redirect to email verification handler
+      navigate("/email-verification", { replace: true });
+      return;
+    }
+
     // Only redirect after the user context has finished loading
     if (!isLoading && isLoggedIn) {
       navigate("/dashboard", { replace: true });
