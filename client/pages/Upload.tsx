@@ -1,11 +1,13 @@
 import { useState, useRef, useEffect } from "react";
-import { ChevronDown, User, Upload as UploadIcon } from "lucide-react";
+import { ChevronDown, User, Upload as UploadIcon, AlertCircle } from "lucide-react";
 import { Link, useLocation, useNavigate, useBlocker } from "react-router-dom";
 import Logo from "@/components/Logo";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import ConfirmationModal from "@/components/ConfirmationModal";
 import { useUser } from "@/contexts/SupabaseUserContext";
+import { DataService } from "@/services/dataService";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Upload() {
   const { user } = useUser();
