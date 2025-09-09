@@ -27,8 +27,12 @@ export default function SignIn() {
       const result = await signIn(email, password);
 
       if (result.success) {
-        // Navigate to dashboard on successful login
-        navigate("/dashboard");
+        // Check if user has temporary password and needs to change it
+        if (result.user?.hasTemporaryPassword) {
+          navigate("/change-password");
+        } else {
+          navigate("/dashboard");
+        }
       } else {
         setError(result.message);
       }
