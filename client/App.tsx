@@ -40,6 +40,7 @@ import LLMsAndLawyers from "./pages/articles/LLMsAndLawyers";
 import FindingContractSolution from "./pages/articles/FindingContractSolution";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
+import ChangePassword from "./pages/ChangePassword";
 import EmailVerification from "./pages/EmailVerification";
 import AdminAnalytics from "./pages/AdminAnalytics";
 import NotFound from "./pages/NotFound";
