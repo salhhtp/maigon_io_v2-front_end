@@ -7,6 +7,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import Logo from "@/components/Logo";
 import { useUser } from "@/contexts/SupabaseUserContext";
+import SetupArunendu from "@/components/SetupArunendu";
 
 export default function SignIn() {
   const [email, setEmail] = useState("");
@@ -171,7 +172,7 @@ export default function SignIn() {
                   <Input
                     id="password"
                     type="password"
-                    placeholder="••••••••"
+                    placeholder="���•••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="flex w-full h-[50px] py-[13px] pr-[13px] pl-[41px] items-center rounded-lg border border-[#D1D5DB] bg-white/80 text-base placeholder:text-[#CCC] font-inter"
