@@ -3,6 +3,7 @@ import { supabase } from "@/lib/supabase";
 import type { User as SupabaseUser, Session } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase";
 import { DataService } from "@/services/dataService";
+import { EmailService } from "@/services/emailService";
 
 type UserProfile = Database['public']['Tables']['user_profiles']['Row'];
 
