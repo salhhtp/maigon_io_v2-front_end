@@ -247,18 +247,35 @@ export default function SignUp() {
                 />
               </div>
 
+              {/* Success/Error Message */}
+              {message && (
+                <div className={`flex items-center gap-3 p-4 rounded-lg border ${
+                  message.type === 'success'
+                    ? 'bg-green-50 border-green-200 text-green-800'
+                    : 'bg-red-50 border-red-200 text-red-800'
+                }`}>
+                  {message.type === 'success' ? (
+                    <CheckCircle className="w-5 h-5 text-green-600" />
+                  ) : (
+                    <AlertCircle className="w-5 h-5 text-red-600" />
+                  )}
+                  <p className="text-sm font-medium">{message.text}</p>
+                </div>
+              )}
+
               {/* Disclaimer */}
               <p className="text-[#4F452B] text-xs leading-relaxed">
-                By sharing your details, you agree to be contacted about content, events, or services we think 
+                By sharing your details, you agree to be contacted about content, events, or services we think
                 you'll enjoy. You can unsubscribe at any time.
               </p>
 
               {/* Submit button */}
               <Button
                 type="submit"
-                className="w-full h-12 bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white text-sm rounded-lg"
+                disabled={isLoading}
+                className="w-full h-12 bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 disabled:opacity-70 disabled:cursor-not-allowed text-white text-sm rounded-lg"
               >
-                Submit
+                {isLoading ? "Creating Account..." : "Submit"}
               </Button>
 
               {/* Sign in link */}
