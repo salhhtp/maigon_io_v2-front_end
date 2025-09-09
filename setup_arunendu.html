@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Setup Arunendu Account</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <h1>Setup Arunendu Account</h1>
+    <button onclick="createAccount()">Create Arunendu Account</button>
+    <div id="result"></div>
+
+    <script>
+        const { createClient } = supabase;
+        
+        const supabaseUrl = 'https://cqvufndxjakdbmbjhwlx.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNxdnVmbmR4amFrZGJtYmpod2x4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ2MDAwNzMsImV4cCI6MjA3MDE3NjA3M30.pGmQIWmrTODu1r2cWuOzr9W0hre7eHblU2q9OWPZXPk';
+        
+        const client = createClient(supabaseUrl, supabaseKey);
+
+        async function createAccount() {
+            try {
+                const result = document.getElementById('result');
+                result.innerHTML = 'Creating account...';
+                
+                const { data, error } = await client.auth.signUp({
+                    email: 'arunendu.mazumder@maigon.io',
+                    password: 'Admin2024!Mx9',
+                    options: {
+                        data: {
+                            first_name: 'Arunendu',
+                            last_name: 'Mazumder',
+                            company: 'Maigon',
+                            phone: '+4748629416',
+                            company_size: '11-50',
+                            country_region: 'se',
+                            industry: 'legal',
+                        }
+                    }
+                });
+
+                if (error) {
+                    result.innerHTML = `Error: ${error.message}`;
+                    console.error('Error:', error);
+                } else {
+                    result.innerHTML = `Success! Account created for ${data.user?.email}`;
+                    console.log('Success:', data);
+                }
+            } catch (err) {
+                document.getElementById('result').innerHTML = `Unexpected error: ${err.message}`;
+                console.error('Unexpected error:', err);
+            }
+        }
+    </script>
+</body>
+</html>
