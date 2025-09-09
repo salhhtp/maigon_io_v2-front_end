@@ -39,6 +39,7 @@ import LLMsAndLawyers from "./pages/articles/LLMsAndLawyers";
 import FindingContractSolution from "./pages/articles/FindingContractSolution";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
+import AdminAnalytics from "./pages/AdminAnalytics";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
