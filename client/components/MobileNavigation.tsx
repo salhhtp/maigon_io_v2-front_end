@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { X, Menu, User, ChevronDown } from "lucide-react";
-import { useUser } from "@/contexts/UserContext";
+import { useUser } from "@/contexts/SupabaseUserContext";
 
 interface MobileNavigationProps {
   isLoggedIn?: boolean;
