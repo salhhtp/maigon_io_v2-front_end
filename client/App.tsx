@@ -83,6 +83,10 @@ const router = createBrowserRouter([
         element: <ResetPassword />,
       },
       {
+        path: "email-verification",
+        element: <EmailVerification />,
+      },
+      {
         path: "solutions",
         element: <Solutions />,
       },
