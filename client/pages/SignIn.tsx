@@ -254,13 +254,6 @@ export default function SignIn() {
               </Link>
             </div>
           </div>
-
-          {/* Temporary Setup - Remove after running once */}
-          {process.env.NODE_ENV === 'development' && (
-            <div className="w-full max-w-md mt-8">
-              <SetupArunendu />
-            </div>
-          )}
         </div>
       </div>
     </div>
