@@ -169,13 +169,35 @@ Use the temporary password to sign in and verify the password change flow.
 
 ## Email Templates
 
-The system includes professional HTML email templates with:
+The system supports two approaches for email templates:
 
+### Option 1: Dynamic Templates (Recommended)
+- Use SendGrid's visual template editor
+- Dynamic content with variables
+- A/B testing capabilities
+- Easy updates without code changes
+- Professional designs
+
+### Option 2: Inline HTML Templates
+- HTML templates in the Edge Functions
+- Full control over design
+- Version-controlled with your code
+- Fallback when dynamic templates aren't configured
+
+Both include:
 - Maigon branding
-- Clear instructions
+- Mobile-responsive design
+- Clear call-to-action buttons
 - Security warnings
-- Responsive design
-- Call-to-action buttons
+- Professional styling
+
+## SendGrid Features Utilized
+
+- **Delivery Analytics**: Track open rates, click rates, bounces
+- **Reputation Management**: Automatic IP warming and monitoring
+- **Template Management**: Visual editor with version control
+- **Deliverability Insights**: Real-time feedback on email performance
+- **Event Webhooks**: Track delivery status and user engagement
 
 ## Security Features
 
@@ -184,23 +206,26 @@ The system includes professional HTML email templates with:
 - Password strength validation
 - Automatic password expiration flags
 - Secure password change process
+- SendGrid's security and compliance standards
 
 ## Next Steps
 
 1. **Deploy Edge Functions** to Supabase
-2. **Configure Resend** with your domain
-3. **Test email delivery** in staging environment
-4. **Update email templates** with your branding
-5. **Set up monitoring** for email delivery failures
+2. **Configure SendGrid** with your domain
+3. **Set up domain authentication** for better deliverability
+4. **Create dynamic templates** (optional but recommended)
+5. **Test email delivery** in staging environment
+6. **Set up monitoring** for email delivery failures
 
 ## Troubleshooting
 
 ### Emails Not Sending
 
 1. Check Supabase logs for Edge Function errors
-2. Verify RESEND_API_KEY is set correctly
-3. Ensure domain is verified in Resend
-4. Check Resend dashboard for delivery status
+2. Verify `SENDGRID_API_KEY` is set correctly
+3. Ensure domain is authenticated in SendGrid
+4. Check SendGrid Activity Feed for delivery status
+5. Verify sender authentication (domain or single sender)
 
 ### Password Change Issues
 
