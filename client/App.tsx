@@ -129,6 +129,10 @@ const router = createBrowserRouter([
         element: <Dashboard />,
       },
       {
+        path: "admin-analytics",
+        element: <AdminAnalytics />,
+      },
+      {
         path: "settings",
         element: <Settings />,
       },
