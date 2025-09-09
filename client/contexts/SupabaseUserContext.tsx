@@ -245,12 +245,12 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       setIsLoading(true);
 
-      // Generate a secure password (this will be sent via email)
-      const generatedPassword = generateSecurePassword();
+      // Generate a secure temporary password
+      const temporaryPassword = generateSecurePassword();
 
       const { data, error } = await supabase.auth.signUp({
         email: userData.email,
-        password: generatedPassword,
+        password: temporaryPassword,
         options: {
           data: {
             first_name: userData.firstName,
@@ -261,6 +261,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             country_region: userData.countryRegion || null,
             industry: userData.industry || null,
             hear_about_us: userData.hearAboutUs || null,
+            is_temporary_password: true, // Flag to indicate this is a temporary password
           }
         }
       });
@@ -271,14 +272,23 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
 
       if (data.user) {
-        // Send welcome email with credentials
-        await sendWelcomeEmail(userData.email, userData.firstName, generatedPassword);
+        // Send welcome email with temporary credentials
+        const emailResult = await sendWelcomeEmail(userData.email, userData.firstName, temporaryPassword);
 
-        return {
-          success: true,
-          message: `Account created successfully! Your login credentials have been sent to ${userData.email}`,
-          user: data.user
-        };
+        if (emailResult.success) {
+          return {
+            success: true,
+            message: `Account created successfully! Your login credentials have been sent to ${userData.email}. Please check your email and use the temporary password to sign in.`,
+            user: data.user
+          };
+        } else {
+          // Account was created but email failed - still consider it a success but with a different message
+          return {
+            success: true,
+            message: `Account created successfully! However, there was an issue sending your credentials via email. Please contact support. Temporary password: ${temporaryPassword}`,
+            user: data.user
+          };
+        }
       }
 
       return { success: false, message: 'An unexpected error occurred during sign up.' };
