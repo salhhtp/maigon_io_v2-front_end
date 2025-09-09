@@ -171,6 +171,9 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // Load user profile from database
   const loadUserProfile = async (authUserId: string): Promise<User | null> => {
     try {
+      // Get auth user data first
+      const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
+
       const { data: profile, error } = await supabase
         .from('user_profiles')
         .select('*')
@@ -182,7 +185,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         return null;
       }
 
-      return convertProfileToUser(profile);
+      return convertProfileToUser(profile, authUser || undefined);
     } catch (error) {
       console.error('Error loading user profile:', error);
       return null;
