@@ -273,9 +273,9 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (data.user) {
         // Send welcome email with credentials
         await sendWelcomeEmail(userData.email, userData.firstName, generatedPassword);
-        
-        return { 
-          success: true, 
+
+        return {
+          success: true,
           message: `Account created successfully! Your login credentials have been sent to ${userData.email}`,
           user: data.user
         };
@@ -287,6 +287,37 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       return { success: false, message: error.message || 'An unexpected error occurred.' };
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // Create Arunendu's account with known credentials
+  const createArunendusAccount = async (): Promise<{ success: boolean; message: string }> => {
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email: 'arunendu.mazumder@maigon.io',
+        password: 'Admin2024!Mx9',
+        options: {
+          data: {
+            first_name: 'Arunendu',
+            last_name: 'Mazumder',
+            company: 'Maigon',
+            phone: '+4748629416',
+            company_size: '11-50',
+            country_region: 'se',
+            industry: 'legal',
+          }
+        }
+      });
+
+      if (error) {
+        console.error('Error creating Arunendu account:', error);
+        return { success: false, message: error.message };
+      }
+
+      return { success: true, message: 'Arunendu account created successfully' };
+    } catch (error: any) {
+      console.error('Error creating Arunendu account:', error);
+      return { success: false, message: error.message || 'An unexpected error occurred.' };
     }
   };
 
