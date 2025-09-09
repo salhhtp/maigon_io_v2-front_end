@@ -221,6 +221,17 @@ export default function SignIn() {
                 </div>
               )}
 
+              {/* Testing Credentials - Show when there's an authentication error */}
+              {error && error.includes('Invalid') && (
+                <TestingCredentials
+                  onCredentialSelect={(testEmail, testPassword) => {
+                    setEmail(testEmail);
+                    setPassword(testPassword);
+                    setError(""); // Clear error when credentials are selected
+                  }}
+                />
+              )}
+
               {/* Login Button Container */}
               <div className="flex w-full lg:w-[448px] h-[50px] mt-6">
                 <Button
