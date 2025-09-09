@@ -309,6 +309,19 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const userProfile = await loadUserProfile(data.user.id);
         if (userProfile) {
           setUser(userProfile);
+
+          // Track login activity
+          try {
+            await DataService.userActivities.trackLogin(userProfile.id);
+            // Initialize user data if first time
+            const existingStats = await DataService.userUsageStats.getUserStats(userProfile.id);
+            if (!existingStats) {
+              await DataService.initializeNewUser(userProfile.id);
+            }
+          } catch (trackError) {
+            console.error('Error tracking login:', trackError);
+          }
+
           return { success: true, message: 'Signed in successfully!', user: userProfile };
         }
       }
@@ -395,6 +408,14 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       // Update local state
       setUser(prev => prev ? { ...prev, ...updates } : null);
+
+      // Track profile update activity
+      try {
+        const updatedFields = Object.keys(updates);
+        await DataService.userActivities.trackProfileUpdate(user.id, updatedFields);
+      } catch (trackError) {
+        console.error('Error tracking profile update:', trackError);
+      }
     } catch (error) {
       console.error('Error updating user:', error);
     }
