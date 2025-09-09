@@ -132,10 +132,10 @@ export class EmailService {
     `;
   }
 
-  // Send password reset email
+  // Send password reset email using SendGrid
   static async sendPasswordResetEmail(email: string, resetUrl: string): Promise<{ success: boolean; message: string }> {
     try {
-      const { data, error } = await supabase.functions.invoke('send-password-reset', {
+      const { data, error } = await supabase.functions.invoke('send-password-reset-sendgrid', {
         body: {
           to: email,
           resetUrl
@@ -143,11 +143,21 @@ export class EmailService {
       });
 
       if (error) {
-        console.error('Error sending password reset email:', error);
+        console.error('Error sending password reset email via SendGrid:', error);
+
+        // Development fallback
+        if (process.env.NODE_ENV === 'development') {
+          console.log('=== PASSWORD RESET EMAIL (DEV MODE - SendGrid) ===');
+          console.log(`To: ${email}`);
+          console.log(`Reset URL: ${resetUrl}`);
+          console.log(`Template: Password Reset Template`);
+          console.log('==============================================');
+        }
+
         return { success: false, message: 'Failed to send password reset email.' };
       }
 
-      return { success: true, message: 'Password reset email sent successfully!' };
+      return { success: true, message: 'Password reset email sent successfully via SendGrid!' };
     } catch (error: any) {
       console.error('Unexpected error sending password reset email:', error);
       return { success: false, message: error.message || 'Failed to send password reset email.' };
