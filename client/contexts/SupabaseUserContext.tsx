@@ -412,6 +412,47 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
+  // Change password from temporary to permanent
+  const changePassword = async (currentPassword: string, newPassword: string): Promise<{ success: boolean; message: string }> => {
+    try {
+      if (!user || !session) {
+        return { success: false, message: 'You must be logged in to change your password.' };
+      }
+
+      // Verify current password by attempting to sign in
+      const { error: verifyError } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: currentPassword,
+      });
+
+      if (verifyError) {
+        console.error('Current password verification failed:', verifyError);
+        return { success: false, message: 'Current password is incorrect.' };
+      }
+
+      // Update to new password
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: newPassword,
+        data: {
+          is_temporary_password: false, // Mark as no longer temporary
+        }
+      });
+
+      if (updateError) {
+        console.error('Password change error:', updateError);
+        return { success: false, message: updateError.message };
+      }
+
+      // Update local user state to reflect password change
+      setUser(prev => prev ? { ...prev, hasTemporaryPassword: false } : null);
+
+      return { success: true, message: 'Password changed successfully!' };
+    } catch (error: any) {
+      console.error('Password change error:', error);
+      return { success: false, message: error.message || 'An unexpected error occurred.' };
+    }
+  };
+
   // Logout
   const logout = async (): Promise<void> => {
     try {
