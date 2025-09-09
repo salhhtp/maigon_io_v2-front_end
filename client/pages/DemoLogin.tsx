@@ -2,7 +2,8 @@ import { Button } from "@/components/ui/button";
 import { User, Crown, Users } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import Logo from "@/components/Logo";
-import { useUser, mockUsers } from "@/contexts/UserContext";
+import { useUser } from "@/contexts/SupabaseUserContext";
+import { mockUsers } from "@/contexts/UserContext";
 
 const UserCard = ({
   userName,
