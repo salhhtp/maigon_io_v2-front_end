@@ -5,7 +5,7 @@ import { useState } from "react";
 import Logo from "@/components/Logo";
 import Footer from "@/components/Footer";
 import MobileNavigation from "@/components/MobileNavigation";
-import { useUser } from "@/contexts/UserContext";
+import { useUser } from "@/contexts/SupabaseUserContext";
 
 export default function LLMsAndLawyers() {
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
