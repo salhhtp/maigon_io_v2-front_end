@@ -227,6 +227,20 @@ Both include:
 4. Check SendGrid Activity Feed for delivery status
 5. Verify sender authentication (domain or single sender)
 
+### Common SendGrid Issues
+
+#### Authentication Errors
+- **403 Forbidden**: Check API key permissions (needs "Mail Send" permission)
+- **401 Unauthorized**: Verify API key is correct and active
+
+#### Domain Issues
+- **Domain not authenticated**: Complete domain authentication in SendGrid
+- **Sender not verified**: Verify single sender or complete domain setup
+
+#### Template Errors
+- **Template not found**: Check template ID is correct and template is published
+- **Missing dynamic data**: Ensure all required template variables are provided
+
 ### Password Change Issues
 
 1. Verify user has `hasTemporaryPassword: true`
@@ -235,4 +249,29 @@ Both include:
 
 ### Development Testing
 
-Use the console output to get temporary passwords for testing without email delivery.
+1. Use the console output to get temporary passwords for testing
+2. SendGrid provides a sandbox mode for testing without actual email delivery
+3. Check SendGrid Activity Feed for email delivery status
+
+### Monitoring and Analytics
+
+SendGrid provides comprehensive monitoring:
+
+1. **Activity Feed**: Real-time email delivery status
+2. **Statistics**: Email metrics and performance data
+3. **Alerts**: Automated notifications for delivery issues
+4. **Suppression Management**: Handle bounces and unsubscribes
+
+### Environment Variables Summary
+
+Required for production:
+```bash
+SENDGRID_API_KEY=your_sendgrid_api_key
+SENDGRID_FROM_EMAIL=noreply@yourdomain.com
+```
+
+Optional (for dynamic templates):
+```bash
+SENDGRID_WELCOME_TEMPLATE_ID=d-template_id_here
+SENDGRID_PASSWORD_RESET_TEMPLATE_ID=d-template_id_here
+```
