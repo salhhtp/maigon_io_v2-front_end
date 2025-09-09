@@ -513,6 +513,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     signIn,
     resetPassword,
     updatePassword,
+    changePassword,
   };
 
   return <UserContext.Provider value={value}>{children}</UserContext.Provider>;
