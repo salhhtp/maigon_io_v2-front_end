@@ -326,7 +326,24 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       if (error) {
         console.error('Sign in error:', error);
-        return { success: false, message: 'Invalid email or password. Please check your credentials.' };
+
+        // Enhanced error handling for debugging
+        if (error.message.includes('Email not confirmed')) {
+          return { success: false, message: 'Please check your email and click the verification link before signing in.' };
+        }
+
+        if (error.message.includes('Invalid login credentials')) {
+          // For development - provide more specific guidance
+          if (email === 'arunendu.mazumder@maigon.io') {
+            return {
+              success: false,
+              message: 'Authentication issue detected. Try using the mock user: mockuser@maigon.io with password: MockPassword123!'
+            };
+          }
+          return { success: false, message: 'Invalid email or password. Try the mock user: mockuser@maigon.io' };
+        }
+
+        return { success: false, message: `Authentication error: ${error.message}` };
       }
 
       if (data.user) {
