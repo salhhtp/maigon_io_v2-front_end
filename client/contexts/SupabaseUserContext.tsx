@@ -366,14 +366,17 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
 
         if (error.message.includes('Invalid login credentials')) {
-          // For development - provide more specific guidance
-          if (email === 'arunendu.mazumder@maigon.io') {
-            return {
-              success: false,
-              message: 'Authentication issue detected. Try using the mock user: mockuser@maigon.io with password: MockPassword123!'
-            };
-          }
-          return { success: false, message: 'Invalid email or password. Try the mock user: mockuser@maigon.io' };
+          // For development - provide testing credentials
+          const testAccounts = [
+            'mockuser@maigon.io / MockPassword123!',
+            'arunendu.mazumder@maigon.io / TestPassword123!',
+            'admin@maigon.io / AdminTest123!'
+          ];
+
+          return {
+            success: false,
+            message: `Invalid credentials. Try these test accounts:\n${testAccounts.join('\n')}`
+          };
         }
 
         return { success: false, message: `Authentication error: ${error.message}` };
