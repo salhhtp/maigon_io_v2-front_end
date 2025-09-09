@@ -1,18 +1,132 @@
-import React, { useState } from "react";
-import { ChevronDown, User, Download, ArrowLeft, Printer } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { ChevronDown, User, Download, ArrowLeft, Printer, AlertTriangle, CheckCircle, Clock } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import Logo from "@/components/Logo";
 import MobileNavigation from "@/components/MobileNavigation";
 import { useUser } from "@/contexts/SupabaseUserContext";
 import { Button } from "@/components/ui/button";
+import { DataService } from "@/services/dataService";
+import { useToast } from "@/hooks/use-toast";
+
+interface ContractData {
+  id: string;
+  title: string;
+  file_name: string;
+  file_size: number;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
+interface ReviewData {
+  id: string;
+  review_type: string;
+  results: any;
+  score: number;
+  confidence_level: number;
+  created_at: string;
+}
 
 export default function ContractReview() {
   const { user } = useUser();
   const navigate = useNavigate();
   const location = useLocation();
+  const { toast } = useToast();
 
-  // Get contract data from navigation state (from loading page)
-  const { selectedFile, perspective, solutionTitle } = location.state || {};
+  // Get contract data from navigation state (from upload page)
+  const { contract, review, selectedFile, perspective, solutionTitle } = location.state || {};
+
+  const [contractData, setContractData] = useState<ContractData | null>(contract);
+  const [reviewData, setReviewData] = useState<ReviewData | null>(review);
+  const [isLoading, setIsLoading] = useState(!contract || !review);
+
+  // If no data provided, redirect back
+  useEffect(() => {
+    if (!contractData && !reviewData && !isLoading) {
+      toast({
+        title: "No contract data",
+        description: "Please upload a contract first.",
+        variant: "destructive",
+      });
+      navigate("/user-solutions");
+    }
+  }, [contractData, reviewData, isLoading, navigate, toast]);
+
+  // Format score for display
+  const formatScore = (score: number): string => {
+    return score ? score.toFixed(0) : "0";
+  };
+
+  // Get score color based on value
+  const getScoreColor = (score: number): string => {
+    if (score >= 80) return "text-green-600";
+    if (score >= 60) return "text-yellow-600";
+    return "text-red-600";
+  };
+
+  // Get score background color
+  const getScoreBgColor = (score: number): string => {
+    if (score >= 80) return "bg-green-50 border-green-200";
+    if (score >= 60) return "bg-yellow-50 border-yellow-200";
+    return "bg-red-50 border-red-200";
+  };
+
+  // Get review type display name
+  const getReviewTypeDisplay = (type: string): string => {
+    const types: { [key: string]: string } = {
+      'risk_assessment': 'Risk Assessment',
+      'compliance_score': 'Compliance Review',
+      'perspective_review': 'Perspective Analysis',
+      'full_summary': 'Full Summary',
+      'ai_integration': 'AI Integration Review'
+    };
+    return types[type] || type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+  };
+
+  // Get perspective display name
+  const getPerspectiveDisplay = (perspectiveValue: string): string => {
+    const perspectives: { [key: string]: string } = {
+      'risk': 'Risk Analysis',
+      'compliance': 'Compliance Focus',
+      'perspective': 'Multi-Perspective',
+      'summary': 'Summary Analysis',
+      'ai': 'AI Integration',
+      'data-subject': 'Data Subject',
+      'organization': 'Organization'
+    };
+    return perspectives[perspectiveValue] || perspectiveValue;
+  };
+
+  // Export contract data
+  const handleExport = async () => {
+    if (!user || !contractData) return;
+
+    try {
+      const exportData = await DataService.exportUserData(user.id, 'json');
+      
+      const blob = new Blob([exportData], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `contract-analysis-${contractData.id}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toast({
+        title: "Export successful",
+        description: "Contract analysis data has been exported.",
+      });
+    } catch (error) {
+      console.error('Export error:', error);
+      toast({
+        title: "Export failed",
+        description: "There was an error exporting the data.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleBackToSolutions = () => {
     navigate("/user-solutions");
@@ -25,6 +139,37 @@ export default function ContractReview() {
   const handlePrint = () => {
     window.print();
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <Clock className="w-12 h-12 text-[#9A7C7C] mx-auto mb-4 animate-spin" />
+          <h2 className="text-xl font-lora text-[#271D1D] mb-2">Loading Contract Analysis</h2>
+          <p className="text-[#271D1D]/70">Please wait while we prepare your results...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!contractData || !reviewData) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+          <h2 className="text-xl font-lora text-[#271D1D] mb-2">No Contract Data</h2>
+          <p className="text-[#271D1D]/70 mb-4">Please upload a contract first.</p>
+          <Button onClick={() => navigate("/user-solutions")}>
+            Back to Solutions
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  const score = reviewData.score || 0;
+  const results = reviewData.results || {};
+  const confidence = reviewData.confidence_level || 0;
 
   return (
     <div className="min-h-screen bg-white">
@@ -52,6 +197,15 @@ export default function ContractReview() {
             New Review
           </Button>
           <Button
+            onClick={handleExport}
+            variant="outline"
+            size="sm"
+            className="border-[#9A7C7C] text-[#9A7C7C] hover:bg-[#9A7C7C] hover:text-white"
+          >
+            <Download className="w-4 h-4 mr-2" />
+            Export Data
+          </Button>
+          <Button
             onClick={handlePrint}
             size="sm"
             className="bg-[#9A7C7C] hover:bg-[#725A5A] text-white"
@@ -74,22 +228,24 @@ export default function ContractReview() {
               <div className="text-sm text-gray-600 space-y-1">
                 <div>
                   <span className="font-medium">Document:</span>{" "}
-                  {selectedFile?.name || "contract_document.pdf"}
+                  {contractData.file_name}
                 </div>
                 <div>
                   <span className="font-medium">Analysis Type:</span>{" "}
-                  {solutionTitle || "GDPR Compliance Review"}
+                  {getReviewTypeDisplay(reviewData.review_type)}
                 </div>
                 <div>
                   <span className="font-medium">Perspective:</span>{" "}
-                  {perspective === "data-subject"
-                    ? "Data Subject"
-                    : "Organization"}
+                  {getPerspectiveDisplay(perspective || 'general')}
                 </div>
                 <div>
                   <span className="font-medium">Generated:</span>{" "}
-                  {new Date().toLocaleDateString()} at{" "}
-                  {new Date().toLocaleTimeString()}
+                  {new Date(reviewData.created_at).toLocaleDateString()} at{" "}
+                  {new Date(reviewData.created_at).toLocaleTimeString()}
+                </div>
+                <div>
+                  <span className="font-medium">Confidence Level:</span>{" "}
+                  {(confidence * 100).toFixed(1)}%
                 </div>
               </div>
             </div>
@@ -112,307 +268,153 @@ export default function ContractReview() {
           </h2>
 
           {/* Overall Score - Prominent Display */}
-          <div className="bg-white rounded-lg border-2 border-gray-200 p-6 mb-6 print:border print:p-4">
+          <div className={`bg-white rounded-lg border-2 p-6 mb-6 print:border print:p-4 ${getScoreBgColor(score)}`}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-medium text-[#271D1D]">
-                Overall Compliance Score
+                Overall {getReviewTypeDisplay(reviewData.review_type)} Score
               </h3>
-              <span className="text-4xl font-bold text-green-600 print:text-3xl">
-                87%
+              <span className={`text-4xl font-bold print:text-3xl ${getScoreColor(score)}`}>
+                {formatScore(score)}%
               </span>
             </div>
             <div className="w-full bg-gray-200 rounded-full h-4 mb-4 print:h-3">
               <div
-                className="h-4 rounded-full bg-green-500 transition-all duration-1000 print:h-3"
-                style={{ width: "87%" }}
+                className={`h-4 rounded-full transition-all duration-1000 print:h-3 ${
+                  score >= 80 ? 'bg-green-500' : score >= 60 ? 'bg-yellow-500' : 'bg-red-500'
+                }`}
+                style={{ width: `${score}%` }}
               ></div>
             </div>
             <p className="text-gray-700">
-              <strong>Excellent compliance</strong> with GDPR standards. Your
-              contract demonstrates strong privacy protection measures with
-              minor areas for improvement.
+              {score >= 80 && <strong>Excellent performance</strong>}
+              {score >= 60 && score < 80 && <strong>Good performance</strong>}
+              {score < 60 && <strong>Needs improvement</strong>}
+              {" "}
+              {results.summary || `Your contract has been analyzed with a ${reviewData.review_type.replace('_', ' ')} focus.`}
             </p>
           </div>
 
           {/* Key Metrics Grid */}
+          {results.key_points && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 print:gap-3">
+              {results.key_points.slice(0, 4).map((point: string, index: number) => (
+                <div key={index} className="bg-blue-50 rounded-lg p-4 border border-blue-200 print:p-3">
+                  <div className="text-sm text-blue-700 font-medium">
+                    {point}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Processing Details */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 print:gap-3">
-            <div className="bg-green-50 rounded-lg p-4 text-center border border-green-200 print:p-3">
-              <div className="text-2xl font-bold text-green-600 mb-1 print:text-xl">
-                23
+            <div className="bg-gray-50 rounded-lg p-4 text-center border border-gray-200 print:p-3">
+              <div className="text-2xl font-bold text-gray-600 mb-1 print:text-xl">
+                {results.pages || 1}
               </div>
-              <div className="text-sm text-green-700 font-medium">
-                Compliant Clauses
-              </div>
-            </div>
-            <div className="bg-yellow-50 rounded-lg p-4 text-center border border-yellow-200 print:p-3">
-              <div className="text-2xl font-bold text-yellow-600 mb-1 print:text-xl">
-                3
-              </div>
-              <div className="text-sm text-yellow-700 font-medium">
-                Minor Issues
+              <div className="text-sm text-gray-700 font-medium">
+                Pages Analyzed
               </div>
             </div>
-            <div className="bg-red-50 rounded-lg p-4 text-center border border-red-200 print:p-3">
-              <div className="text-2xl font-bold text-red-600 mb-1 print:text-xl">
-                1
+            <div className="bg-gray-50 rounded-lg p-4 text-center border border-gray-200 print:p-3">
+              <div className="text-2xl font-bold text-gray-600 mb-1 print:text-xl">
+                {(results.processing_time || 0).toFixed(1)}s
               </div>
-              <div className="text-sm text-red-700 font-medium">High Risk</div>
+              <div className="text-sm text-gray-700 font-medium">
+                Processing Time
+              </div>
             </div>
-            <div className="bg-blue-50 rounded-lg p-4 text-center border border-blue-200 print:p-3">
-              <div className="text-2xl font-bold text-blue-600 mb-1 print:text-xl">
-                47
+            <div className="bg-gray-50 rounded-lg p-4 text-center border border-gray-200 print:p-3">
+              <div className="text-2xl font-bold text-gray-600 mb-1 print:text-xl">
+                {(confidence * 100).toFixed(0)}%
               </div>
-              <div className="text-sm text-blue-700 font-medium">
-                Total Clauses
+              <div className="text-sm text-gray-700 font-medium">
+                Confidence Level
+              </div>
+            </div>
+            <div className="bg-gray-50 rounded-lg p-4 text-center border border-gray-200 print:p-3">
+              <div className="text-2xl font-bold text-gray-600 mb-1 print:text-xl">
+                {contractData.file_size ? (contractData.file_size / 1024).toFixed(1) : 0}KB
+              </div>
+              <div className="text-sm text-gray-700 font-medium">
+                File Size
               </div>
             </div>
           </div>
         </div>
 
-        {/* Detailed Analysis */}
-        <div className="mb-8 print:mb-6">
-          <h2 className="text-xl font-medium text-[#271D1D] mb-6 print:text-lg print:mb-4">
-            Detailed Findings
-          </h2>
-
-          {/* Critical Issues */}
-          <div className="mb-6">
-            <h3 className="text-lg font-medium text-[#271D1D] mb-4 print:text-base">
-              🔴 Critical Issues Requiring Immediate Attention
-            </h3>
-
-            <div className="bg-red-50 rounded-lg p-5 border-l-4 border-red-500 mb-4 print:p-4">
-              <div className="flex items-start justify-between mb-3">
-                <h4 className="font-semibold text-red-800 text-base">
-                  Unlimited Liability Clause
-                </h4>
-                <span className="bg-red-100 text-red-800 px-3 py-1 rounded-full text-xs font-medium">
-                  HIGH RISK
-                </span>
-              </div>
-              <div className="mb-3">
-                <span className="font-medium text-red-700">Location:</span>{" "}
-                <span className="text-red-600">Section 8.3</span>
-              </div>
-              <p className="text-red-700 mb-4 leading-relaxed">
-                No liability cap is defined for damages, creating unlimited
-                financial exposure for your organization. This poses significant
-                business risk.
-              </p>
-              <div className="bg-red-100 p-3 rounded border border-red-200">
-                <div className="font-medium text-red-800 mb-2">
-                  💡 Recommended Action:
-                </div>
-                <p className="text-red-700 text-sm">
-                  Add a liability cap clause limiting damages to the contract
-                  value or a reasonable amount (e.g., €100,000 or 12 months of
-                  contract value).
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Medium Priority Issues */}
-          <div className="mb-6">
-            <h3 className="text-lg font-medium text-[#271D1D] mb-4 print:text-base">
-              🟡 Medium Priority Issues
-            </h3>
-
+        {/* Detailed Analysis Results */}
+        {reviewData.review_type === 'risk_assessment' && results.risks && (
+          <div className="mb-8 print:mb-6">
+            <h2 className="text-xl font-medium text-[#271D1D] mb-4 print:text-lg">
+              Risk Analysis
+            </h2>
             <div className="space-y-4">
-              <div className="bg-yellow-50 rounded-lg p-4 border-l-4 border-yellow-500 print:p-3">
-                <div className="flex items-start justify-between mb-2">
-                  <h4 className="font-medium text-yellow-800">
-                    Data Retention Period
-                  </h4>
-                  <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-xs font-medium">
-                    MEDIUM
-                  </span>
+              {results.risks.map((risk: any, index: number) => (
+                <div key={index} className="border border-gray-200 rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="font-medium text-[#271D1D] capitalize">
+                      {risk.type} Risk
+                    </h3>
+                    <span className={`px-2 py-1 rounded text-xs font-medium ${
+                      risk.level === 'high' ? 'bg-red-100 text-red-800' :
+                      risk.level === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                      'bg-green-100 text-green-800'
+                    }`}>
+                      {risk.level}
+                    </span>
+                  </div>
+                  <p className="text-gray-700 text-sm">{risk.description}</p>
                 </div>
-                <p className="text-yellow-700 text-sm mb-2">
-                  <span className="font-medium">Section 4.2:</span> Data
-                  retention period is not clearly specified, potentially
-                  violating GDPR Article 5(1)(e).
-                </p>
-                <p className="text-yellow-600 text-xs">
-                  <strong>Recommendation:</strong> Define specific retention
-                  periods for different data categories.
-                </p>
-              </div>
-
-              <div className="bg-yellow-50 rounded-lg p-4 border-l-4 border-yellow-500 print:p-3">
-                <div className="flex items-start justify-between mb-2">
-                  <h4 className="font-medium text-yellow-800">
-                    Third Party Data Sharing
-                  </h4>
-                  <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-xs font-medium">
-                    MEDIUM
-                  </span>
-                </div>
-                <p className="text-yellow-700 text-sm mb-2">
-                  <span className="font-medium">Section 6.1:</span> Third party
-                  data sharing conditions are not sufficiently detailed.
-                </p>
-                <p className="text-yellow-600 text-xs">
-                  <strong>Recommendation:</strong> Specify all third parties and
-                  obtain explicit consent for data sharing.
-                </p>
-              </div>
+              ))}
             </div>
           </div>
+        )}
 
-          {/* Compliant Areas */}
-          <div className="mb-8">
-            <h3 className="text-lg font-medium text-[#271D1D] mb-4 print:text-base">
-              ✅ Compliant Areas
-            </h3>
-
-            <div className="bg-green-50 rounded-lg p-5 border-l-4 border-green-500 print:p-4">
-              <div className="space-y-3">
-                <div className="flex items-start">
-                  <div className="w-2 h-2 bg-green-500 rounded-full mr-3 mt-2"></div>
-                  <div>
-                    <span className="font-medium text-green-800">
-                      Strong Consent Mechanisms
-                    </span>
-                    <p className="text-green-700 text-sm">
-                      Complies with GDPR Article 7 requirements for valid
-                      consent.
-                    </p>
-                  </div>
+        {/* Recommendations */}
+        {results.recommendations && (
+          <div className="mb-8 print:mb-6">
+            <h2 className="text-xl font-medium text-[#271D1D] mb-4 print:text-lg">
+              Recommendations
+            </h2>
+            <div className="space-y-3">
+              {results.recommendations.map((recommendation: string, index: number) => (
+                <div key={index} className="flex items-start gap-3 p-3 bg-blue-50 rounded-lg">
+                  <CheckCircle className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                  <p className="text-gray-700 text-sm">{recommendation}</p>
                 </div>
-                <div className="flex items-start">
-                  <div className="w-2 h-2 bg-green-500 rounded-full mr-3 mt-2"></div>
-                  <div>
-                    <span className="font-medium text-green-800">
-                      Clear Data Subject Rights
-                    </span>
-                    <p className="text-green-700 text-sm">
-                      Properly outlines rights under GDPR Chapter 3.
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-start">
-                  <div className="w-2 h-2 bg-green-500 rounded-full mr-3 mt-2"></div>
-                  <div>
-                    <span className="font-medium text-green-800">
-                      Lawful Basis Specified
-                    </span>
-                    <p className="text-green-700 text-sm">
-                      Clear specification of data processing lawful basis.
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-start">
-                  <div className="w-2 h-2 bg-green-500 rounded-full mr-3 mt-2"></div>
-                  <div>
-                    <span className="font-medium text-green-800">
-                      Data Breach Procedures
-                    </span>
-                    <p className="text-green-700 text-sm">
-                      Proper notification procedures defined.
-                    </p>
-                  </div>
-                </div>
-              </div>
+              ))}
             </div>
           </div>
-        </div>
+        )}
 
-        {/* Analysis Summary */}
-        <div className="mb-8 print:mb-6">
-          <h2 className="text-xl font-medium text-[#271D1D] mb-4 print:text-lg">
-            Analysis Details
-          </h2>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 print:gap-4">
-            <div className="bg-gray-50 rounded-lg p-4 print:p-3">
-              <h3 className="font-medium text-[#271D1D] mb-3">
-                Processing Summary
-              </h3>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Processing Time:</span>
-                  <span className="font-medium">2.3 seconds</span>
+        {/* Action Items */}
+        {results.action_items && (
+          <div className="mb-8 print:mb-6">
+            <h2 className="text-xl font-medium text-[#271D1D] mb-4 print:text-lg">
+              Action Items
+            </h2>
+            <div className="space-y-3">
+              {results.action_items.map((item: string, index: number) => (
+                <div key={index} className="flex items-start gap-3 p-3 bg-orange-50 rounded-lg">
+                  <AlertTriangle className="w-5 h-5 text-orange-600 mt-0.5 flex-shrink-0" />
+                  <p className="text-gray-700 text-sm">{item}</p>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Confidence Level:</span>
-                  <span className="font-medium text-green-600">98.5%</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Pages Analyzed:</span>
-                  <span className="font-medium">12</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Clauses Reviewed:</span>
-                  <span className="font-medium">47</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-gray-50 rounded-lg p-4 print:p-3">
-              <h3 className="font-medium text-[#271D1D] mb-3">
-                Document Information
-              </h3>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">File Size:</span>
-                  <span className="font-medium">
-                    {selectedFile?.size
-                      ? `${Math.round(selectedFile.size / 1024)} KB`
-                      : "2.4 MB"}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">File Type:</span>
-                  <span className="font-medium">PDF</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Language:</span>
-                  <span className="font-medium">English</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Contract Type:</span>
-                  <span className="font-medium">Data Processing Agreement</span>
-                </div>
-              </div>
+              ))}
             </div>
           </div>
-        </div>
+        )}
 
         {/* Footer */}
-        <div className="border-t border-gray-200 pt-6 print:pt-4">
-          <div className="flex items-center justify-between text-sm text-gray-500">
-            <div>
-              <p>
-                Generated by{" "}
-                <span className="font-medium text-[#725A5A]">MAIGON AI</span>
-              </p>
-              <p>© 2025 Maigon. All rights reserved.</p>
-            </div>
-            <div className="text-right">
-              <p>Report ID: MG-{Date.now().toString().slice(-8)}</p>
-              <p>Page 1 of 1</p>
-            </div>
-          </div>
+        <div className="mt-12 pt-6 border-t border-gray-200 text-center text-xs text-gray-500 print:mt-8 print:pt-4">
+          <p>
+            This report was generated by Maigon AI-powered contract analysis on{" "}
+            {new Date(reviewData.created_at).toLocaleDateString()}. 
+            Analysis ID: {reviewData.id}
+          </p>
         </div>
       </div>
-
-      {/* Print Styles */}
-      <style jsx>{`
-        @media print {
-          @page {
-            margin: 1.5cm;
-            size: A4;
-          }
-          body {
-            font-size: 12pt;
-            line-height: 1.4;
-          }
-          .print\\:hidden {
-            display: none !important;
-          }
-        }
-      `}</style>
     </div>
   );
 }
