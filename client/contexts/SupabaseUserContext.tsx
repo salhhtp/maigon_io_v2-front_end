@@ -477,19 +477,13 @@ function generateSecurePassword(): string {
   return password;
 }
 
-async function sendWelcomeEmail(email: string, firstName: string, password: string): Promise<void> {
-  // For now, we'll log the credentials - in production, this would send an actual email
-  console.log(`Welcome email would be sent to: ${email}`);
-  console.log(`Login credentials for ${firstName}:`);
-  console.log(`Email: ${email}`);
-  console.log(`Password: ${password}`);
-  
-  // TODO: Implement actual email sending using a service like Resend, SendGrid, or AWS SES
-  // Example with Resend:
-  // await resend.emails.send({
-  //   from: 'noreply@maigon.io',
-  //   to: email,
-  //   subject: 'Welcome to Maigon - Your Account Credentials',
-  //   html: generateWelcomeEmailHTML(firstName, email, password)
-  // });
+async function sendWelcomeEmail(email: string, firstName: string, temporaryPassword: string): Promise<{ success: boolean; message: string }> {
+  const loginUrl = `${window.location.origin}/signin`;
+
+  return await EmailService.sendWelcomeEmail({
+    firstName,
+    email,
+    temporaryPassword,
+    loginUrl
+  });
 }
