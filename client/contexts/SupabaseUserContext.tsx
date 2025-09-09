@@ -295,28 +295,61 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       setIsLoading(true);
 
-      // Mock user for testing purposes
-      if (email === 'mockuser@maigon.io' && password === 'MockPassword123!') {
-        const mockUser: User = {
-          id: 'mock-user-id',
-          name: 'Mock User',
-          email: 'mockuser@maigon.io',
-          company: 'Maigon Test',
-          phone: '+1234567890',
-          role: 'admin',
-          ...getDefaultUserData({
+      // Enhanced mock users for testing purposes
+      const mockUsers = {
+        'mockuser@maigon.io': {
+          password: 'MockPassword123!',
+          user: {
             id: 'mock-user-id',
+            name: 'Mock User',
             email: 'mockuser@maigon.io',
-            first_name: 'Mock',
-            last_name: 'User',
             company: 'Maigon Test',
             phone: '+1234567890',
-            role: 'admin',
+            role: 'admin' as const,
+          }
+        },
+        'arunendu.mazumder@maigon.io': {
+          password: 'TestPassword123!',
+          user: {
+            id: 'arunendu-mock-id',
+            name: 'Arunendu Mazumder',
+            email: 'arunendu.mazumder@maigon.io',
+            company: 'Maigon',
+            phone: '+4748629416',
+            role: 'admin' as const,
+          }
+        },
+        'admin@maigon.io': {
+          password: 'AdminTest123!',
+          user: {
+            id: 'admin-mock-id',
+            name: 'Admin User',
+            email: 'admin@maigon.io',
+            company: 'Maigon',
+            phone: '+1234567890',
+            role: 'admin' as const,
+          }
+        }
+      };
+
+      const mockUserConfig = mockUsers[email as keyof typeof mockUsers];
+      if (mockUserConfig && password === mockUserConfig.password) {
+        const mockUser: User = {
+          ...mockUserConfig.user,
+          ...getDefaultUserData({
+            id: mockUserConfig.user.id,
+            email: mockUserConfig.user.email,
+            first_name: mockUserConfig.user.name.split(' ')[0],
+            last_name: mockUserConfig.user.name.split(' ').slice(1).join(' '),
+            company: mockUserConfig.user.company,
+            phone: mockUserConfig.user.phone,
+            role: mockUserConfig.user.role,
           } as UserProfile),
         };
 
+        console.log(`Mock user signed in: ${email}`);
         setUser(mockUser);
-        return { success: true, message: 'Mock user signed in successfully!', user: mockUser };
+        return { success: true, message: `Mock user signed in successfully! (${email})`, user: mockUser };
       }
 
       const { data, error } = await supabase.auth.signInWithPassword({
