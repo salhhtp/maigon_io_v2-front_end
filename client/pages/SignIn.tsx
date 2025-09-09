@@ -7,7 +7,6 @@ import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import Logo from "@/components/Logo";
 import { useUser } from "@/contexts/SupabaseUserContext";
-import TestingCredentials from "@/components/TestingCredentials";
 
 export default function SignIn() {
   const [email, setEmail] = useState("");
