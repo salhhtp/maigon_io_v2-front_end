@@ -51,7 +51,7 @@ import {
 import Logo from "@/components/Logo";
 import Footer from "@/components/Footer";
 import MobileNavigation from "@/components/MobileNavigation";
-import { useUser } from "@/contexts/UserContext";
+import { useUser } from "@/contexts/SupabaseUserContext";
 import AddUserModal from "@/components/modals/AddUserModal";
 import CustomSolutionModal from "@/components/modals/CustomSolutionModal";
 
