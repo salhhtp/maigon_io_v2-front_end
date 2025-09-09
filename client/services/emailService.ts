@@ -18,47 +18,42 @@ export class EmailService {
     return password;
   }
 
-  // Send welcome email with credentials
+  // Send welcome email with credentials using SendGrid
   static async sendWelcomeEmail(data: WelcomeEmailData): Promise<{ success: boolean; message: string }> {
     try {
-      // For now, we'll use Supabase Edge Functions to send emails
-      // In production, you would integrate with a service like Resend, SendGrid, or AWS SES
-      
-      const emailContent = this.generateWelcomeEmailHTML(data);
-      
-      // Call Supabase Edge Function for email sending
-      const { data: result, error } = await supabase.functions.invoke('send-welcome-email', {
+      // Call Supabase Edge Function for SendGrid email sending
+      const { data: result, error } = await supabase.functions.invoke('send-welcome-email-sendgrid', {
         body: {
           to: data.email,
           firstName: data.firstName,
           temporaryPassword: data.temporaryPassword,
-          loginUrl: data.loginUrl,
-          emailContent
+          loginUrl: data.loginUrl
         }
       });
 
       if (error) {
-        console.error('Error sending welcome email:', error);
-        
+        console.error('Error sending welcome email via SendGrid:', error);
+
         // For development, fall back to console logging
         if (process.env.NODE_ENV === 'development') {
-          console.log('=== WELCOME EMAIL (DEV MODE) ===');
+          console.log('=== WELCOME EMAIL (DEV MODE - SendGrid) ===');
           console.log(`To: ${data.email}`);
           console.log(`Subject: Welcome to Maigon - Your Login Credentials`);
           console.log(`Temporary Password: ${data.temporaryPassword}`);
           console.log(`Login URL: ${data.loginUrl}`);
-          console.log('================================');
-          
-          return { 
-            success: true, 
-            message: `Development mode: Credentials logged to console. Temporary password: ${data.temporaryPassword}` 
+          console.log(`Template: Welcome Template with Dynamic Data`);
+          console.log('==========================================');
+
+          return {
+            success: true,
+            message: `Development mode: Credentials logged to console. Temporary password: ${data.temporaryPassword}`
           };
         }
-        
+
         return { success: false, message: 'Failed to send welcome email. Please try again.' };
       }
 
-      return { success: true, message: 'Welcome email sent successfully!' };
+      return { success: true, message: 'Welcome email sent successfully via SendGrid!' };
     } catch (error: any) {
       console.error('Unexpected error sending email:', error);
       return { success: false, message: error.message || 'Failed to send welcome email.' };
