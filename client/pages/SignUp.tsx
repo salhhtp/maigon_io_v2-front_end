@@ -22,14 +22,62 @@ export default function SignUp() {
     hearAboutUs: ""
   });
 
+  const [isLoading, setIsLoading] = useState(false);
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  const { signUp } = useUser();
+  const navigate = useNavigate();
+
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+    // Clear any existing messages when user starts typing
+    if (message) setMessage(null);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle sign up logic here
-    console.log("Sign up attempt:", formData);
+    setIsLoading(true);
+    setMessage(null);
+
+    try {
+      const result = await signUp({
+        email: formData.businessEmail,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        company: formData.firstName, // You might want to add a company field
+        phone: formData.phoneNumber,
+        companySize: formData.companySize,
+        countryRegion: formData.countryRegion,
+        industry: formData.industry,
+        hearAboutUs: formData.hearAboutUs,
+      });
+
+      if (result.success) {
+        setMessage({ type: 'success', text: result.message });
+        // Reset form
+        setFormData({
+          firstName: "",
+          lastName: "",
+          businessEmail: "",
+          companySize: "",
+          countryRegion: "",
+          industry: "",
+          phoneNumber: "",
+          hearAboutUs: ""
+        });
+
+        // Redirect to sign in page after a delay
+        setTimeout(() => {
+          navigate('/signin');
+        }, 3000);
+      } else {
+        setMessage({ type: 'error', text: result.message });
+      }
+    } catch (error: any) {
+      setMessage({ type: 'error', text: error.message || 'An unexpected error occurred. Please try again.' });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
