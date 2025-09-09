@@ -42,7 +42,8 @@ import {
   Calculator,
 } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { DataService } from "@/services/dataService";
 import {
   Collapsible,
   CollapsibleContent,
@@ -1481,6 +1482,16 @@ export default function Dashboard() {
   const location = useLocation();
   const { user, isLoggedIn, logout } = useUser();
   const navigate = useNavigate();
+
+  // Track dashboard visit
+  useEffect(() => {
+    if (user && isLoggedIn) {
+      // Update last activity
+      DataService.userUsageStats.updateLastActivity(user.id).catch(error => {
+        console.error('Error updating last activity:', error);
+      });
+    }
+  }, [user, isLoggedIn]);
 
   const handleUserAdded = (userData: any) => {
     console.log("New user added:", userData);
