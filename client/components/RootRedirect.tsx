@@ -4,7 +4,7 @@ import { useUser } from "@/contexts/SupabaseUserContext";
 import Index from "@/pages/Index";
 
 const RootRedirect: React.FC = () => {
-  const { isLoggedIn, isLoading } = useUser();
+  const { user, isLoggedIn, isLoading } = useUser();
   const navigate = useNavigate();
 
   useEffect(() => {
