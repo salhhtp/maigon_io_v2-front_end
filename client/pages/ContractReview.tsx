@@ -3,7 +3,7 @@ import { ChevronDown, User, Download, ArrowLeft, Printer } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import Logo from "@/components/Logo";
 import MobileNavigation from "@/components/MobileNavigation";
-import { useUser } from "@/contexts/UserContext";
+import { useUser } from "@/contexts/SupabaseUserContext";
 import { Button } from "@/components/ui/button";
 
 export default function ContractReview() {
