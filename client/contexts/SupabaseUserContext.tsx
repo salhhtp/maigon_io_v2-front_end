@@ -76,6 +76,7 @@ interface UserContextType {
   signIn: (email: string, password: string) => Promise<{ success: boolean; message: string; user?: User }>;
   resetPassword: (email: string) => Promise<{ success: boolean; message: string }>;
   updatePassword: (newPassword: string) => Promise<{ success: boolean; message: string }>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<{ success: boolean; message: string }>;
 }
 
 export interface SignUpData {
