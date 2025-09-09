@@ -295,6 +295,30 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       setIsLoading(true);
 
+      // Mock user for testing purposes
+      if (email === 'mockuser@maigon.io' && password === 'MockPassword123!') {
+        const mockUser: User = {
+          id: 'mock-user-id',
+          name: 'Mock User',
+          email: 'mockuser@maigon.io',
+          company: 'Maigon Test',
+          phone: '+1234567890',
+          role: 'admin',
+          ...getDefaultUserData({
+            id: 'mock-user-id',
+            email: 'mockuser@maigon.io',
+            first_name: 'Mock',
+            last_name: 'User',
+            company: 'Maigon Test',
+            phone: '+1234567890',
+            role: 'admin',
+          } as UserProfile),
+        };
+
+        setUser(mockUser);
+        return { success: true, message: 'Mock user signed in successfully!', user: mockUser };
+      }
+
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
