@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 
 export default function Upload() {
   const { user } = useUser();
+  const { toast } = useToast();
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
@@ -160,7 +161,35 @@ export default function Upload() {
     }
   };
 
-  const handleSubmit = () => {
+  // Helper function to read file content
+  const readFileContent = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => resolve(e.target?.result as string);
+      reader.onerror = (e) => reject(e);
+      reader.readAsText(file);
+    });
+  };
+
+  // Helper function to determine review type from perspective
+  const getReviewTypeFromPerspective = (perspectiveValue: string): string => {
+    switch (perspectiveValue) {
+      case 'risk':
+        return 'risk_assessment';
+      case 'compliance':
+        return 'compliance_score';
+      case 'perspective':
+        return 'perspective_review';
+      case 'summary':
+        return 'full_summary';
+      case 'ai':
+        return 'ai_integration';
+      default:
+        return 'full_summary';
+    }
+  };
+
+  const handleSubmit = async () => {
     console.log(
       "Submit clicked. Selected file:",
       selectedFile?.name,
@@ -169,46 +198,101 @@ export default function Upload() {
     );
 
     if (!selectedFile) {
-      alert("Please select a file to upload.");
+      toast({
+        title: "No file selected",
+        description: "Please select a file to upload.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!user) {
+      toast({
+        title: "Authentication required",
+        description: "Please log in to upload contracts.",
+        variant: "destructive",
+      });
       return;
     }
 
     // Step 1: Submit Clicked → Smart Animate - Ease Out - 1500ms
     setIsSubmitting(true);
-    console.log("Starting submission process...");
+    console.log("Starting real contract processing...");
 
-    // Step 2: After Delay - 1ms → Smart Animate - Ease out 1500ms → Disappeared Upload Button
-    setTimeout(() => {
-      setUploadButtonHidden(true);
+    try {
+      // Step 2: After Delay - 1ms → Smart Animate - Ease out 1500ms → Disappeared Upload Button
+      setTimeout(() => {
+        setUploadButtonHidden(true);
+      }, 1);
 
       // Step 3: After Delay 1ms → Smart Animate - Ease in and out back → Loading Screen pops up
       setTimeout(() => {
         setShowLoadingTransition(true);
+      }, 2);
 
-        // Navigate to loading page after transition starts
-        setTimeout(() => {
-          console.log("Navigating to loading page with data:", {
-            selectedFile: selectedFile?.name,
-            solutionTitle,
-            perspective,
+      // Read file content
+      const fileContent = await readFileContent(selectedFile);
+
+      // Determine review type based on perspective
+      const reviewType = getReviewTypeFromPerspective(perspective);
+
+      // Show toast for processing start
+      toast({
+        title: "Processing contract",
+        description: "Your contract is being analyzed...",
+      });
+
+      // Process contract using real workflow
+      const result = await DataService.processContractWorkflow(
+        user.id,
+        {
+          title: selectedFile.name.replace(/\.[^/.]+$/, ""), // Remove file extension
+          content: fileContent,
+          file_name: selectedFile.name,
+          file_size: selectedFile.size,
+        },
+        reviewType
+      );
+
+      // Show success toast
+      toast({
+        title: "Contract processed successfully",
+        description: "Review completed. Redirecting to results...",
+      });
+
+      // Navigate to contract review with real data
+      setTimeout(() => {
+        console.log("Navigating to contract review with real data:", result);
+
+        try {
+          navigate("/contract-review", {
+            state: {
+              contract: result.contract,
+              review: result.review,
+              selectedFile: selectedFile,
+              solutionTitle: solutionTitle,
+              perspective: perspective,
+            },
           });
+        } catch (error) {
+          console.error("Navigation error:", error);
+          // Fallback: try direct navigation
+          navigate("/contract-review");
+        }
+      }, 500); // Give time for transition animation to start
 
-          try {
-            navigate("/loading", {
-              state: {
-                selectedFile: selectedFile,
-                solutionTitle: solutionTitle,
-                perspective: perspective,
-              },
-            });
-          } catch (error) {
-            console.error("Navigation error:", error);
-            // Fallback: try direct navigation without replace
-            window.location.href = "/loading";
-          }
-        }, 500); // Give time for transition animation to start
-      }, 1); // 1ms delay
-    }, 1501); // 1500ms + 1ms delay
+    } catch (error) {
+      console.error("Contract processing error:", error);
+      setIsSubmitting(false);
+      setUploadButtonHidden(false);
+      setShowLoadingTransition(false);
+
+      toast({
+        title: "Processing failed",
+        description: "There was an error processing your contract. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
