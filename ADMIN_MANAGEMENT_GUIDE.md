@@ -7,12 +7,14 @@ A Django-like admin user management system for creating admin users without goin
 ### 1. Deploy the Admin Management Function
 
 **Option A: Manual via Supabase Dashboard**
+
 1. Go to [Supabase Dashboard](https://supabase.com/dashboard) → Your project → Functions
 2. Click "Create Function" → Name: `admin-user-management`
 3. Copy the entire code from `supabase/functions/admin-user-management/index.ts`
 4. Click "Deploy"
 
 **Option B: CLI Deployment**
+
 ```bash
 npx supabase functions deploy admin-user-management --project-ref cqvufndxjakdbmbjhwlx
 ```
@@ -20,11 +22,13 @@ npx supabase functions deploy admin-user-management --project-ref cqvufndxjakdbm
 ### 2. Set Admin Management Key (Security)
 
 In Supabase Dashboard → Settings → Secrets:
+
 ```
 ADMIN_MANAGEMENT_KEY = your_secure_admin_key_here
 ```
 
 Or via CLI:
+
 ```bash
 npx supabase secrets set ADMIN_MANAGEMENT_KEY=your_secure_admin_key_here --project-ref cqvufndxjakdbmbjhwlx
 ```
@@ -32,6 +36,7 @@ npx supabase secrets set ADMIN_MANAGEMENT_KEY=your_secure_admin_key_here --proje
 ### 3. Update Environment Variable
 
 Add to your `.env` file:
+
 ```bash
 ADMIN_MANAGEMENT_KEY=your_secure_admin_key_here
 ```
@@ -49,6 +54,7 @@ node scripts/manage_admin.js create
 ```
 
 **Example:**
+
 ```
 🔧 Create Super Admin User
 ==============================
@@ -77,6 +83,7 @@ npm run admin:list
 ```
 
 **Example Output:**
+
 ```
 👥 Admin Users List
 ====================
@@ -134,12 +141,12 @@ When you create an admin user, the system automatically:
 
 ## 🆚 Django Comparison
 
-| Django | Maigon Admin Management |
-|--------|------------------------|
-| `python manage.py createsuperuser` | `npm run admin:create` |
-| Interactive prompts | Interactive prompts |
-| Database direct access | Supabase Edge Function |
-| Built-in command | Custom CLI script |
+| Django                             | Maigon Admin Management |
+| ---------------------------------- | ----------------------- |
+| `python manage.py createsuperuser` | `npm run admin:create`  |
+| Interactive prompts                | Interactive prompts     |
+| Database direct access             | Supabase Edge Function  |
+| Built-in command                   | Custom CLI script       |
 
 ## 🔧 Technical Details
 
@@ -168,18 +175,22 @@ Supabase Auth + Database
 ## 🚨 Troubleshooting
 
 ### "Invalid admin management key"
+
 - Make sure `ADMIN_MANAGEMENT_KEY` is set in both Supabase secrets and your `.env`
 - Keys must match exactly
 
 ### "Function not found"
+
 - Deploy the edge function first
 - Check function name is exactly `admin-user-management`
 
 ### "Failed to create auth user"
+
 - Check Supabase service role key permissions
 - Ensure email doesn't already exist
 
 ### "Permission denied"
+
 - Verify the admin management key
 - Check Supabase project access
 
@@ -188,6 +199,7 @@ Supabase Auth + Database
 Once deployed, you can create admin users instantly without going through the regular signup flow, just like Django's admin system!
 
 **Created admin users can immediately:**
+
 - ✅ Sign in to the application
 - ✅ Access admin dashboard
 - ✅ Create custom solutions
