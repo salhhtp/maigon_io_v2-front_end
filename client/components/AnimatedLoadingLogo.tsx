@@ -29,8 +29,14 @@ export const AnimatedLoadingLogo = ({
 
   return (
     <div className="relative w-full max-w-[534px] h-auto aspect-[534/140] mx-auto">
-      {/* Outlined Logo (Always visible) */}
-      <div className="absolute inset-0 flex items-center justify-center">
+       {/* Outlined Logo (visible only in unfilled area) */}
+      <div
+        className="absolute inset-0 flex items-center justify-center"
+        style={{
+          clipPath: `inset(0 0 ${progress}% 0)`,
+          transition: "clip-path 0.1s ease-out",
+        }}
+      >
         <svg
           width="534"
           height="140"

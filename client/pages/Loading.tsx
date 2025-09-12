@@ -229,10 +229,7 @@ export default function Loading() {
 
           {/* Animated Loading Logo */}
           <div className="w-full px-2.5 py-2.5">
-            <AnimatedLoadingLogo
-              duration={8000} // 8 seconds - good for demo while showing full animation
-              onComplete={handleLoadingComplete}
-            />
+             <AnimatedLoadingLogo onComplete={handleLoadingComplete} />
           </div>
 
           {/* Processing Info */}
