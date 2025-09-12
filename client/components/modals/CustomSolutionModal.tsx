@@ -1,4 +1,7 @@
-import { useState } from "react";
+import React, { useState } from "react";
+import { useUser } from "@/contexts/SupabaseUserContext";
+import { aiService, AIModel } from "@/services/aiService";
+import { toast } from "@/hooks/use-toast";
 import {
   Dialog,
   DialogContent,
@@ -27,6 +30,7 @@ import {
   Shield,
   Users,
   Database,
+  Loader2,
 } from "lucide-react";
 
 interface CustomSolutionModalProps {
@@ -44,360 +48,449 @@ export default function CustomSolutionModal({
     name: "",
     description: "",
     contractType: "",
-    complianceFramework: [],
-    riskLevel: "medium",
+    complianceFramework: [] as string[],
+    riskLevel: "medium" as "low" | "medium" | "high",
     customRules: "",
-    analysisDepth: "standard",
-    reportFormat: "detailed",
+    analysisDepth: "standard" as "basic" | "standard" | "comprehensive",
+    reportFormat: "detailed" as "summary" | "detailed" | "executive",
+    aiModel: "openai-gpt-4" as AIModel,
+    systemPrompt: "",
+    analysisPrompt: "",
+    riskPrompt: "",
+    compliancePrompt: "",
   });
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const complianceOptions = [
-    {
-      id: "gdpr",
-      label: "GDPR (General Data Protection Regulation)",
-      icon: Shield,
-    },
-    {
-      id: "ccpa",
-      label: "CCPA (California Consumer Privacy Act)",
-      icon: Shield,
-    },
-    { id: "hipaa", label: "HIPAA (Health Insurance Portability)", icon: Users },
-    { id: "sox", label: "SOX (Sarbanes-Oxley Act)", icon: FileText },
-    {
-      id: "iso27001",
-      label: "ISO 27001 (Information Security)",
-      icon: Database,
-    },
-    { id: "pci", label: "PCI DSS (Payment Card Industry)", icon: Settings },
-  ];
+  const [loading, setLoading] = useState(false);
+  const { user } = useUser();
 
-  const contractTypes = [
-    "Non-Disclosure Agreements",
-    "Data Processing Agreements",
-    "Consultancy Agreements",
-    "Privacy Policy Documents",
-    "Product Supply Agreements",
-    "R&D Agreements",
-    "End User License Agreements",
-  ];
+  const handleSubmit = async () => {
+    if (!formData.name || !formData.description || !formData.contractType) {
+      toast({
+        title: "Validation Error",
+        description: "Please fill in all required fields.",
+        variant: "destructive",
+      });
+      return;
+    }
 
-  const validateForm = () => {
-    const newErrors: Record<string, string> = {};
+    if (!user) {
+      toast({
+        title: "Authentication Error", 
+        description: "You must be logged in to create custom solutions.",
+        variant: "destructive",
+      });
+      return;
+    }
 
-    if (!formData.name.trim()) newErrors.name = "Solution name is required";
-    if (!formData.description.trim())
-      newErrors.description = "Description is required";
-    if (!formData.contractType)
-      newErrors.contractType = "Contract type is required";
-    if (formData.complianceFramework.length === 0)
-      newErrors.complianceFramework =
-        "Select at least one compliance framework";
+    setLoading(true);
 
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!validateForm()) return;
-
-    setIsSubmitting(true);
-
-    // Simulate API call
-    setTimeout(() => {
-      const solutionData = {
-        id: Date.now().toString(),
+    try {
+      // Prepare custom solution data
+      const customSolution = {
         name: formData.name,
         description: formData.description,
         contractType: formData.contractType,
-        complianceFramework: formData.complianceFramework,
+        complianceFramework: Array.isArray(formData.complianceFramework) 
+          ? formData.complianceFramework 
+          : [formData.complianceFramework].filter(Boolean),
         riskLevel: formData.riskLevel,
         customRules: formData.customRules,
         analysisDepth: formData.analysisDepth,
         reportFormat: formData.reportFormat,
-        status: "active",
-        dateCreated: new Date().toLocaleDateString(),
-        createdBy: "Current User",
+        aiModel: formData.aiModel,
+        prompts: {
+          systemPrompt: formData.systemPrompt || getDefaultSystemPrompt(formData.contractType),
+          analysisPrompt: formData.analysisPrompt || getDefaultAnalysisPrompt(formData.analysisDepth),
+          riskPrompt: formData.riskPrompt,
+          compliancePrompt: formData.compliancePrompt,
+        },
       };
 
-      setIsSubmitting(false);
-      onSuccess?.(solutionData);
-      onClose();
+      // Save to database
+      const solutionId = await aiService.saveCustomSolution(customSolution, user.id);
+      
+      const solutionData = {
+        id: solutionId,
+        ...customSolution,
+        createdAt: new Date().toISOString(),
+        isActive: true,
+      };
+
+      toast({
+        title: "Success",
+        description: "Custom solution created successfully!",
+      });
+
+      // Call success callback
+      if (onSuccess) {
+        onSuccess(solutionData);
+      }
 
       // Reset form
-      setFormData({
-        name: "",
-        description: "",
-        contractType: "",
-        complianceFramework: [],
-        riskLevel: "medium",
-        customRules: "",
-        analysisDepth: "standard",
-        reportFormat: "detailed",
+      resetForm();
+      onClose();
+    } catch (error) {
+      console.error("Error creating solution:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create custom solution. Please try again.",
+        variant: "destructive",
       });
-      setErrors({});
-    }, 2000);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resetForm = () => {
+    setFormData({
+      name: "",
+      description: "",
+      contractType: "",
+      complianceFramework: [],
+      riskLevel: "medium",
+      customRules: "",
+      analysisDepth: "standard",
+      reportFormat: "detailed",
+      aiModel: "openai-gpt-4",
+      systemPrompt: "",
+      analysisPrompt: "",
+      riskPrompt: "",
+      compliancePrompt: "",
+    });
+  };
+
+  const getDefaultSystemPrompt = (contractType: string): string => {
+    const prompts: Record<string, string> = {
+      'data-processing': 'You are a GDPR and data protection expert specializing in privacy law compliance.',
+      'employment': 'You are an employment law specialist focusing on HR compliance and worker rights.',
+      'commercial': 'You are a commercial contract expert with expertise in business law and risk assessment.',
+      'nda': 'You are a confidentiality and intellectual property expert specializing in NDAs.',
+      'service': 'You are a service agreement specialist focusing on operational and performance terms.',
+    };
+    return prompts[contractType] || 'You are an expert legal analyst specializing in contract review.';
+  };
+
+  const getDefaultAnalysisPrompt = (depth: string): string => {
+    const prompts: Record<string, string> = {
+      'basic': 'Provide a concise analysis focusing on the most critical terms and potential issues.',
+      'standard': 'Conduct a thorough analysis of key terms, risks, and compliance requirements.',
+      'comprehensive': 'Perform an exhaustive analysis covering all aspects including detailed risk assessment, compliance review, and strategic recommendations.',
+    };
+    return prompts[depth] || prompts.standard;
+  };
+
+  const handleComplianceFrameworkChange = (framework: string) => {
+    const current = Array.isArray(formData.complianceFramework)
+      ? formData.complianceFramework
+      : [];
+    
+    if (current.includes(framework)) {
+      setFormData({
+        ...formData,
+        complianceFramework: current.filter((f) => f !== framework),
+      });
+    } else {
+      setFormData({
+        ...formData,
+        complianceFramework: [...current, framework],
+      });
+    }
   };
 
   const handleInputChange = (field: string, value: any) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
-    if (errors[field]) {
-      setErrors((prev) => ({ ...prev, [field]: "" }));
-    }
-  };
-
-  const handleComplianceChange = (frameworkId: string, checked: boolean) => {
-    setFormData((prev) => ({
-      ...prev,
-      complianceFramework: checked
-        ? [...prev.complianceFramework, frameworkId]
-        : prev.complianceFramework.filter((id) => id !== frameworkId),
-    }));
-    if (errors.complianceFramework) {
-      setErrors((prev) => ({ ...prev, complianceFramework: "" }));
-    }
+    setFormData({
+      ...formData,
+      [field]: value,
+    });
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Plus className="w-5 h-5 text-[#9A7C7C]" />
+          <DialogTitle className="flex items-center gap-2 text-xl font-semibold text-[#271D1D]">
+            <Plus className="w-5 h-5" />
             Create Custom Solution
           </DialogTitle>
-          <DialogDescription>
-            Design a tailored contract analysis solution for your specific needs
-            and compliance requirements.
+          <DialogDescription className="text-[#271D1D]/70">
+            Design a custom AI-powered contract analysis solution tailored to your specific needs and compliance requirements.
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="space-y-6">
           {/* Basic Information */}
           <div className="space-y-4">
-            <h3 className="text-base font-medium text-[#271D1D]">
+            <h3 className="font-medium text-[#271D1D] flex items-center gap-2">
+              <FileText className="w-4 h-4" />
               Basic Information
             </h3>
 
-            <div className="space-y-2">
-              <Label htmlFor="name">Solution Name</Label>
-              <Input
-                id="name"
-                placeholder="Custom GDPR Analysis for SaaS Contracts"
-                value={formData.name}
-                onChange={(e) => handleInputChange("name", e.target.value)}
-              />
-              {errors.name && (
-                <p className="text-red-500 text-xs">{errors.name}</p>
-              )}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="name" className="text-sm font-medium text-[#271D1D]">
+                  Solution Name *
+                </Label>
+                <Input
+                  id="name"
+                  placeholder="e.g., GDPR Data Processing Review"
+                  value={formData.name}
+                  onChange={(e) => handleInputChange('name', e.target.value)}
+                  className="border-[#271D1D]/20"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="contractType" className="text-sm font-medium text-[#271D1D]">
+                  Contract Type *
+                </Label>
+                <Select value={formData.contractType} onValueChange={(value) => handleInputChange('contractType', value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select contract type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="data-processing">Data Processing Agreement</SelectItem>
+                    <SelectItem value="employment">Employment Contract</SelectItem>
+                    <SelectItem value="commercial">Commercial Agreement</SelectItem>
+                    <SelectItem value="nda">Non-Disclosure Agreement</SelectItem>
+                    <SelectItem value="service">Service Agreement</SelectItem>
+                    <SelectItem value="supply">Supply Agreement</SelectItem>
+                    <SelectItem value="license">License Agreement</SelectItem>
+                    <SelectItem value="general">General Contract</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
+              <Label htmlFor="description" className="text-sm font-medium text-[#271D1D]">
+                Description *
+              </Label>
               <Textarea
                 id="description"
-                placeholder="Describe what this solution will analyze and its specific use case..."
+                placeholder="Describe what this solution analyzes and its specific focus areas..."
                 value={formData.description}
-                onChange={(e) =>
-                  handleInputChange("description", e.target.value)
-                }
+                onChange={(e) => handleInputChange('description', e.target.value)}
+                className="border-[#271D1D]/20"
                 rows={3}
               />
-              {errors.description && (
-                <p className="text-red-500 text-xs">{errors.description}</p>
-              )}
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="contractType">Primary Contract Type</Label>
-              <Select
-                value={formData.contractType}
-                onValueChange={(value) =>
-                  handleInputChange("contractType", value)
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select contract type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {contractTypes.map((type) => (
-                    <SelectItem key={type} value={type}>
-                      {type}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {errors.contractType && (
-                <p className="text-red-500 text-xs">{errors.contractType}</p>
-              )}
-            </div>
-          </div>
-
-          {/* Compliance Frameworks */}
-          <div className="space-y-4">
-            <h3 className="text-base font-medium text-[#271D1D]">
-              Compliance Frameworks
-            </h3>
-            <p className="text-sm text-gray-600">
-              Select the compliance standards this solution should check
-              against:
-            </p>
-
-            <div className="grid grid-cols-1 gap-3">
-              {complianceOptions.map((option) => {
-                const IconComponent = option.icon;
-                return (
-                  <div
-                    key={option.id}
-                    className="flex items-center space-x-3 p-3 rounded-lg border border-gray-200 hover:bg-gray-50"
-                  >
-                    <Checkbox
-                      id={option.id}
-                      checked={formData.complianceFramework.includes(option.id)}
-                      onCheckedChange={(checked) =>
-                        handleComplianceChange(option.id, checked as boolean)
-                      }
-                    />
-                    <IconComponent className="w-4 h-4 text-[#9A7C7C]" />
-                    <Label
-                      htmlFor={option.id}
-                      className="text-sm font-medium cursor-pointer flex-1"
-                    >
-                      {option.label}
-                    </Label>
-                  </div>
-                );
-              })}
-            </div>
-            {errors.complianceFramework && (
-              <p className="text-red-500 text-xs">
-                {errors.complianceFramework}
-              </p>
-            )}
           </div>
 
           {/* Analysis Configuration */}
           <div className="space-y-4">
-            <h3 className="text-base font-medium text-[#271D1D]">
+            <h3 className="font-medium text-[#271D1D] flex items-center gap-2">
+              <Settings className="w-4 h-4" />
               Analysis Configuration
             </h3>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="riskLevel">Risk Assessment Level</Label>
-                <Select
-                  value={formData.riskLevel}
-                  onValueChange={(value) =>
-                    handleInputChange("riskLevel", value)
-                  }
-                >
+                <Label className="text-sm font-medium text-[#271D1D] flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4" />
+                  Risk Level
+                </Label>
+                <Select value={formData.riskLevel} onValueChange={(value) => handleInputChange('riskLevel', value)}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="conservative">
-                      Conservative (Strict)
-                    </SelectItem>
-                    <SelectItem value="medium">Balanced (Standard)</SelectItem>
-                    <SelectItem value="lenient">Lenient (Flexible)</SelectItem>
+                    <SelectItem value="low">Low Risk Focus</SelectItem>
+                    <SelectItem value="medium">Medium Risk Focus</SelectItem>
+                    <SelectItem value="high">High Risk Focus</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="analysisDepth">Analysis Depth</Label>
-                <Select
-                  value={formData.analysisDepth}
-                  onValueChange={(value) =>
-                    handleInputChange("analysisDepth", value)
-                  }
-                >
+                <Label className="text-sm font-medium text-[#271D1D] flex items-center gap-2">
+                  <Users className="w-4 h-4" />
+                  Analysis Depth
+                </Label>
+                <Select value={formData.analysisDepth} onValueChange={(value) => handleInputChange('analysisDepth', value)}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="quick">Quick Scan</SelectItem>
+                    <SelectItem value="basic">Basic Analysis</SelectItem>
                     <SelectItem value="standard">Standard Analysis</SelectItem>
-                    <SelectItem value="deep">Deep Analysis</SelectItem>
+                    <SelectItem value="comprehensive">Comprehensive Analysis</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-[#271D1D] flex items-center gap-2">
+                  <FileText className="w-4 h-4" />
+                  Report Format
+                </Label>
+                <Select value={formData.reportFormat} onValueChange={(value) => handleInputChange('reportFormat', value)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="summary">Summary Report</SelectItem>
+                    <SelectItem value="detailed">Detailed Report</SelectItem>
+                    <SelectItem value="executive">Executive Summary</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
 
+            {/* AI Model Selection */}
             <div className="space-y-2">
-              <Label htmlFor="reportFormat">Report Format</Label>
-              <Select
-                value={formData.reportFormat}
-                onValueChange={(value) =>
-                  handleInputChange("reportFormat", value)
-                }
-              >
+              <Label className="text-sm font-medium text-[#271D1D] flex items-center gap-2">
+                <Database className="w-4 h-4" />
+                AI Model
+              </Label>
+              <Select value={formData.aiModel} onValueChange={(value) => handleInputChange('aiModel', value)}>
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder="Select AI model" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="summary">Executive Summary</SelectItem>
-                  <SelectItem value="detailed">Detailed Report</SelectItem>
-                  <SelectItem value="technical">Technical Analysis</SelectItem>
-                  <SelectItem value="custom">Custom Format</SelectItem>
+                  <SelectItem value="openai-gpt-4">OpenAI GPT-4 (Recommended)</SelectItem>
+                  <SelectItem value="openai-gpt-3.5-turbo">OpenAI GPT-3.5 Turbo</SelectItem>
+                  <SelectItem value="anthropic-claude-3">Anthropic Claude 3</SelectItem>
+                  <SelectItem value="google-gemini-pro">Google Gemini Pro</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
 
-          {/* Custom Rules */}
+          {/* Compliance Framework */}
           <div className="space-y-4">
-            <h3 className="text-base font-medium text-[#271D1D]">
-              Custom Rules (Optional)
+            <h3 className="font-medium text-[#271D1D] flex items-center gap-2">
+              <Shield className="w-4 h-4" />
+              Compliance Framework
             </h3>
-            <div className="space-y-2">
-              <Label htmlFor="customRules">Additional Analysis Rules</Label>
-              <Textarea
-                id="customRules"
-                placeholder="Define any specific clauses, terms, or conditions this solution should look for..."
-                value={formData.customRules}
-                onChange={(e) =>
-                  handleInputChange("customRules", e.target.value)
-                }
-                rows={4}
-              />
-              <p className="text-xs text-gray-500">
-                <AlertCircle className="inline w-3 h-3 mr-1" />
-                These rules will be processed by our AI engine to create custom
-                analysis patterns.
-              </p>
+
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              {[
+                "GDPR",
+                "Data Protection",
+                "Financial Regulations",
+                "Employment Law",
+                "Commercial Law",
+                "Industry Standards",
+                "Privacy Laws",
+                "Contract Law",
+                "Intellectual Property",
+              ].map((framework) => (
+                <div key={framework} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={framework}
+                    checked={formData.complianceFramework.includes(framework.toLowerCase().replace(" ", "-"))}
+                    onCheckedChange={() => handleComplianceFrameworkChange(framework.toLowerCase().replace(" ", "-"))}
+                  />
+                  <Label htmlFor={framework} className="text-sm text-[#271D1D]">
+                    {framework}
+                  </Label>
+                </div>
+              ))}
             </div>
           </div>
 
-          <DialogFooter className="gap-2 pt-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onClose}
-              disabled={isSubmitting}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              disabled={isSubmitting}
-              className="bg-[#9A7C7C] hover:bg-[#725A5A]"
-            >
-              {isSubmitting ? (
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Creating Solution...
+          {/* Custom Rules */}
+          <div className="space-y-2">
+            <Label htmlFor="customRules" className="text-sm font-medium text-[#271D1D]">
+              Custom Analysis Rules
+            </Label>
+            <Textarea
+              id="customRules"
+              placeholder="Define specific rules, focus areas, or requirements for the AI analysis. These rules will be processed by our AI engine to customize the review process..."
+              value={formData.customRules}
+              onChange={(e) => handleInputChange('customRules', e.target.value)}
+              className="border-[#271D1D]/20"
+              rows={4}
+            />
+            <p className="text-xs text-[#271D1D]/60">
+              Example: "Focus on intellectual property clauses, prioritize data retention periods, flag any unusual termination conditions"
+            </p>
+          </div>
+
+          {/* Advanced AI Configuration */}
+          <div className="space-y-4 pt-4 border-t">
+            <h4 className="font-medium text-[#271D1D] flex items-center gap-2">
+              <Settings className="w-4 h-4" />
+              Advanced AI Configuration (Optional)
+            </h4>
+            
+            <div className="space-y-3">
+              <div>
+                <Label className="text-sm font-medium text-[#271D1D]">System Prompt</Label>
+                <Textarea
+                  placeholder="Define the AI's role and expertise (e.g., 'You are a GDPR compliance expert...')"
+                  value={formData.systemPrompt}
+                  onChange={(e) => handleInputChange('systemPrompt', e.target.value)}
+                  className="mt-1"
+                  rows={2}
+                />
+              </div>
+              
+              <div>
+                <Label className="text-sm font-medium text-[#271D1D]">Analysis Instructions</Label>
+                <Textarea
+                  placeholder="Specific instructions for contract analysis"
+                  value={formData.analysisPrompt}
+                  onChange={(e) => handleInputChange('analysisPrompt', e.target.value)}
+                  className="mt-1"
+                  rows={2}
+                />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-sm font-medium text-[#271D1D]">Risk Assessment Focus</Label>
+                  <Textarea
+                    placeholder="Specific risk analysis instructions"
+                    value={formData.riskPrompt}
+                    onChange={(e) => handleInputChange('riskPrompt', e.target.value)}
+                    className="mt-1"
+                    rows={2}
+                  />
                 </div>
-              ) : (
-                "Create Solution"
-              )}
-            </Button>
-          </DialogFooter>
-        </form>
+                
+                <div>
+                  <Label className="text-sm font-medium text-[#271D1D]">Compliance Focus</Label>
+                  <Textarea
+                    placeholder="Compliance-specific analysis instructions"
+                    value={formData.compliancePrompt}
+                    onChange={(e) => handleInputChange('compliancePrompt', e.target.value)}
+                    className="mt-1"
+                    rows={2}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button
+            variant="outline"
+            onClick={onClose}
+            disabled={loading}
+            className="border-[#271D1D]/20 text-[#271D1D]"
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleSubmit}
+            disabled={loading}
+            className="bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Creating...
+              </>
+            ) : (
+              <>
+                <Plus className="w-4 h-4 mr-2" />
+                Create Solution
+              </>
+            )}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
