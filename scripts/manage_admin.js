@@ -15,6 +15,10 @@
 import readline from "readline";
 import https from "https";
 import process from "process";
+import { config } from "dotenv";
+
+// Load environment variables from .env file
+config();
 
 // Configuration
 const SUPABASE_URL =
