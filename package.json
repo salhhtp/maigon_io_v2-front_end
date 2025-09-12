@@ -18,7 +18,11 @@
     "start": "node dist/server/node-build.mjs",
     "test": "vitest --run",
     "format.fix": "prettier --write .",
-    "typecheck": "tsc"
+    "typecheck": "tsc",
+    "admin:create": "node scripts/manage_admin.js create",
+    "admin:list": "node scripts/manage_admin.js list",
+    "admin:delete": "node scripts/manage_admin.js delete",
+    "admin:help": "node scripts/manage_admin.js help"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.3",
