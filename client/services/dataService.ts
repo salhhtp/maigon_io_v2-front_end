@@ -96,8 +96,8 @@ export class DataService {
       // 3. Update contract status to reviewing
       await ContractsService.updateContractStatus(contract.id, 'reviewing');
 
-      // 4. Simulate review process (in real implementation, this would trigger AI processing)
-      const reviewResults = await this.simulateReviewProcess(reviewType);
+      // 4. Process with AI analysis
+      const reviewResults = await this.processWithAI(contractData, reviewType, contractData.custom_solution_id);
 
       // 5. Create review record
       const review = await ContractReviewsService.createReview({
