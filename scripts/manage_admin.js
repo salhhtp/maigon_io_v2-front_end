@@ -25,6 +25,15 @@ const SUPABASE_URL =
   process.env.VITE_SUPABASE_URL || "https://cqvufndxjakdbmbjhwlx.supabase.co";
 const ADMIN_KEY = process.env.ADMIN_MANAGEMENT_KEY || "admin_key_2024";
 
+// Debug environment variables (only show if explicitly requested)
+if (process.argv.includes('--debug')) {
+  console.log('🔍 Environment Debug:');
+  console.log('   SUPABASE_URL:', SUPABASE_URL);
+  console.log('   ADMIN_KEY:', ADMIN_KEY ? 'Set' : 'Missing');
+  console.log('   SUPABASE_ANON_KEY:', process.env.VITE_SUPABASE_ANON_KEY ? 'Set' : 'Missing');
+  console.log('');
+}
+
 const rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout,
