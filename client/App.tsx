@@ -8,6 +8,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createBrowserRouter, RouterProvider, Outlet } from "react-router-dom";
 import { UserProvider } from "@/contexts/SupabaseUserContext";
 import ScrollToTop from "@/components/ScrollToTop";
+import ErrorBoundary from "@/components/ErrorBoundary";
+import logger from "@/utils/logger";
+import performanceMonitor from "@/utils/performance";
 import Index from "./pages/Index";
 import RootRedirect from "@/components/RootRedirect";
 import UserHome from "./pages/UserHome";
@@ -47,12 +50,41 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-const Layout = () => (
-  <>
-    <ScrollToTop />
-    <Outlet />
-  </>
-);
+const Layout = () => {
+  // Initialize performance monitoring on app start
+  React.useEffect(() => {
+    logger.info('Application started', {
+      version: '2.0.0',
+      environment: import.meta.env.MODE,
+      timestamp: new Date().toISOString()
+    });
+
+    performanceMonitor.initializeMonitoring();
+
+    // Performance monitoring
+    const startTime = performance.now();
+    const handleLoad = () => {
+      const loadTime = performance.now() - startTime;
+      logger.performance('App initial load', loadTime, {
+        url: window.location.href
+      });
+    };
+
+    if (document.readyState === 'complete') {
+      handleLoad();
+    } else {
+      window.addEventListener('load', handleLoad);
+      return () => window.removeEventListener('load', handleLoad);
+    }
+  }, []);
+
+  return (
+    <>
+      <ScrollToTop />
+      <Outlet />
+    </>
+  );
+};
 
 const router = createBrowserRouter([
   {
@@ -204,15 +236,17 @@ const router = createBrowserRouter([
 ]);
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <UserProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <RouterProvider router={router} />
-      </TooltipProvider>
-    </UserProvider>
-  </QueryClientProvider>
+  <ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <UserProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <RouterProvider router={router} />
+        </TooltipProvider>
+      </UserProvider>
+    </QueryClientProvider>
+  </ErrorBoundary>
 );
 
 const container = document.getElementById("root")!;
