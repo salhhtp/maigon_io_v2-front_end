@@ -275,11 +275,36 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
         console.log('Auth state changed:', event, session?.user?.email);
         clearTimeout(timeoutId); // Clear timeout when auth state changes
+
+        // Handle sign out events immediately
+        if (event === 'SIGNED_OUT' || !session) {
+          console.log('User signed out, clearing state');
+          setSession(null);
+          setUser(null);
+          setIsLoading(false);
+          return;
+        }
+
         setSession(session);
 
         if (session?.user) {
-          const userProfile = await loadUserProfile(session.user.id);
-          setUser(userProfile);
+          try {
+            const userProfile = await loadUserProfile(session.user.id);
+            if (userProfile) {
+              setUser(userProfile);
+              console.log('User profile set successfully');
+            } else {
+              console.warn('Failed to load user profile, clearing session');
+              // If profile loading failed, clear the session state
+              setSession(null);
+              setUser(null);
+            }
+          } catch (error) {
+            console.error('Error in auth state change handler:', error);
+            // Clear state on any error
+            setSession(null);
+            setUser(null);
+          }
         } else {
           setUser(null);
         }
