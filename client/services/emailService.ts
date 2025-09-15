@@ -32,7 +32,8 @@ export class EmailService {
       });
 
       if (error) {
-        console.error('Error sending welcome email via SendGrid:', error);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error('Error sending welcome email via SendGrid:', errorMessage);
 
         // For development, fall back to console logging
         if (process.env.NODE_ENV === 'development') {
@@ -55,8 +56,9 @@ export class EmailService {
 
       return { success: true, message: 'Welcome email sent successfully via SendGrid!' };
     } catch (error: any) {
-      console.error('Unexpected error sending email:', error);
-      return { success: false, message: error.message || 'Failed to send welcome email.' };
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('Unexpected error sending email:', errorMessage);
+      return { success: false, message: errorMessage || 'Failed to send welcome email.' };
     }
   }
 

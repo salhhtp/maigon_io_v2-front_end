@@ -1488,7 +1488,8 @@ export default function Dashboard() {
     if (user && isLoggedIn) {
       // Update last activity
       DataService.userUsageStats.updateLastActivity(user.id).catch(error => {
-        console.error('Error updating last activity:', error);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error('Error updating last activity:', errorMessage);
       });
     }
   }, [user, isLoggedIn]);

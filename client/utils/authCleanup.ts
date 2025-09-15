@@ -19,7 +19,8 @@ export const clearAuthData = () => {
     
     console.log("Auth data cleared successfully");
   } catch (error) {
-    console.warn("Could not clear auth data:", error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.warn("Could not clear auth data:", errorMessage);
   }
 };
 
