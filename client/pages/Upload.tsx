@@ -295,14 +295,28 @@ export default function Upload() {
 
     } catch (error) {
       console.error("Contract processing error:", error);
+
+      // Reset UI state
       setIsSubmitting(false);
       setUploadButtonHidden(false);
       setShowLoadingTransition(false);
 
+      // Show detailed error message
+      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+
       toast({
         title: "Processing failed",
-        description: "There was an error processing your contract. Please try again.",
+        description: `There was an error processing your contract: ${errorMessage}. Please try again or contact support if the issue persists.`,
         variant: "destructive",
+      });
+
+      // Log detailed error for debugging
+      console.error("Detailed error info:", {
+        error,
+        fileName: selectedFile?.name,
+        fileSize: selectedFile?.size,
+        perspective,
+        userId: user?.id
       });
     }
   };
