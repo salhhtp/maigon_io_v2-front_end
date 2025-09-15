@@ -85,7 +85,11 @@ export class ContractClassificationService {
         if (timeoutError.name === 'AbortError') {
           console.warn('⚠️ Classification timed out, using fallback');
         } else {
-          console.warn('⚠️ Classification request failed, using fallback:', timeoutError);
+          const timeoutErrorMessage = timeoutError instanceof Error ? timeoutError.message : String(timeoutError);
+          console.warn('⚠️ Classification request failed, using fallback:', {
+            error: timeoutErrorMessage,
+            type: timeoutError instanceof Error ? timeoutError.name : typeof timeoutError
+          });
         }
         return this.fallbackClassification(content, fileName);
       }
@@ -93,7 +97,13 @@ export class ContractClassificationService {
       return classificationResult;
 
     } catch (error) {
-      console.warn('⚠️ Classification error, using fallback:', error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.warn('⚠️ Classification error, using fallback:', {
+        error: errorMessage,
+        type: error instanceof Error ? error.name : typeof error,
+        fileName: fileName || 'unknown',
+        contentLength: content.length
+      });
       return this.fallbackClassification(content, fileName);
     }
   }

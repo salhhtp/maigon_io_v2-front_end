@@ -514,7 +514,12 @@ export default function Upload() {
       }, 2500); // Longer delay to show classification
 
     } catch (error) {
-      console.error("❌ Contract processing error:", error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error("❌ Contract processing error:", {
+        message: errorMessage,
+        stack: error instanceof Error ? error.stack : undefined,
+        type: error instanceof Error ? error.name : typeof error
+      });
 
       // Reset UI state immediately to prevent stuck state
       setIsSubmitting(false);

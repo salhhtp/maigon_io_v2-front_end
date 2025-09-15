@@ -182,11 +182,14 @@ class AIService {
 
       } catch (error) {
         lastError = error instanceof Error ? error : new Error('Unknown error');
+        const errorMessage = error instanceof Error ? error.message : String(error);
         logger.error(`AI analysis attempt ${attempt} failed`, {
           reviewType: request.reviewType,
           userId: request.userId,
-          error: lastError.message,
-          attempt
+          error: errorMessage,
+          errorType: error instanceof Error ? error.name : typeof error,
+          attempt,
+          timestamp: new Date().toISOString()
         });
 
         // If this isn't the last attempt, wait before retrying
@@ -198,8 +201,18 @@ class AIService {
       }
     }
 
-    // All retries failed
-    throw new Error(`Contract analysis failed after ${maxRetries} attempts: ${lastError?.message || 'Unknown error'}`);
+    // All retries failed - provide detailed error message
+    const finalErrorMessage = lastError?.message || 'Unknown error occurred';
+    const errorDetails = {
+      attempts: maxRetries,
+      reviewType: request.reviewType,
+      userId: request.userId,
+      lastError: finalErrorMessage,
+      timestamp: new Date().toISOString()
+    };
+
+    console.error('❌ All AI analysis attempts failed:', errorDetails);
+    throw new Error(`Contract analysis failed after ${maxRetries} attempts: ${finalErrorMessage}`);
   }
 
   // Call AI service with enhanced error handling and validation
@@ -294,10 +307,21 @@ class AIService {
       }
 
     } catch (error) {
-      console.error('❌ AI service call failed:', error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorDetails = {
+        message: errorMessage,
+        type: error instanceof Error ? error.name : typeof error,
+        stack: error instanceof Error ? error.stack : undefined,
+        model,
+        reviewType: request.reviewType,
+        contractType: request.contractType,
+        contentLength: request.content.length,
+        timestamp: new Date().toISOString()
+      };
+
+      console.error('❌ AI service call failed:', errorDetails);
 
       // Enhanced error context
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       const enhancedMessage = `AI service call failed: ${errorMessage}. Model: ${model}, Review Type: ${request.reviewType}`;
 
       throw new Error(enhancedMessage);

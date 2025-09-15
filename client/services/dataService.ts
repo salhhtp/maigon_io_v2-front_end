@@ -220,21 +220,44 @@ export class DataService {
       };
 
     } catch (error) {
-      console.error('❌ Contract processing workflow failed:', error);
-      
-      // Track the failure
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorDetails = {
+        message: errorMessage,
+        stack: error instanceof Error ? error.stack : undefined,
+        name: error instanceof Error ? error.name : 'UnknownError',
+        userId,
+        reviewType,
+        timestamp: new Date().toISOString()
+      };
+
+      console.error('❌ Contract processing workflow failed:', {
+        error: errorMessage,
+        details: errorDetails
+      });
+
+      // Track the failure with proper error serialization
       try {
         await UserActivitiesService.trackActivity({
           user_id: userId,
           activity_type: 'contract_processing_error',
-          description: `Contract processing failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-          metadata: { error: error instanceof Error ? error.message : 'Unknown error' }
+          description: `Contract processing failed: ${errorMessage}`,
+          metadata: {
+            error: errorMessage,
+            errorType: error instanceof Error ? error.name : typeof error,
+            reviewType: reviewType,
+            timestamp: new Date().toISOString()
+          }
         });
       } catch (trackError) {
-        console.error('Failed to track processing error:', trackError);
+        const trackErrorMessage = trackError instanceof Error ? trackError.message : String(trackError);
+        console.error('Failed to track processing error:', {
+          trackingError: trackErrorMessage,
+          originalError: errorMessage
+        });
       }
 
-      throw error;
+      // Re-throw with proper error message
+      throw new Error(`Contract processing failed: ${errorMessage}`);
     }
   }
 
@@ -283,17 +306,21 @@ export class DataService {
     } catch (error) {
       console.error('❌ AI analysis failed:', error);
 
-      // Log detailed error information
+      // Log detailed error information with proper serialization
+      const errorMessage = error instanceof Error ? error.message : String(error);
       console.error('AI analysis error details:', {
-        errorMessage: error instanceof Error ? error.message : 'Unknown error',
+        errorMessage: errorMessage,
+        errorType: error instanceof Error ? error.name : typeof error,
         errorStack: error instanceof Error ? error.stack : undefined,
         reviewType,
         contentLength: contractData.content?.length,
-        userId: contractData.user_id
+        userId: contractData.user_id,
+        contractType: contractData.contract_type,
+        timestamp: new Date().toISOString()
       });
 
-      // Re-throw error for production - no mock fallbacks
-      throw new Error(`AI contract analysis failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      // Re-throw error with proper message
+      throw new Error(`AI contract analysis failed: ${errorMessage}`);
     }
   }
 
