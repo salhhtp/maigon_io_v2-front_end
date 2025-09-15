@@ -151,6 +151,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(false); // Start in clean state, not loading
+  const [isInitializing, setIsInitializing] = useState(true); // Flag to prevent auto-auth during init
 
   // Convert UserProfile to User format
   const convertProfileToUser = (profile: UserProfile, authUser?: SupabaseUser): User => {
@@ -221,7 +222,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  // Initialize auth state - truly clean slate approach
+  // Initialize auth state - completely passive approach
   useEffect(() => {
     let mounted = true;
 
@@ -241,6 +242,8 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
         if (isAuthCallback) {
           console.log('🔗 Auth callback detected, preserving session');
+          setIsInitializing(false); // Allow auth state changes for callbacks
+
           // For auth callbacks, check for session normally
           const { data: { session }, error } = await supabase.auth.getSession();
 
@@ -259,30 +262,38 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             }
           }
         } else {
-          // For normal app visits, start with completely clean slate
-          console.log('🧡 Starting fresh - clearing any stale authentication');
+          // For normal app visits, aggressively clear everything and stay clean
+          console.log('🤽 Complete authentication cleanup and blocking auto-restore');
 
-          // Clear any existing sessions to ensure clean state
-          await supabase.auth.signOut({ scope: 'local' });
-
-          // Clear browser storage of auth tokens
+          // AGGRESSIVE cleanup - clear everything first
           Object.keys(localStorage).forEach(key => {
-            if (key.includes('supabase') || key.includes('sb-') || key.includes('maigon_current_user')) {
+            if (key.includes('supabase') || key.includes('sb-') || key.includes('maigon_current_user') || key.includes('auth')) {
               localStorage.removeItem(key);
             }
           });
 
           Object.keys(sessionStorage).forEach(key => {
-            if (key.includes('supabase') || key.includes('sb-') || key.includes('maigon_current_user')) {
+            if (key.includes('supabase') || key.includes('sb-') || key.includes('maigon_current_user') || key.includes('auth')) {
               sessionStorage.removeItem(key);
             }
           });
 
-          // Clear any demo authentication data
+          // Clear demo authentication specifically
           localStorage.removeItem('maigon_current_user');
           sessionStorage.removeItem('maigon_current_user');
 
-          console.log('🏠 Clean public state initialized');
+          // DO NOT call supabase.auth.signOut() or getSession() - this triggers unwanted events
+          // Just ensure clean state without interacting with Supabase auth
+
+          console.log('🏠 Clean public state initialized - auth completely disabled');
+
+          // Keep initialization flag true to block any auth state changes
+          setTimeout(() => {
+            if (mounted) {
+              setIsInitializing(false);
+              console.log('🔓 Auth state monitoring enabled (manual sign-in only)');
+            }
+          }, 1000); // Delay enabling auth state monitoring
         }
 
         if (mounted) {
@@ -294,6 +305,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           setSession(null);
           setUser(null);
           setIsLoading(false);
+          setIsInitializing(false);
         }
       }
     };
@@ -304,6 +316,12 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!mounted) return;
+
+        // BLOCK all auth state changes during initialization to prevent auto-login
+        if (isInitializing) {
+          console.log(`🚫 Blocked auth event during initialization: ${event}`);
+          return;
+        }
 
         // Only log and handle explicit authentication events
         if (event === 'SIGNED_IN') {
@@ -338,7 +356,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
           // Ensure complete cleanup
           Object.keys(localStorage).forEach(key => {
-            if (key.includes('supabase') || key.includes('sb-')) {
+            if (key.includes('supabase') || key.includes('sb-') || key.includes('maigon_current_user')) {
               localStorage.removeItem(key);
             }
           });
@@ -691,7 +709,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       console.log('✅ [DEBUG] Complete auth state cleared successfully');
     } catch (error) {
-      console.error('❌ [DEBUG] Error clearing auth state:', error);
+      console.error('��� [DEBUG] Error clearing auth state:', error);
     }
   };
 
