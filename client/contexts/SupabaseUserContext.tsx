@@ -221,57 +221,71 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  // Initialize auth state - passive approach
+  // Initialize auth state - truly clean slate approach
   useEffect(() => {
     let mounted = true;
 
     const initializeAuth = async () => {
       try {
-        console.log('🔍 Checking for existing auth session (passive)...');
+        // Check if this is a special auth callback (email verification, password reset, etc.)
+        const urlParams = new URLSearchParams(window.location.search);
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
 
-        // Passively check for existing session without manipulating it
-        const { data: { session }, error } = await supabase.auth.getSession();
+        const isAuthCallback =
+          urlParams.get('access_token') ||
+          hashParams.get('access_token') ||
+          urlParams.get('type') ||
+          hashParams.get('type') ||
+          window.location.pathname.includes('email-verification') ||
+          window.location.pathname.includes('reset-password');
 
-        if (error) {
-          console.warn('Session check error (non-critical):', error.message);
-          if (mounted) {
-            setSession(null);
-            setUser(null);
-            setIsLoading(false);
-          }
-          return;
-        }
+        if (isAuthCallback) {
+          console.log('🔗 Auth callback detected, preserving session');
+          // For auth callbacks, check for session normally
+          const { data: { session }, error } = await supabase.auth.getSession();
 
-        if (mounted) {
-          if (session?.user) {
-            console.log('✅ Found existing valid session for:', session.user.email);
+          if (session?.user && !error) {
+            console.log('✅ Valid auth callback session found');
             setSession(session);
 
-            // Load user profile for existing session
             try {
               const userProfile = await loadUserProfile(session.user.id);
               if (userProfile) {
                 setUser(userProfile);
-                console.log('✅ User profile loaded successfully');
-              } else {
-                console.warn('⚠️ Failed to load profile, clearing session');
-                setSession(null);
-                setUser(null);
+                console.log('✅ User profile loaded from callback');
               }
             } catch (profileError) {
-              console.warn('⚠️ Profile loading error, clearing session:', profileError);
-              setSession(null);
-              setUser(null);
+              console.warn('⚠️ Profile loading failed in callback:', profileError);
             }
-          } else {
-            console.log('🏠 No existing session - starting in clean public state');
-            setSession(null);
-            setUser(null);
           }
+        } else {
+          // For normal app visits, start with completely clean slate
+          console.log('🧡 Starting fresh - clearing any stale authentication');
+
+          // Clear any existing sessions to ensure clean state
+          await supabase.auth.signOut({ scope: 'local' });
+
+          // Clear browser storage of auth tokens
+          Object.keys(localStorage).forEach(key => {
+            if (key.includes('supabase') || key.includes('sb-')) {
+              localStorage.removeItem(key);
+            }
+          });
+
+          Object.keys(sessionStorage).forEach(key => {
+            if (key.includes('supabase') || key.includes('sb-')) {
+              sessionStorage.removeItem(key);
+            }
+          });
+
+          console.log('🏠 Clean public state initialized');
+        }
+
+        if (mounted) {
           setIsLoading(false);
         }
       } catch (error) {
-        console.warn('Auth initialization error (non-critical):', error);
+        console.warn('Auth initialization error:', error);
         if (mounted) {
           setSession(null);
           setUser(null);
