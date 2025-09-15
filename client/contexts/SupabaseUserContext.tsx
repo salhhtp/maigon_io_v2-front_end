@@ -267,16 +267,20 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
           // Clear browser storage of auth tokens
           Object.keys(localStorage).forEach(key => {
-            if (key.includes('supabase') || key.includes('sb-')) {
+            if (key.includes('supabase') || key.includes('sb-') || key.includes('maigon_current_user')) {
               localStorage.removeItem(key);
             }
           });
 
           Object.keys(sessionStorage).forEach(key => {
-            if (key.includes('supabase') || key.includes('sb-')) {
+            if (key.includes('supabase') || key.includes('sb-') || key.includes('maigon_current_user')) {
               sessionStorage.removeItem(key);
             }
           });
+
+          // Clear any demo authentication data
+          localStorage.removeItem('maigon_current_user');
+          sessionStorage.removeItem('maigon_current_user');
 
           console.log('🏠 Clean public state initialized');
         }
