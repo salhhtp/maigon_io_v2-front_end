@@ -185,6 +185,13 @@ export default function Upload() {
       if (fileType === 'application/pdf' || fileName.endsWith('.pdf')) {
         console.log('PDF file detected, processing with file reader...');
 
+        // Check file size limit (5MB for PDFs to prevent processing issues)
+        const maxPdfSize = 5 * 1024 * 1024; // 5MB
+        if (file.size > maxPdfSize) {
+          reject(new Error(`PDF file is too large (${Math.round(file.size / 1024 / 1024)}MB). Please use a PDF smaller than 5MB or convert to text format.`));
+          return;
+        }
+
         // For production PDF parsing, we'll read the file and send it to the backend
         // The backend Edge function will handle PDF text extraction
         const reader = new FileReader();
@@ -196,17 +203,32 @@ export default function Upload() {
               return;
             }
 
-            // Convert to base64 for transmission to backend
+            console.log(`📄 Processing PDF: ${file.name} (${Math.round(file.size / 1024)}KB)`);
+
+            // Convert to base64 using a more reliable method for large files
             const uint8Array = new Uint8Array(arrayBuffer);
-            const base64 = btoa(String.fromCharCode(...uint8Array));
+            let base64 = '';
+
+            // Process in chunks to avoid "Maximum call stack size exceeded" error
+            const chunkSize = 8192;
+            for (let i = 0; i < uint8Array.length; i += chunkSize) {
+              const chunk = uint8Array.slice(i, i + chunkSize);
+              base64 += btoa(String.fromCharCode.apply(null, Array.from(chunk)));
+            }
+
+            console.log(`✅ PDF converted to base64 successfully (${Math.round(base64.length / 1024)}KB)`);
 
             // Return special marker indicating this is a PDF that needs backend processing
             resolve(`PDF_FILE_BASE64:${base64}`);
           } catch (error) {
-            reject(new Error('Failed to process PDF file: ' + (error instanceof Error ? error.message : 'Unknown error')));
+            console.error('❌ PDF processing error:', error);
+            reject(new Error(`Failed to process PDF file: ${error instanceof Error ? error.message : 'Unknown error'}. Please try a smaller PDF or convert to text format.`));
           }
         };
-        reader.onerror = () => reject(new Error('Failed to read PDF file'));
+        reader.onerror = (error) => {
+          console.error('❌ PDF file reading error:', error);
+          reject(new Error('Failed to read PDF file. Please ensure the file is not corrupted.'));
+        };
         reader.readAsArrayBuffer(file);
         return;
       }
@@ -231,6 +253,13 @@ export default function Upload() {
       if (fileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || fileName.endsWith('.docx')) {
         console.log('DOCX file detected, processing with file reader...');
 
+        // Check file size limit (5MB for DOCX files)
+        const maxDocxSize = 5 * 1024 * 1024; // 5MB
+        if (file.size > maxDocxSize) {
+          reject(new Error(`DOCX file is too large (${Math.round(file.size / 1024 / 1024)}MB). Please use a file smaller than 5MB or convert to text format.`));
+          return;
+        }
+
         const reader = new FileReader();
         reader.onload = async (e) => {
           try {
@@ -240,17 +269,32 @@ export default function Upload() {
               return;
             }
 
-            // Convert to base64 for transmission to backend
+            console.log(`📄 Processing DOCX: ${file.name} (${Math.round(file.size / 1024)}KB)`);
+
+            // Convert to base64 using chunked approach for large files
             const uint8Array = new Uint8Array(arrayBuffer);
-            const base64 = btoa(String.fromCharCode(...uint8Array));
+            let base64 = '';
+
+            // Process in chunks to avoid "Maximum call stack size exceeded" error
+            const chunkSize = 8192;
+            for (let i = 0; i < uint8Array.length; i += chunkSize) {
+              const chunk = uint8Array.slice(i, i + chunkSize);
+              base64 += btoa(String.fromCharCode.apply(null, Array.from(chunk)));
+            }
+
+            console.log(`✅ DOCX converted to base64 successfully (${Math.round(base64.length / 1024)}KB)`);
 
             // Return special marker indicating this is a DOCX that needs backend processing
             resolve(`DOCX_FILE_BASE64:${base64}`);
           } catch (error) {
-            reject(new Error('Failed to process DOCX file: ' + (error instanceof Error ? error.message : 'Unknown error')));
+            console.error('❌ DOCX processing error:', error);
+            reject(new Error(`Failed to process DOCX file: ${error instanceof Error ? error.message : 'Unknown error'}. Please try a smaller file or convert to text format.`));
           }
         };
-        reader.onerror = () => reject(new Error('Failed to read DOCX file'));
+        reader.onerror = (error) => {
+          console.error('❌ DOCX file reading error:', error);
+          reject(new Error('Failed to read DOCX file. Please ensure the file is not corrupted.'));
+        };
         reader.readAsArrayBuffer(file);
         return;
       }
@@ -326,12 +370,27 @@ export default function Upload() {
       return;
     }
 
-    // Validate file size (max 10MB)
-    const maxSize = 10 * 1024 * 1024; // 10MB
+    // Validate file size with type-specific limits
+    let maxSize: number;
+    let fileTypeName: string;
+
+    if (selectedFile.type === 'application/pdf' || fileName.endsWith('.pdf')) {
+      maxSize = 5 * 1024 * 1024; // 5MB for PDFs
+      fileTypeName = 'PDF';
+    } else if (selectedFile.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || fileName.endsWith('.docx')) {
+      maxSize = 5 * 1024 * 1024; // 5MB for DOCX
+      fileTypeName = 'DOCX';
+    } else {
+      maxSize = 1 * 1024 * 1024; // 1MB for text files
+      fileTypeName = 'text';
+    }
+
     if (selectedFile.size > maxSize) {
+      const sizeMB = Math.round(selectedFile.size / 1024 / 1024);
+      const limitMB = Math.round(maxSize / 1024 / 1024);
       toast({
         title: "File too large",
-        description: "Please upload a file smaller than 10MB.",
+        description: `${fileTypeName} file is ${sizeMB}MB. Please use a file smaller than ${limitMB}MB or convert to text format.`,
         variant: "destructive",
       });
       return;

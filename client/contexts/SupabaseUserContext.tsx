@@ -423,16 +423,25 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         if (userProfile) {
           setUser(userProfile);
 
-          // Track login activity
+          // Track login activity with improved error handling
           try {
             await DataService.userActivities.trackLogin(userProfile.id);
+            console.log('✅ Login activity tracked successfully');
+
             // Initialize user data if first time
-            const existingStats = await DataService.userUsageStats.getUserStats(userProfile.id);
-            if (!existingStats) {
-              await DataService.initializeNewUser(userProfile.id);
+            try {
+              const existingStats = await DataService.userUsageStats.getUserStats(userProfile.id);
+              if (!existingStats) {
+                await DataService.initializeNewUser(userProfile.id);
+                console.log('✅ New user initialized successfully');
+              }
+            } catch (initError) {
+              console.warn('Warning: Failed to initialize user data:', initError);
+              // Don't block login for this non-critical error
             }
           } catch (trackError) {
-            console.error('Error tracking login:', trackError);
+            console.warn('Warning: Failed to track login activity:', trackError);
+            // Don't block login for tracking errors
           }
 
           // Check if user has temporary password and needs to change it
