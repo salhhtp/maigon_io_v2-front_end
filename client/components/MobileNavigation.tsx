@@ -165,8 +165,7 @@ export default function MobileNavigation({
                         </a>
                         <button
                           onClick={() => {
-                            logout();
-                            navigate("/");
+                            logout(); // Navigation handled in logout function
                             closeMenu();
                           }}
                           className="block w-full text-left px-4 py-3 text-base text-[#271D1D] hover:bg-[#F9F8F8] transition-colors"
