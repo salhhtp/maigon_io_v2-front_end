@@ -5,6 +5,7 @@ import Logo from "@/components/Logo";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import ConfirmationModal from "@/components/ConfirmationModal";
+import ContractClassificationDisplay from "@/components/ContractClassificationDisplay";
 import { useUser } from "@/contexts/SupabaseUserContext";
 import { DataService } from "@/services/dataService";
 import { useToast } from "@/hooks/use-toast";
@@ -23,6 +24,8 @@ export default function Upload() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadButtonHidden, setUploadButtonHidden] = useState(false);
   const [showLoadingTransition, setShowLoadingTransition] = useState(false);
+  const [contractClassification, setContractClassification] = useState<any>(null);
+  const [showClassification, setShowClassification] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const location = useLocation();
   const navigate = useNavigate();
