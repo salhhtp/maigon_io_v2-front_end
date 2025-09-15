@@ -7,12 +7,12 @@ const SUPABASE_URL = process.env.VITE_SUPABASE_URL;
 const ADMIN_KEY = process.env.ADMIN_MANAGEMENT_KEY;
 const ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY;
 
-console.log('🔍 Testing Admin Function Authentication');
-console.log('======================================');
-console.log('SUPABASE_URL:', SUPABASE_URL);
-console.log('ADMIN_KEY:', ADMIN_KEY ? 'Set' : 'Missing');
-console.log('ANON_KEY:', ANON_KEY ? 'Set' : 'Missing');
-console.log('');
+console.log("🔍 Testing Admin Function Authentication");
+console.log("======================================");
+console.log("SUPABASE_URL:", SUPABASE_URL);
+console.log("ADMIN_KEY:", ADMIN_KEY ? "Set" : "Missing");
+console.log("ANON_KEY:", ANON_KEY ? "Set" : "Missing");
+console.log("");
 
 async function testAuth() {
   return new Promise((resolve, reject) => {
@@ -34,10 +34,13 @@ async function testAuth() {
       },
     };
 
-    console.log('📤 Making request to:', `${url.origin}/functions/v1/admin-user-management`);
-    console.log('🔑 Using admin key:', ADMIN_KEY);
-    console.log('🎫 Using auth bearer:', ANON_KEY ? 'Set' : 'Missing');
-    console.log('');
+    console.log(
+      "📤 Making request to:",
+      `${url.origin}/functions/v1/admin-user-management`,
+    );
+    console.log("🔑 Using admin key:", ADMIN_KEY);
+    console.log("🎫 Using auth bearer:", ANON_KEY ? "Set" : "Missing");
+    console.log("");
 
     const req = https.request(options, (res) => {
       let responseBody = "";
@@ -47,9 +50,9 @@ async function testAuth() {
       });
 
       res.on("end", () => {
-        console.log('📥 Response status:', res.statusCode);
-        console.log('📄 Response body:', responseBody);
-        
+        console.log("📥 Response status:", res.statusCode);
+        console.log("📄 Response body:", responseBody);
+
         try {
           const response = JSON.parse(responseBody);
           resolve({ status: res.statusCode, data: response });
