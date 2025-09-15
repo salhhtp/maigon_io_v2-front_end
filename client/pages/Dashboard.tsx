@@ -1611,8 +1611,7 @@ export default function Dashboard() {
                 </Link>
                 <button
                   onClick={() => {
-                    logout();
-                    navigate("/");
+                    logout(); // Navigation handled in logout function
                   }}
                   className="block w-full text-left px-4 py-2 text-sm text-[#271D1D] hover:bg-[#F9F8F8] transition-colors"
                 >
