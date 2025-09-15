@@ -620,12 +620,14 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({
   // Initialize user state in useEffect to avoid SSR issues
   React.useEffect(() => {
     try {
-      // In a real app, you'd check localStorage, cookies, or make an API call
-      // For demo purposes, we'll simulate a logged-in user
-      const storedUser = localStorage.getItem("maigon_current_user");
-      if (storedUser && mockUsers[storedUser]) {
-        setUser(mockUsers[storedUser]);
-      }
+      // DISABLED: Auto-authentication disabled to prevent conflicts with SupabaseUserContext
+      // The app now uses SupabaseUserContext for real authentication
+      // const storedUser = localStorage.getItem("maigon_current_user");
+      // if (storedUser && mockUsers[storedUser]) {
+      //   setUser(mockUsers[storedUser]);
+      // }
+
+      console.log('🔒 Demo UserContext: Auto-authentication disabled');
     } catch (error) {
       console.error("Error initializing user:", error);
     } finally {
