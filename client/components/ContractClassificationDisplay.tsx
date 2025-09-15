@@ -26,13 +26,12 @@ const ContractClassificationDisplay: React.FC<ContractClassificationDisplayProps
   const getContractTypeDisplayName = (contractType: string): string => {
     const displayNames: Record<string, string> = {
       data_processing_agreement: 'Data Processing Agreement',
-      service_agreement: 'Service Agreement',
-      software_license: 'Software License Agreement',
-      employment_contract: 'Employment Contract',
       non_disclosure_agreement: 'Non-Disclosure Agreement',
-      vendor_agreement: 'Vendor/Supplier Agreement',
-      partnership_agreement: 'Partnership Agreement',
-      lease_agreement: 'Lease Agreement',
+      privacy_policy_document: 'Privacy Policy Document',
+      consultancy_agreement: 'Consultancy Agreement',
+      research_development_agreement: 'R&D Agreement',
+      end_user_license_agreement: 'End User License Agreement',
+      product_supply_agreement: 'Product Supply Agreement',
       general_commercial: 'General Commercial Agreement'
     };
 
@@ -50,7 +49,8 @@ const ContractClassificationDisplay: React.FC<ContractClassificationDisplayProps
       risk_assessment: 'Risk Assessment',
       compliance_score: 'Compliance Analysis',
       perspective_review: 'Multi-Perspective Review',
-      full_summary: 'Executive Summary'
+      full_summary: 'Executive Summary',
+      ai_integration: 'AI Integration Analysis'
     };
     return names[solution] || solution;
   };
