@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase";
+import { logError } from '@/utils/errorLogger';
 
 export interface WelcomeEmailData {
   firstName: string;
@@ -32,8 +33,11 @@ export class EmailService {
       });
 
       if (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        console.error('Error sending welcome email via SendGrid:', errorMessage);
+        logError('Error sending welcome email via SendGrid', error, {
+          email: data.email,
+          firstName: data.firstName,
+          service: 'sendgrid'
+        });
 
         // For development, fall back to console logging
         if (process.env.NODE_ENV === 'development') {
@@ -56,9 +60,11 @@ export class EmailService {
 
       return { success: true, message: 'Welcome email sent successfully via SendGrid!' };
     } catch (error: any) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      console.error('Unexpected error sending email:', errorMessage);
-      return { success: false, message: errorMessage || 'Failed to send welcome email.' };
+      const errorDetails = logError('Unexpected error sending email', error, {
+        email: data.email,
+        firstName: data.firstName
+      });
+      return { success: false, message: errorDetails.message || 'Failed to send welcome email.' };
     }
   }
 
@@ -145,7 +151,10 @@ export class EmailService {
       });
 
       if (error) {
-        console.error('Error sending password reset email via SendGrid:', error);
+        logError('Error sending password reset email via SendGrid', error, {
+          email: email,
+          service: 'sendgrid'
+        });
 
         // Development fallback
         if (process.env.NODE_ENV === 'development') {
@@ -161,8 +170,10 @@ export class EmailService {
 
       return { success: true, message: 'Password reset email sent successfully via SendGrid!' };
     } catch (error: any) {
-      console.error('Unexpected error sending password reset email:', error);
-      return { success: false, message: error.message || 'Failed to send password reset email.' };
+      const errorDetails = logError('Unexpected error sending password reset email', error, {
+        email: email
+      });
+      return { success: false, message: errorDetails.message || 'Failed to send password reset email.' };
     }
   }
 }
