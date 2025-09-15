@@ -104,6 +104,9 @@ export default function Upload() {
   };
 
   const handleConfirmNavigation = () => {
+    // Prevent multiple calls
+    if (!showConfirmModal) return;
+
     // First, clean up modal state
     setShowConfirmModal(false);
     setHasStartedProcess(false);
@@ -111,24 +114,33 @@ export default function Upload() {
     // Check blocker state before resetting it
     const wasBlocked = blocker.state === "blocked";
 
-    // Navigate to the pending destination
-    if (pendingNavigation) {
-      // We have a specific destination to navigate to
-      navigate(pendingNavigation);
-      setPendingNavigation(null);
-    } else if (wasBlocked) {
-      // No pending navigation, proceed with the blocked navigation
-      blocker.proceed();
-    }
+    // Add delay to prevent double-click issues
+    setTimeout(() => {
+      // Navigate to the pending destination
+      if (pendingNavigation) {
+        // We have a specific destination to navigate to
+        navigate(pendingNavigation);
+        setPendingNavigation(null);
+      } else if (wasBlocked) {
+        // No pending navigation, proceed with the blocked navigation
+        blocker.proceed();
+      }
+    }, 50);
   };
 
   const handleCancelNavigation = () => {
+    // Prevent multiple calls
+    if (!showConfirmModal) return;
+
     setShowConfirmModal(false);
     setPendingNavigation(null);
 
-    if (blocker.state === "blocked") {
-      blocker.reset();
-    }
+    // Add delay to prevent double-click issues
+    setTimeout(() => {
+      if (blocker.state === "blocked") {
+        blocker.reset();
+      }
+    }, 50);
   };
 
   const handleUploadClick = () => {
