@@ -296,25 +296,14 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     initializeAuth();
 
-    // Listen for auth state changes (only respond to explicit auth actions)
+    // Listen for auth state changes (only respond to explicit authentication actions)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!mounted) return;
 
-        console.log('🔄 Auth state changed:', event, session?.user?.email || 'no user');
-
-        // Handle sign out events
-        if (event === 'SIGNED_OUT' || !session) {
-          console.log('👋 User signed out, returning to public state');
-          setSession(null);
-          setUser(null);
-          setIsLoading(false);
-          return;
-        }
-
-        // Handle sign in events
-        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-          console.log('🔐 User authenticated, loading profile...');
+        // Only log and handle explicit authentication events
+        if (event === 'SIGNED_IN') {
+          console.log('🔐 User explicitly signed in, loading profile...');
           setSession(session);
 
           if (session?.user) {
@@ -325,17 +314,38 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 console.log('✅ User authenticated and profile loaded');
               } else {
                 console.warn('⚠️ Authentication succeeded but profile loading failed');
+                await supabase.auth.signOut({ scope: 'local' });
                 setSession(null);
                 setUser(null);
               }
             } catch (error) {
               console.error('❌ Error loading profile after auth:', error);
+              await supabase.auth.signOut({ scope: 'local' });
               setSession(null);
               setUser(null);
             }
           }
           setIsLoading(false);
+        } else if (event === 'SIGNED_OUT') {
+          console.log('👋 User signed out, returning to clean public state');
+          setSession(null);
+          setUser(null);
+          setIsLoading(false);
+
+          // Ensure complete cleanup
+          Object.keys(localStorage).forEach(key => {
+            if (key.includes('supabase') || key.includes('sb-')) {
+              localStorage.removeItem(key);
+            }
+          });
+        } else if (event === 'TOKEN_REFRESHED') {
+          // Only handle token refresh if we already have a user (silent refresh)
+          if (user && session) {
+            console.log('🔄 Token refreshed for existing session');
+            setSession(session);
+          }
         }
+        // Ignore all other events (INITIAL_SESSION, etc.) to prevent auto-login
       }
     );
 
