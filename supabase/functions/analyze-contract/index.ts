@@ -91,7 +91,12 @@ serve(async (req) => {
     try {
       request = await req.json();
     } catch (parseError) {
-      console.error('❌ Failed to parse request JSON:', parseError);
+      const errorMessage = parseError instanceof Error ? parseError.message : String(parseError);
+      console.error('❌ Failed to parse request JSON:', {
+        error: errorMessage,
+        type: parseError instanceof Error ? parseError.name : typeof parseError,
+        timestamp: new Date().toISOString()
+      });
       return new Response(
         JSON.stringify({ error: 'Invalid JSON in request body' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -102,7 +107,8 @@ serve(async (req) => {
     if (!request.content || !request.reviewType) {
       console.error('❌ Missing required fields in request:', {
         hasContent: !!request.content,
-        hasReviewType: !!request.reviewType
+        hasReviewType: !!request.reviewType,
+        timestamp: new Date().toISOString()
       });
       return new Response(
         JSON.stringify({ error: 'Missing required fields: content and reviewType' }),
@@ -135,10 +141,15 @@ serve(async (req) => {
           );
         }
       } catch (extractError) {
-        console.error('❌ File extraction failed:', extractError);
+        const errorMessage = extractError instanceof Error ? extractError.message : String(extractError);
+        console.error('❌ File extraction failed:', {
+          error: errorMessage,
+          type: extractError instanceof Error ? extractError.name : typeof extractError,
+          timestamp: new Date().toISOString()
+        });
         return new Response(
           JSON.stringify({
-            error: `Failed to extract text from file: ${extractError instanceof Error ? extractError.message : 'Unknown error'}. Please try a smaller file or convert to text format.`
+            error: `Failed to extract text from file: ${errorMessage}. Please try a smaller file or convert to text format.`
           }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
@@ -158,7 +169,10 @@ serve(async (req) => {
     }
 
     if (!apiKey) {
-      console.error(`🔑 API key not configured for model: ${model}`);
+      console.error('🔑 API key not configured:', {
+        model: model,
+        timestamp: new Date().toISOString()
+      });
       return new Response(
         JSON.stringify({
           error: `API key not configured for model: ${model}. Please configure the appropriate API key in environment variables.`
@@ -286,8 +300,13 @@ File processing completed successfully.
 
       return mockContractContent.trim();
     } catch (error) {
-      console.error('❌ PDF processing error:', error);
-      throw new Error(`Failed to process PDF file: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('❌ PDF processing error:', {
+        error: errorMessage,
+        type: error instanceof Error ? error.name : typeof error,
+        timestamp: new Date().toISOString()
+      });
+      throw new Error(`Failed to process PDF file: ${errorMessage}`);
     }
   }
 
@@ -358,8 +377,13 @@ Document processed successfully: ${fileSizeKB}KB
 
       return mockContractContent.trim();
     } catch (error) {
-      console.error('❌ DOCX processing error:', error);
-      throw new Error(`Failed to process DOCX file: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('❌ DOCX processing error:', {
+        error: errorMessage,
+        type: error instanceof Error ? error.name : typeof error,
+        timestamp: new Date().toISOString()
+      });
+      throw new Error(`Failed to process DOCX file: ${errorMessage}`);
     }
   }
 
@@ -422,7 +446,12 @@ async function analyzeWithAI(request: AnalysisRequest, apiKey: string) {
   
   if (!response.ok) {
     const errorText = await response.text();
-    console.error('AI API Error:', response.status, errorText);
+    console.error('AI API Error:', {
+      status: response.status,
+      errorText: errorText,
+      model: modelConfig.model,
+      timestamp: new Date().toISOString()
+    });
     throw new Error(`AI API error: ${response.status}`);
   }
 
