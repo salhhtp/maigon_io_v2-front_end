@@ -334,6 +334,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // Sign up with automatic password generation and email sending
   const signUp = async (userData: SignUpData): Promise<{ success: boolean; message: string; user?: SupabaseUser }> => {
     try {
+      console.log('📝 Starting sign up process for:', userData.email);
       setIsLoading(true);
 
       // Generate a secure temporary password
@@ -395,6 +396,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // Sign in
   const signIn = async (email: string, password: string): Promise<{ success: boolean; message: string; user?: User }> => {
     try {
+      console.log('🔐 Starting sign in process for:', email);
       setIsLoading(true);
 
       const { data, error } = await supabase.auth.signInWithPassword({
