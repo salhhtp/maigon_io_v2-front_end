@@ -150,7 +150,7 @@ const getDefaultUserData = (profile: UserProfile): Omit<User, 'id' | 'name' | 'e
 export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false); // Start in clean state, not loading
 
   // Convert UserProfile to User format
   const convertProfileToUser = (profile: UserProfile, authUser?: SupabaseUser): User => {
@@ -619,9 +619,9 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  // Debug function to manually clear auth state
+  // Debug function to manually clear auth state (only for development/debugging)
   const clearAuthState = async () => {
-    console.log('🧹 Manually clearing auth state...');
+    console.log('🧹 [DEBUG] Manually clearing auth state...');
     try {
       await supabase.auth.signOut();
       setSession(null);
@@ -636,10 +636,9 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
       });
 
-      console.log('✅ Auth state cleared successfully');
-      window.location.reload(); // Reload to ensure clean state
+      console.log('✅ [DEBUG] Auth state cleared successfully');
     } catch (error) {
-      console.error('Error clearing auth state:', error);
+      console.error('❌ [DEBUG] Error clearing auth state:', error);
     }
   };
 
