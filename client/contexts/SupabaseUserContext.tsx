@@ -659,20 +659,25 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const clearAuthState = async () => {
     console.log('🧹 [DEBUG] Manually clearing auth state...');
     try {
-      await supabase.auth.signOut();
+      await supabase.auth.signOut({ scope: 'local' });
       setSession(null);
       setUser(null);
       setIsLoading(false);
 
-      // Clear browser storage
-      localStorage.removeItem('sb-auth-token');
+      // Clear browser storage completely
       Object.keys(localStorage).forEach(key => {
-        if (key.includes('supabase') || key.includes('sb-')) {
+        if (key.includes('supabase') || key.includes('sb-') || key.includes('auth')) {
           localStorage.removeItem(key);
         }
       });
 
-      console.log('✅ [DEBUG] Auth state cleared successfully');
+      Object.keys(sessionStorage).forEach(key => {
+        if (key.includes('supabase') || key.includes('sb-') || key.includes('auth')) {
+          sessionStorage.removeItem(key);
+        }
+      });
+
+      console.log('✅ [DEBUG] Complete auth state cleared successfully');
     } catch (error) {
       console.error('❌ [DEBUG] Error clearing auth state:', error);
     }
