@@ -120,19 +120,35 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Analysis error:', error);
-    
-    // Return enhanced mock data as fallback
-    const request: AnalysisRequest = await req.clone().json().catch(() => ({ 
-      content: '', 
-      reviewType: 'full_summary',
-      model: 'openai-gpt-4' 
-    }));
-    
+    console.error('❌ Analysis error:', error);
+    console.error('Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      type: typeof error
+    });
+
+    // Try to extract request data for fallback, with safe parsing
+    let fallbackRequest: AnalysisRequest;
+    try {
+      // Attempt to clone and parse the request
+      fallbackRequest = await req.clone().json();
+    } catch (cloneError) {
+      console.warn('❌ Failed to clone request for fallback, using default:', cloneError);
+      fallbackRequest = {
+        content: 'MOCK_CONTRACT_CONTENT',
+        reviewType: 'full_summary',
+        model: 'openai-gpt-4'
+      };
+    }
+
+    console.log('🔄 Generating fallback mock response...');
+    const mockResponse = await generateEnhancedMockResponse(fallbackRequest);
+    console.log('✅ Fallback response generated successfully');
+
     return new Response(
-      JSON.stringify(await generateEnhancedMockResponse(request)),
-      { 
-        status: 200, 
+      JSON.stringify(mockResponse),
+      {
+        status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     );
