@@ -71,10 +71,21 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('❌ Classification error:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorDetails = {
+      message: errorMessage,
+      type: error instanceof Error ? error.name : typeof error,
+      stack: error instanceof Error ? error.stack : undefined,
+      timestamp: new Date().toISOString()
+    };
+
+    console.error('❌ Classification error:', errorDetails);
+
     return new Response(
-      JSON.stringify({ 
-        error: `Contract classification failed: ${error instanceof Error ? error.message : 'Unknown error'}` 
+      JSON.stringify({
+        error: `Contract classification failed: ${errorMessage}`,
+        type: errorDetails.type,
+        timestamp: errorDetails.timestamp
       }),
       {
         status: 500,

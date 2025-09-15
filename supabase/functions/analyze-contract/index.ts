@@ -190,16 +190,21 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('❌ Analysis error:', error);
-    console.error('Error details:', {
-      message: error instanceof Error ? error.message : 'Unknown error',
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorDetails = {
+      message: errorMessage,
+      type: error instanceof Error ? error.name : typeof error,
       stack: error instanceof Error ? error.stack : undefined,
-      type: typeof error
-    });
+      timestamp: new Date().toISOString()
+    };
+
+    console.error('❌ Analysis error:', errorDetails);
 
     return new Response(
       JSON.stringify({
-        error: `Contract analysis failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+        error: `Contract analysis failed: ${errorMessage}`,
+        type: errorDetails.type,
+        timestamp: errorDetails.timestamp
       }),
       {
         status: 500,
