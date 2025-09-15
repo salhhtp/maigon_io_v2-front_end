@@ -47,7 +47,9 @@ serve(async (req) => {
     // Get API key
     const apiKey = Deno.env.get('OPENAI_API_KEY');
     if (!apiKey) {
-      console.error('🔑 OpenAI API key not configured for classification');
+      console.error('🔑 OpenAI API key not configured for classification:', {
+        timestamp: new Date().toISOString()
+      });
       return new Response(
         JSON.stringify({ error: 'AI classification service not available' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -162,7 +164,12 @@ File Name: ${request.fileName}`;
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error('❌ OpenAI API error:', response.status, errorText);
+    console.error('❌ OpenAI API error:', {
+      status: response.status,
+      errorText: errorText,
+      model: modelConfig.model,
+      timestamp: new Date().toISOString()
+    });
     throw new Error(`OpenAI API error: ${response.status} ${errorText}`);
   }
 
@@ -188,7 +195,12 @@ File Name: ${request.fileName}`;
       suggestedSolutions: Array.isArray(result.suggestedSolutions) ? result.suggestedSolutions : ['full_summary', 'risk_assessment']
     };
   } catch (parseError) {
-    console.error('❌ Failed to parse AI response:', parseError);
+    const errorMessage = parseError instanceof Error ? parseError.message : String(parseError);
+    console.error('❌ Failed to parse AI response:', {
+      error: errorMessage,
+      type: parseError instanceof Error ? parseError.name : typeof parseError,
+      timestamp: new Date().toISOString()
+    });
     throw new Error('Failed to parse AI classification response');
   }
 }
