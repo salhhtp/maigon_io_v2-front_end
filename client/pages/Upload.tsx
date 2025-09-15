@@ -79,18 +79,16 @@ export default function Upload() {
   }, [blocker.state]);
 
   const handleFileSelect = (file: File) => {
-    const allowedTypes = [
-      "application/pdf",
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    ];
+    const allowedTypes = ["text/plain"];
+    const fileName = file.name.toLowerCase();
     console.log("File selected:", file.name, "Type:", file.type);
 
-    if (allowedTypes.includes(file.type)) {
+    if (allowedTypes.includes(file.type) || fileName.endsWith('.txt')) {
       setSelectedFile(file);
       setHasStartedProcess(true); // Mark that user has started the process
       console.log("File accepted:", file.name);
     } else {
-      alert(`Please select a PDF or DOCX file. You selected: ${file.type}`);
+      alert(`Currently only text (.txt) files are supported. Please convert your document to text format. You selected: ${file.type}`);
       console.log("File rejected - invalid type:", file.type);
     }
   };
@@ -179,33 +177,9 @@ export default function Upload() {
       const fileType = file.type;
       const fileName = file.name.toLowerCase();
 
-      // For development/demo purposes, return mock content for PDF files
-      // In production, you'd use a PDF parsing library or backend service
+      // PDF files require specialized parsing - not supported in current production build
       if (fileType === 'application/pdf' || fileName.endsWith('.pdf')) {
-        console.log('PDF file detected, using mock content for demo');
-        resolve(`
-          MOCK PDF CONTENT FOR DEMO PURPOSES
-
-          CONTRACT TITLE: ${file.name.replace(/\.[^/.]+$/, '')}
-
-          This is a sample contract content for demonstration purposes.
-          In a production environment, this would be the actual extracted text from the PDF file.
-
-          TERMS AND CONDITIONS:
-          1. This agreement shall be governed by the laws of [Jurisdiction]
-          2. Payment terms: Net 30 days
-          3. Liability limitations apply as outlined in Section 5
-          4. Data processing shall comply with GDPR requirements
-          5. Contract duration: 24 months with auto-renewal
-
-          CLAUSES:
-          - Confidentiality provisions included
-          - Force majeure clause standard
-          - Termination conditions specified
-          - Intellectual property rights defined
-
-          END OF MOCK CONTENT
-        `);
+        reject(new Error('PDF file processing is not available. Please convert your document to a text (.txt) file and try again.'));
         return;
       }
 
@@ -225,31 +199,9 @@ export default function Upload() {
         return;
       }
 
-      // For DOCX files, return mock content (in production, use a DOCX parser)
+      // DOCX files require specialized parsing - not supported in current production build
       if (fileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || fileName.endsWith('.docx')) {
-        console.log('DOCX file detected, using mock content for demo');
-        resolve(`
-          MOCK DOCX CONTENT FOR DEMO PURPOSES
-
-          DOCUMENT: ${file.name.replace(/\.[^/.]+$/, '')}
-
-          This is a sample Word document content for demonstration purposes.
-          In a production environment, this would be the actual extracted text from the DOCX file.
-
-          CONTRACT PROVISIONS:
-          • Payment schedule and terms
-          • Performance requirements and metrics
-          • Compliance and regulatory requirements
-          • Risk allocation and liability limits
-          • Termination and renewal provisions
-
-          LEGAL FRAMEWORK:
-          The parties agree to the terms set forth herein and acknowledge
-          that this agreement constitutes the entire understanding between
-          the parties with respect to the subject matter hereof.
-
-          END OF MOCK CONTENT
-        `);
+        reject(new Error('DOCX file processing is not available. Please convert your document to a text (.txt) file and try again.'));
         return;
       }
 
@@ -303,22 +255,15 @@ export default function Upload() {
       return;
     }
 
-    // Validate file type
-    const allowedTypes = [
-      'application/pdf',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'text/plain'
-    ];
+    // Validate file type - only text files supported in production
+    const allowedTypes = ['text/plain'];
     const fileName = selectedFile.name.toLowerCase();
-    const isValidType = allowedTypes.includes(selectedFile.type) ||
-                       fileName.endsWith('.pdf') ||
-                       fileName.endsWith('.docx') ||
-                       fileName.endsWith('.txt');
+    const isValidType = allowedTypes.includes(selectedFile.type) || fileName.endsWith('.txt');
 
     if (!isValidType) {
       toast({
-        title: "Invalid file type",
-        description: "Please upload a PDF, DOCX, or TXT file.",
+        title: "Unsupported file type",
+        description: "Currently only text (.txt) files are supported. Please convert your document to text format and try again.",
         variant: "destructive",
       });
       return;
