@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import logger from '@/utils/logger';
+import { logError } from '@/utils/errorLogger';
 
 export interface ContractClassificationResult {
   contractType: string;
@@ -85,10 +86,9 @@ export class ContractClassificationService {
         if (timeoutError.name === 'AbortError') {
           console.warn('⚠️ Classification timed out, using fallback');
         } else {
-          const timeoutErrorMessage = timeoutError instanceof Error ? timeoutError.message : String(timeoutError);
-          console.warn('⚠️ Classification request failed, using fallback:', {
-            error: timeoutErrorMessage,
-            type: timeoutError instanceof Error ? timeoutError.name : typeof timeoutError
+          logError('⚠️ Classification request failed, using fallback', timeoutError, {
+            fileName: fileName || 'unknown',
+            contentLength: content.length
           });
         }
         return this.fallbackClassification(content, fileName);
@@ -97,10 +97,7 @@ export class ContractClassificationService {
       return classificationResult;
 
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      console.warn('⚠️ Classification error, using fallback:', {
-        error: errorMessage,
-        type: error instanceof Error ? error.name : typeof error,
+      logError('⚠️ Classification error, using fallback', error, {
         fileName: fileName || 'unknown',
         contentLength: content.length
       });

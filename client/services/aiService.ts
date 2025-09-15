@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase';
 import logger from '@/utils/logger';
 import { errorHandler } from '@/utils/errorHandler';
+import { logError, createUserFriendlyMessage } from '@/utils/errorLogger';
 
 // Enhanced AI Model Configuration for Advanced Contract Analysis
 export enum AIModel {
@@ -182,14 +183,11 @@ class AIService {
 
       } catch (error) {
         lastError = error instanceof Error ? error : new Error('Unknown error');
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        logger.error(`AI analysis attempt ${attempt} failed`, {
+        logError(`AI analysis attempt ${attempt} failed`, error, {
           reviewType: request.reviewType,
           userId: request.userId,
-          error: errorMessage,
-          errorType: error instanceof Error ? error.name : typeof error,
           attempt,
-          timestamp: new Date().toISOString()
+          model: request.model
         });
 
         // If this isn't the last attempt, wait before retrying
