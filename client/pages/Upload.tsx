@@ -369,30 +369,67 @@ export default function Upload() {
       }, 500); // Give time for transition animation to start
 
     } catch (error) {
-      console.error("Contract processing error:", error);
+      console.error("❌ Contract processing error:", error);
 
-      // Reset UI state
+      // Reset UI state immediately to prevent stuck state
       setIsSubmitting(false);
       setUploadButtonHidden(false);
       setShowLoadingTransition(false);
 
-      // Show detailed error message
-      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+      // Determine user-friendly error message
+      let userMessage = "Unknown error occurred";
+      let shouldRetry = true;
 
+      if (error instanceof Error) {
+        const errorMsg = error.message.toLowerCase();
+
+        if (errorMsg.includes('file') && errorMsg.includes('empty')) {
+          userMessage = "The selected file appears to be empty or corrupted. Please try a different file.";
+          shouldRetry = false;
+        } else if (errorMsg.includes('unsupported file type')) {
+          userMessage = "Please upload a PDF, DOCX, or TXT file.";
+          shouldRetry = false;
+        } else if (errorMsg.includes('user id')) {
+          userMessage = "Authentication issue detected. Please try signing out and signing back in.";
+          shouldRetry = false;
+        } else if (errorMsg.includes('network') || errorMsg.includes('fetch')) {
+          userMessage = "Network connection issue. Please check your internet connection and try again.";
+          shouldRetry = true;
+        } else if (errorMsg.includes('ai') || errorMsg.includes('analysis')) {
+          userMessage = "Contract analysis service is temporarily unavailable. Please try again in a few minutes.";
+          shouldRetry = true;
+        } else {
+          userMessage = error.message;
+          shouldRetry = true;
+        }
+      }
+
+      // Show appropriate error toast
       toast({
         title: "Processing failed",
-        description: `There was an error processing your contract: ${errorMessage}. Please try again or contact support if the issue persists.`,
+        description: `${userMessage}${shouldRetry ? ' Please try again.' : ''}`,
         variant: "destructive",
       });
 
-      // Log detailed error for debugging
-      console.error("Detailed error info:", {
-        error,
+      // Log comprehensive error info for debugging
+      console.error("📊 Error analysis:", {
+        errorType: error instanceof Error ? error.constructor.name : typeof error,
+        errorMessage: error instanceof Error ? error.message : String(error),
+        errorStack: error instanceof Error ? error.stack : undefined,
         fileName: selectedFile?.name,
         fileSize: selectedFile?.size,
+        fileType: selectedFile?.type,
         perspective,
-        userId: user?.id
+        userId: user?.id,
+        userShouldRetry: shouldRetry,
+        timestamp: new Date().toISOString()
       });
+
+      // Additional cleanup - clear selected file if it's a file issue
+      if (!shouldRetry && error instanceof Error && error.message.toLowerCase().includes('file')) {
+        console.log("🧹 Clearing selected file due to file-related error");
+        setSelectedFile(null);
+      }
     }
   };
 
