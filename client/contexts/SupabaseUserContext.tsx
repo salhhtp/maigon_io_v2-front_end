@@ -239,6 +239,12 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const getInitialSession = async () => {
       try {
         console.log('Initializing auth session...');
+
+        // First, clear any existing broken sessions
+        await supabase.auth.signOut();
+        console.log('Cleared any existing sessions');
+
+        // Then check for a valid session
         const { data: { session }, error } = await supabase.auth.getSession();
 
         if (error) {
@@ -251,35 +257,12 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
 
         if (mounted) {
-          console.log('Session loaded:', session ? `Found session for ${session.user?.email}` : 'No session');
+          console.log('Session check:', session ? `Found session for ${session.user?.email}` : 'No session (clean start)');
 
-          if (session?.user) {
-            try {
-              console.log('Loading user profile for:', session.user.email);
-              const userProfile = await loadUserProfile(session.user.id);
-
-              if (userProfile) {
-                setSession(session);
-                setUser(userProfile);
-                console.log('User profile loaded successfully');
-              } else {
-                console.warn('Failed to load user profile, clearing session');
-                // Sign out if profile loading failed to avoid inconsistent state
-                await supabase.auth.signOut();
-                setSession(null);
-                setUser(null);
-              }
-            } catch (profileError) {
-              console.error('Error loading user profile:', profileError);
-              // Clear state and sign out on profile loading error
-              await supabase.auth.signOut();
-              setSession(null);
-              setUser(null);
-            }
-          } else {
-            setSession(null);
-            setUser(null);
-          }
+          // Since we just signed out, there should be no session
+          // This ensures a clean start every time
+          setSession(null);
+          setUser(null);
         }
       } catch (error) {
         console.error('Error initializing auth:', error);
@@ -289,7 +272,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
       } finally {
         if (mounted) {
-          console.log('Auth initialization complete, setting loading to false');
+          console.log('Auth initialization complete - starting with clean slate');
           clearTimeout(timeoutId);
           setIsLoading(false);
         }
