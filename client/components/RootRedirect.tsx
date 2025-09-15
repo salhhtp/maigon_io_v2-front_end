@@ -6,6 +6,19 @@ import Index from "@/pages/Index";
 const RootRedirect: React.FC = () => {
   const { user, isLoggedIn, isLoading } = useUser();
   const navigate = useNavigate();
+  const [forceShowPublic, setForceShowPublic] = React.useState(false);
+
+  // Fallback timeout to prevent infinite loading
+  React.useEffect(() => {
+    const fallbackTimeout = setTimeout(() => {
+      if (isLoading) {
+        console.warn('RootRedirect: Loading took too long, forcing public view');
+        setForceShowPublic(true);
+      }
+    }, 8000); // 8 second fallback
+
+    return () => clearTimeout(fallbackTimeout);
+  }, [isLoading]);
 
   useEffect(() => {
     // Check if this is an email verification callback
