@@ -284,6 +284,7 @@ export default function Upload() {
       perspective,
     );
 
+    // Comprehensive validation before processing
     if (!selectedFile) {
       toast({
         title: "No file selected",
@@ -301,6 +302,66 @@ export default function Upload() {
       });
       return;
     }
+
+    // Validate file type
+    const allowedTypes = [
+      'application/pdf',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'text/plain'
+    ];
+    const fileName = selectedFile.name.toLowerCase();
+    const isValidType = allowedTypes.includes(selectedFile.type) ||
+                       fileName.endsWith('.pdf') ||
+                       fileName.endsWith('.docx') ||
+                       fileName.endsWith('.txt');
+
+    if (!isValidType) {
+      toast({
+        title: "Invalid file type",
+        description: "Please upload a PDF, DOCX, or TXT file.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate file size (max 10MB)
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    if (selectedFile.size > maxSize) {
+      toast({
+        title: "File too large",
+        description: "Please upload a file smaller than 10MB.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate file is not empty
+    if (selectedFile.size === 0) {
+      toast({
+        title: "Empty file",
+        description: "The selected file appears to be empty. Please choose a different file.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate perspective is selected
+    if (!perspective) {
+      toast({
+        title: "No analysis type selected",
+        description: "Please select an analysis perspective before proceeding.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    console.log("✅ All validations passed, starting processing...");
+    console.log("📁 File info:", {
+      name: selectedFile.name,
+      type: selectedFile.type,
+      size: selectedFile.size,
+      lastModified: new Date(selectedFile.lastModified).toISOString()
+    });
 
     // Step 1: Submit Clicked → Smart Animate - Ease Out - 1500ms
     setIsSubmitting(true);
