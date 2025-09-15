@@ -25,33 +25,102 @@ export class ContractClassificationService {
    */
   async classifyContract(content: string, fileName?: string): Promise<ContractClassificationResult> {
     try {
-      console.log('🤖 Starting intelligent contract classification...');
-      
-      // Call Supabase Edge Function for AI-powered classification
-      const { data, error } = await supabase.functions.invoke('classify-contract', {
-        body: {
-          content: content.substring(0, 5000), // First 5000 chars for classification
-          fileName: fileName || 'unknown'
-        },
+      console.log('🤖 Starting intelligent contract classification...', {
+        contentLength: content.length,
+        fileName: fileName || 'unknown',
+        hasContent: content.length > 0
       });
 
-      if (error) {
-        console.warn('⚠️ AI classification failed, using fallback rules:', error);
+      // Validate input
+      if (!content || content.trim().length === 0) {
+        console.warn('⚠️ Empty content provided, using general classification');
+        return {
+          contractType: 'general_commercial',
+          confidence: 0.3,
+          characteristics: ['No content available for classification'],
+          reasoning: 'Empty or invalid content provided',
+          suggestedSolutions: ['full_summary']
+        };
+      }
+
+      // Call Supabase Edge Function for AI-powered classification with timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+
+      let classificationResult: ContractClassificationResult;
+
+      try {
+        const { data, error } = await supabase.functions.invoke('classify-contract', {
+          body: {
+            content: content.substring(0, 5000), // First 5000 chars for classification
+            fileName: fileName || 'unknown'
+          },
+          signal: controller.signal
+        });
+
+        clearTimeout(timeoutId);
+
+        if (error) {
+          console.warn('⚠️ AI classification API error, using fallback rules:', error);
+          return this.fallbackClassification(content, fileName);
+        }
+
+        if (!data) {
+          console.warn('⚠️ No classification data returned, using fallback');
+          return this.fallbackClassification(content, fileName);
+        }
+
+        // Validate the classification result
+        const validatedData = this.validateClassificationResult(data);
+        console.log('✅ AI contract classification completed:', {
+          contractType: validatedData.contractType,
+          confidence: validatedData.confidence,
+          characteristicsCount: validatedData.characteristics.length
+        });
+
+        classificationResult = validatedData;
+
+      } catch (timeoutError) {
+        clearTimeout(timeoutId);
+        if (timeoutError.name === 'AbortError') {
+          console.warn('⚠️ Classification timed out, using fallback');
+        } else {
+          console.warn('⚠️ Classification request failed, using fallback:', timeoutError);
+        }
         return this.fallbackClassification(content, fileName);
       }
 
-      if (!data) {
-        console.warn('⚠️ No classification data returned, using fallback');
-        return this.fallbackClassification(content, fileName);
-      }
-
-      console.log('✅ AI contract classification completed:', data);
-      return data as ContractClassificationResult;
+      return classificationResult;
 
     } catch (error) {
       console.warn('⚠️ Classification error, using fallback:', error);
       return this.fallbackClassification(content, fileName);
     }
+  }
+
+  /**
+   * Validate and sanitize classification result from AI
+   */
+  private validateClassificationResult(data: any): ContractClassificationResult {
+    const validTypes = [
+      'data_processing_agreement',
+      'non_disclosure_agreement',
+      'privacy_policy_document',
+      'consultancy_agreement',
+      'research_development_agreement',
+      'end_user_license_agreement',
+      'product_supply_agreement',
+      'general_commercial'
+    ];
+
+    return {
+      contractType: validTypes.includes(data.contractType) ? data.contractType : 'general_commercial',
+      confidence: Math.min(Math.max(data.confidence || 0.5, 0), 1),
+      subType: data.subType || undefined,
+      characteristics: Array.isArray(data.characteristics) ? data.characteristics : ['Commercial agreement'],
+      reasoning: data.reasoning || 'AI-powered classification',
+      suggestedSolutions: Array.isArray(data.suggestedSolutions) ? data.suggestedSolutions : ['full_summary', 'risk_assessment']
+    };
   }
 
   /**
