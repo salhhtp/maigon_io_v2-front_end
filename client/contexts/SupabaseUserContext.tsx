@@ -241,22 +241,50 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
         if (error) {
           console.error('Error getting session:', error);
-          // Don't return here - continue to set loading to false
+          if (mounted) {
+            setSession(null);
+            setUser(null);
+          }
+          return;
         }
 
         if (mounted) {
-          console.log('Session loaded:', session ? 'Found session' : 'No session');
-          setSession(session);
+          console.log('Session loaded:', session ? `Found session for ${session.user?.email}` : 'No session');
 
-          if (session?.user && !error) {
-            console.log('Loading user profile for:', session.user.email);
-            const userProfile = await loadUserProfile(session.user.id);
-            setUser(userProfile);
-            console.log('User profile loaded:', userProfile ? 'Success' : 'Failed');
+          if (session?.user) {
+            try {
+              console.log('Loading user profile for:', session.user.email);
+              const userProfile = await loadUserProfile(session.user.id);
+
+              if (userProfile) {
+                setSession(session);
+                setUser(userProfile);
+                console.log('User profile loaded successfully');
+              } else {
+                console.warn('Failed to load user profile, clearing session');
+                // Sign out if profile loading failed to avoid inconsistent state
+                await supabase.auth.signOut();
+                setSession(null);
+                setUser(null);
+              }
+            } catch (profileError) {
+              console.error('Error loading user profile:', profileError);
+              // Clear state and sign out on profile loading error
+              await supabase.auth.signOut();
+              setSession(null);
+              setUser(null);
+            }
+          } else {
+            setSession(null);
+            setUser(null);
           }
         }
       } catch (error) {
         console.error('Error initializing auth:', error);
+        if (mounted) {
+          setSession(null);
+          setUser(null);
+        }
       } finally {
         if (mounted) {
           console.log('Auth initialization complete, setting loading to false');
