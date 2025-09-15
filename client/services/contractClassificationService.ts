@@ -61,63 +61,56 @@ export class ContractClassificationService {
     const contentLower = content.toLowerCase();
     const fileNameLower = (fileName || '').toLowerCase();
 
-    // Define classification rules
+    // Define classification rules based on the 7 specific solution types
     const rules = [
       {
         type: 'data_processing_agreement',
-        confidence: 0.9,
-        keywords: ['data processing', 'personal data', 'gdpr', 'data subject', 'controller', 'processor', 'privacy'],
-        characteristics: ['Contains data protection clauses', 'References GDPR compliance', 'Defines data processing roles'],
+        confidence: 0.95,
+        keywords: ['data processing', 'personal data', 'gdpr', 'data subject', 'controller', 'processor', 'privacy', 'edpb', 'data protection'],
+        characteristics: ['GDPR compliance focused', 'Data processing roles defined', 'EDPB guidelines adherence', 'Data protection safeguards'],
         solutions: ['compliance_score', 'perspective_review']
       },
       {
-        type: 'service_agreement',
-        confidence: 0.85,
-        keywords: ['service agreement', 'professional services', 'service level', 'sla', 'performance metrics'],
-        characteristics: ['Defines service delivery terms', 'Contains SLA requirements', 'Specifies performance standards'],
-        solutions: ['risk_assessment', 'full_summary', 'perspective_review']
-      },
-      {
-        type: 'software_license',
-        confidence: 0.8,
-        keywords: ['software license', 'intellectual property', 'copyright', 'usage rights', 'license terms'],
-        characteristics: ['Grants software usage rights', 'Contains IP protections', 'Defines usage restrictions'],
+        type: 'non_disclosure_agreement',
+        confidence: 0.95,
+        keywords: ['non-disclosure', 'confidentiality', 'proprietary information', 'trade secrets', 'confidential', 'nda', 'non disclosure'],
+        characteristics: ['Confidentiality protection', 'Trade secret safeguards', 'Information disclosure restrictions', 'Penalty enforcement'],
         solutions: ['compliance_score', 'risk_assessment']
       },
       {
-        type: 'employment_contract',
+        type: 'privacy_policy_document',
+        confidence: 0.9,
+        keywords: ['privacy policy', 'privacy statement', 'data collection', 'privacy notice', 'cookies', 'user data', 'privacy practices'],
+        characteristics: ['GDPR criteria compliance', 'Privacy rights outlined', 'Data usage transparency', 'User consent mechanisms'],
+        solutions: ['compliance_score', 'perspective_review']
+      },
+      {
+        type: 'consultancy_agreement',
+        confidence: 0.9,
+        keywords: ['consultancy', 'professional services', 'consulting', 'advisory', 'expertise', 'consultant', 'service provider'],
+        characteristics: ['Professional service delivery', 'Expertise provision', 'Service standards defined', 'Deliverable specifications'],
+        solutions: ['risk_assessment', 'full_summary', 'perspective_review']
+      },
+      {
+        type: 'research_development_agreement',
         confidence: 0.85,
-        keywords: ['employment', 'employee', 'salary', 'benefits', 'termination', 'non-compete', 'confidentiality'],
-        characteristics: ['Defines employment terms', 'Contains compensation details', 'Includes confidentiality clauses'],
+        keywords: ['research', 'development', 'r&d', 'innovation', 'technology', 'intellectual property', 'research and development'],
+        characteristics: ['Industry standards compliance', 'Innovation framework', 'IP ownership clauses', 'Research deliverables'],
         solutions: ['compliance_score', 'risk_assessment', 'perspective_review']
       },
       {
-        type: 'non_disclosure_agreement',
+        type: 'end_user_license_agreement',
         confidence: 0.9,
-        keywords: ['non-disclosure', 'confidentiality', 'proprietary information', 'trade secrets', 'confidential'],
-        characteristics: ['Protects confidential information', 'Defines disclosure restrictions', 'Contains penalty clauses'],
+        keywords: ['end user license', 'eula', 'software license', 'license agreement', 'usage rights', 'software terms', 'license terms'],
+        characteristics: ['Software usage rights', 'License restrictions', 'User obligations', 'IP protections'],
         solutions: ['compliance_score', 'risk_assessment']
       },
       {
-        type: 'vendor_agreement',
-        confidence: 0.8,
-        keywords: ['vendor', 'supplier', 'procurement', 'purchase', 'delivery', 'payment terms'],
-        characteristics: ['Governs vendor relationships', 'Contains delivery requirements', 'Specifies payment terms'],
-        solutions: ['risk_assessment', 'full_summary', 'perspective_review']
-      },
-      {
-        type: 'partnership_agreement',
-        confidence: 0.75,
-        keywords: ['partnership', 'joint venture', 'collaboration', 'revenue sharing', 'mutual'],
-        characteristics: ['Establishes business partnership', 'Defines shared responsibilities', 'Contains revenue arrangements'],
-        solutions: ['full_summary', 'perspective_review', 'risk_assessment']
-      },
-      {
-        type: 'lease_agreement',
+        type: 'product_supply_agreement',
         confidence: 0.85,
-        keywords: ['lease', 'rental', 'premises', 'property', 'landlord', 'tenant', 'rent'],
-        characteristics: ['Governs property rental', 'Defines rental terms', 'Contains property usage rights'],
-        solutions: ['risk_assessment', 'compliance_score', 'perspective_review']
+        keywords: ['product supply', 'supply agreement', 'supplier', 'product delivery', 'manufacturing', 'goods supply', 'procurement'],
+        characteristics: ['Product delivery terms', 'Supply chain standards', 'Quality specifications', 'Delivery obligations'],
+        solutions: ['risk_assessment', 'full_summary', 'perspective_review']
       }
     ];
 
@@ -176,13 +169,12 @@ export class ContractClassificationService {
   static getContractTypeDisplayName(contractType: string): string {
     const displayNames: Record<string, string> = {
       data_processing_agreement: 'Data Processing Agreement',
-      service_agreement: 'Service Agreement',
-      software_license: 'Software License Agreement',
-      employment_contract: 'Employment Contract',
       non_disclosure_agreement: 'Non-Disclosure Agreement',
-      vendor_agreement: 'Vendor/Supplier Agreement',
-      partnership_agreement: 'Partnership Agreement',
-      lease_agreement: 'Lease Agreement',
+      privacy_policy_document: 'Privacy Policy Document',
+      consultancy_agreement: 'Consultancy Agreement',
+      research_development_agreement: 'R&D Agreement',
+      end_user_license_agreement: 'End User License Agreement',
+      product_supply_agreement: 'Product Supply Agreement',
       general_commercial: 'General Commercial Agreement'
     };
 
@@ -195,13 +187,12 @@ export class ContractClassificationService {
   static getRecommendedSolutions(contractType: string): string[] {
     const recommendations: Record<string, string[]> = {
       data_processing_agreement: ['compliance_score', 'perspective_review'],
-      service_agreement: ['risk_assessment', 'full_summary', 'perspective_review'],
-      software_license: ['compliance_score', 'risk_assessment'],
-      employment_contract: ['compliance_score', 'risk_assessment', 'perspective_review'],
       non_disclosure_agreement: ['compliance_score', 'risk_assessment'],
-      vendor_agreement: ['risk_assessment', 'full_summary', 'perspective_review'],
-      partnership_agreement: ['full_summary', 'perspective_review', 'risk_assessment'],
-      lease_agreement: ['risk_assessment', 'compliance_score', 'perspective_review'],
+      privacy_policy_document: ['compliance_score', 'perspective_review'],
+      consultancy_agreement: ['risk_assessment', 'full_summary', 'perspective_review'],
+      research_development_agreement: ['compliance_score', 'risk_assessment', 'perspective_review'],
+      end_user_license_agreement: ['compliance_score', 'risk_assessment'],
+      product_supply_agreement: ['risk_assessment', 'full_summary', 'perspective_review'],
       general_commercial: ['full_summary', 'risk_assessment']
     };
 

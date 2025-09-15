@@ -82,20 +82,33 @@ export class DataService {
     try {
       console.log('🚀 Starting intelligent contract processing workflow...');
 
-      // 1. Classify contract type using AI
-      const { contractClassificationService } = await import('./contractClassificationService');
-      console.log('🤖 Classifying contract type...');
+      // 1. Classify contract type using AI with robust error handling
+      let classification: any;
+      try {
+        const { contractClassificationService } = await import('./contractClassificationService');
+        console.log('🤖 Classifying contract type...');
 
-      const classification = await contractClassificationService.classifyContract(
-        contractData.content,
-        contractData.file_name
-      );
+        classification = await contractClassificationService.classifyContract(
+          contractData.content,
+          contractData.file_name
+        );
 
-      console.log('✅ Contract classification completed:', {
-        type: classification.contractType,
-        confidence: classification.confidence,
-        characteristics: classification.characteristics
-      });
+        console.log('✅ Contract classification completed:', {
+          type: classification.contractType,
+          confidence: classification.confidence,
+          characteristics: classification.characteristics
+        });
+      } catch (classificationError) {
+        console.warn('⚠️ Classification failed, using fallback:', classificationError);
+        // Provide a safe fallback classification
+        classification = {
+          contractType: 'general_commercial',
+          confidence: 0.5,
+          characteristics: ['Commercial agreement requiring review'],
+          reasoning: 'Fallback classification due to processing error',
+          suggestedSolutions: ['full_summary', 'risk_assessment']
+        };
+      }
 
       // 2. Create contract with classification results
       const contract = await ContractsService.createContract({
@@ -121,14 +134,39 @@ export class DataService {
       // 3. Update contract status to reviewing
       await ContractsService.updateContractStatus(contract.id, 'reviewing');
 
-      // 4. Process with AI analysis using classified contract type
+      // 4. Process with AI analysis using classified contract type with enhanced error handling
       const enhancedContractData = {
         ...contractData,
         contract_type: classification.contractType,
         classification: classification
       };
 
-      const reviewResults = await this.processWithAI(enhancedContractData, reviewType, contractData.custom_solution_id);
+      let reviewResults: any;
+      let retryCount = 0;
+      const maxRetries = 2;
+
+      while (retryCount <= maxRetries) {
+        try {
+          console.log(`🔄 Attempting AI analysis (attempt ${retryCount + 1}/${maxRetries + 1})...`);
+          reviewResults = await this.processWithAI(enhancedContractData, reviewType, contractData.custom_solution_id);
+          console.log('✅ AI analysis completed successfully');
+          break;
+        } catch (aiError) {
+          retryCount++;
+          console.error(`❌ AI analysis attempt ${retryCount} failed:`, aiError);
+
+          if (retryCount > maxRetries) {
+            // Final fallback - create a basic review result
+            console.log('🔄 Using fallback analysis due to repeated AI failures');
+            reviewResults = this.generateFallbackAnalysis(reviewType, classification);
+            break;
+          }
+
+          // Wait before retry
+          console.log(`⏳ Waiting before retry ${retryCount + 1}...`);
+          await new Promise(resolve => setTimeout(resolve, 2000 * retryCount));
+        }
+      }
 
       // 5. Create review record
       const review = await ContractReviewsService.createReview({

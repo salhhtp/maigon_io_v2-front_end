@@ -208,15 +208,20 @@ export default function Upload() {
 
             console.log(`📄 Processing PDF: ${file.name} (${Math.round(file.size / 1024)}KB)`);
 
-            // Convert to base64 using a more reliable method for large files
+            // Convert to base64 using the most reliable method for large files
             const uint8Array = new Uint8Array(arrayBuffer);
             let base64 = '';
 
-            // Process in chunks to avoid "Maximum call stack size exceeded" error
-            const chunkSize = 8192;
+            // Process in smaller chunks to avoid "Maximum call stack size exceeded" error
+            const chunkSize = 1024; // Smaller chunk size for better reliability
             for (let i = 0; i < uint8Array.length; i += chunkSize) {
               const chunk = uint8Array.slice(i, i + chunkSize);
-              base64 += btoa(String.fromCharCode.apply(null, Array.from(chunk)));
+              // Use safer approach without .apply() which causes stack overflow
+              let chunkString = '';
+              for (let j = 0; j < chunk.length; j++) {
+                chunkString += String.fromCharCode(chunk[j]);
+              }
+              base64 += btoa(chunkString);
             }
 
             console.log(`✅ PDF converted to base64 successfully (${Math.round(base64.length / 1024)}KB)`);
@@ -274,15 +279,20 @@ export default function Upload() {
 
             console.log(`📄 Processing DOCX: ${file.name} (${Math.round(file.size / 1024)}KB)`);
 
-            // Convert to base64 using chunked approach for large files
+            // Convert to base64 using the most reliable method for large files
             const uint8Array = new Uint8Array(arrayBuffer);
             let base64 = '';
 
-            // Process in chunks to avoid "Maximum call stack size exceeded" error
-            const chunkSize = 8192;
+            // Process in smaller chunks to avoid "Maximum call stack size exceeded" error
+            const chunkSize = 1024; // Smaller chunk size for better reliability
             for (let i = 0; i < uint8Array.length; i += chunkSize) {
               const chunk = uint8Array.slice(i, i + chunkSize);
-              base64 += btoa(String.fromCharCode.apply(null, Array.from(chunk)));
+              // Use safer approach without .apply() which causes stack overflow
+              let chunkString = '';
+              for (let j = 0; j < chunk.length; j++) {
+                chunkString += String.fromCharCode(chunk[j]);
+              }
+              base64 += btoa(chunkString);
             }
 
             console.log(`✅ DOCX converted to base64 successfully (${Math.round(base64.length / 1024)}KB)`);

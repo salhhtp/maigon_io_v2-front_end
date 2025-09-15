@@ -89,16 +89,15 @@ async function classifyWithAI(request: ClassificationRequest, apiKey: string) {
 
   const systemPrompt = `You are an expert legal document classifier with extensive knowledge of contract types, legal frameworks, and commercial agreements. Your task is to analyze contract content and accurately classify it into specific contract types.
 
-Analyze the provided contract content and classify it into one of these primary categories:
-- data_processing_agreement: DPAs, privacy agreements, GDPR compliance documents
-- service_agreement: Professional services, consulting, maintenance agreements
-- software_license: Software licensing, SaaS agreements, usage rights
-- employment_contract: Employment terms, job agreements, HR documents
+Analyze the provided contract content and classify it into one of these primary categories based on the 7 specific solution types:
+- data_processing_agreement: DPAs, GDPR compliance documents, EDPB guidelines adherence
 - non_disclosure_agreement: NDAs, confidentiality agreements, trade secret protection
-- vendor_agreement: Supplier contracts, procurement agreements, purchase terms
-- partnership_agreement: Joint ventures, collaboration agreements, strategic partnerships
-- lease_agreement: Property rental, facility lease, equipment rental
-- general_commercial: Other commercial agreements not fitting specific categories
+- privacy_policy_document: Privacy statements, privacy policies, GDPR criteria compliance
+- consultancy_agreement: Professional services agreements, consulting contracts, advisory services
+- research_development_agreement: R&D agreements, innovation contracts, technology development
+- end_user_license_agreement: EULAs, software license agreements, usage rights
+- product_supply_agreement: Supply agreements, procurement contracts, product delivery terms
+- general_commercial: Other commercial agreements not fitting the 7 specific categories
 
 Consider document structure, legal terminology, clause types, and specific obligations when classifying.`;
 
