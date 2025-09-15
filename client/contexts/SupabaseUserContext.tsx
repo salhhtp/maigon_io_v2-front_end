@@ -569,42 +569,52 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  // Logout
+  // Logout with complete cleanup
   const logout = async (): Promise<void> => {
     try {
-      console.log('🚪 Logging out user...');
+      console.log('🚪 Logging out user and clearing all auth data...');
 
-      // Clear state first
+      // Clear state immediately
       setUser(null);
       setSession(null);
+      setIsLoading(false);
 
-      // Clear browser storage
-      localStorage.removeItem('sb-auth-token');
+      // Sign out from Supabase with local scope to clear all tokens
+      await supabase.auth.signOut({ scope: 'local' });
+
+      // Comprehensive cleanup of browser storage
       Object.keys(localStorage).forEach(key => {
-        if (key.includes('supabase') || key.includes('sb-')) {
+        if (key.includes('supabase') || key.includes('sb-') || key.includes('auth')) {
           localStorage.removeItem(key);
         }
       });
 
-      // Sign out from Supabase
-      await supabase.auth.signOut();
+      Object.keys(sessionStorage).forEach(key => {
+        if (key.includes('supabase') || key.includes('sb-') || key.includes('auth')) {
+          sessionStorage.removeItem(key);
+        }
+      });
 
-      console.log('✅ Logout completed successfully');
+      console.log('✅ Complete logout and cleanup completed');
 
-      // Force page reload to ensure clean state
-      setTimeout(() => {
-        window.location.href = '/';
-      }, 100);
+      // Navigate to home page to show clean public state
+      window.location.href = '/';
 
     } catch (error) {
       console.error('Logout error:', error);
 
-      // Force logout even if there's an error
+      // Force complete cleanup even if there's an error
       setUser(null);
       setSession(null);
-      setTimeout(() => {
-        window.location.href = '/';
-      }, 100);
+      setIsLoading(false);
+
+      Object.keys(localStorage).forEach(key => {
+        if (key.includes('supabase') || key.includes('sb-') || key.includes('auth')) {
+          localStorage.removeItem(key);
+        }
+      });
+
+      window.location.href = '/';
     }
   };
 
