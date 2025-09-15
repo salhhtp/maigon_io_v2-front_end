@@ -6,6 +6,7 @@ import { UserUsageStatsService } from './userUsageStatsService';
 import { AdminAnalyticsService } from './adminAnalyticsService';
 import aiService from './aiService';
 import logger from '@/utils/logger';
+import { logError, createUserFriendlyMessage } from '@/utils/errorLogger';
 
 export class DataService {
   static async initializeNewUser(userId: string) {
@@ -220,19 +221,13 @@ export class DataService {
       };
 
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      const errorDetails = {
-        message: errorMessage,
-        stack: error instanceof Error ? error.stack : undefined,
-        name: error instanceof Error ? error.name : 'UnknownError',
+      // Log error with comprehensive context
+      const errorDetails = logError('❌ Contract processing workflow failed', error, {
         userId,
         reviewType,
-        timestamp: new Date().toISOString()
-      };
-
-      console.error('❌ Contract processing workflow failed:', {
-        error: errorMessage,
-        details: errorDetails
+        contractTitle: contractData.title,
+        contentLength: contractData.content?.length,
+        fileName: contractData.file_name
       });
 
       // Track the failure with proper error serialization
@@ -240,24 +235,25 @@ export class DataService {
         await UserActivitiesService.trackActivity({
           user_id: userId,
           activity_type: 'contract_processing_error',
-          description: `Contract processing failed: ${errorMessage}`,
+          description: `Contract processing failed: ${errorDetails.message}`,
           metadata: {
-            error: errorMessage,
-            errorType: error instanceof Error ? error.name : typeof error,
+            error: errorDetails.message,
+            errorType: errorDetails.type,
             reviewType: reviewType,
-            timestamp: new Date().toISOString()
+            timestamp: errorDetails.timestamp
           }
         });
       } catch (trackError) {
-        const trackErrorMessage = trackError instanceof Error ? trackError.message : String(trackError);
-        console.error('Failed to track processing error:', {
-          trackingError: trackErrorMessage,
-          originalError: errorMessage
+        logError('Failed to track processing error', trackError, {
+          originalError: errorDetails.message,
+          userId,
+          reviewType
         });
       }
 
-      // Re-throw with proper error message
-      throw new Error(`Contract processing failed: ${errorMessage}`);
+      // Re-throw with user-friendly error message
+      const userFriendlyMessage = createUserFriendlyMessage(error, 'Contract processing failed due to an unexpected error');
+      throw new Error(userFriendlyMessage);
     }
   }
 

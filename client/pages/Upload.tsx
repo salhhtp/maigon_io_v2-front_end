@@ -9,6 +9,7 @@ import ContractClassificationDisplay from "@/components/ContractClassificationDi
 import { useUser } from "@/contexts/SupabaseUserContext";
 import { DataService } from "@/services/dataService";
 import { useToast } from "@/hooks/use-toast";
+import { logError, createUserFriendlyMessage } from "@/utils/errorLogger";
 
 export default function Upload() {
   const { user } = useUser();
@@ -514,11 +515,13 @@ export default function Upload() {
       }, 2500); // Longer delay to show classification
 
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      console.error("❌ Contract processing error:", {
-        message: errorMessage,
-        stack: error instanceof Error ? error.stack : undefined,
-        type: error instanceof Error ? error.name : typeof error
+      // Log error with detailed context
+      const errorDetails = logError("❌ Contract processing error", error, {
+        fileName: selectedFile?.name,
+        fileSize: selectedFile?.size,
+        fileType: selectedFile?.type,
+        perspective,
+        userId: user?.id
       });
 
       // Reset UI state immediately to prevent stuck state
@@ -561,19 +564,16 @@ export default function Upload() {
         variant: "destructive",
       });
 
-      // Log comprehensive error info for debugging
-      console.error("📊 Error analysis:", {
-        errorType: error instanceof Error ? error.constructor.name : typeof error,
-        errorMessage: error instanceof Error ? error.message : String(error),
-        errorStack: error instanceof Error ? error.stack : undefined,
-        fileName: selectedFile?.name,
-        fileSize: selectedFile?.size,
-        fileType: selectedFile?.type,
-        perspective,
-        userId: user?.id,
-        userShouldRetry: shouldRetry,
-        timestamp: new Date().toISOString()
-      });
+      // Additional debugging context (main error already logged above)
+      if (process.env.NODE_ENV === 'development') {
+        console.debug("📊 Error analysis context:", {
+          userShouldRetry: shouldRetry,
+          userMessage: userMessage,
+          errorType: errorDetails.type,
+          hasSelectedFile: !!selectedFile,
+          hasUser: !!user
+        });
+      }
 
       // Additional cleanup - clear selected file if it's a file issue
       if (!shouldRetry && error instanceof Error && error.message.toLowerCase().includes('file')) {
