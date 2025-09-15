@@ -221,114 +221,112 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  // Initialize auth state
+  // Initialize auth state - passive approach
   useEffect(() => {
     let mounted = true;
-    let timeoutId: NodeJS.Timeout;
 
-    // Add a safety timeout to ensure loading state doesn't get stuck
-    timeoutId = setTimeout(() => {
-      if (mounted) {
-        console.warn('Auth initialization timed out, clearing state and setting loading to false');
-        setSession(null);
-        setUser(null);
-        setIsLoading(false);
-      }
-    }, 5000); // 5 second timeout
-
-    const getInitialSession = async () => {
+    const initializeAuth = async () => {
       try {
-        console.log('Initializing auth session...');
+        console.log('🔍 Checking for existing auth session (passive)...');
 
-        // First, clear any existing broken sessions
-        await supabase.auth.signOut();
-        console.log('Cleared any existing sessions');
-
-        // Then check for a valid session
+        // Passively check for existing session without manipulating it
         const { data: { session }, error } = await supabase.auth.getSession();
 
         if (error) {
-          console.error('Error getting session:', error);
+          console.warn('Session check error (non-critical):', error.message);
           if (mounted) {
             setSession(null);
             setUser(null);
+            setIsLoading(false);
           }
           return;
         }
 
         if (mounted) {
-          console.log('Session check:', session ? `Found session for ${session.user?.email}` : 'No session (clean start)');
+          if (session?.user) {
+            console.log('✅ Found existing valid session for:', session.user.email);
+            setSession(session);
 
-          // Since we just signed out, there should be no session
-          // This ensures a clean start every time
-          setSession(null);
-          setUser(null);
+            // Load user profile for existing session
+            try {
+              const userProfile = await loadUserProfile(session.user.id);
+              if (userProfile) {
+                setUser(userProfile);
+                console.log('✅ User profile loaded successfully');
+              } else {
+                console.warn('⚠️ Failed to load profile, clearing session');
+                setSession(null);
+                setUser(null);
+              }
+            } catch (profileError) {
+              console.warn('⚠️ Profile loading error, clearing session:', profileError);
+              setSession(null);
+              setUser(null);
+            }
+          } else {
+            console.log('🏠 No existing session - starting in clean public state');
+            setSession(null);
+            setUser(null);
+          }
+          setIsLoading(false);
         }
       } catch (error) {
-        console.error('Error initializing auth:', error);
+        console.warn('Auth initialization error (non-critical):', error);
         if (mounted) {
           setSession(null);
           setUser(null);
-        }
-      } finally {
-        if (mounted) {
-          console.log('Auth initialization complete - starting with clean slate');
-          clearTimeout(timeoutId);
           setIsLoading(false);
         }
       }
     };
 
-    getInitialSession();
+    initializeAuth();
 
-    // Listen for auth changes
+    // Listen for auth state changes (only respond to explicit auth actions)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!mounted) return;
 
-        console.log('Auth state changed:', event, session?.user?.email);
-        clearTimeout(timeoutId); // Clear timeout when auth state changes
+        console.log('🔄 Auth state changed:', event, session?.user?.email || 'no user');
 
-        // Handle sign out events immediately
+        // Handle sign out events
         if (event === 'SIGNED_OUT' || !session) {
-          console.log('User signed out, clearing state');
+          console.log('👋 User signed out, returning to public state');
           setSession(null);
           setUser(null);
           setIsLoading(false);
           return;
         }
 
-        setSession(session);
+        // Handle sign in events
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          console.log('🔐 User authenticated, loading profile...');
+          setSession(session);
 
-        if (session?.user) {
-          try {
-            const userProfile = await loadUserProfile(session.user.id);
-            if (userProfile) {
-              setUser(userProfile);
-              console.log('User profile set successfully');
-            } else {
-              console.warn('Failed to load user profile, clearing session');
-              // If profile loading failed, clear the session state
+          if (session?.user) {
+            try {
+              const userProfile = await loadUserProfile(session.user.id);
+              if (userProfile) {
+                setUser(userProfile);
+                console.log('✅ User authenticated and profile loaded');
+              } else {
+                console.warn('⚠️ Authentication succeeded but profile loading failed');
+                setSession(null);
+                setUser(null);
+              }
+            } catch (error) {
+              console.error('❌ Error loading profile after auth:', error);
               setSession(null);
               setUser(null);
             }
-          } catch (error) {
-            console.error('Error in auth state change handler:', error);
-            // Clear state on any error
-            setSession(null);
-            setUser(null);
           }
-        } else {
-          setUser(null);
+          setIsLoading(false);
         }
-
-        setIsLoading(false);
       }
     );
 
     return () => {
       mounted = false;
-      clearTimeout(timeoutId);
       subscription.unsubscribe();
     };
   }, []);
