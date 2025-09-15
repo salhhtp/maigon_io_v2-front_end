@@ -77,7 +77,6 @@ interface UserContextType {
   resetPassword: (email: string) => Promise<{ success: boolean; message: string }>;
   updatePassword: (newPassword: string) => Promise<{ success: boolean; message: string }>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<{ success: boolean; message: string }>;
-  clearAuthState: () => Promise<void>;
 }
 
 export interface SignUpData {
@@ -151,7 +150,7 @@ const getDefaultUserData = (profile: UserProfile): Omit<User, 'id' | 'name' | 'e
 export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true); // Start loading to check auth state
 
   // Convert UserProfile to User format
   const convertProfileToUser = (profile: UserProfile, authUser?: SupabaseUser): User => {
@@ -229,16 +228,16 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const initializeAuth = async () => {
       try {
         console.log('🔍 Starting authentication initialization...');
-        
+
         // First, clear any demo authentication that might conflict
         localStorage.removeItem('maigon_current_user');
         sessionStorage.removeItem('maigon_current_user');
-        
+
         // Check if this is a special auth callback (email verification, password reset, etc.)
         const urlParams = new URLSearchParams(window.location.search);
         const hashParams = new URLSearchParams(window.location.hash.substring(1));
-        
-        const isAuthCallback = 
+
+        const isAuthCallback =
           urlParams.get('access_token') ||
           hashParams.get('access_token') ||
           urlParams.get('type') ||
@@ -249,10 +248,10 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         if (isAuthCallback) {
           console.log('🔗 Auth callback detected, processing session');
         }
-        
+
         // Check for existing session (don't force clear unless explicitly signing out)
         const { data: { session }, error } = await supabase.auth.getSession();
-        
+
         if (error) {
           console.warn('Session check error:', error.message);
           if (mounted) {
@@ -267,7 +266,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           if (session?.user) {
             console.log('✅ Found existing session for:', session.user.email);
             setSession(session);
-            
+
             try {
               const userProfile = await loadUserProfile(session.user.id);
               if (userProfile) {
@@ -339,7 +338,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           setSession(null);
           setUser(null);
           setIsLoading(false);
-          
+
           // Clear demo authentication
           localStorage.removeItem('maigon_current_user');
           sessionStorage.removeItem('maigon_current_user');
@@ -419,6 +418,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setIsLoading(false);
     }
   };
+
 
   // Sign in
   const signIn = async (email: string, password: string): Promise<{ success: boolean; message: string; user?: User }> => {
@@ -572,41 +572,56 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  // Logout
+  // Logout with complete cleanup
   const logout = async (): Promise<void> => {
     try {
-      console.log('🚪 Logging out user...');
+      console.log('🚪 Logging out user and clearing all auth data...');
 
-      // Clear state first
+      // Clear state immediately
       setUser(null);
       setSession(null);
+      setIsLoading(false);
 
-      // Sign out from Supabase
-      await supabase.auth.signOut();
+      // Sign out from Supabase with local scope to clear all tokens
+      await supabase.auth.signOut({ scope: 'local' });
+
+      // Comprehensive cleanup of browser storage
+      Object.keys(localStorage).forEach(key => {
+        if (key.includes('supabase') || key.includes('sb-') || key.includes('auth')) {
+          localStorage.removeItem(key);
+        }
+      });
+
+      Object.keys(sessionStorage).forEach(key => {
+        if (key.includes('supabase') || key.includes('sb-') || key.includes('auth')) {
+          sessionStorage.removeItem(key);
+        }
+      });
+
+      console.log('✅ Complete logout and cleanup completed');
+
+      // Navigate to home page to show clean public state
+      window.location.href = '/';
+
+    } catch (error) {
+      console.error('Logout error:', error);
+
+      // Force complete cleanup even if there's an error
+      setUser(null);
+      setSession(null);
+      setIsLoading(false);
+
+      Object.keys(localStorage).forEach(key => {
+        if (key.includes('supabase') || key.includes('sb-') || key.includes('auth') || key.includes('maigon_current_user')) {
+          localStorage.removeItem(key);
+        }
+      });
 
       // Clear demo authentication
       localStorage.removeItem('maigon_current_user');
       sessionStorage.removeItem('maigon_current_user');
 
-      console.log('✅ Logout completed successfully');
-
-      // Navigate to home page
-      setTimeout(() => {
-        window.location.href = '/';
-      }, 100);
-
-    } catch (error) {
-      console.error('Logout error:', error);
-
-      // Force logout even if there's an error
-      setUser(null);
-      setSession(null);
-      localStorage.removeItem('maigon_current_user');
-      sessionStorage.removeItem('maigon_current_user');
-      
-      setTimeout(() => {
-        window.location.href = '/';
-      }, 100);
+      window.location.href = '/';
     }
   };
 
@@ -651,19 +666,31 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const clearAuthState = async () => {
     console.log('🧹 [DEBUG] Manually clearing auth state...');
     try {
-      await supabase.auth.signOut();
+      await supabase.auth.signOut({ scope: 'local' });
       setSession(null);
       setUser(null);
       setIsLoading(false);
+
+      // Clear browser storage completely
+      Object.keys(localStorage).forEach(key => {
+        if (key.includes('supabase') || key.includes('sb-') || key.includes('auth') || key.includes('maigon_current_user')) {
+          localStorage.removeItem(key);
+        }
+      });
+
+      Object.keys(sessionStorage).forEach(key => {
+        if (key.includes('supabase') || key.includes('sb-') || key.includes('auth') || key.includes('maigon_current_user')) {
+          sessionStorage.removeItem(key);
+        }
+      });
 
       // Clear demo authentication
       localStorage.removeItem('maigon_current_user');
       sessionStorage.removeItem('maigon_current_user');
 
-      console.log('✅ [DEBUG] Auth state cleared successfully');
-      window.location.reload();
+      console.log('✅ [DEBUG] Complete auth state cleared successfully');
     } catch (error) {
-      console.error('❌ [DEBUG] Error clearing auth state:', error);
+      console.error('��� [DEBUG] Error clearing auth state:', error);
     }
   };
 
@@ -680,7 +707,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     resetPassword,
     updatePassword,
     changePassword,
-    clearAuthState,
+    clearAuthState, // Debug function
   };
 
   return <UserContext.Provider value={value}>{children}</UserContext.Provider>;
