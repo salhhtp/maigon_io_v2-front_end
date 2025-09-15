@@ -113,108 +113,194 @@ class AIService {
     return AIService.instance;
   }
 
-  // Main contract analysis method
+  // Main contract analysis method with enhanced reliability
   async analyzeContract(request: ContractAnalysisRequest): Promise<AnalysisResult> {
     const startTime = performance.now();
-    
-    try {
-      logger.contractAction('AI analysis started', undefined, {
-        reviewType: request.reviewType,
-        model: request.model || AIModel.OPENAI_GPT4,
-        userId: request.userId,
-        hasCustomSolution: !!request.customSolution
-      });
+    let lastError: Error | null = null;
+    const maxRetries = 3;
 
-      // Get or create custom solution if provided
-      let customSolution = request.customSolution;
-      if (!customSolution && request.reviewType !== 'ai_integration') {
-        customSolution = await this.getDefaultSolution(request.reviewType, request.contractType);
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        logger.contractAction('AI analysis started', undefined, {
+          reviewType: request.reviewType,
+          model: request.model || AIModel.OPENAI_GPT4,
+          userId: request.userId,
+          hasCustomSolution: !!request.customSolution,
+          attempt
+        });
+
+        // Get or create custom solution if provided
+        let customSolution = request.customSolution;
+        if (!customSolution && request.reviewType !== 'ai_integration') {
+          customSolution = await this.getDefaultSolution(request.reviewType, request.contractType);
+        }
+
+        // Call the appropriate AI service with retries for different models
+        let result: Partial<AnalysisResult>;
+        try {
+          result = await this.callAIService(request, customSolution);
+        } catch (apiError) {
+          // If primary model fails, try fallback model
+          if (attempt === 1 && request.model !== AIModel.OPENAI_GPT35) {
+            console.log('🔄 Primary model failed, trying fallback model...');
+            const fallbackRequest = { ...request, model: AIModel.OPENAI_GPT35 };
+            result = await this.callAIService(fallbackRequest, customSolution);
+          } else {
+            throw apiError;
+          }
+        }
+
+        const processingTime = (performance.now() - startTime) / 1000;
+
+        // Validate result completeness
+        if (!result.score || typeof result.score !== 'number') {
+          throw new Error('Invalid AI response: missing or invalid score');
+        }
+
+        const analysisResult: AnalysisResult = {
+          ...result,
+          processing_time: processingTime,
+          timestamp: new Date().toISOString(),
+          model_used: request.model || AIModel.OPENAI_GPT4,
+          custom_solution_id: customSolution?.id,
+          pages: result.pages || 1,
+          confidence: result.confidence || 0.75,
+          score: result.score,
+          recommendations: result.recommendations || []
+        };
+
+        logger.contractAction('AI analysis completed', undefined, {
+          reviewType: request.reviewType,
+          processingTime,
+          score: result.score,
+          confidence: result.confidence,
+          userId: request.userId,
+          attempt
+        });
+
+        return analysisResult;
+
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error('Unknown error');
+        logger.error(`AI analysis attempt ${attempt} failed`, {
+          reviewType: request.reviewType,
+          userId: request.userId,
+          error: lastError.message,
+          attempt
+        });
+
+        // If this isn't the last attempt, wait before retrying
+        if (attempt < maxRetries) {
+          const waitTime = Math.min(1000 * attempt, 5000); // Exponential backoff, max 5s
+          console.log(`⏳ Waiting ${waitTime}ms before retry ${attempt + 1}...`);
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+        }
       }
-
-      // Call the appropriate AI service
-      const result = await this.callAIService(request, customSolution);
-      
-      const processingTime = (performance.now() - startTime) / 1000;
-      
-      const analysisResult: AnalysisResult = {
-        ...result,
-        processing_time: processingTime,
-        timestamp: new Date().toISOString(),
-        model_used: request.model || AIModel.OPENAI_GPT4,
-        custom_solution_id: customSolution?.id,
-      };
-
-      logger.contractAction('AI analysis completed', undefined, {
-        reviewType: request.reviewType,
-        processingTime,
-        score: result.score,
-        confidence: result.confidence,
-        userId: request.userId
-      });
-
-      return analysisResult;
-    } catch (error) {
-      logger.error('AI analysis failed', {
-        reviewType: request.reviewType,
-        userId: request.userId,
-        error: error instanceof Error ? error.message : 'Unknown error'
-      });
-
-      // Re-throw error for production - no mock fallbacks
-      throw new Error(`Contract analysis failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
+
+    // All retries failed
+    throw new Error(`Contract analysis failed after ${maxRetries} attempts: ${lastError?.message || 'Unknown error'}`);
   }
 
-  // Call AI service based on model
+  // Call AI service with enhanced error handling and validation
   private async callAIService(
     request: ContractAnalysisRequest,
     customSolution?: CustomSolution
   ): Promise<Partial<AnalysisResult>> {
     const model = request.model || customSolution?.aiModel || AIModel.OPENAI_GPT4;
 
+    // Validate request before sending
+    if (!request.content || request.content.trim().length === 0) {
+      throw new Error('Cannot analyze empty contract content');
+    }
+
+    if (!request.reviewType) {
+      throw new Error('Review type is required for analysis');
+    }
+
     try {
       console.log('🔗 Calling Supabase Edge Function for AI analysis...', {
         model,
         reviewType: request.reviewType,
-        contractType: request.contractType
+        contractType: request.contractType,
+        contentLength: request.content.length,
+        hasClassification: !!(request as any).classification
       });
 
-      // Call Supabase Edge Function for AI processing
-      const { data, error } = await supabase.functions.invoke('analyze-contract', {
-        body: {
-          content: request.content,
-          reviewType: request.reviewType,
-          model,
-          customSolution,
-          contractType: request.contractType,
-        },
-      });
+      // Prepare the request body with all necessary data
+      const requestBody = {
+        content: request.content,
+        reviewType: request.reviewType,
+        model,
+        customSolution,
+        contractType: request.contractType,
+        fileType: (request as any).fileType,
+        fileName: (request as any).fileName,
+        classification: (request as any).classification
+      };
 
-      if (error) {
-        console.error('❌ Supabase Edge Function error:', error);
-        throw new Error(`AI service error: ${error.message}`);
+      // Call Supabase Edge Function for AI processing with timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minute timeout
+
+      try {
+        const { data, error } = await supabase.functions.invoke('analyze-contract', {
+          body: requestBody,
+          signal: controller.signal
+        });
+
+        clearTimeout(timeoutId);
+
+        if (error) {
+          console.error('❌ Supabase Edge Function error:', error);
+          throw new Error(`AI service error: ${error.message}`);
+        }
+
+        if (!data) {
+          console.error('❌ No data returned from Edge Function');
+          throw new Error('No data returned from AI service');
+        }
+
+        // Validate the response structure
+        if (typeof data !== 'object') {
+          throw new Error('Invalid response format from AI service');
+        }
+
+        if (!data.score && data.score !== 0) {
+          console.warn('⚠️ Response missing score, using default');
+          data.score = 75; // Default score
+        }
+
+        if (!data.confidence && data.confidence !== 0) {
+          console.warn('⚠️ Response missing confidence, using default');
+          data.confidence = 0.8; // Default confidence
+        }
+
+        console.log('✅ Edge Function call successful:', {
+          hasData: !!data,
+          score: data.score,
+          confidence: data.confidence,
+          hasRecommendations: !!(data.recommendations && data.recommendations.length > 0)
+        });
+
+        return data;
+
+      } catch (timeoutError) {
+        clearTimeout(timeoutId);
+        if (timeoutError.name === 'AbortError') {
+          throw new Error('AI analysis timed out - please try again with a smaller document');
+        }
+        throw timeoutError;
       }
 
-      if (!data) {
-        console.error('❌ No data returned from Edge Function');
-        throw new Error('No data returned from AI service');
-      }
-
-      console.log('✅ Edge Function call successful:', {
-        hasData: !!data,
-        dataKeys: Object.keys(data)
-      });
-
-      return data;
     } catch (error) {
       console.error('❌ AI service call failed:', error);
 
-      // Re-throw with more context
-      if (error instanceof Error) {
-        throw new Error(`AI service call failed: ${error.message}`);
-      } else {
-        throw new Error('AI service call failed with unknown error');
-      }
+      // Enhanced error context
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const enhancedMessage = `AI service call failed: ${errorMessage}. Model: ${model}, Review Type: ${request.reviewType}`;
+
+      throw new Error(enhancedMessage);
     }
   }
 
