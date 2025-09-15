@@ -165,27 +165,55 @@ class AIService {
 
   // Call AI service based on model
   private async callAIService(
-    request: ContractAnalysisRequest, 
+    request: ContractAnalysisRequest,
     customSolution?: CustomSolution
   ): Promise<Partial<AnalysisResult>> {
     const model = request.model || customSolution?.aiModel || AIModel.OPENAI_GPT4;
-    
-    // Call Supabase Edge Function for AI processing
-    const { data, error } = await supabase.functions.invoke('analyze-contract', {
-      body: {
-        content: request.content,
-        reviewType: request.reviewType,
+
+    try {
+      console.log('🔗 Calling Supabase Edge Function for AI analysis...', {
         model,
-        customSolution,
-        contractType: request.contractType,
-      },
-    });
+        reviewType: request.reviewType,
+        contractType: request.contractType
+      });
 
-    if (error) {
-      throw new Error(`AI service error: ${error.message}`);
+      // Call Supabase Edge Function for AI processing
+      const { data, error } = await supabase.functions.invoke('analyze-contract', {
+        body: {
+          content: request.content,
+          reviewType: request.reviewType,
+          model,
+          customSolution,
+          contractType: request.contractType,
+        },
+      });
+
+      if (error) {
+        console.error('❌ Supabase Edge Function error:', error);
+        throw new Error(`AI service error: ${error.message}`);
+      }
+
+      if (!data) {
+        console.error('❌ No data returned from Edge Function');
+        throw new Error('No data returned from AI service');
+      }
+
+      console.log('✅ Edge Function call successful:', {
+        hasData: !!data,
+        dataKeys: Object.keys(data)
+      });
+
+      return data;
+    } catch (error) {
+      console.error('❌ AI service call failed:', error);
+
+      // Re-throw with more context
+      if (error instanceof Error) {
+        throw new Error(`AI service call failed: ${error.message}`);
+      } else {
+        throw new Error('AI service call failed with unknown error');
+      }
     }
-
-    return data;
   }
 
   // Get default solution for review type
