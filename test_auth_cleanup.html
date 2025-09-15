@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Auth Cleanup Test</title>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #f5f5f5; }
+        button { padding: 10px 20px; margin: 10px; background: #9A7C7C; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        .storage-item { padding: 5px; margin: 2px; background: white; border-radius: 3px; }
+        .auth-item { background: #ffeeee; }
+        .results { margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h1>Authentication Cleanup Test</h1>
+    
+    <div>
+        <button onclick="checkStorage()">Check Current Storage</button>
+        <button onclick="simulateAuth()">Simulate Auth Data</button>
+        <button onclick="clearAuthData()">Clear Auth Data</button>
+        <button onclick="checkAfterClear()">Check After Clear</button>
+    </div>
+    
+    <div class="results" id="results"></div>
+    
+    <script>
+        function log(message) {
+            const results = document.getElementById('results');
+            results.innerHTML += `<div class="storage-item">${new Date().toLocaleTimeString()}: ${message}</div>`;
+        }
+        
+        function checkStorage() {
+            document.getElementById('results').innerHTML = '';
+            log('🔍 Checking current storage...');
+            
+            let authFound = false;
+            
+            // Check localStorage
+            log(`📦 localStorage has ${Object.keys(localStorage).length} items:`);
+            Object.keys(localStorage).forEach(key => {
+                const isAuth = key.includes('supabase') || key.includes('sb-') || key.includes('auth');
+                log(`${isAuth ? '🔑' : '📄'} ${key}: ${localStorage.getItem(key)?.substring(0, 50)}...`);
+                if (isAuth) authFound = true;
+            });
+            
+            // Check sessionStorage
+            log(`📦 sessionStorage has ${Object.keys(sessionStorage).length} items:`);
+            Object.keys(sessionStorage).forEach(key => {
+                const isAuth = key.includes('supabase') || key.includes('sb-') || key.includes('auth');
+                log(`${isAuth ? '🔑' : '📄'} ${key}: ${sessionStorage.getItem(key)?.substring(0, 50)}...`);
+                if (isAuth) authFound = true;
+            });
+            
+            log(authFound ? '❌ Auth data found!' : '✅ No auth data found');
+        }
+        
+        function simulateAuth() {
+            log('🎭 Simulating auth data...');
+            localStorage.setItem('sb-token', 'mock-auth-token-12345');
+            localStorage.setItem('supabase.auth.token', 'mock-supabase-token');
+            localStorage.setItem('sb-auth-token', 'mock-sb-auth-token');
+            sessionStorage.setItem('supabase-session', 'mock-session-data');
+            log('✅ Mock auth data added');
+            checkStorage();
+        }
+        
+        function clearAuthData() {
+            log('🧹 Clearing auth data...');
+            
+            // Clear localStorage
+            Object.keys(localStorage).forEach(key => {
+                if (key.includes('supabase') || key.includes('sb-') || key.includes('auth')) {
+                    localStorage.removeItem(key);
+                    log(`🗑️ Removed from localStorage: ${key}`);
+                }
+            });
+            
+            // Clear sessionStorage
+            Object.keys(sessionStorage).forEach(key => {
+                if (key.includes('supabase') || key.includes('sb-') || key.includes('auth')) {
+                    sessionStorage.removeItem(key);
+                    log(`🗑️ Removed from sessionStorage: ${key}`);
+                }
+            });
+            
+            log('✅ Auth cleanup completed');
+        }
+        
+        function checkAfterClear() {
+            log('');
+            log('🔍 Final verification after cleanup:');
+            checkStorage();
+        }
+        
+        // Initial check
+        checkStorage();
+    </script>
+</body>
+</html>
