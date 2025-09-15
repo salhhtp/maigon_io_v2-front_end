@@ -200,16 +200,16 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const getInitialSession = async () => {
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
-        
+
         if (error) {
           console.error('Error getting session:', error);
-          return;
+          // Don't return here - continue to set loading to false
         }
 
         if (mounted) {
           setSession(session);
-          
-          if (session?.user) {
+
+          if (session?.user && !error) {
             const userProfile = await loadUserProfile(session.user.id);
             setUser(userProfile);
           }
