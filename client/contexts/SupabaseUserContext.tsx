@@ -150,8 +150,7 @@ const getDefaultUserData = (profile: UserProfile): Omit<User, 'id' | 'name' | 'e
 export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [isLoading, setIsLoading] = useState(false); // Start in clean state, not loading
-  const [isInitializing, setIsInitializing] = useState(true); // Flag to prevent auto-auth during init
+  const [isLoading, setIsLoading] = useState(true); // Start loading to check auth state
 
   // Convert UserProfile to User format
   const convertProfileToUser = (profile: UserProfile, authUser?: SupabaseUser): User => {
@@ -222,12 +221,18 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  // Initialize auth state - completely passive approach
+  // Initialize auth state - clean but functional approach
   useEffect(() => {
     let mounted = true;
 
     const initializeAuth = async () => {
       try {
+        console.log('🔍 Starting authentication initialization...');
+
+        // First, clear any demo authentication that might conflict
+        localStorage.removeItem('maigon_current_user');
+        sessionStorage.removeItem('maigon_current_user');
+
         // Check if this is a special auth callback (email verification, password reset, etc.)
         const urlParams = new URLSearchParams(window.location.search);
         const hashParams = new URLSearchParams(window.location.hash.substring(1));
@@ -241,91 +246,71 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           window.location.pathname.includes('reset-password');
 
         if (isAuthCallback) {
-          console.log('🔗 Auth callback detected, preserving session');
-          setIsInitializing(false); // Allow auth state changes for callbacks
+          console.log('🔗 Auth callback detected, processing session');
+        }
 
-          // For auth callbacks, check for session normally
-          const { data: { session }, error } = await supabase.auth.getSession();
+        // Check for existing session (don't force clear unless explicitly signing out)
+        const { data: { session }, error } = await supabase.auth.getSession();
 
-          if (session?.user && !error) {
-            console.log('✅ Valid auth callback session found');
+        if (error) {
+          console.warn('Session check error:', error.message);
+          if (mounted) {
+            setSession(null);
+            setUser(null);
+            setIsLoading(false);
+          }
+          return;
+        }
+
+        if (mounted) {
+          if (session?.user) {
+            console.log('✅ Found existing session for:', session.user.email);
             setSession(session);
 
             try {
               const userProfile = await loadUserProfile(session.user.id);
               if (userProfile) {
                 setUser(userProfile);
-                console.log('✅ User profile loaded from callback');
+                console.log('✅ User profile loaded successfully');
+              } else {
+                console.warn('⚠️ Failed to load profile, clearing session');
+                setSession(null);
+                setUser(null);
               }
             } catch (profileError) {
-              console.warn('⚠️ Profile loading failed in callback:', profileError);
+              console.warn('⚠️ Profile loading error:', profileError);
+              setSession(null);
+              setUser(null);
             }
+          } else {
+            console.log('🏠 No session found - starting in public state');
+            setSession(null);
+            setUser(null);
           }
-        } else {
-          // For normal app visits, aggressively clear everything and stay clean
-          console.log('🤽 Complete authentication cleanup and blocking auto-restore');
-
-          // AGGRESSIVE cleanup - clear everything first
-          Object.keys(localStorage).forEach(key => {
-            if (key.includes('supabase') || key.includes('sb-') || key.includes('maigon_current_user') || key.includes('auth')) {
-              localStorage.removeItem(key);
-            }
-          });
-
-          Object.keys(sessionStorage).forEach(key => {
-            if (key.includes('supabase') || key.includes('sb-') || key.includes('maigon_current_user') || key.includes('auth')) {
-              sessionStorage.removeItem(key);
-            }
-          });
-
-          // Clear demo authentication specifically
-          localStorage.removeItem('maigon_current_user');
-          sessionStorage.removeItem('maigon_current_user');
-
-          // DO NOT call supabase.auth.signOut() or getSession() - this triggers unwanted events
-          // Just ensure clean state without interacting with Supabase auth
-
-          console.log('🏠 Clean public state initialized - auth completely disabled');
-
-          // Keep initialization flag true to block any auth state changes
-          setTimeout(() => {
-            if (mounted) {
-              setIsInitializing(false);
-              console.log('🔓 Auth state monitoring enabled (manual sign-in only)');
-            }
-          }, 1000); // Delay enabling auth state monitoring
-        }
-
-        if (mounted) {
           setIsLoading(false);
         }
       } catch (error) {
-        console.warn('Auth initialization error:', error);
+        console.error('Auth initialization error:', error);
         if (mounted) {
           setSession(null);
           setUser(null);
           setIsLoading(false);
-          setIsInitializing(false);
         }
       }
     };
 
     initializeAuth();
 
-    // Listen for auth state changes (only respond to explicit authentication actions)
+    // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!mounted) return;
 
-        // BLOCK all auth state changes during initialization to prevent auto-login
-        if (isInitializing) {
-          console.log(`🚫 Blocked auth event during initialization: ${event}`);
-          return;
-        }
+        console.log('🔄 Auth state changed:', event, session?.user?.email || 'no user');
 
-        // Only log and handle explicit authentication events
+        // Handle sign in events
         if (event === 'SIGNED_IN') {
-          console.log('🔐 User explicitly signed in, loading profile...');
+          console.log('🔐 User signed in, loading profile...');
           setSession(session);
 
           if (session?.user) {
@@ -336,38 +321,34 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 console.log('✅ User authenticated and profile loaded');
               } else {
                 console.warn('⚠️ Authentication succeeded but profile loading failed');
-                await supabase.auth.signOut({ scope: 'local' });
+                await supabase.auth.signOut();
                 setSession(null);
                 setUser(null);
               }
             } catch (error) {
               console.error('❌ Error loading profile after auth:', error);
-              await supabase.auth.signOut({ scope: 'local' });
+              await supabase.auth.signOut();
               setSession(null);
               setUser(null);
             }
           }
           setIsLoading(false);
         } else if (event === 'SIGNED_OUT') {
-          console.log('👋 User signed out, returning to clean public state');
+          console.log('👋 User signed out, clearing state');
           setSession(null);
           setUser(null);
           setIsLoading(false);
 
-          // Ensure complete cleanup
-          Object.keys(localStorage).forEach(key => {
-            if (key.includes('supabase') || key.includes('sb-') || key.includes('maigon_current_user')) {
-              localStorage.removeItem(key);
-            }
-          });
+          // Clear demo authentication
+          localStorage.removeItem('maigon_current_user');
+          sessionStorage.removeItem('maigon_current_user');
         } else if (event === 'TOKEN_REFRESHED') {
-          // Only handle token refresh if we already have a user (silent refresh)
+          // Handle token refresh silently if we already have a user
           if (user && session) {
             console.log('🔄 Token refreshed for existing session');
             setSession(session);
           }
         }
-        // Ignore all other events (INITIAL_SESSION, etc.) to prevent auto-login
       }
     );
 
