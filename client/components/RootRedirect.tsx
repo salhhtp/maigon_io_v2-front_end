@@ -6,19 +6,9 @@ import Index from "@/pages/Index";
 const RootRedirect: React.FC = () => {
   const { user, isLoggedIn, isLoading } = useUser();
   const navigate = useNavigate();
-  const [forceShowPublic, setForceShowPublic] = React.useState(false);
 
-  // Fallback timeout to prevent infinite loading
-  React.useEffect(() => {
-    const fallbackTimeout = setTimeout(() => {
-      if (isLoading) {
-        console.warn('RootRedirect: Loading took too long, forcing public view');
-        setForceShowPublic(true);
-      }
-    }, 8000); // 8 second fallback
-
-    return () => clearTimeout(fallbackTimeout);
-  }, [isLoading]);
+  // Since auth now starts in clean state, we don't need aggressive fallback timeouts
+  // The app will naturally show public view if not authenticated
 
   useEffect(() => {
     // Check if this is an email verification callback
@@ -55,20 +45,20 @@ const RootRedirect: React.FC = () => {
     }
   }, [isLoggedIn, isLoading, user, navigate]);
 
-  // Show loading state while checking authentication (unless forced to show public)
-  if (isLoading && !forceShowPublic) {
+  // Show loading state only when actually checking authentication (should be brief)
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-[#F9F8F8] flex items-center justify-center">
         <div className="text-center">
           <div className="w-8 h-8 border-2 border-[#9A7C7C] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-[#271D1D]">Loading...</p>
+          <p className="text-[#271D1D]">Authenticating...</p>
         </div>
       </div>
     );
   }
 
-  // If not logged in or forced to show public, show the public homepage
-  if (!isLoggedIn || forceShowPublic) {
+  // If not logged in, show the public homepage (default state)
+  if (!isLoggedIn) {
     return <Index />;
   }
 
