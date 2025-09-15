@@ -246,6 +246,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         if (!mounted) return;
 
         console.log('Auth state changed:', event, session?.user?.email);
+        clearTimeout(timeoutId); // Clear timeout when auth state changes
         setSession(session);
 
         if (session?.user) {
@@ -261,6 +262,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     return () => {
       mounted = false;
+      clearTimeout(timeoutId);
       subscription.unsubscribe();
     };
   }, []);
