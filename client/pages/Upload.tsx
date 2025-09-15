@@ -392,7 +392,7 @@ export default function Upload() {
         description: "Your contract is being analyzed...",
       });
 
-      // Process contract using real workflow
+      // Process contract using real workflow with enhanced file information
       const result = await DataService.processContractWorkflow(
         user.id,
         {
@@ -400,6 +400,8 @@ export default function Upload() {
           content: fileContent,
           file_name: selectedFile.name,
           file_size: selectedFile.size,
+          file_type: selectedFile.type,
+          contract_type: 'general', // Can be enhanced based on file analysis
         },
         reviewType
       );

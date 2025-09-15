@@ -171,13 +171,15 @@ export class DataService {
         }
       }
 
-      // Prepare AI analysis request
+      // Prepare AI analysis request with enhanced file information
       const analysisRequest = {
         content: contractData.content,
         reviewType,
         contractType: contractData.contract_type || 'general',
         customSolution,
         userId: contractData.user_id,
+        fileType: contractData.file_type,
+        fileName: contractData.file_name,
       };
 
       console.log('📝 Prepared analysis request:', {
