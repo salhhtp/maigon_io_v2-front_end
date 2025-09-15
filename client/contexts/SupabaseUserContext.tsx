@@ -539,11 +539,39 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // Logout
   const logout = async (): Promise<void> => {
     try {
-      await supabase.auth.signOut();
+      console.log('🚪 Logging out user...');
+
+      // Clear state first
       setUser(null);
       setSession(null);
+
+      // Clear browser storage
+      localStorage.removeItem('sb-auth-token');
+      Object.keys(localStorage).forEach(key => {
+        if (key.includes('supabase') || key.includes('sb-')) {
+          localStorage.removeItem(key);
+        }
+      });
+
+      // Sign out from Supabase
+      await supabase.auth.signOut();
+
+      console.log('✅ Logout completed successfully');
+
+      // Force page reload to ensure clean state
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 100);
+
     } catch (error) {
       console.error('Logout error:', error);
+
+      // Force logout even if there's an error
+      setUser(null);
+      setSession(null);
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 100);
     }
   };
 
