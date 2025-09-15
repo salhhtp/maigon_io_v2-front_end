@@ -83,7 +83,7 @@ serve(async (req) => {
     // Get API key based on model
     const model = request.model || 'openai-gpt-4';
     let apiKey: string | undefined;
-    
+
     if (model.startsWith('openai')) {
       apiKey = Deno.env.get('OPENAI_API_KEY');
     } else if (model.startsWith('anthropic')) {
@@ -93,16 +93,20 @@ serve(async (req) => {
     }
 
     if (!apiKey) {
-      console.warn(`API key not configured for model: ${model}`);
+      console.warn(`🔑 API key not configured for model: ${model}, using enhanced mock response`);
       // Return enhanced mock data instead of failing
+      const mockResponse = await generateEnhancedMockResponse(request);
+      console.log('✅ Generated enhanced mock response');
       return new Response(
-        JSON.stringify(await generateEnhancedMockResponse(request)),
-        { 
-          status: 200, 
+        JSON.stringify(mockResponse),
+        {
+          status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       );
     }
+
+    console.log(`🔑 API key found for model: ${model}`);
 
     // Analyze contract with AI
     const result = await analyzeWithAI(request, apiKey);
