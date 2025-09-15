@@ -140,27 +140,61 @@ export class DataService {
   // AI review process using real AI integration
   private static async processWithAI(contractData: any, reviewType: string, customSolutionId?: string) {
     try {
+      console.log('🤖 Starting AI analysis process...', {
+        reviewType,
+        contentLength: contractData.content?.length,
+        userId: contractData.user_id
+      });
+
       // Import AI service dynamically to avoid circular imports
-      const { aiService } = await import('./aiService');
+      const aiServiceModule = await import('./aiService');
+      const aiService = aiServiceModule.aiService;
+
+      // Validate inputs
+      if (!contractData.content || contractData.content.trim().length === 0) {
+        throw new Error('Contract content is empty or invalid');
+      }
+
+      if (!contractData.user_id) {
+        throw new Error('User ID is required for AI analysis');
+      }
 
       // Get custom solution if specified
       let customSolution;
       if (customSolutionId) {
-        const solutions = await aiService.getCustomSolutions(contractData.user_id);
-        customSolution = solutions.find(s => s.id === customSolutionId);
+        try {
+          const solutions = await aiService.getCustomSolutions(contractData.user_id);
+          customSolution = solutions.find(s => s.id === customSolutionId);
+          console.log('🎯 Custom solution loaded:', customSolution?.name);
+        } catch (error) {
+          console.warn('Failed to load custom solution, using default:', error);
+        }
       }
 
       // Prepare AI analysis request
       const analysisRequest = {
         content: contractData.content,
         reviewType,
-        contractType: contractData.contract_type,
+        contractType: contractData.contract_type || 'general',
         customSolution,
         userId: contractData.user_id,
       };
 
+      console.log('📝 Prepared analysis request:', {
+        reviewType: analysisRequest.reviewType,
+        contractType: analysisRequest.contractType,
+        hasCustomSolution: !!analysisRequest.customSolution,
+        contentPreview: analysisRequest.content.substring(0, 100) + '...'
+      });
+
       // Call AI service for analysis
       const aiResult = await aiService.analyzeContract(analysisRequest);
+
+      console.log('✅ AI analysis completed successfully:', {
+        score: aiResult.score,
+        confidence: aiResult.confidence,
+        processingTime: aiResult.processing_time
+      });
 
       return {
         timestamp: aiResult.timestamp,
@@ -174,7 +208,16 @@ export class DataService {
         ...aiResult,
       };
     } catch (error) {
-      console.error('AI analysis failed, falling back to enhanced simulation:', error);
+      console.error('❌ AI analysis failed, falling back to enhanced simulation:', error);
+
+      // Log detailed error information
+      console.error('AI analysis error details:', {
+        errorMessage: error instanceof Error ? error.message : 'Unknown error',
+        errorStack: error instanceof Error ? error.stack : undefined,
+        reviewType,
+        contentLength: contractData.content?.length,
+        userId: contractData.user_id
+      });
 
       // Enhanced fallback simulation with better data
       return this.generateEnhancedFallback(reviewType);
