@@ -468,6 +468,13 @@ export default function Upload() {
         reviewType
       );
 
+      // Show classification results if available
+      if (result.contract?.metadata?.classification) {
+        setContractClassification(result.contract.metadata.classification);
+        setShowClassification(true);
+        console.log("📊 Contract classification completed:", result.contract.metadata.classification);
+      }
+
       // Show success toast
       toast({
         title: "Contract processed successfully",
@@ -486,6 +493,7 @@ export default function Upload() {
               selectedFile: selectedFile,
               solutionTitle: solutionTitle,
               perspective: perspective,
+              classification: result.contract?.metadata?.classification,
             },
           });
         } catch (error) {
@@ -493,7 +501,7 @@ export default function Upload() {
           // Fallback: try direct navigation
           navigate("/contract-review");
         }
-      }, 500); // Give time for transition animation to start
+      }, 2500); // Longer delay to show classification
 
     } catch (error) {
       console.error("❌ Contract processing error:", error);
