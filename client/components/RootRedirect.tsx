@@ -55,8 +55,8 @@ const RootRedirect: React.FC = () => {
     }
   }, [isLoggedIn, isLoading, user, navigate]);
 
-  // Show loading state while checking authentication
-  if (isLoading) {
+  // Show loading state while checking authentication (unless forced to show public)
+  if (isLoading && !forceShowPublic) {
     return (
       <div className="min-h-screen bg-[#F9F8F8] flex items-center justify-center">
         <div className="text-center">
@@ -67,8 +67,8 @@ const RootRedirect: React.FC = () => {
     );
   }
 
-  // If not logged in, show the public homepage
-  if (!isLoggedIn) {
+  // If not logged in or forced to show public, show the public homepage
+  if (!isLoggedIn || forceShowPublic) {
     return <Index />;
   }
 
