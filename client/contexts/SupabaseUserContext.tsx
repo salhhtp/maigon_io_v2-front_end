@@ -170,10 +170,17 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   // Load user profile from database
-  const loadUserProfile = async (authUserId: string): Promise<User | null> => {
+  const loadUserProfile = async (authUserId: string, retryCount = 0): Promise<User | null> => {
     try {
+      console.log(`Loading user profile for auth user: ${authUserId}, attempt: ${retryCount + 1}`);
+
       // Get auth user data first
       const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
+
+      if (authError) {
+        console.error('Error getting auth user:', authError);
+        throw authError;
+      }
 
       const { data: profile, error } = await supabase
         .from('user_profiles')
@@ -182,13 +189,34 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         .single();
 
       if (error) {
-        console.error('Error loading user profile:', error);
-        return null;
+        console.error(`Error loading user profile (attempt ${retryCount + 1}):`, error);
+
+        // If profile not found and we haven't retried, try once more
+        if (error.code === 'PGRST116' && retryCount === 0) {
+          console.log('User profile not found, retrying in 1 second...');
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          return await loadUserProfile(authUserId, retryCount + 1);
+        }
+
+        throw error;
       }
 
-      return convertProfileToUser(profile, authUser || undefined);
+      const user = convertProfileToUser(profile, authUser || undefined);
+      console.log('User profile loaded successfully:', user.email);
+      return user;
     } catch (error) {
-      console.error('Error loading user profile:', error);
+      console.error(`Failed to load user profile after ${retryCount + 1} attempts:`, error);
+
+      // If we've tried twice and still failed, sign out the user to clear inconsistent state
+      if (retryCount > 0) {
+        console.warn('Multiple profile loading failures, signing out user to clear inconsistent state');
+        try {
+          await supabase.auth.signOut();
+        } catch (signOutError) {
+          console.error('Error signing out user:', signOutError);
+        }
+      }
+
       return null;
     }
   };
