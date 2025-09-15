@@ -229,10 +229,12 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // Add a safety timeout to ensure loading state doesn't get stuck
     timeoutId = setTimeout(() => {
       if (mounted) {
-        console.warn('Auth initialization timed out, setting loading to false');
+        console.warn('Auth initialization timed out, clearing state and setting loading to false');
+        setSession(null);
+        setUser(null);
         setIsLoading(false);
       }
-    }, 10000); // 10 second timeout
+    }, 5000); // 5 second timeout
 
     const getInitialSession = async () => {
       try {
