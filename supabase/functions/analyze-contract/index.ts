@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts"
 
-// AI Model configurations
+// Advanced AI Model configurations for sophisticated contract analysis
 const AI_CONFIGS = {
   'openai-gpt-4': {
     baseUrl: 'https://api.openai.com/v1/chat/completions',
@@ -9,6 +9,18 @@ const AI_CONFIGS = {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${apiKey}`,
     }),
+    maxTokens: 4000,
+    temperature: 0.1, // Lower temperature for more consistent legal analysis
+  },
+  'openai-gpt-4o': {
+    baseUrl: 'https://api.openai.com/v1/chat/completions',
+    model: 'gpt-4o',
+    headers: (apiKey: string) => ({
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`,
+    }),
+    maxTokens: 4000,
+    temperature: 0.1,
   },
   'openai-gpt-3.5-turbo': {
     baseUrl: 'https://api.openai.com/v1/chat/completions',
@@ -17,6 +29,8 @@ const AI_CONFIGS = {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${apiKey}`,
     }),
+    maxTokens: 4000,
+    temperature: 0.1,
   },
   'anthropic-claude-3': {
     baseUrl: 'https://api.anthropic.com/v1/messages',
@@ -26,6 +40,19 @@ const AI_CONFIGS = {
       'x-api-key': apiKey,
       'anthropic-version': '2023-06-01',
     }),
+    maxTokens: 4000,
+    temperature: 0.1,
+  },
+  'anthropic-claude-3-opus': {
+    baseUrl: 'https://api.anthropic.com/v1/messages',
+    model: 'claude-3-opus-20240229',
+    headers: (apiKey: string) => ({
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+    }),
+    maxTokens: 4000,
+    temperature: 0.1,
   },
 };
 
@@ -35,6 +62,8 @@ interface AnalysisRequest {
   model: string;
   customSolution?: any;
   contractType?: string;
+  fileType?: string;
+  fileName?: string;
 }
 
 const corsHeaders = {
@@ -77,8 +106,25 @@ serve(async (req) => {
     console.log('✅ Request validation passed:', {
       reviewType: request.reviewType,
       model: request.model,
-      contentLength: request.content.length
+      contentLength: request.content.length,
+      fileType: request.fileType,
+      fileName: request.fileName
     });
+
+    // Handle PDF and DOCX file processing
+    let processedContent = request.content;
+    if (request.content.startsWith('PDF_FILE_BASE64:') || request.content.startsWith('DOCX_FILE_BASE64:')) {
+      try {
+        processedContent = await extractTextFromFile(request.content, request.fileType || '');
+        console.log('📄 File text extraction completed, content length:', processedContent.length);
+      } catch (extractError) {
+        console.error('❌ File extraction failed:', extractError);
+        return new Response(
+          JSON.stringify({ error: 'Failed to extract text from file. Please ensure the file is not corrupted and try again.' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
 
     // Get API key based on model
     const model = request.model || 'openai-gpt-4';
@@ -107,8 +153,14 @@ serve(async (req) => {
 
     console.log(`🔑 API key found for model: ${model}`);
 
-    // Analyze contract with AI
-    const result = await analyzeWithAI(request, apiKey);
+    // Create enhanced request with processed content
+    const enhancedRequest = {
+      ...request,
+      content: processedContent
+    };
+
+    // Analyze contract with AI using advanced models
+    const result = await analyzeWithAI(enhancedRequest, apiKey);
     
     return new Response(
       JSON.stringify(result),

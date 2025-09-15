@@ -79,16 +79,20 @@ export default function Upload() {
   }, [blocker.state]);
 
   const handleFileSelect = (file: File) => {
-    const allowedTypes = ["text/plain"];
+    const allowedTypes = [
+      "application/pdf",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "text/plain"
+    ];
     const fileName = file.name.toLowerCase();
     console.log("File selected:", file.name, "Type:", file.type);
 
-    if (allowedTypes.includes(file.type) || fileName.endsWith('.txt')) {
+    if (allowedTypes.includes(file.type) || fileName.endsWith('.pdf') || fileName.endsWith('.docx') || fileName.endsWith('.txt')) {
       setSelectedFile(file);
       setHasStartedProcess(true); // Mark that user has started the process
       console.log("File accepted:", file.name);
     } else {
-      alert(`Currently only text (.txt) files are supported. Please convert your document to text format. You selected: ${file.type}`);
+      alert(`Please select a PDF, DOCX, or TXT file. You selected: ${file.type}`);
       console.log("File rejected - invalid type:", file.type);
     }
   };
@@ -177,9 +181,33 @@ export default function Upload() {
       const fileType = file.type;
       const fileName = file.name.toLowerCase();
 
-      // PDF files require specialized parsing - not supported in current production build
+      // PDF files - use PDF.js or similar for parsing in production
       if (fileType === 'application/pdf' || fileName.endsWith('.pdf')) {
-        reject(new Error('PDF file processing is not available. Please convert your document to a text (.txt) file and try again.'));
+        console.log('PDF file detected, processing with file reader...');
+
+        // For production PDF parsing, we'll read the file and send it to the backend
+        // The backend Edge function will handle PDF text extraction
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+          try {
+            const arrayBuffer = e.target?.result as ArrayBuffer;
+            if (!arrayBuffer) {
+              reject(new Error('Failed to read PDF file'));
+              return;
+            }
+
+            // Convert to base64 for transmission to backend
+            const uint8Array = new Uint8Array(arrayBuffer);
+            const base64 = btoa(String.fromCharCode(...uint8Array));
+
+            // Return special marker indicating this is a PDF that needs backend processing
+            resolve(`PDF_FILE_BASE64:${base64}`);
+          } catch (error) {
+            reject(new Error('Failed to process PDF file: ' + (error instanceof Error ? error.message : 'Unknown error')));
+          }
+        };
+        reader.onerror = () => reject(new Error('Failed to read PDF file'));
+        reader.readAsArrayBuffer(file);
         return;
       }
 
@@ -199,9 +227,31 @@ export default function Upload() {
         return;
       }
 
-      // DOCX files require specialized parsing - not supported in current production build
+      // DOCX files - process similarly to PDF
       if (fileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || fileName.endsWith('.docx')) {
-        reject(new Error('DOCX file processing is not available. Please convert your document to a text (.txt) file and try again.'));
+        console.log('DOCX file detected, processing with file reader...');
+
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+          try {
+            const arrayBuffer = e.target?.result as ArrayBuffer;
+            if (!arrayBuffer) {
+              reject(new Error('Failed to read DOCX file'));
+              return;
+            }
+
+            // Convert to base64 for transmission to backend
+            const uint8Array = new Uint8Array(arrayBuffer);
+            const base64 = btoa(String.fromCharCode(...uint8Array));
+
+            // Return special marker indicating this is a DOCX that needs backend processing
+            resolve(`DOCX_FILE_BASE64:${base64}`);
+          } catch (error) {
+            reject(new Error('Failed to process DOCX file: ' + (error instanceof Error ? error.message : 'Unknown error')));
+          }
+        };
+        reader.onerror = () => reject(new Error('Failed to read DOCX file'));
+        reader.readAsArrayBuffer(file);
         return;
       }
 
@@ -255,15 +305,22 @@ export default function Upload() {
       return;
     }
 
-    // Validate file type - only text files supported in production
-    const allowedTypes = ['text/plain'];
+    // Validate file type
+    const allowedTypes = [
+      'application/pdf',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'text/plain'
+    ];
     const fileName = selectedFile.name.toLowerCase();
-    const isValidType = allowedTypes.includes(selectedFile.type) || fileName.endsWith('.txt');
+    const isValidType = allowedTypes.includes(selectedFile.type) ||
+                       fileName.endsWith('.pdf') ||
+                       fileName.endsWith('.docx') ||
+                       fileName.endsWith('.txt');
 
     if (!isValidType) {
       toast({
-        title: "Unsupported file type",
-        description: "Currently only text (.txt) files are supported. Please convert your document to text format and try again.",
+        title: "Invalid file type",
+        description: "Please upload a PDF, DOCX, or TXT file.",
         variant: "destructive",
       });
       return;
