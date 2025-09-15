@@ -64,6 +64,13 @@ interface AnalysisRequest {
   contractType?: string;
   fileType?: string;
   fileName?: string;
+  classification?: {
+    contractType: string;
+    confidence: number;
+    characteristics: string[];
+    reasoning: string;
+    suggestedSolutions: string[];
+  };
 }
 
 const corsHeaders = {
@@ -433,11 +440,26 @@ async function analyzeWithAI(request: AnalysisRequest, apiKey: string) {
 
 function buildAnalysisPrompt(request: AnalysisRequest) {
   const customSolution = request.customSolution;
+  const classification = request.classification;
+
+  // Build classification context for enhanced AI analysis
+  let classificationContext = '';
+  if (classification) {
+    classificationContext = `
+
+DOCUMENT CLASSIFICATION CONTEXT:
+Contract Type: ${classification.contractType}
+Classification Confidence: ${Math.round(classification.confidence * 100)}%
+Key Characteristics: ${classification.characteristics.join(', ')}
+Classification Reasoning: ${classification.reasoning}
+
+Use this classification context to provide more targeted and accurate analysis specific to this contract type.`;
+  }
 
   // Enhanced base prompts with advanced legal analysis capabilities
   const basePrompts = {
     risk_assessment: {
-      systemPrompt: `You are a senior contract risk analyst with expertise in commercial law, regulatory compliance, and enterprise risk management. You have 15+ years of experience reviewing complex commercial agreements across multiple industries. You excel at identifying subtle risks, assessing interconnected risk factors, and providing strategic recommendations. Always respond in valid JSON format with comprehensive analysis.`,
+      systemPrompt: `You are a senior contract risk analyst with expertise in commercial law, regulatory compliance, and enterprise risk management. You have 15+ years of experience reviewing complex commercial agreements across multiple industries. You excel at identifying subtle risks, assessing interconnected risk factors, and providing strategic recommendations. Always respond in valid JSON format with comprehensive analysis.${classificationContext}`,
       analysisPrompt: `Conduct a comprehensive risk assessment of this contract with the following advanced analysis framework:
 
 1. **Multi-dimensional Risk Analysis**: Examine financial, legal, operational, compliance, reputational, and strategic risks
@@ -484,7 +506,7 @@ Return JSON in this exact format:
 }`,
     },
     compliance_score: {
-      systemPrompt: `You are a leading compliance expert and regulatory attorney with deep expertise in GDPR, CCPA, HIPAA, SOX, PCI-DSS, international data protection laws, financial regulations, and industry-specific compliance frameworks. You have extensive experience with cross-border regulatory requirements, emerging privacy laws, and regulatory enforcement trends. You excel at identifying subtle compliance gaps and providing strategic compliance guidance. Always respond in valid JSON format.`,
+      systemPrompt: `You are a leading compliance expert and regulatory attorney with deep expertise in GDPR, CCPA, HIPAA, SOX, PCI-DSS, international data protection laws, financial regulations, and industry-specific compliance frameworks. You have extensive experience with cross-border regulatory requirements, emerging privacy laws, and regulatory enforcement trends. You excel at identifying subtle compliance gaps and providing strategic compliance guidance. Always respond in valid JSON format.${classificationContext}`,
       analysisPrompt: `Conduct a comprehensive regulatory compliance assessment using this advanced framework:
 
 1. **Multi-Jurisdictional Analysis**: Assess compliance across relevant jurisdictions
@@ -550,7 +572,7 @@ Return JSON in this exact format:
 }`,
     },
     perspective_review: {
-      systemPrompt: `You are a senior contract strategist with expertise in multi-stakeholder analysis, commercial negotiations, and stakeholder management. You have extensive experience representing different parties in complex commercial transactions and understand the nuanced interests, priorities, and concerns of various stakeholders. You excel at identifying hidden motivations, power dynamics, and strategic implications from each perspective. Always respond in valid JSON format.`,
+      systemPrompt: `You are a senior contract strategist with expertise in multi-stakeholder analysis, commercial negotiations, and stakeholder management. You have extensive experience representing different parties in complex commercial transactions and understand the nuanced interests, priorities, and concerns of various stakeholders. You excel at identifying hidden motivations, power dynamics, and strategic implications from each perspective. Always respond in valid JSON format.${classificationContext}`,
       analysisPrompt: `Conduct a sophisticated multi-stakeholder analysis using this advanced framework:
 
 1. **Stakeholder Mapping**: Identify all relevant parties and their interests
@@ -619,7 +641,7 @@ Return JSON in this exact format:
 }`,
     },
     full_summary: {
-      systemPrompt: `You are a distinguished senior partner and contract strategist with 20+ years of experience in complex commercial transactions, M&A, and strategic partnerships. You provide executive-level analysis that combines legal expertise with business acumen and strategic insight. You excel at distilling complex agreements into actionable intelligence for C-level executives and board members. Your analysis influences major business decisions and strategic direction. Always respond in valid JSON format.`,
+      systemPrompt: `You are a distinguished senior partner and contract strategist with 20+ years of experience in complex commercial transactions, M&A, and strategic partnerships. You provide executive-level analysis that combines legal expertise with business acumen and strategic insight. You excel at distilling complex agreements into actionable intelligence for C-level executives and board members. Your analysis influences major business decisions and strategic direction. Always respond in valid JSON format.${classificationContext}`,
       analysisPrompt: `Provide a comprehensive executive-level contract analysis using this advanced framework:
 
 1. **Strategic Context**: Analyze the contract within broader business strategy
