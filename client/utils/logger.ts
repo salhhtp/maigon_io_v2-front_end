@@ -105,7 +105,8 @@ class Logger {
 
       console.debug('Log entry prepared for remote service:', payload);
     } catch (error) {
-      console.error('Failed to send log to remote service:', error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('Failed to send log to remote service:', errorMessage);
     }
   }
 
