@@ -613,10 +613,14 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setIsLoading(false);
 
       Object.keys(localStorage).forEach(key => {
-        if (key.includes('supabase') || key.includes('sb-') || key.includes('auth')) {
+        if (key.includes('supabase') || key.includes('sb-') || key.includes('auth') || key.includes('maigon_current_user')) {
           localStorage.removeItem(key);
         }
       });
+
+      // Clear demo authentication
+      localStorage.removeItem('maigon_current_user');
+      sessionStorage.removeItem('maigon_current_user');
 
       window.location.href = '/';
     }
