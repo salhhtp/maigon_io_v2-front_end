@@ -529,32 +529,17 @@ export default function Upload() {
       setUploadButtonHidden(false);
       setShowLoadingTransition(false);
 
-      // Determine user-friendly error message
-      let userMessage = "Unknown error occurred";
+      // Generate user-friendly error message using utility
+      const userMessage = createUserFriendlyMessage(error, "There was an error processing your contract.");
       let shouldRetry = true;
 
-      if (error instanceof Error) {
-        const errorMsg = error.message.toLowerCase();
-
-        if (errorMsg.includes('file') && errorMsg.includes('empty')) {
-          userMessage = "The selected file appears to be empty or corrupted. Please try a different file.";
-          shouldRetry = false;
-        } else if (errorMsg.includes('unsupported file type')) {
-          userMessage = "Please upload a PDF, DOCX, or TXT file.";
-          shouldRetry = false;
-        } else if (errorMsg.includes('user id')) {
-          userMessage = "Authentication issue detected. Please try signing out and signing back in.";
-          shouldRetry = false;
-        } else if (errorMsg.includes('network') || errorMsg.includes('fetch')) {
-          userMessage = "Network connection issue. Please check your internet connection and try again.";
-          shouldRetry = true;
-        } else if (errorMsg.includes('ai') || errorMsg.includes('analysis')) {
-          userMessage = "Contract analysis service is temporarily unavailable. Please try again in a few minutes.";
-          shouldRetry = true;
-        } else {
-          userMessage = error.message;
-          shouldRetry = true;
-        }
+      // Determine retry logic based on error characteristics
+      if (errorDetails.message.toLowerCase().includes('empty') ||
+          errorDetails.message.toLowerCase().includes('unsupported') ||
+          errorDetails.message.toLowerCase().includes('authentication') ||
+          errorDetails.message.toLowerCase().includes('user id') ||
+          errorDetails.message.toLowerCase().includes('invalid file')) {
+        shouldRetry = false;
       }
 
       // Show appropriate error toast
