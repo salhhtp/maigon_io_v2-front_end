@@ -674,16 +674,20 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       // Clear browser storage completely
       Object.keys(localStorage).forEach(key => {
-        if (key.includes('supabase') || key.includes('sb-') || key.includes('auth')) {
+        if (key.includes('supabase') || key.includes('sb-') || key.includes('auth') || key.includes('maigon_current_user')) {
           localStorage.removeItem(key);
         }
       });
 
       Object.keys(sessionStorage).forEach(key => {
-        if (key.includes('supabase') || key.includes('sb-') || key.includes('auth')) {
+        if (key.includes('supabase') || key.includes('sb-') || key.includes('auth') || key.includes('maigon_current_user')) {
           sessionStorage.removeItem(key);
         }
       });
+
+      // Clear demo authentication
+      localStorage.removeItem('maigon_current_user');
+      sessionStorage.removeItem('maigon_current_user');
 
       console.log('✅ [DEBUG] Complete auth state cleared successfully');
     } catch (error) {
