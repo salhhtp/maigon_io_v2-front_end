@@ -176,10 +176,85 @@ export default function Upload() {
   // Helper function to read file content
   const readFileContent = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = (e) => resolve(e.target?.result as string);
-      reader.onerror = (e) => reject(e);
-      reader.readAsText(file);
+      const fileType = file.type;
+      const fileName = file.name.toLowerCase();
+
+      // For development/demo purposes, return mock content for PDF files
+      // In production, you'd use a PDF parsing library or backend service
+      if (fileType === 'application/pdf' || fileName.endsWith('.pdf')) {
+        console.log('PDF file detected, using mock content for demo');
+        resolve(`
+          MOCK PDF CONTENT FOR DEMO PURPOSES
+
+          CONTRACT TITLE: ${file.name.replace(/\.[^/.]+$/, '')}
+
+          This is a sample contract content for demonstration purposes.
+          In a production environment, this would be the actual extracted text from the PDF file.
+
+          TERMS AND CONDITIONS:
+          1. This agreement shall be governed by the laws of [Jurisdiction]
+          2. Payment terms: Net 30 days
+          3. Liability limitations apply as outlined in Section 5
+          4. Data processing shall comply with GDPR requirements
+          5. Contract duration: 24 months with auto-renewal
+
+          CLAUSES:
+          - Confidentiality provisions included
+          - Force majeure clause standard
+          - Termination conditions specified
+          - Intellectual property rights defined
+
+          END OF MOCK CONTENT
+        `);
+        return;
+      }
+
+      // For text files, read as text
+      if (fileType === 'text/plain' || fileName.endsWith('.txt')) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const content = e.target?.result as string;
+          if (content && content.trim().length > 0) {
+            resolve(content);
+          } else {
+            reject(new Error('File appears to be empty or unreadable'));
+          }
+        };
+        reader.onerror = (e) => reject(new Error('Failed to read file: ' + e.target?.error?.message));
+        reader.readAsText(file);
+        return;
+      }
+
+      // For DOCX files, return mock content (in production, use a DOCX parser)
+      if (fileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || fileName.endsWith('.docx')) {
+        console.log('DOCX file detected, using mock content for demo');
+        resolve(`
+          MOCK DOCX CONTENT FOR DEMO PURPOSES
+
+          DOCUMENT: ${file.name.replace(/\.[^/.]+$/, '')}
+
+          This is a sample Word document content for demonstration purposes.
+          In a production environment, this would be the actual extracted text from the DOCX file.
+
+          CONTRACT PROVISIONS:
+          • Payment schedule and terms
+          • Performance requirements and metrics
+          • Compliance and regulatory requirements
+          • Risk allocation and liability limits
+          • Termination and renewal provisions
+
+          LEGAL FRAMEWORK:
+          The parties agree to the terms set forth herein and acknowledge
+          that this agreement constitutes the entire understanding between
+          the parties with respect to the subject matter hereof.
+
+          END OF MOCK CONTENT
+        `);
+        return;
+      }
+
+      // Unsupported file type
+      reject(new Error(`Unsupported file type: ${fileType}. Please upload a PDF, DOCX, or TXT file.`));
     });
   };
 
