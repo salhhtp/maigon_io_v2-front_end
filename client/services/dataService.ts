@@ -73,17 +73,42 @@ export class DataService {
     }
   }
 
-  // Complete contract processing workflow
+  // Complete contract processing workflow with intelligent classification
   static async processContractWorkflow(
     userId: string,
     contractData: any,
     reviewType: string
   ) {
     try {
-      // 1. Create contract
+      console.log('🚀 Starting intelligent contract processing workflow...');
+
+      // 1. Classify contract type using AI
+      const { contractClassificationService } = await import('./contractClassificationService');
+      console.log('🤖 Classifying contract type...');
+
+      const classification = await contractClassificationService.classifyContract(
+        contractData.content,
+        contractData.file_name
+      );
+
+      console.log('✅ Contract classification completed:', {
+        type: classification.contractType,
+        confidence: classification.confidence,
+        characteristics: classification.characteristics
+      });
+
+      // 2. Create contract with classification results
       const contract = await ContractsService.createContract({
-        ...contractData,
+        title: contractData.title,
+        content: contractData.content,
+        file_name: contractData.file_name,
+        file_size: contractData.file_size,
         user_id: userId,
+        // Store classification metadata for future reference
+        metadata: {
+          classification: classification,
+          originalFileType: contractData.file_type
+        }
       });
 
       // 2. Track contract upload activity
@@ -96,8 +121,14 @@ export class DataService {
       // 3. Update contract status to reviewing
       await ContractsService.updateContractStatus(contract.id, 'reviewing');
 
-      // 4. Process with AI analysis
-      const reviewResults = await this.processWithAI(contractData, reviewType, contractData.custom_solution_id);
+      // 4. Process with AI analysis using classified contract type
+      const enhancedContractData = {
+        ...contractData,
+        contract_type: classification.contractType,
+        classification: classification
+      };
+
+      const reviewResults = await this.processWithAI(enhancedContractData, reviewType, contractData.custom_solution_id);
 
       // 5. Create review record
       const review = await ContractReviewsService.createReview({
@@ -171,7 +202,7 @@ export class DataService {
         }
       }
 
-      // Prepare AI analysis request with enhanced file information
+      // Prepare AI analysis request with enhanced file information and classification
       const analysisRequest = {
         content: contractData.content,
         reviewType,
@@ -180,6 +211,7 @@ export class DataService {
         userId: contractData.user_id,
         fileType: contractData.file_type,
         fileName: contractData.file_name,
+        classification: contractData.classification || null,
       };
 
       console.log('📝 Prepared analysis request:', {

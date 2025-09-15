@@ -460,7 +460,7 @@ export default function Upload() {
           file_name: selectedFile.name,
           file_size: selectedFile.size,
           file_type: selectedFile.type,
-          contract_type: 'general', // Can be enhanced based on file analysis
+          // contract_type will be automatically determined by AI classification
         },
         reviewType
       );
