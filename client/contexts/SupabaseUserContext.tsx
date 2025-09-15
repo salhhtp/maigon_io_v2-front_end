@@ -196,9 +196,19 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // Initialize auth state
   useEffect(() => {
     let mounted = true;
+    let timeoutId: NodeJS.Timeout;
+
+    // Add a safety timeout to ensure loading state doesn't get stuck
+    timeoutId = setTimeout(() => {
+      if (mounted) {
+        console.warn('Auth initialization timed out, setting loading to false');
+        setIsLoading(false);
+      }
+    }, 10000); // 10 second timeout
 
     const getInitialSession = async () => {
       try {
+        console.log('Initializing auth session...');
         const { data: { session }, error } = await supabase.auth.getSession();
 
         if (error) {
@@ -207,17 +217,22 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
 
         if (mounted) {
+          console.log('Session loaded:', session ? 'Found session' : 'No session');
           setSession(session);
 
           if (session?.user && !error) {
+            console.log('Loading user profile for:', session.user.email);
             const userProfile = await loadUserProfile(session.user.id);
             setUser(userProfile);
+            console.log('User profile loaded:', userProfile ? 'Success' : 'Failed');
           }
         }
       } catch (error) {
         console.error('Error initializing auth:', error);
       } finally {
         if (mounted) {
+          console.log('Auth initialization complete, setting loading to false');
+          clearTimeout(timeoutId);
           setIsLoading(false);
         }
       }
