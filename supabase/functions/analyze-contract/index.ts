@@ -48,15 +48,37 @@ serve(async (req) => {
   }
 
   try {
-    const request: AnalysisRequest = await req.json();
-    
+    console.log('🚀 Starting contract analysis request...');
+
+    // Parse request body with error handling
+    let request: AnalysisRequest;
+    try {
+      request = await req.json();
+    } catch (parseError) {
+      console.error('❌ Failed to parse request JSON:', parseError);
+      return new Response(
+        JSON.stringify({ error: 'Invalid JSON in request body' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Validate request
     if (!request.content || !request.reviewType) {
+      console.error('❌ Missing required fields in request:', {
+        hasContent: !!request.content,
+        hasReviewType: !!request.reviewType
+      });
       return new Response(
         JSON.stringify({ error: 'Missing required fields: content and reviewType' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    console.log('✅ Request validation passed:', {
+      reviewType: request.reviewType,
+      model: request.model,
+      contentLength: request.content.length
+    });
 
     // Get API key based on model
     const model = request.model || 'openai-gpt-4';
