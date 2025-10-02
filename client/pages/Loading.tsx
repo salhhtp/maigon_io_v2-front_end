@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { ChevronDown, User } from "lucide-react";
 import { Link, useLocation, useNavigate, useBlocker } from "react-router-dom";
 import Logo from "@/components/Logo";
@@ -6,9 +6,14 @@ import Footer from "@/components/Footer";
 import AnimatedLoadingLogo from "@/components/AnimatedLoadingLogo";
 import ConfirmationModal from "@/components/ConfirmationModal";
 import { useUser } from "@/contexts/SupabaseUserContext";
+import { useToast } from "@/hooks/use-toast";
+import { reviewProcessingStore } from "@/lib/reviewProcessingStore";
+import { DataService } from "@/services/dataService";
+import type { ContractReviewPayload } from "@shared/api";
 
 export default function Loading() {
   const { user } = useUser();
+  const { toast } = useToast();
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -16,11 +21,25 @@ export default function Loading() {
     null,
   );
   const [isProcessing, setIsProcessing] = useState(true);
+  const [processingError, setProcessingError] = useState<string | null>(null);
+  const [pendingResult, setPendingResult] = useState<ContractReviewPayload | null>(
+    null,
+  );
+  const [animationComplete, setAnimationComplete] = useState(false);
+  const [logoProgress, setLogoProgress] = useState(4);
+  const [processingFinishedAt, setProcessingFinishedAt] = useState<number | null>(
+    null,
+  );
   const location = useLocation();
   const navigate = useNavigate();
 
   // Get the upload info from navigation state
-  const { selectedFile, solutionTitle, perspective } = location.state || {};
+  const initialState = location.state || {};
+  const [displayInfo, setDisplayInfo] = useState({
+    fileName: initialState?.fileName as string | undefined,
+    solutionTitle: initialState?.solutionTitle as string | undefined,
+    perspective: initialState?.perspective as string | undefined,
+  });
 
   // Block navigation when processing is in progress
   const blocker = useBlocker(
@@ -28,19 +47,136 @@ export default function Loading() {
       isProcessing && currentLocation.pathname !== nextLocation.pathname,
   );
 
-  const handleLoadingComplete = () => {
-    setIsProcessing(false);
-    // Navigate to contract review results page
-    setTimeout(() => {
+  const handleAnimationFinished = () => {
+    setAnimationComplete(true);
+  };
+
+  useEffect(() => {
+    const pending = reviewProcessingStore.consumePending();
+
+    if (!pending) {
+      setProcessingError(
+        "We couldn't find a contract to process. Please upload your document again.",
+      );
+      setIsProcessing(false);
+      return;
+    }
+
+    setDisplayInfo((prev) => ({
+      fileName: pending.metadata.fileName || prev.fileName,
+      solutionTitle: pending.metadata.solutionTitle || prev.solutionTitle,
+      perspective: pending.metadata.perspective || prev.perspective,
+    }));
+
+    const runProcessing = async () => {
+      try {
+        const result = await DataService.processContractWorkflow(
+          pending.userId,
+          pending.contractInput,
+          pending.reviewType,
+        );
+
+        const payload: ContractReviewPayload = {
+          contract: result.contract,
+          review: result.review,
+          metadata: pending.metadata,
+        };
+
+        sessionStorage.setItem(
+          "maigon:lastReview",
+          JSON.stringify(payload),
+        );
+
+        setPendingResult(payload);
+        setIsProcessing(false);
+        setProcessingFinishedAt(Date.now());
+        setLogoProgress((prev) => Math.max(prev, 94));
+
+        toast({
+          title: "Contract processed successfully",
+          description: "Review completed. Preparing your report...",
+        });
+      } catch (error) {
+        console.error("Contract processing error:", error);
+        setProcessingError(
+          "There was an error processing your contract. Please try again.",
+        );
+        setIsProcessing(false);
+        setProcessingFinishedAt(Date.now());
+        reviewProcessingStore.clear();
+        toast({
+          title: "Processing failed",
+          description: "There was an error processing your contract.",
+          variant: "destructive",
+        });
+      }
+    };
+
+    runProcessing();
+  }, [toast]);
+
+  useEffect(() => {
+    const updateInterval = window.setInterval(() => {
+      setLogoProgress((prev) => {
+        const finishedAt = processingFinishedAt;
+        const now = Date.now();
+
+        let target = 92;
+        let step = 0.8;
+
+        if (pendingResult) {
+          const elapsed = finishedAt ? now - finishedAt : 0;
+          if (elapsed >= 1400) {
+            target = 100;
+            step = 1.5;
+          } else {
+            target = 99;
+            step = 1.0;
+          }
+        } else if (!isProcessing) {
+          target = 96;
+          step = 0.9;
+        }
+
+        if (processingError) {
+          target = 96;
+          step = 0.6;
+        }
+
+        if (prev >= target) {
+          return prev;
+        }
+
+        const next = Math.min(target, prev + step);
+        return Number(next.toFixed(2));
+      });
+    }, 120);
+
+    return () => {
+      window.clearInterval(updateInterval);
+    };
+  }, [isProcessing, pendingResult, processingFinishedAt, processingError]);
+
+  useEffect(() => {
+    if (!pendingResult || !animationComplete) {
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
       navigate("/contract-review", {
         state: {
-          selectedFile: selectedFile,
-          solutionTitle: solutionTitle,
-          perspective: perspective,
+          contract: pendingResult.contract,
+          review: pendingResult.review,
+          metadata: pendingResult.metadata,
         },
+        replace: true,
       });
-    }, 1000);
-  };
+    }, 650);
+
+    return () => {
+      window.clearTimeout(timeout);
+    };
+  }, [pendingResult, animationComplete, navigate]);
 
   const handleLinkClick = (path: string) => (e: React.MouseEvent) => {
     e.preventDefault(); // Always prevent default to avoid conflicts
@@ -84,8 +220,6 @@ export default function Loading() {
 
     return () => clearTimeout(timer);
   }, []);
-
-  // The AnimatedLoadingLogo component handles the loading progression and calls handleLoadingComplete when done
 
   // Handle React Router navigation blocking
   useEffect(() => {
@@ -229,23 +363,48 @@ export default function Loading() {
 
           {/* Animated Loading Logo */}
           <div className="w-full px-2.5 py-2.5">
-             <AnimatedLoadingLogo onComplete={handleLoadingComplete} />
+            <AnimatedLoadingLogo
+              onComplete={handleAnimationFinished}
+              isComplete={Boolean(pendingResult)}
+              externalProgress={logoProgress}
+              outlineColor="#CDBABA"
+              fillColor="#CDBABA"
+            />
           </div>
 
           {/* Processing Info */}
-          {selectedFile && solutionTitle && (
+          {(displayInfo.fileName || displayInfo.solutionTitle) && (
             <div className="text-center text-sm text-[#9A7C7C] font-roboto mt-4">
               <div>
                 Processing:{" "}
-                <span className="font-medium">{selectedFile.name}</span>
+                <span className="font-medium">
+                  {displayInfo.fileName || "Contract"}
+                </span>
               </div>
               <div>
-                Solution: <span className="font-medium">{solutionTitle}</span>
+                Solution:{" "}
+                <span className="font-medium">
+                  {displayInfo.solutionTitle || "Custom Analysis"}
+                </span>
               </div>
               <div>
                 Perspective:{" "}
-                <span className="font-medium capitalize">{perspective}</span>
+                <span className="font-medium capitalize">
+                  {displayInfo.perspective || "general"}
+                </span>
               </div>
+            </div>
+          )}
+
+          {processingError && (
+            <div className="mt-6 w-full max-w-md bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-center">
+              <p className="text-sm font-medium">{processingError}</p>
+              <button
+                onClick={() => navigate("/upload")}
+                className="mt-3 text-sm font-medium underline hover:text-red-800"
+              >
+                Return to upload
+              </button>
             </div>
           )}
         </div>

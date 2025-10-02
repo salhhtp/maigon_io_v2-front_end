@@ -7,9 +7,9 @@ import { Button } from "@/components/ui/button";
 import ConfirmationModal from "@/components/ConfirmationModal";
 import ContractClassificationDisplay from "@/components/ContractClassificationDisplay";
 import { useUser } from "@/contexts/SupabaseUserContext";
-import { DataService } from "@/services/dataService";
 import { useToast } from "@/hooks/use-toast";
 import { logError, createUserFriendlyMessage } from "@/utils/errorLogger";
+import { DataService } from "@/services/dataService";
 
 export default function Upload() {
   const { user } = useUser();
@@ -440,26 +440,37 @@ export default function Upload() {
 
     // Step 1: Submit Clicked → Smart Animate - Ease Out - 1500ms
     setIsSubmitting(true);
-    console.log("Starting real contract processing...");
+    console.log("Starting contract processing workflow...");
 
     try {
-      // Step 2: After Delay - 1ms → Smart Animate - Ease out 1500ms → Disappeared Upload Button
       setTimeout(() => {
         setUploadButtonHidden(true);
       }, 1);
 
-      // Step 3: After Delay 1ms → Smart Animate - Ease in and out back → Loading Screen pops up
       setTimeout(() => {
         setShowLoadingTransition(true);
       }, 2);
 
-      // Read file content
       const fileContent = await readFileContent(selectedFile);
-
-      // Determine review type based on perspective
       const reviewType = getReviewTypeFromPerspective(perspective);
 
-      // Show toast for processing start
+      reviewProcessingStore.setPending({
+        userId: user.id,
+        contractInput: {
+          title: selectedFile.name.replace(/\.[^/.]+$/, ""),
+          content: fileContent,
+          file_name: selectedFile.name,
+          file_size: selectedFile.size,
+        },
+        reviewType,
+        metadata: {
+          fileName: selectedFile.name,
+          fileSize: selectedFile.size,
+          solutionTitle,
+          perspective,
+        },
+      });
+
       toast({
         title: "Processing contract",
         description: "Your contract is being analyzed...",

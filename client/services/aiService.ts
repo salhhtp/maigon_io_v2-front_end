@@ -20,6 +20,8 @@ export interface ContractAnalysisRequest {
   customSolution?: CustomSolution;
   model?: AIModel;
   userId: string;
+  filename?: string;
+  documentFormat?: string;
 }
 
 export interface CustomSolution {
@@ -247,6 +249,8 @@ class AIService {
         contractType: request.contractType,
         fileType: (request as any).fileType,
         fileName: (request as any).fileName,
+        filename: request.filename,
+        documentFormat: request.documentFormat,
         classification: (request as any).classification
       };
 

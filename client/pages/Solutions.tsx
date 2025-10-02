@@ -339,7 +339,7 @@ const AnimatedStepsComponent = () => {
     },
     {
       number: "02",
-      title: "Choose your weapon",
+      title: "Choose your solution",
       description:
         "Select your desired solution based on your contract's type.",
       component: Step2Mockup,

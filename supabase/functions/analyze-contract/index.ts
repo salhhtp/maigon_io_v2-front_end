@@ -64,6 +64,8 @@ interface AnalysisRequest {
   contractType?: string;
   fileType?: string;
   fileName?: string;
+  documentFormat?: string;
+  filename?: string;
   classification?: {
     contractType: string;
     confidence: number;
@@ -78,6 +80,162 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const CONTRACT_PATTERNS: Record<string, RegExp[]> = {
+  nda: [
+    /non[-\s]?disclosure agreement/i,
+    /confidential information/i,
+    /disclosing party/i,
+  ],
+  dpa: [
+    /data processing agreement/i,
+    /processor/i,
+    /controller/i,
+    /gdpr/i,
+  ],
+  eula: [
+    /end[-\s]?user license/i,
+    /software license/i,
+    /licensor/i,
+  ],
+  ppc: [
+    /purchase and sale contract/i,
+    /purchase price/i,
+    /buyer/i,
+    /seller/i,
+  ],
+  rda: [
+    /research and development/i,
+    /collaboration/i,
+    /intellectual property rights/i,
+  ],
+  ca: [
+    /consulting agreement/i,
+    /services? provider/i,
+    /consultant/i,
+  ],
+  psa: [
+    /professional services agreement/i,
+    /statement of work/i,
+    /service levels?/i,
+  ],
+};
+
+function formatTitleCase(value: string) {
+  return value
+    .replace(/[_-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .replace(/\b\w/g, (match) => match.toUpperCase());
+}
+
+function inferDocumentFormat(filename?: string, providedFormat?: string) {
+  if (providedFormat) return providedFormat.toLowerCase();
+  if (!filename) return undefined;
+  const ext = filename.split('.').pop()?.toLowerCase();
+  if (!ext) return undefined;
+  if (ext === 'doc') return 'docx';
+  return ext;
+}
+
+function detectContractType(content: string, filename?: string, provided?: string) {
+  if (provided) return provided;
+  const shortContent = content.slice(0, 4000);
+  let bestMatch: { type: string; score: number } | null = null;
+  for (const [type, patterns] of Object.entries(CONTRACT_PATTERNS)) {
+    let score = 0;
+    for (const pattern of patterns) {
+      if (pattern.test(shortContent)) {
+        score += 1;
+      }
+    }
+    if (filename && filename.toLowerCase().includes(type)) {
+      score += 1.5;
+    }
+    if (!bestMatch || score > bestMatch.score) {
+      bestMatch = { type, score };
+    }
+  }
+
+  return bestMatch && bestMatch.score >= 1 ? bestMatch.type : 'general';
+}
+
+type ClauseSummary = {
+  title: string;
+  snippet: string;
+  importance?: 'high' | 'medium' | 'low';
+};
+
+function extractClauses(content: string, contractType: string): ClauseSummary[] {
+  const lines = content.split(/\r?\n/).map((line) => line.trim());
+  const clauses: ClauseSummary[] = [];
+  let currentTitle = '';
+  let buffer: string[] = [];
+
+  const headingRegex = /^(section\s+\d+|article\s+\d+|\d+\.\d+|[A-Z][^a-z\n]{3,})/i;
+
+  for (const line of lines) {
+    if (!line) continue;
+    const isHeading = headingRegex.test(line);
+    if (isHeading) {
+      if (currentTitle && buffer.length) {
+        clauses.push({
+          title: currentTitle,
+          snippet: buffer.join(' ').slice(0, 220),
+        });
+        buffer = [];
+      }
+      currentTitle = line.replace(/[:.-\s]+$/, '').slice(0, 120);
+    } else if (currentTitle) {
+      buffer.push(line);
+    }
+  }
+
+  if (currentTitle && buffer.length) {
+    clauses.push({
+      title: currentTitle,
+      snippet: buffer.join(' ').slice(0, 220),
+    });
+  }
+
+  if (!clauses.length) {
+    clauses.push({
+      title: `${formatTitleCase(contractType)} overview`,
+      snippet: content.slice(0, 220),
+    });
+  }
+
+  return clauses.slice(0, 30);
+}
+
+function buildKpis(result: any, contractType: string, clauseCount: number, timeSavedLabel?: string) {
+  const base = {
+    contract_type: contractType,
+    clauses_mapped: clauseCount,
+  } as Record<string, any>;
+
+  if (typeof result.score === 'number') {
+    base.score = result.score;
+  }
+
+  if (Array.isArray(result.violations)) {
+    base.high_risk_findings = result.violations.filter(
+      (item: any) => typeof item?.severity === 'string' && item.severity.toLowerCase() === 'high'
+    ).length;
+  }
+
+  if (Array.isArray(result.risks)) {
+    base.risk_count = result.risks.length;
+  }
+
+  if (Array.isArray(result.recommendations)) {
+    base.recommendation_count = result.recommendations.length;
+  }
+
+  if (timeSavedLabel) {
+    base.time_savings = timeSavedLabel;
+  }
+
+  return base;
+}
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });

@@ -594,7 +594,6 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setTimeout(() => {
         window.location.href = '/';
       }, 100);
-
     } catch (error) {
       console.error('Logout error:', error);
 

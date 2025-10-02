@@ -1713,9 +1713,6 @@ export default function Dashboard() {
                       }
                     </p>
                   </div>
-                  <div className="px-3 py-1 bg-[#9A7C7C] text-white rounded-full text-sm font-medium">
-                    {isAdmin ? "Admin Fast Track" : "Fast Track"}
-                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3">

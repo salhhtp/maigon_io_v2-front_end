@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from "react";
-import { ChevronDown, User, Download, ArrowLeft, Printer, AlertTriangle, CheckCircle, Clock } from "lucide-react";
+import React, { useState, useEffect, useCallback } from "react";
+import { ChevronDown, User, Download, ArrowLeft, Printer, AlertTriangle, CheckCircle, Clock, Sparkles, Bot, Send, X } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import Logo from "@/components/Logo";
 import MobileNavigation from "@/components/MobileNavigation";
 import { useUser } from "@/contexts/SupabaseUserContext";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { DataService } from "@/services/dataService";
 import { useToast } from "@/hooks/use-toast";
 
@@ -27,6 +28,13 @@ interface ReviewData {
   created_at: string;
 }
 
+type AgentMessage = {
+  id: string;
+  role: "agent" | "user";
+  content: string;
+  timestamp: string;
+};
+
 export default function ContractReview() {
   const { user } = useUser();
   const navigate = useNavigate();
@@ -39,6 +47,29 @@ export default function ContractReview() {
   const [contractData, setContractData] = useState<ContractData | null>(contract);
   const [reviewData, setReviewData] = useState<ReviewData | null>(review);
   const [isLoading, setIsLoading] = useState(!contract || !review);
+  const [agentMessages, setAgentMessages] = useState<AgentMessage[]>([]);
+  const [agentInput, setAgentInput] = useState("");
+  const [agentIsThinking, setAgentIsThinking] = useState(false);
+  const [isAgentOpen, setIsAgentOpen] = useState(false);
+
+  useEffect(() => {
+    if (reviewData && agentMessages.length === 0) {
+      setAgentMessages([
+        {
+          id: "agent-welcome",
+          role: "agent",
+          content: "Hi there! I'm Maigon's contract co-pilot. I can help transform these insights into updated clauses, negotiation-ready language, or summaries for stakeholders.",
+          timestamp: new Date().toISOString(),
+        },
+        {
+          id: "agent-prompt",
+          role: "agent",
+          content: "Try asking me to draft a revised indemnification clause or prepare a bullet summary for your legal team.",
+          timestamp: new Date().toISOString(),
+        },
+      ]);
+    }
+  }, [reviewData, agentMessages.length]);
 
   // If no data provided, redirect back
   useEffect(() => {
@@ -140,6 +171,48 @@ export default function ContractReview() {
     window.print();
   };
 
+  const enqueueAgentMessage = useCallback((message: AgentMessage) => {
+    setAgentMessages(prev => [...prev, message]);
+  }, []);
+
+  const handleAgentSend = useCallback(() => {
+    const trimmed = agentInput.trim();
+    if (!trimmed) return;
+
+    const now = new Date();
+    const userMessage: AgentMessage = {
+      id: `user-${now.getTime()}`,
+      role: "user",
+      content: trimmed,
+      timestamp: now.toISOString(),
+    };
+
+    enqueueAgentMessage(userMessage);
+    setAgentInput("");
+    setAgentIsThinking(true);
+
+    setTimeout(() => {
+      const response: AgentMessage = {
+        id: `agent-${Date.now()}`,
+        role: "agent",
+        content:
+          "(Preview) I'll soon be able to draft contract edits and next steps for you. For now, imagine receiving a tailored clause update or summarized brief right here!",
+        timestamp: new Date().toISOString(),
+      };
+      enqueueAgentMessage(response);
+      setAgentIsThinking(false);
+    }, 900);
+  }, [agentInput, enqueueAgentMessage]);
+
+  const handleAgentKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      handleAgentSend();
+    }
+  };
+
+  const toggleAgent = () => setIsAgentOpen((prev) => !prev);
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
@@ -169,10 +242,10 @@ export default function ContractReview() {
 
   const score = reviewData.score || 0;
   const results = reviewData.results || {};
-  const confidence = reviewData.confidence_level || 0;
 
   return (
-    <div className="min-h-screen bg-white">
+    <>
+      <div className="min-h-screen bg-white">
       {/* Minimal Header Bar - Hidden when printed */}
       <div className="print:hidden bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-4">
@@ -229,11 +302,7 @@ export default function ContractReview() {
                 <div>
                   <span className="font-medium">Document:</span>{" "}
                   {contractData.file_name}
-                </div>
-                <div>
-                  <span className="font-medium">Analysis Type:</span>{" "}
-                  {getReviewTypeDisplay(reviewData.review_type)}
-                </div>
+                </div>                
                 <div>
                   <span className="font-medium">Perspective:</span>{" "}
                   {getPerspectiveDisplay(perspective || 'general')}
@@ -242,10 +311,6 @@ export default function ContractReview() {
                   <span className="font-medium">Generated:</span>{" "}
                   {new Date(reviewData.created_at).toLocaleDateString()} at{" "}
                   {new Date(reviewData.created_at).toLocaleTimeString()}
-                </div>
-                <div>
-                  <span className="font-medium">Confidence Level:</span>{" "}
-                  {(confidence * 100).toFixed(1)}%
                 </div>
               </div>
             </div>
@@ -325,22 +390,6 @@ export default function ContractReview() {
                 Processing Time
               </div>
             </div>
-            <div className="bg-gray-50 rounded-lg p-4 text-center border border-gray-200 print:p-3">
-              <div className="text-2xl font-bold text-gray-600 mb-1 print:text-xl">
-                {(confidence * 100).toFixed(0)}%
-              </div>
-              <div className="text-sm text-gray-700 font-medium">
-                Confidence Level
-              </div>
-            </div>
-            <div className="bg-gray-50 rounded-lg p-4 text-center border border-gray-200 print:p-3">
-              <div className="text-2xl font-bold text-gray-600 mb-1 print:text-xl">
-                {contractData.file_size ? (contractData.file_size / 1024).toFixed(1) : 0}KB
-              </div>
-              <div className="text-sm text-gray-700 font-medium">
-                File Size
-              </div>
-            </div>
           </div>
         </div>
 
@@ -416,5 +465,111 @@ export default function ContractReview() {
         </div>
       </div>
     </div>
+
+    {/* Floating Agent Chat Preview */}
+    <div className="print:hidden">
+      {isAgentOpen && (
+        <div className="fixed bottom-28 right-6 z-50 w-[min(90vw,360px)] shadow-2xl rounded-2xl border border-[#E8DDDD] bg-white/95 backdrop-blur-sm">
+          <div className="px-4 py-3 border-b border-[#E8DDDD] flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-full bg-[#9A7C7C]/15 text-[#9A7C7C] flex items-center justify-center">
+                <Sparkles className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-[#271D1D]">Maigon Agent Preview</p>
+                <p className="text-[11px] uppercase tracking-wide text-[#9A7C7C]">Demo experience</p>
+              </div>
+            </div>
+            <button
+              onClick={toggleAgent}
+              className="h-8 w-8 inline-flex items-center justify-center rounded-full text-[#725A5A] hover:bg-[#F9F8F8]"
+              aria-label="Close agent preview"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="px-3 pt-3 pb-2">
+            <div className="bg-[#FDFBFB] border border-[#E8DDDD] rounded-xl h-80 overflow-hidden flex flex-col">
+              <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+                {agentMessages.map((message) => (
+                  <div
+                    key={message.id}
+                    className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
+                  >
+                    <div
+                      className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm ${
+                        message.role === "user"
+                          ? "bg-[#9A7C7C] text-white rounded-br-sm"
+                          : "bg-white text-[#271D1D] border border-[#E8DDDD] rounded-bl-sm"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 mb-1 text-[11px] uppercase tracking-wide">
+                        {message.role === "user" ? (
+                          <span className="opacity-70">You</span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-[#9A7C7C]">
+                            <Bot className="w-3 h-3" /> Agent
+                          </span>
+                        )}
+                        <span className="opacity-50">
+                          {new Date(message.timestamp).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </span>
+                      </div>
+                      <p>{message.content}</p>
+                    </div>
+                  </div>
+                ))}
+
+                {agentIsThinking && (
+                  <div className="flex items-center gap-2 text-xs text-[#725A5A]">
+                    <Bot className="w-3 h-3 animate-pulse" /> Agent is drafting a suggestion…
+                  </div>
+                )}
+              </div>
+
+              <div className="border-t border-[#E8DDDD] bg-white px-3 py-3">
+                <div className="flex items-center gap-2">
+                  <Input
+                    value={agentInput}
+                    onChange={(event) => setAgentInput(event.target.value)}
+                    onKeyDown={handleAgentKeyDown}
+                    placeholder="Ask for clause updates or summaries..."
+                    className="flex-1 text-sm"
+                  />
+                  <Button
+                    type="button"
+                    onClick={handleAgentSend}
+                    disabled={!agentInput.trim() && !agentIsThinking}
+                    className="bg-[#9A7C7C] hover:bg-[#725A5A] text-white"
+                    size="icon"
+                  >
+                    <Send className="w-4 h-4" />
+                  </Button>
+                </div>
+                <p className="text-[10px] text-[#725A5A] mt-2">
+                  This mock shows how the AI agent will behave once live. Replies are illustrative only.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <button
+        type="button"
+        onClick={() => setIsAgentOpen(true)}
+        className={`fixed bottom-6 right-6 z-40 h-14 w-14 rounded-full shadow-lg border border-[#E8DDDD] bg-white text-[#9A7C7C] hover:bg-[#F9F8F8] transition-all print:hidden ${
+          isAgentOpen ? "pointer-events-none opacity-0" : "opacity-100"
+        }`}
+        aria-label="Open AI agent preview"
+      >
+        <Bot className="w-6 h-6 mx-auto" />
+      </button>
+    </div>
+  </>
   );
 }

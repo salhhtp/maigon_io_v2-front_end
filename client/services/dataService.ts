@@ -162,31 +162,32 @@ export class DataService {
       // 4. Process with AI analysis using classified contract type with enhanced error handling
       const enhancedContractData = {
         ...contractData,
+        user_id: userId,
         contract_type: classification.contractType,
         classification: classification
       };
-      
+
       let reviewResults: any;
       let retryCount = 0;
       const maxRetries = 2;
-      
+
       while (retryCount <= maxRetries) {
         try {
           console.log(`🔄 Attempting AI analysis (attempt ${retryCount + 1}/${maxRetries + 1})...`);
-          reviewResults = await this.processWithAI(enhancedContractData, reviewType, contractData.custom_solution_id);
+          reviewResults = await this.processWithAI(enhancedContractData, reviewType, userId, contractData.custom_solution_id);
           console.log('✅ AI analysis completed successfully');
           break;
         } catch (aiError) {
           retryCount++;
           console.error(`❌ AI analysis attempt ${retryCount} failed:`, aiError);
-          
+
           if (retryCount > maxRetries) {
             // Final fallback - create a basic review result
             console.log('🔄 Using fallback analysis due to repeated AI failures');
             reviewResults = this.generateFallbackAnalysis(reviewType, classification);
             break;
           }
-          
+
           // Wait before retry
           console.log(`⏳ Waiting before retry ${retryCount + 1}...`);
           await new Promise(resolve => setTimeout(resolve, 2000 * retryCount));
@@ -258,7 +259,12 @@ export class DataService {
   }
 
   // AI processing with enhanced error handling and classification context
-  static async processWithAI(contractData: any, reviewType: string, customSolutionId?: string) {
+  private static async processWithAI(
+    contractData: any,
+    reviewType: string,
+    userId: string,
+    customSolutionId?: string
+  ) {
     try {
       console.log('🤖 Starting AI analysis with enhanced context...');
 
@@ -270,14 +276,25 @@ export class DataService {
       }
 
       // Prepare AI analysis request with enhanced file information and classification
+      const fileExtension =
+        typeof contractData.file_name === 'string'
+          ? contractData.file_name.split('.').pop()?.toLowerCase()
+          : undefined;
+      const documentFormat = contractData.file_type
+        || (fileExtension === 'pdf' ? 'pdf'
+          : fileExtension === 'docx' || fileExtension === 'doc' ? 'docx'
+          : fileExtension);
+
       const analysisRequest = {
         content: contractData.content,
         reviewType,
         contractType: contractData.contract_type || 'general',
         customSolution,
-        userId: contractData.user_id,
+        userId,
         fileType: contractData.file_type,
         fileName: contractData.file_name,
+        filename: contractData.file_name,
+        documentFormat,
         classification: contractData.classification || null,
       };
 
