@@ -218,7 +218,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({
       } = await supabase.auth.getUser();
 
       if (authError) {
-        console.error("Error getting auth user:", authError);
+        logError("Error getting auth user", authError, { authUserId });
         throw authError;
       }
 
@@ -229,9 +229,10 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({
         .single();
 
       if (error) {
-        console.error(
-          `Error loading user profile (attempt ${retryCount + 1}):`,
+        logError(
+          `Error loading user profile (attempt ${retryCount + 1})`,
           error,
+          { authUserId, retryCount }
         );
 
         // If profile not found and we haven't retried, try once more
@@ -248,9 +249,10 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({
       console.log("User profile loaded successfully:", user.email);
       return user;
     } catch (error) {
-      console.error(
-        `Failed to load user profile after ${retryCount + 1} attempts:`,
+      logError(
+        `Failed to load user profile after ${retryCount + 1} attempts`,
         error,
+        { authUserId, retryCount }
       );
 
       // If we've tried twice and still failed, sign out the user to clear inconsistent state
@@ -261,7 +263,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({
         try {
           await supabase.auth.signOut();
         } catch (signOutError) {
-          console.error("Error signing out user:", signOutError);
+          logError("Error signing out user", signOutError);
         }
       }
 
@@ -272,6 +274,14 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({
   // Initialize auth state - clean but functional approach
   useEffect(() => {
     let mounted = true;
+
+    // Safety timeout to ensure loading state doesn't get stuck
+    const safetyTimeout = setTimeout(() => {
+      if (mounted) {
+        console.warn("⚠️ Auth initialization timeout - forcing loading complete");
+        setIsLoading(false);
+      }
+    }, 5000); // 5 second timeout
 
     const initializeAuth = async () => {
       try {
@@ -341,13 +351,15 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({
             setUser(null);
           }
           setIsLoading(false);
+          clearTimeout(safetyTimeout); // Clear safety timeout on success
         }
       } catch (error) {
-        console.error("Auth initialization error:", error);
+        logError("Auth initialization error", error);
         if (mounted) {
           setSession(null);
           setUser(null);
           setIsLoading(false);
+          clearTimeout(safetyTimeout); // Clear safety timeout on error
         }
       }
     };
@@ -413,6 +425,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({
 
     return () => {
       mounted = false;
+      clearTimeout(safetyTimeout);
       subscription.unsubscribe();
     };
   }, []);
