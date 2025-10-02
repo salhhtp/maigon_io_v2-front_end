@@ -16,7 +16,7 @@ export class DataService {
 
       console.log("✅ New user initialized successfully:", userId);
     } catch (error) {
-      console.error("❌ Failed to initialize new user:", error);
+      logError("❌ Failed to initialize new user", error, { userId });
       throw error;
     }
   }
@@ -52,7 +52,7 @@ export class DataService {
         contractsSummary,
       };
     } catch (error) {
-      console.error("Error fetching dashboard data:", error);
+      logError("Error fetching dashboard data", error, { userId });
       throw error;
     }
   }
@@ -70,7 +70,7 @@ export class DataService {
         recentReviews: reviews.slice(0, 5),
       };
     } catch (error) {
-      console.error("Error fetching user contracts summary:", error);
+      logError("Error fetching user contracts summary", error, { userId });
       throw error;
     }
   }
@@ -93,7 +93,7 @@ export class DataService {
         usageSummary,
       };
     } catch (error) {
-      console.error("Error fetching admin dashboard data:", error);
+      logError("Error fetching admin dashboard data", error);
       throw error;
     }
   }
@@ -194,9 +194,10 @@ export class DataService {
           break;
         } catch (aiError) {
           retryCount++;
-          console.error(
-            `❌ AI analysis attempt ${retryCount} failed:`,
+          logError(
+            `❌ AI analysis attempt ${retryCount} failed`,
             aiError,
+            { userId, reviewType, retryCount }
           );
 
           if (retryCount > maxRetries) {
@@ -350,7 +351,7 @@ export class DataService {
 
       return result;
     } catch (error) {
-      console.error("❌ AI analysis failed:", error);
+      logError("❌ AI analysis failed", error, { reviewType, userId });
 
       // Log detailed error information with proper serialization
       const errorMessage =
