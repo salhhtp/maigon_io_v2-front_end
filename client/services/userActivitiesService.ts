@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import type { Database } from '@/lib/supabase';
+import { isMockEnabled, mockDb } from '@/lib/mockDb';
 
 type UserActivity = Database['public']['Tables']['user_activities']['Row'];
 type UserActivityInsert = Database['public']['Tables']['user_activities']['Insert'];
@@ -7,30 +8,43 @@ type UserActivityInsert = Database['public']['Tables']['user_activities']['Inser
 export class UserActivitiesService {
   // Track a new activity
   static async trackActivity(activity: UserActivityInsert) {
-    const { data, error } = await supabase
-      .from('user_activities')
-      .insert(activity)
-      .select()
-      .single();
+    if (isMockEnabled()) {
+      return mockDb.trackActivity(activity as any) as any;
+    }
+    try {
+      const { data, error } = await supabase
+        .from('user_activities')
+        .insert(activity)
+        .select()
+        .single();
 
-    if (error) throw error;
-    return data;
+      if (error) throw error;
+      return data;
+    } catch (e) {
+      return mockDb.trackActivity(activity as any) as any;
+    }
   }
 
   // Get user activities with pagination
   static async getUserActivities(userId: string, page = 1, limit = 20) {
-    const from = (page - 1) * limit;
-    const to = from + limit - 1;
+    try {
+      const from = (page - 1) * limit;
+      const to = from + limit - 1;
 
-    const { data, error } = await supabase
-      .from('user_activities')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
-      .range(from, to);
+      const { data, error } = await supabase
+        .from('user_activities')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .range(from, to);
 
-    if (error) throw error;
-    return data;
+      if (error) throw error;
+      return data;
+    } catch (e) {
+      // Return mock list if available
+      const all = (localStorage.getItem('mock_user_activities') ? JSON.parse(localStorage.getItem('mock_user_activities') as string) : []) as any[];
+      return all.filter(a => a.user_id === userId).slice(0, limit);
+    }
   }
 
   // Get activities by type

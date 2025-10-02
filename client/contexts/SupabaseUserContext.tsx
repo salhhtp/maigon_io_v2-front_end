@@ -459,6 +459,20 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       await supabase.auth.signOut();
       setUser(null);
       setSession(null);
+
+      // Redirect to public landing page after logout so users can access the public view
+      const redirect = () => {
+        if (window.location.pathname !== "/") {
+          window.history.replaceState({}, "", "/");
+          window.dispatchEvent(new PopStateEvent("popstate"));
+        }
+      };
+
+      if ("requestIdleCallback" in window) {
+        (window as any).requestIdleCallback(redirect);
+      } else {
+        setTimeout(redirect, 0);
+      }
     } catch (error) {
       console.error('Logout error:', error);
     }

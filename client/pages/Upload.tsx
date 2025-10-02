@@ -6,8 +6,8 @@ import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import ConfirmationModal from "@/components/ConfirmationModal";
 import { useUser } from "@/contexts/SupabaseUserContext";
-import { DataService } from "@/services/dataService";
 import { useToast } from "@/hooks/use-toast";
+import { reviewProcessingStore } from "@/lib/reviewProcessingStore";
 
 export default function Upload() {
   const { user } = useUser();
@@ -217,79 +217,59 @@ export default function Upload() {
 
     // Step 1: Submit Clicked → Smart Animate - Ease Out - 1500ms
     setIsSubmitting(true);
-    console.log("Starting real contract processing...");
+    console.log("Starting contract processing workflow...");
 
     try {
-      // Step 2: After Delay - 1ms → Smart Animate - Ease out 1500ms → Disappeared Upload Button
       setTimeout(() => {
         setUploadButtonHidden(true);
       }, 1);
 
-      // Step 3: After Delay 1ms → Smart Animate - Ease in and out back → Loading Screen pops up
       setTimeout(() => {
         setShowLoadingTransition(true);
       }, 2);
 
-      // Read file content
       const fileContent = await readFileContent(selectedFile);
-
-      // Determine review type based on perspective
       const reviewType = getReviewTypeFromPerspective(perspective);
 
-      // Show toast for processing start
+      reviewProcessingStore.setPending({
+        userId: user.id,
+        contractInput: {
+          title: selectedFile.name.replace(/\.[^/.]+$/, ""),
+          content: fileContent,
+          file_name: selectedFile.name,
+          file_size: selectedFile.size,
+        },
+        reviewType,
+        metadata: {
+          fileName: selectedFile.name,
+          fileSize: selectedFile.size,
+          solutionTitle,
+          perspective,
+        },
+      });
+
       toast({
         title: "Processing contract",
         description: "Your contract is being analyzed...",
       });
 
-      // Process contract using real workflow
-      const result = await DataService.processContractWorkflow(
-        user.id,
-        {
-          title: selectedFile.name.replace(/\.[^/.]+$/, ""), // Remove file extension
-          content: fileContent,
-          file_name: selectedFile.name,
-          file_size: selectedFile.size,
+      navigate("/loading", {
+        state: {
+          fileName: selectedFile.name,
+          solutionTitle,
+          perspective,
         },
-        reviewType
-      );
-
-      // Show success toast
-      toast({
-        title: "Contract processed successfully",
-        description: "Review completed. Redirecting to results...",
+        replace: true,
       });
-
-      // Navigate to contract review with real data
-      setTimeout(() => {
-        console.log("Navigating to contract review with real data:", result);
-
-        try {
-          navigate("/contract-review", {
-            state: {
-              contract: result.contract,
-              review: result.review,
-              selectedFile: selectedFile,
-              solutionTitle: solutionTitle,
-              perspective: perspective,
-            },
-          });
-        } catch (error) {
-          console.error("Navigation error:", error);
-          // Fallback: try direct navigation
-          navigate("/contract-review");
-        }
-      }, 500); // Give time for transition animation to start
-
     } catch (error) {
-      console.error("Contract processing error:", error);
+      console.error("Contract preparation failed:", error);
       setIsSubmitting(false);
       setUploadButtonHidden(false);
       setShowLoadingTransition(false);
 
       toast({
         title: "Processing failed",
-        description: "There was an error processing your contract. Please try again.",
+        description: "There was an error preparing your contract. Please try again.",
         variant: "destructive",
       });
     }

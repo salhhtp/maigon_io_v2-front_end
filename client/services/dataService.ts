@@ -97,7 +97,12 @@ export class DataService {
       await ContractsService.updateContractStatus(contract.id, 'reviewing');
 
       // 4. Process with AI analysis
-      const reviewResults = await this.processWithAI(contractData, reviewType, contractData.custom_solution_id);
+      const reviewResults = await this.processWithAI(
+        { ...contractData, user_id: userId },
+        reviewType,
+        userId,
+        contractData.custom_solution_id
+      );
 
       // 5. Create review record
       const review = await ContractReviewsService.createReview({
@@ -138,7 +143,12 @@ export class DataService {
   }
 
   // AI review process using real AI integration
-  private static async processWithAI(contractData: any, reviewType: string, customSolutionId?: string) {
+  private static async processWithAI(
+    contractData: any,
+    reviewType: string,
+    userId: string,
+    customSolutionId?: string
+  ) {
     try {
       // Import AI service dynamically to avoid circular imports
       const { aiService } = await import('./aiService');
@@ -151,12 +161,23 @@ export class DataService {
       }
 
       // Prepare AI analysis request
+      const fileExtension =
+        typeof contractData.file_name === 'string'
+          ? contractData.file_name.split('.').pop()?.toLowerCase()
+          : undefined;
+      const documentFormat = contractData.file_type
+        || (fileExtension === 'pdf' ? 'pdf'
+          : fileExtension === 'docx' || fileExtension === 'doc' ? 'docx'
+          : fileExtension);
+
       const analysisRequest = {
         content: contractData.content,
         reviewType,
         contractType: contractData.contract_type,
         customSolution,
-        userId: contractData.user_id,
+        userId,
+        filename: contractData.file_name,
+        documentFormat,
       };
 
       // Call AI service for analysis

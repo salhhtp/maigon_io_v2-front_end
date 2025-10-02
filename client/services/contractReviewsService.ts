@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import type { Database } from '@/lib/supabase';
+import { isMockEnabled, mockDb } from '@/lib/mockDb';
 
 type ContractReview = Database['public']['Tables']['contract_reviews']['Row'];
 type ContractReviewInsert = Database['public']['Tables']['contract_reviews']['Insert'];
@@ -31,14 +32,21 @@ export class ContractReviewsService {
 
   // Create a new review
   static async createReview(review: ContractReviewInsert) {
-    const { data, error } = await supabase
-      .from('contract_reviews')
-      .insert(review)
-      .select()
-      .single();
+    if (isMockEnabled()) {
+      return mockDb.createReview(review as any) as any;
+    }
+    try {
+      const { data, error } = await supabase
+        .from('contract_reviews')
+        .insert(review)
+        .select()
+        .single();
 
-    if (error) throw error;
-    return data;
+      if (error) throw error;
+      return data;
+    } catch (e) {
+      return mockDb.createReview(review as any) as any;
+    }
   }
 
   // Get reviews by type for a user

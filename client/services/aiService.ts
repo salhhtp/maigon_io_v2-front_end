@@ -17,6 +17,8 @@ export interface ContractAnalysisRequest {
   customSolution?: CustomSolution;
   model?: AIModel;
   userId: string;
+  filename?: string;
+  documentFormat?: string;
 }
 
 export interface CustomSolution {
@@ -178,6 +180,8 @@ class AIService {
         model,
         customSolution,
         contractType: request.contractType,
+        filename: request.filename,
+        documentFormat: request.documentFormat,
       },
     });
 
