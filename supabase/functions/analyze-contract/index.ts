@@ -945,7 +945,10 @@ function parseAIResponse(aiResponse: string, reviewType: string) {
       }
     }
 
-    // Fallback to mock response
-    return generateMockResponseByType(reviewType);
+    // Throw error instead of falling back to mock response
+    console.error("AI Response that failed to parse:", aiResponse);
+    throw new Error(
+      `AI response could not be parsed as JSON. This may indicate an issue with the AI model or prompt. Review type: ${reviewType}`
+    );
   }
 }
