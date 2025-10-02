@@ -100,42 +100,135 @@ serve(async (req) => {
 async function classifyWithAI(request: ClassificationRequest, apiKey: string) {
   const modelConfig = AI_CONFIGS['openai-gpt-4'];
 
-  const systemPrompt = `You are an expert legal document classifier with extensive knowledge of contract types, legal frameworks, and commercial agreements. Your task is to analyze contract content and accurately classify it into specific contract types.
+  const systemPrompt = `You are a world-class legal document classifier and contract analysis expert with 20+ years of experience across multiple jurisdictions and industries. You have deep expertise in:
 
-Analyze the provided contract content and classify it into one of these primary categories based on the 7 specific solution types:
-- data_processing_agreement: DPAs, GDPR compliance documents, EDPB guidelines adherence
-- non_disclosure_agreement: NDAs, confidentiality agreements, trade secret protection
-- privacy_policy_document: Privacy statements, privacy policies, GDPR criteria compliance
-- consultancy_agreement: Professional services agreements, consulting contracts, advisory services
-- research_development_agreement: R&D agreements, innovation contracts, technology development
-- end_user_license_agreement: EULAs, software license agreements, usage rights
-- product_supply_agreement: Supply agreements, procurement contracts, product delivery terms
-- general_commercial: Other commercial agreements not fitting the 7 specific categories
+- International commercial law and contract structures
+- Regulatory compliance frameworks (GDPR, CCPA, HIPAA, SOX, PCI-DSS)
+- Industry-specific contracting practices
+- Legal terminology and clause identification
+- Multi-jurisdictional contract types and variations
+- Commercial transaction patterns and business models
 
-Consider document structure, legal terminology, clause types, and specific obligations when classifying.`;
+Your classifications are relied upon by Fortune 500 companies, law firms, and regulatory bodies for critical business decisions.
 
-  const analysisPrompt = `Analyze this contract content and provide a detailed classification. Consider:
+**PRIMARY CONTRACT CATEGORIES** (with detailed identification criteria):
 
-1. Primary subject matter and purpose
-2. Key legal obligations and rights
-3. Specific terminology and clause structures
-4. Regulatory compliance requirements
-5. Risk profiles and business implications
+1. **data_processing_agreement**:
+   - Keywords: "personal data", "data subject", "controller", "processor", "GDPR", "EDPB", "data protection", "processing activities"
+   - Clauses: security measures, sub-processing, data breach notification, audit rights, cross-border transfers, SCCs
+   - Regulatory: GDPR Article 28 compliance, data protection impact assessments
 
-Return a JSON response with this exact structure:
+2. **non_disclosure_agreement**:
+   - Keywords: "confidential information", "proprietary", "trade secrets", "non-disclosure", "confidentiality obligations"
+   - Clauses: definition of confidential info, permitted disclosures, return/destruction, non-compete/non-solicit
+   - Types: mutual/unilateral NDAs, standalone/embedded confidentiality provisions
+
+3. **privacy_policy_document**:
+   - Keywords: "privacy policy", "data collection", "user rights", "cookie policy", "privacy notice", "personal information"
+   - Elements: data categories, processing purposes, legal basis, retention, rights, contact details
+   - Compliance: GDPR transparency requirements, CCPA disclosures, privacy shield
+
+4. **consultancy_agreement**:
+   - Keywords: "consulting services", "professional services", "advisory", "expertise", "deliverables", "statement of work"
+   - Clauses: scope of services, fees, expenses, independent contractor, work product ownership
+   - Types: strategic advisory, technical consulting, interim management
+
+5. **research_development_agreement**:
+   - Keywords: "research", "development", "innovation", "intellectual property", "patents", "technology transfer", "R&D collaboration"
+   - Clauses: IP ownership, joint inventions, publication rights, commercialization, milestones
+   - Types: sponsored research, joint development, technology licensing
+
+6. **end_user_license_agreement**:
+   - Keywords: "license", "end user", "software", "permitted use", "restrictions", "license grant", "proprietary rights"
+   - Clauses: license scope, restrictions, warranties, support, updates, termination
+   - Types: perpetual/subscription, enterprise/individual, SaaS/on-premise
+
+7. **product_supply_agreement**:
+   - Keywords: "supply", "purchase", "procurement", "delivery", "goods", "products", "specifications", "quantity"
+   - Clauses: pricing, delivery terms, quality standards, warranties, returns, force majeure
+   - Types: master supply, purchase orders, distribution, manufacturing
+
+8. **general_commercial**:
+   - Any other commercial agreements: service agreements, partnership agreements, joint ventures, franchise, licensing (non-software), employment, sales contracts
+   - Use when contract doesn't clearly fit the 7 specific categories above
+
+**CLASSIFICATION METHODOLOGY**:
+1. Analyze document title and headings (weight: 20%)
+2. Identify key legal terminology and phrases (weight: 30%)
+3. Examine clause structure and obligations (weight: 25%)
+4. Assess regulatory references and compliance requirements (weight: 15%)
+5. Consider business context and transaction type (weight: 10%)
+
+Be precise, analytical, and provide high confidence classifications only when clear indicators are present.`;
+
+  const analysisPrompt = `Perform a comprehensive classification analysis of this contract using your expert methodology:
+
+**ANALYSIS FRAMEWORK**:
+
+1. **Document Structure Analysis**: Examine title, sections, headings, and overall organization
+2. **Terminology Extraction**: Identify key legal terms, defined terms, and specialized vocabulary
+3. **Clause Identification**: Categorize main clauses (obligations, rights, warranties, liabilities, etc.)
+4. **Regulatory Mapping**: Identify referenced laws, regulations, and compliance frameworks
+5. **Transaction Pattern Recognition**: Determine the underlying business model and transaction type
+6. **Jurisdiction Assessment**: Note governing law and jurisdictional indicators
+7. **Party Relationship**: Understand roles (controller/processor, buyer/seller, licensor/licensee, etc.)
+
+**REQUIRED OUTPUT**:
+
+Provide detailed classification with:
+- **Primary Classification**: Most appropriate category from the 8 types
+- **Confidence Score**: Based on clarity of indicators (0.9+ for clear matches, 0.7-0.9 for strong matches, 0.5-0.7 for partial matches)
+- **Sub-Type**: Specific variant within category (e.g., "Mutual NDA", "GDPR-compliant DPA", "SaaS EULA")
+- **Key Characteristics**: 5-10 distinctive features that led to classification
+- **Classification Reasoning**: Detailed explanation of decision factors
+- **Suggested Solutions**: Recommended analysis types based on contract type and complexity
+
+**CRITICAL INDICATORS TO EXAMINE**:
+${request.fileName ? `- File Name: "${request.fileName}" (may contain type hints)` : ''}
+- Opening recitals and whereas clauses
+- Definitions section (especially defined terms like "Personal Data", "Confidential Information")
+- Primary obligations and deliverables
+- Payment/consideration structure
+- Regulatory references (GDPR, CCPA, industry standards)
+- Termination and duration provisions
+- Governing law and jurisdiction
+- Special provisions (IP, warranties, indemnification)
+
+Return JSON in this EXACT structure (valid JSON required):
 {
-  "contractType": "string (one of the specified categories)",
-  "confidence": number (0.0-1.0),
-  "subType": "string (optional specific subcategory)",
-  "characteristics": ["string array of key contract features"],
-  "reasoning": "string (explanation of classification decision)",
-  "suggestedSolutions": ["string array of recommended analysis types"]
+  "contractType": "string (exactly one of: data_processing_agreement, non_disclosure_agreement, privacy_policy_document, consultancy_agreement, research_development_agreement, end_user_license_agreement, product_supply_agreement, general_commercial)",
+  "confidence": number (0.5-1.0, precise to 2 decimals),
+  "subType": "string (specific variant or null)",
+  "characteristics": [
+    "string (5-10 distinctive features)",
+    "include specific clause references",
+    "note regulatory frameworks",
+    "identify party roles and relationships",
+    "highlight unique contractual elements"
+  ],
+  "reasoning": "string (2-3 sentences explaining why this classification was chosen, referencing specific evidence from the contract)",
+  "suggestedSolutions": [
+    "string array (2-4 recommended analysis types)",
+    "match to contract nature: compliance_score for DPAs/Privacy, risk_assessment for commercial deals, perspective_review for negotiations, full_summary for complex agreements"
+  ],
+  "keyTerms": [
+    "string array (5-10 important defined terms or legal concepts found in contract)"
+  ],
+  "jurisdiction": "string (governing law if identifiable, or 'Not specified')",
+  "partyRoles": {
+    "party1": "string (role description, e.g., 'Data Controller', 'Disclosing Party')",
+    "party2": "string (role description, e.g., 'Data Processor', 'Receiving Party')"
+  }
 }
 
-Contract Content:
-${request.content}
+**CONTRACT CONTENT TO ANALYZE**:
+${request.content.substring(0, 8000)}
 
-File Name: ${request.fileName}`;
+${request.content.length > 8000 ? `\n[Note: Content truncated at 8000 characters for analysis. Full length: ${request.content.length} characters]` : ''}
+
+**FILE NAME**: ${request.fileName || 'Not provided'}
+
+Analyze thoroughly and provide precise classification based on the evidence found in the contract.`;
 
   const requestBody = {
     model: modelConfig.model,
@@ -185,15 +278,31 @@ File Name: ${request.fileName}`;
     const result = JSON.parse(content);
     console.log('📊 AI Classification result:', result);
     
-    // Validate and enhance the result
-    return {
+    // Validate and enhance the result with additional fields
+    const validatedResult = {
       contractType: result.contractType || 'general_commercial',
       confidence: Math.min(Math.max(result.confidence || 0.5, 0), 1),
-      subType: result.subType,
-      characteristics: Array.isArray(result.characteristics) ? result.characteristics : [],
+      subType: result.subType || null,
+      characteristics: Array.isArray(result.characteristics) && result.characteristics.length > 0
+        ? result.characteristics
+        : ['Commercial agreement requiring detailed analysis'],
       reasoning: result.reasoning || 'AI-powered classification based on content analysis',
-      suggestedSolutions: Array.isArray(result.suggestedSolutions) ? result.suggestedSolutions : ['full_summary', 'risk_assessment']
+      suggestedSolutions: Array.isArray(result.suggestedSolutions) && result.suggestedSolutions.length > 0
+        ? result.suggestedSolutions
+        : ['full_summary', 'risk_assessment'],
+      keyTerms: Array.isArray(result.keyTerms) ? result.keyTerms : [],
+      jurisdiction: result.jurisdiction || 'Not specified',
+      partyRoles: result.partyRoles || {}
     };
+
+    console.log('✅ Enhanced classification result:', {
+      type: validatedResult.contractType,
+      confidence: validatedResult.confidence,
+      subType: validatedResult.subType,
+      suggestedSolutions: validatedResult.suggestedSolutions
+    });
+
+    return validatedResult;
   } catch (parseError) {
     const errorMessage = parseError instanceof Error ? parseError.message : String(parseError);
     console.error('❌ Failed to parse AI response:', {
