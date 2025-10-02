@@ -1,0 +1,400 @@
+PRIVACY POLICY
+
+Last Updated: January 15, 2024
+Effective Date: January 15, 2024
+
+This Privacy Policy describes how DataFlow Technologies Inc. ("DataFlow," "we," "us," or "our") collects, uses, discloses, and protects personal information when you use our SaaS platform, mobile applications, and related services (collectively, the "Services").
+
+BY USING OUR SERVICES, YOU CONSENT TO THE COLLECTION, USE, AND DISCLOSURE OF YOUR PERSONAL INFORMATION AS DESCRIBED IN THIS PRIVACY POLICY.
+
+1. INFORMATION WE COLLECT
+
+1.1 Information You Provide Directly
+
+When you register for an account, use our Services, or communicate with us, we may collect:
+
+(a) Account Information:
+- Full name
+- Email address
+- Phone number
+- Company name and job title
+- Billing address
+- Payment information (processed securely through third-party payment processors)
+
+(b) Profile Information:
+- Profile photo
+- Professional background
+- Industry sector
+- Team member information
+- Preferences and settings
+
+(c) Content You Create:
+- Files and documents you upload
+- Data you input into the platform
+- Communications and messages
+- Feedback and support requests
+- Survey responses
+
+1.2 Information We Collect Automatically
+
+When you access our Services, we automatically collect:
+
+(a) Usage Data:
+- Pages and features accessed
+- Time spent on pages
+- Click patterns and navigation paths
+- Feature usage frequency
+- Search queries
+- Session duration and frequency
+
+(b) Device Information:
+- IP address
+- Browser type and version
+- Operating system
+- Device type and model
+- Screen resolution
+- Language preferences
+- Time zone
+
+(c) Location Data:
+- General geographic location (derived from IP address)
+- Precise location (only if you grant permission on mobile devices)
+
+(d) Cookies and Tracking Technologies:
+- Session cookies
+- Persistent cookies
+- Web beacons and pixels
+- Local storage
+- Analytics identifiers
+
+1.3 Information from Third Parties
+
+We may receive information about you from:
+
+(a) Single Sign-On Providers:
+- Google, Microsoft, LinkedIn authentication data
+- Public profile information
+- Email address and name
+
+(b) Integration Partners:
+- Data from connected applications (Slack, Salesforce, etc.)
+- Synchronized contact information
+- Shared content and communications
+
+(c) Data Enrichment Services:
+- Company information
+- Professional title verification
+- Industry classification
+
+(d) Marketing Partners:
+- Lead generation data
+- Campaign performance metrics
+- Attribution information
+
+2. HOW WE USE YOUR INFORMATION
+
+We use collected information for the following purposes:
+
+2.1 Service Provision and Operation:
+- Creating and managing your account
+- Providing access to our Services
+- Processing transactions and billing
+- Delivering customer support
+- Authenticating users and preventing fraud
+- Maintaining platform functionality and performance
+- Storing and backing up your data
+
+2.2 Communication:
+- Sending transactional emails (password resets, receipts, updates)
+- Providing customer support responses
+- Sending service announcements and updates
+- Delivering security alerts and notifications
+- Responding to inquiries and requests
+
+2.3 Marketing and Promotional Activities:
+- Sending newsletters and promotional emails
+- Displaying personalized advertisements
+- Conducting market research and surveys
+- Analyzing customer preferences and trends
+- Managing referral programs and rewards
+
+2.4 Analytics and Improvement:
+- Analyzing usage patterns and trends
+- Improving Services functionality and user experience
+- Developing new features and products
+- Conducting A/B testing and experimentation
+- Measuring marketing campaign effectiveness
+- Generating aggregated statistics and reports
+
+2.5 Legal and Compliance:
+- Complying with legal obligations
+- Enforcing our Terms of Service
+- Protecting against fraud and abuse
+- Defending legal claims
+- Ensuring platform security and integrity
+
+3. LEGAL BASIS FOR PROCESSING (GDPR)
+
+If you are located in the European Economic Area (EEA), UK, or Switzerland, we process your personal data based on:
+
+(a) Contract Performance: Processing necessary to provide Services you've requested
+(b) Legitimate Interests: Business operations, fraud prevention, security, analytics
+(c) Consent: Marketing communications, cookies, location data
+(d) Legal Obligation: Compliance with laws, regulations, and court orders
+
+You have the right to object to processing based on legitimate interests and to withdraw consent at any time.
+
+4. INFORMATION SHARING AND DISCLOSURE
+
+We may share your information with:
+
+4.1 Service Providers and Processors:
+- Cloud hosting providers (AWS, Google Cloud)
+- Payment processors (Stripe, PayPal)
+- Email service providers (SendGrid, Mailchimp)
+- Analytics providers (Google Analytics, Mixpanel)
+- Customer support tools (Zendesk, Intercom)
+- Security services (Cloudflare, Auth0)
+
+We ensure all service providers maintain appropriate data protection standards through contractual agreements.
+
+4.2 Business Transfers:
+In connection with any merger, acquisition, reorganization, or sale of assets, your information may be transferred to the acquiring entity, subject to this Privacy Policy.
+
+4.3 Legal Requirements:
+We may disclose information when required by law, including:
+- Complying with subpoenas, court orders, or legal processes
+- Responding to government or regulatory requests
+- Enforcing our agreements and policies
+- Protecting rights, property, or safety
+- Detecting, preventing, or investigating security incidents or fraud
+
+4.4 With Your Consent:
+We may share information with third parties when you explicitly consent to such sharing.
+
+4.5 Aggregated and De-identified Data:
+We may share aggregated, anonymized, or de-identified data that cannot reasonably be used to identify you for research, analytics, or marketing purposes.
+
+5. INTERNATIONAL DATA TRANSFERS
+
+5.1 We operate globally and may transfer your personal information to countries other than your country of residence, including the United States, which may have different data protection laws.
+
+5.2 For transfers from the EEA, UK, or Switzerland to countries without adequate protections, we implement:
+- Standard Contractual Clauses approved by the European Commission
+- EU-US and Swiss-US Privacy Shield frameworks (where applicable)
+- Other appropriate safeguards as required by law
+
+5.3 Transfer Locations:
+- Primary data centers: United States (US-East, US-West)
+- Backup data centers: European Union (Frankfurt, Ireland)
+- Service provider locations: Various (as detailed in our Sub-processor List)
+
+6. DATA RETENTION
+
+6.1 We retain personal information for as long as necessary to provide Services and fulfill the purposes described in this Privacy Policy, unless a longer retention period is required or permitted by law.
+
+6.2 Retention Periods:
+- Active account data: Duration of account plus 90 days
+- Customer content: As determined by customer settings, typically until deletion
+- Transaction records: 7 years (legal requirement)
+- Marketing data: Until consent withdrawn or 3 years of inactivity
+- Support communications: 2 years
+- Anonymized analytics: Indefinitely
+
+6.3 Upon account termination, we will delete or anonymize your personal information within 90 days, except where:
+- Legal obligations require retention
+- Information is necessary for ongoing legitimate business purposes
+- Data exists only in backup systems (deleted in next backup cycle)
+
+7. YOUR RIGHTS AND CHOICES
+
+7.1 Access and Portability:
+You have the right to:
+- Access your personal information
+- Request a copy of your data in a portable format (JSON, CSV)
+- Download your content and data at any time
+
+7.2 Correction and Deletion:
+You may:
+- Update or correct your account information through account settings
+- Request deletion of your personal information
+- Remove specific content or data you've uploaded
+
+7.3 Restriction and Objection:
+You may:
+- Restrict certain processing of your personal information
+- Object to processing based on legitimate interests
+- Opt out of marketing communications
+
+7.4 Marketing Opt-Out:
+- Unsubscribe from emails using the link in each message
+- Adjust email preferences in account settings
+- Contact us directly to opt out of all marketing
+
+7.5 Cookie Management:
+- Configure cookie preferences through our cookie consent tool
+- Adjust browser settings to block or delete cookies
+- Use browser Do Not Track signals (honored for analytics)
+
+7.6 Exercising Your Rights:
+To exercise any of these rights, contact us at:
+- Email: privacy@dataflow.com
+- Privacy Portal: https://dataflow.com/privacy-request
+- Mail: DataFlow Technologies Inc., Attn: Privacy Officer, 789 Data Drive, Austin, TX 78701
+
+We will respond to valid requests within 30 days (45 days for complex requests).
+
+8. DATA SECURITY
+
+8.1 We implement industry-standard security measures to protect your personal information:
+
+Technical Safeguards:
+- Encryption in transit (TLS 1.3)
+- Encryption at rest (AES-256)
+- Secure key management (AWS KMS)
+- Multi-factor authentication
+- Intrusion detection and prevention systems
+- Regular vulnerability assessments and penetration testing
+- Web application firewalls (WAF)
+- DDoS protection
+
+Organizational Safeguards:
+- Employee background checks
+- Mandatory security training
+- Role-based access controls
+- Confidentiality agreements
+- Incident response procedures
+- Regular security audits
+
+Compliance Certifications:
+- SOC 2 Type II
+- ISO 27001
+- GDPR compliance
+- CCPA compliance
+- HIPAA (for healthcare customers)
+
+8.2 Despite our efforts, no security measures are perfect. We cannot guarantee absolute security of your information.
+
+8.3 In the event of a data breach affecting your personal information, we will notify you within 72 hours in accordance with applicable law.
+
+9. CHILDREN'S PRIVACY
+
+9.1 Our Services are not intended for children under 16 years of age. We do not knowingly collect personal information from children under 16.
+
+9.2 If we learn that we have collected information from a child under 16, we will delete it promptly.
+
+9.3 If you believe we have collected information from a child under 16, please contact us immediately at privacy@dataflow.com.
+
+10. CALIFORNIA PRIVACY RIGHTS (CCPA)
+
+10.1 If you are a California resident, you have additional rights under the California Consumer Privacy Act (CCPA):
+
+(a) Right to Know: Request disclosure of categories and specific pieces of personal information collected
+(b) Right to Delete: Request deletion of personal information
+(c) Right to Opt-Out: Opt out of sale of personal information (Note: We do not sell personal information)
+(d) Right to Non-Discrimination: Not receive discriminatory treatment for exercising CCPA rights
+
+10.2 To exercise these rights:
+- Email: ccpa@dataflow.com
+- Phone: 1-800-DATA-FLOW
+- CCPA Request Form: https://dataflow.com/ccpa-request
+
+10.3 We do not sell personal information and have not sold personal information in the preceding 12 months.
+
+10.4 Categories of Personal Information Collected:
+- Identifiers (name, email, IP address)
+- Commercial information (purchase history, payment data)
+- Internet activity (browsing history, interactions with Services)
+- Geolocation data (general location from IP address)
+- Professional information (job title, company)
+- Inferences (preferences, characteristics, behavior)
+
+11. NEVADA PRIVACY RIGHTS
+
+Nevada residents may opt out of the sale of certain personal information. We do not sell personal information as defined under Nevada law. For questions, contact privacy@dataflow.com.
+
+12. EUROPEAN PRIVACY RIGHTS
+
+12.1 Data Protection Officer: For GDPR-related inquiries, contact our Data Protection Officer at dpo@dataflow.com.
+
+12.2 Supervisory Authority: You have the right to lodge a complaint with your local data protection authority if you believe our processing of your personal information violates applicable law.
+
+12.3 UK Representative: For UK GDPR matters, contact our UK Representative at uk-privacy@dataflow.com.
+
+12.4 EU Representative: For EU GDPR matters, contact our EU Representative at eu-privacy@dataflow.com.
+
+13. COOKIES AND TRACKING TECHNOLOGIES
+
+13.1 We use cookies and similar technologies for:
+- Essential functionality (authentication, security)
+- Performance analytics (usage metrics, error tracking)
+- Personalization (user preferences, language)
+- Marketing (ad targeting, campaign tracking)
+
+13.2 Cookie Types:
+- Session cookies (expire when you close your browser)
+- Persistent cookies (remain until deleted or expired)
+- First-party cookies (set by us)
+- Third-party cookies (set by analytics and advertising partners)
+
+13.3 Third-Party Cookies:
+- Google Analytics (analytics)
+- Facebook Pixel (advertising)
+- LinkedIn Insights (advertising)
+- Hotjar (user experience)
+
+13.4 Manage cookie preferences through our cookie consent tool or your browser settings.
+
+14. DO NOT TRACK
+
+We honor Do Not Track signals for analytics purposes. When DNT is enabled, we do not collect analytics data for your session.
+
+15. CHANGES TO THIS PRIVACY POLICY
+
+15.1 We may update this Privacy Policy periodically to reflect changes in our practices, technology, legal requirements, or other factors.
+
+15.2 We will notify you of material changes by:
+- Email notification to registered users
+- Prominent notice on our website
+- In-app notification
+
+15.3 Continued use of Services after changes become effective constitutes acceptance of the updated Privacy Policy.
+
+15.4 Previous versions are archived at: https://dataflow.com/privacy-archive
+
+16. CONTACT US
+
+For questions, concerns, or requests regarding this Privacy Policy or our data practices:
+
+DataFlow Technologies Inc.
+Attention: Privacy Officer
+789 Data Drive
+Austin, TX 78701
+
+Email: privacy@dataflow.com
+Phone: 1-800-DATA-FLOW
+Privacy Portal: https://dataflow.com/privacy-request
+
+Response time: We respond to privacy inquiries within 5 business days and fulfill verified requests within 30 days.
+
+17. SPECIFIC DISCLOSURES
+
+17.1 Automated Decision Making: We use automated decision making for:
+- Fraud detection and prevention
+- Spam filtering
+- Content recommendations
+- Pricing optimization (with human oversight)
+
+You have the right to request human review of automated decisions that significantly affect you.
+
+17.2 Profiling: We may create profiles based on your usage patterns to personalize your experience and improve Services. You may opt out by contacting privacy@dataflow.com.
+
+17.3 Data Sources: We collect data from:
+- Direct interactions with Services
+- Cookies and tracking technologies
+- Third-party integrations you authorize
+- Publicly available sources
+- Data enrichment providers
+
+© 2024 DataFlow Technologies Inc. All rights reserved.
+Version: PP-2024.01
