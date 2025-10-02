@@ -1,0 +1,345 @@
+PROFESSIONAL CONSULTANCY AGREEMENT
+
+This Professional Consultancy Agreement ("Agreement") is entered into as of January 15, 2024 ("Effective Date") between:
+
+CONSULTANT:
+Innovation Advisory Partners LLC
+A Delaware limited liability company
+Address: 555 Consulting Plaza, Boston, MA 02108
+Tax ID: 82-1234567
+Representative: Dr. Alexandra Martinez, Managing Partner
+("Consultant")
+
+CLIENT:
+BioPharm Innovations Corp.
+A Delaware corporation
+Address: 888 Research Boulevard, Cambridge, MA 02139
+Tax ID: 94-7654321
+Representative: Robert Chang, Chief Operating Officer
+("Client")
+
+RECITALS
+
+WHEREAS, Consultant provides strategic advisory and professional consulting services in the pharmaceutical and biotechnology sectors with specialized expertise in regulatory compliance, market access strategies, and operational optimization;
+
+WHEREAS, Client is seeking professional advisory services to support its product launch strategy, regulatory pathway optimization, and market commercialization planning;
+
+WHEREAS, Consultant represents that it possesses the necessary expertise, qualifications, credentials, and professional resources to provide such services;
+
+NOW, THEREFORE, in consideration of the mutual promises and covenants contained herein, the parties agree as follows:
+
+1. SCOPE OF SERVICES
+
+1.1 Consulting Services. Consultant agrees to provide the following professional consulting services ("Services") to Client:
+
+(a) Strategic Advisory Services:
+- Market analysis and competitive intelligence
+- Product launch strategy development
+- Commercial viability assessments
+- Partnership and licensing opportunity evaluation
+- Portfolio prioritization and resource allocation
+- Stakeholder engagement strategy
+
+(b) Regulatory Consulting:
+- Regulatory pathway analysis and selection
+- FDA submission strategy and planning
+- Regulatory authority interaction preparation
+- Compliance program design and implementation
+- Quality management system optimization
+- Post-market surveillance strategy
+
+(c) Market Access and Commercialization:
+- Pricing and reimbursement strategy
+- Health economics and outcomes research (HEOR) design
+- Payer engagement and value demonstration
+- Market access roadmap development
+- Launch readiness assessment
+- Commercial infrastructure evaluation
+
+(d) Operational Excellence:
+- Clinical development optimization
+- Supply chain strategy
+- Manufacturing and CMC advisory
+- Technology transfer planning
+- Lifecycle management strategy
+- Risk assessment and mitigation
+
+1.2 Deliverables. Consultant shall provide the following deliverables:
+
+- Initial Strategic Assessment Report (Within 30 days)
+- Regulatory Pathway Recommendation Document (Within 45 days)
+- Market Access Strategy Presentation (Within 60 days)
+- Quarterly Executive Briefings
+- Monthly Progress Reports
+- Ad-hoc strategic memoranda as requested
+- Final Comprehensive Strategic Plan (Within 180 days)
+
+1.3 Exclusions. The following are explicitly excluded from the scope of Services:
+- Legal advice or representation
+- Accounting or tax services
+- Regulatory submissions or filings (Consultant provides strategic advice only)
+- Direct negotiations with regulatory authorities
+- Patient recruitment or clinical trial operations
+- Manufacturing or production activities
+
+2. TERM AND TERMINATION
+
+2.1 Term. This Agreement shall commence on the Effective Date and continue for an initial term of twelve (12) months ("Initial Term"), unless earlier terminated as provided herein.
+
+2.2 Renewal. Upon expiration of the Initial Term, this Agreement shall automatically renew for successive six (6) month periods ("Renewal Terms") unless either party provides written notice of non-renewal at least sixty (60) days prior to the end of the then-current term.
+
+2.3 Termination for Convenience. Either party may terminate this Agreement for any reason upon ninety (90) days' prior written notice to the other party.
+
+2.4 Termination for Cause. Either party may terminate this Agreement immediately upon written notice if the other party:
+(a) Materially breaches any provision of this Agreement and fails to cure such breach within thirty (30) days of receiving written notice;
+(b) Becomes insolvent, files for bankruptcy, or makes an assignment for the benefit of creditors;
+(c) Engages in fraud, willful misconduct, or gross negligence;
+(d) Violates applicable laws or regulations in connection with this Agreement.
+
+2.5 Effect of Termination:
+(a) Consultant shall cease providing Services immediately upon termination;
+(b) Client shall pay all fees for Services rendered through the termination date;
+(c) Consultant shall deliver all work product, documents, and materials to Client within fifteen (15) days;
+(d) Confidentiality obligations shall survive termination indefinitely;
+(e) Sections 4, 5, 6, 7, 8, and 11 shall survive termination.
+
+3. FEES AND PAYMENT TERMS
+
+3.1 Consulting Fees. Client shall pay Consultant the following fees:
+
+(a) Monthly Retainer: $35,000 per month, payable in advance on the first day of each month
+
+(b) Hourly Rate (for services beyond retainer scope):
+   - Senior Partner: $550/hour
+   - Principal Consultant: $425/hour
+   - Senior Consultant: $325/hour
+   - Research Associate: $175/hour
+
+(c) Success Fee: Upon achievement of specified milestones:
+   - FDA Breakthrough Designation: $50,000
+   - Successful regulatory submission: $75,000
+   - Marketing authorization approval: $150,000
+
+3.2 Expenses. In addition to fees, Client shall reimburse Consultant for reasonable, pre-approved out-of-pocket expenses, including:
+- Travel and accommodation (economy class, mid-range hotels)
+- Conference registration fees
+- Research materials and databases
+- Expert consultant fees
+- Document preparation and reproduction costs
+
+Expenses exceeding $1,000 per item require prior written approval from Client.
+
+3.3 Payment Terms:
+(a) Monthly retainer is payable within five (5) business days of invoice date;
+(b) Hourly fees and expenses are billed monthly in arrears;
+(c) Payment is due within thirty (30) days of invoice date;
+(d) Late payments incur interest at 1.5% per month or maximum allowed by law;
+(e) Client may not withhold payment due to disputes over unrelated matters.
+
+3.4 Invoicing. Consultant shall provide detailed monthly invoices including:
+- Description of services performed
+- Hours worked by each consultant
+- Hourly rates applied
+- Itemized expenses
+- Total amount due
+
+3.5 Fee Adjustments. Fees may be adjusted annually on the anniversary of the Effective Date with ninety (90) days' written notice, not to exceed 8% increase per year.
+
+4. CONFIDENTIAL INFORMATION
+
+4.1 Definition. "Confidential Information" means all non-public information disclosed by one party to the other, including:
+- Business plans, strategies, and financial information
+- Proprietary methodologies and processes
+- Research data and clinical information
+- Regulatory strategies and submissions
+- Technical specifications and formulations
+- Customer and supplier information
+- Trade secrets and know-how
+
+4.2 Obligations. Each party agrees to:
+(a) Maintain strict confidentiality of Confidential Information;
+(b) Use Confidential Information solely for purposes of this Agreement;
+(c) Limit disclosure to employees and contractors with need-to-know;
+(d) Protect with same care as own confidential information (minimum reasonable care);
+(e) Not reverse engineer or exploit Confidential Information.
+
+4.3 Exceptions. Confidential Information does not include information that:
+(a) Is publicly available through no breach;
+(b) Was known prior to disclosure;
+(c) Is independently developed without use of Confidential Information;
+(d) Is rightfully received from third parties;
+(e) Must be disclosed by law (with prior notice to disclosing party).
+
+4.4 Return of Materials. Upon termination or request, receiving party shall promptly return or destroy all Confidential Information and provide written certification.
+
+4.5 Duration. Confidentiality obligations survive termination for five (5) years, except trade secrets remain confidential indefinitely.
+
+5. INTELLECTUAL PROPERTY
+
+5.1 Work Product Ownership. All work product, deliverables, reports, analyses, recommendations, and materials created by Consultant in the course of providing Services ("Work Product") shall be the exclusive property of Client upon full payment of fees.
+
+5.2 Assignment. Consultant hereby assigns to Client all right, title, and interest in and to the Work Product, including all intellectual property rights therein.
+
+5.3 Pre-existing Materials. Consultant retains ownership of:
+(a) Pre-existing methodologies, frameworks, and tools;
+(b) General knowledge, skills, and experience;
+(c) Generic templates and analytical approaches.
+
+Client receives a non-exclusive, perpetual license to use such pre-existing materials solely in connection with the Work Product.
+
+5.4 Use of Work Product. Client may:
+(a) Use, reproduce, modify, and distribute Work Product internally;
+(b) Incorporate Work Product into products, strategies, and operations;
+(c) Disclose Work Product to third parties (subject to Section 4 for Consultant's confidential information).
+
+5.5 Third-Party Rights. Consultant warrants that Work Product does not infringe third-party intellectual property rights.
+
+6. REPRESENTATIONS AND WARRANTIES
+
+6.1 Consultant Represents and Warrants:
+
+(a) Authority and Compliance:
+- Full power and authority to enter into this Agreement;
+- No conflicting obligations or agreements;
+- Compliance with all applicable laws and regulations;
+- Possession of required licenses, certifications, and permits.
+
+(b) Professional Qualifications:
+- Appropriate education, training, and experience;
+- Maintenance of professional certifications and credentials;
+- Good standing with professional associations;
+- No disciplinary actions or sanctions.
+
+(c) Quality of Services:
+- Services performed with professional skill, care, and diligence;
+- Services consistent with industry best practices and standards;
+- Allocation of sufficient qualified personnel;
+- Timely delivery of Services and deliverables.
+
+(d) Independence:
+- No conflicts of interest that would impair objectivity;
+- Disclosure of any potential or actual conflicts;
+- Independence from Client's competitors;
+- No prohibited financial interests.
+
+6.2 Client Represents and Warrants:
+
+(a) Authority to engage Consultant and enter into this Agreement;
+(b) Accuracy and completeness of information provided to Consultant;
+(c) Timely provision of necessary access, information, and cooperation;
+(d) Compliance with applicable laws and regulations;
+(e) Ownership or right to use information and materials provided.
+
+6.3 Disclaimer. EXCEPT AS EXPRESSLY SET FORTH HEREIN, CONSULTANT MAKES NO WARRANTIES, EXPRESS OR IMPLIED, INCLUDING WARRANTIES OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE. CONSULTANT DOES NOT GUARANTEE SPECIFIC OUTCOMES OR RESULTS.
+
+7. LIMITATION OF LIABILITY
+
+7.1 Consultant's total liability arising out of or related to this Agreement, whether in contract, tort, or otherwise, shall not exceed the total fees paid by Client in the twelve (12) months preceding the claim.
+
+7.2 NEITHER PARTY SHALL BE LIABLE FOR ANY INDIRECT, INCIDENTAL, CONSEQUENTIAL, SPECIAL, OR PUNITIVE DAMAGES, INCLUDING LOST PROFITS, REVENUE, DATA, OR BUSINESS OPPORTUNITIES, EVEN IF ADVISED OF THEIR POSSIBILITY.
+
+7.3 Exceptions. Limitations do not apply to:
+(a) Breaches of confidentiality obligations;
+(b) Infringement of intellectual property rights;
+(c) Willful misconduct or gross negligence;
+(d) Fraud or intentional misrepresentation;
+(e) Violations of law;
+(f) Indemnification obligations.
+
+8. INDEMNIFICATION
+
+8.1 Consultant Indemnification. Consultant shall indemnify, defend, and hold harmless Client from claims arising from:
+(a) Consultant's breach of this Agreement;
+(b) Consultant's negligence or willful misconduct;
+(c) Infringement of third-party intellectual property rights by Work Product;
+(d) Violation of applicable laws or regulations by Consultant.
+
+8.2 Client Indemnification. Client shall indemnify, defend, and hold harmless Consultant from claims arising from:
+(a) Client's breach of this Agreement;
+(b) Client's use of Work Product;
+(c) Inaccurate or incomplete information provided by Client;
+(d) Client's violation of laws or regulations.
+
+8.3 Indemnification Procedures:
+(a) Indemnified party provides prompt written notice of claim;
+(b) Indemnifying party assumes defense and control;
+(c) Indemnified party cooperates reasonably;
+(d) Indemnified party may participate in defense at own expense;
+(e) No settlement without indemnified party's consent (not unreasonably withheld).
+
+9. INDEPENDENT CONTRACTOR RELATIONSHIP
+
+9.1 Consultant is an independent contractor, not an employee, agent, partner, or joint venturer of Client.
+
+9.2 Consultant shall:
+(a) Determine methods and means of performing Services;
+(b) Be responsible for all taxes, including self-employment taxes;
+(c) Provide own equipment, tools, and resources;
+(d) Maintain required insurance coverage;
+(e) Not receive employee benefits from Client.
+
+9.3 Consultant may engage other consultants and subcontractors, subject to Client's prior written approval, provided such persons are bound by equivalent confidentiality and intellectual property obligations.
+
+10. INSURANCE
+
+10.1 Consultant shall maintain the following insurance coverage throughout the term:
+
+(a) Professional Liability Insurance (Errors & Omissions): $2,000,000 per occurrence / $5,000,000 aggregate
+(b) General Liability Insurance: $1,000,000 per occurrence / $2,000,000 aggregate
+(c) Cyber Liability Insurance: $1,000,000 per occurrence
+(d) Workers' Compensation: As required by law
+
+10.2 Consultant shall provide certificates of insurance to Client upon request and notify Client of any material changes or cancellations.
+
+11. GENERAL PROVISIONS
+
+11.1 Governing Law. This Agreement shall be governed by the laws of the Commonwealth of Massachusetts, without regard to conflicts of law principles.
+
+11.2 Dispute Resolution:
+(a) Good Faith Negotiations: Parties shall first attempt to resolve disputes through good faith negotiations between senior executives within thirty (30) days.
+(b) Mediation: If negotiations fail, parties shall attempt mediation with a mutually acceptable mediator within sixty (60) days.
+(c) Arbitration: Unresolved disputes shall be submitted to binding arbitration under AAA Commercial Arbitration Rules in Boston, Massachusetts. One arbitrator shall be selected. Arbitration award is final and enforceable in any court.
+(d) Injunctive Relief: Either party may seek injunctive relief in court for breaches of confidentiality or intellectual property provisions.
+
+11.3 Notices. All notices shall be in writing and delivered via:
+(a) Email (with read receipt);
+(b) Certified mail, return receipt requested;
+(c) Overnight courier.
+
+Notices are effective upon receipt.
+
+11.4 Entire Agreement. This Agreement constitutes the entire agreement and supersedes all prior agreements, representations, and understandings.
+
+11.5 Amendment. This Agreement may be amended only by written instrument signed by both parties.
+
+11.6 Assignment. Neither party may assign this Agreement without prior written consent, except to a successor in connection with a merger, acquisition, or sale of assets.
+
+11.7 Severability. Invalid provisions shall be modified to minimum extent necessary, and remaining provisions remain enforceable.
+
+11.8 Waiver. No waiver is effective unless in writing. Waiver of one breach does not waive other breaches.
+
+11.9 Force Majeure. Neither party is liable for delays or failures due to causes beyond reasonable control.
+
+11.10 Counterparts. This Agreement may be executed in counterparts, including electronic signatures, each deemed an original.
+
+11.11 Publicity. Neither party shall issue press releases or make public announcements without prior written consent, except as required by law.
+
+11.12 Non-Solicitation. During the term and for twelve (12) months thereafter, neither party shall solicit or hire the other party's employees without written consent.
+
+11.13 Survival. Provisions that by their nature should survive termination shall survive, including confidentiality, intellectual property, indemnification, limitation of liability, and dispute resolution.
+
+IN WITNESS WHEREOF, the parties have executed this Agreement as of the Effective Date.
+
+INNOVATION ADVISORY PARTNERS LLC
+
+By: _________________________________
+Name: Dr. Alexandra Martinez
+Title: Managing Partner
+Date: January 15, 2024
+
+BIOPHARM INNOVATIONS CORP.
+
+By: _________________________________
+Name: Robert Chang
+Title: Chief Operating Officer
+Date: January 15, 2024
