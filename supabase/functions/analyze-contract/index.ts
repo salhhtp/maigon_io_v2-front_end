@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { extractTextFromPDF, extractTextFromDOCX, validateExtractedText } from "../_shared/pdf-parser.ts";
 
 // Advanced AI Model configurations for sophisticated contract analysis
 const AI_CONFIGS = {
@@ -445,50 +446,20 @@ async function extractTextFromFile(
         `📄 PDF file stats: ~${estimatedPages} pages, ${fileSizeKB}KB`,
       );
 
-      // For now, return a realistic contract content for testing
-      // In production, replace this with actual PDF text extraction using pdf-parse or similar
-      const mockContractContent = `
-DATA PROCESSING AGREEMENT
+      // Extract text from PDF using real extraction
+      console.log("📄 Extracting text from PDF file...");
+      const extractedText = await extractTextFromPDF(base64Data);
 
-This Data Processing Agreement ("DPA") is entered into between the parties to ensure compliance with applicable data protection laws.
+      // Validate extracted text
+      const validation = validateExtractedText(extractedText);
+      if (!validation.valid) {
+        throw new Error(validation.error || 'PDF text extraction failed');
+      }
 
-1. DEFINITIONS
-For the purposes of this DPA, the following definitions apply:
-- "Personal Data" means any information relating to an identified or identifiable natural person
-- "Processing" means any operation performed on Personal Data
-- "Data Subject" means the identified or identifiable natural person
+      console.log(`✅ Successfully extracted ${extractedText.length} characters from PDF`);
+      console.log(`📊 Estimated pages: ~${estimatedPages}, File size: ${fileSizeKB}KB`);
 
-2. SCOPE AND PURPOSE
-The Processor shall process Personal Data only for the specific purposes outlined in this agreement and in accordance with the Controller's documented instructions.
-
-3. DATA PROTECTION OBLIGATIONS
-The Processor agrees to:
-- Implement appropriate technical and organizational measures
-- Ensure confidentiality of Personal Data
-- Assist the Controller in responding to data subject requests
-- Notify the Controller of any personal data breaches
-
-4. SECURITY MEASURES
-The Processor shall implement appropriate security measures including:
-- Encryption of Personal Data
-- Regular security assessments
-- Access controls and authentication
-- Data backup and recovery procedures
-
-5. INTERNATIONAL TRANSFERS
-Any transfer of Personal Data to third countries shall be subject to appropriate safeguards as required by applicable data protection laws.
-
-6. RETENTION AND DELETION
-Personal Data shall be retained only for as long as necessary for the purposes outlined in this agreement and shall be securely deleted upon termination.
-
-7. COMPLIANCE AND AUDITING
-The Processor agrees to demonstrate compliance with this DPA and allow for audits by the Controller or appointed third parties.
-
-Estimated document length: ${estimatedPages} pages
-File processing completed successfully.
-      `;
-
-      return mockContractContent.trim();
+      return extractedText;
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error);
@@ -526,49 +497,20 @@ File processing completed successfully.
       const fileSizeKB = Math.round(binaryData.length / 1024);
       console.log(`📄 DOCX file processed: ${fileSizeKB}KB`);
 
-      // For now, return realistic contract content for testing
-      // In production, replace this with actual DOCX text extraction using mammoth.js or similar
-      const mockContractContent = `
-SERVICE AGREEMENT
+      // Extract text from DOCX using real extraction
+      console.log("📄 Extracting text from DOCX file...");
+      const extractedText = await extractTextFromDOCX(base64Data);
 
-This Service Agreement ("Agreement") is entered into between the parties for the provision of professional services.
+      // Validate extracted text
+      const validation = validateExtractedText(extractedText);
+      if (!validation.valid) {
+        throw new Error(validation.error || 'DOCX text extraction failed');
+      }
 
-ARTICLE 1: SERVICES
-The Service Provider agrees to provide the following services:
-• Professional consulting services
-• Technical support and maintenance
-• Implementation and configuration services
-• Training and documentation
+      console.log(`✅ Successfully extracted ${extractedText.length} characters from DOCX`);
+      console.log(`📊 File size: ${fileSizeKB}KB`);
 
-ARTICLE 2: TERMS AND CONDITIONS
-2.1 Service Level Agreement: 99.5% uptime guarantee
-2.2 Response Times: Critical issues within 4 hours, standard issues within 24 hours
-2.3 Performance Metrics: Monthly reporting on service delivery and performance
-
-ARTICLE 3: PAYMENT TERMS
-3.1 Fees: As specified in the attached pricing schedule
-3.2 Payment Schedule: Net 30 days from invoice date
-3.3 Late Payment: 1.5% monthly service charge on overdue amounts
-
-ARTICLE 4: LIABILITY AND INDEMNIFICATION
-4.1 Limitation of Liability: Total liability shall not exceed the fees paid in the 12 months preceding the claim
-4.2 Mutual Indemnification: Each party shall indemnify the other against third-party claims arising from their negligent acts
-
-ARTICLE 5: CONFIDENTIALITY
-Both parties agree to maintain confidentiality of all proprietary information exchanged during the term of this Agreement.
-
-ARTICLE 6: TERM AND TERMINATION
-6.1 Initial Term: 24 months from the Effective Date
-6.2 Renewal: Automatic renewal for successive 12-month periods unless terminated
-6.3 Termination: Either party may terminate with 90 days written notice
-
-ARTICLE 7: GOVERNING LAW
-This Agreement shall be governed by the laws of [Jurisdiction] without regard to conflict of law principles.
-
-Document processed successfully: ${fileSizeKB}KB
-      `;
-
-      return mockContractContent.trim();
+      return extractedText;
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error);
