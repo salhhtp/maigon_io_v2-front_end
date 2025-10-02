@@ -1,5 +1,10 @@
 import { useState, useRef, useEffect } from "react";
-import { ChevronDown, User, Upload as UploadIcon, AlertCircle } from "lucide-react";
+import {
+  ChevronDown,
+  User,
+  Upload as UploadIcon,
+  AlertCircle,
+} from "lucide-react";
 import { Link, useLocation, useNavigate, useBlocker } from "react-router-dom";
 import Logo from "@/components/Logo";
 import Footer from "@/components/Footer";
@@ -25,14 +30,16 @@ export default function Upload() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadButtonHidden, setUploadButtonHidden] = useState(false);
   const [showLoadingTransition, setShowLoadingTransition] = useState(false);
-  const [contractClassification, setContractClassification] = useState<any>(null);
+  const [contractClassification, setContractClassification] =
+    useState<any>(null);
   const [showClassification, setShowClassification] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const location = useLocation();
   const navigate = useNavigate();
 
   // Get the solution info from navigation state
-  const { solutionTitle, perspective, quickUpload, adminAccess } = location.state || {};
+  const { solutionTitle, perspective, quickUpload, adminAccess } =
+    location.state || {};
 
   // Block navigation when user is on upload page (always show confirmation), but not during submission
   const blocker = useBlocker(
@@ -86,17 +93,24 @@ export default function Upload() {
     const allowedTypes = [
       "application/pdf",
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      "text/plain"
+      "text/plain",
     ];
     const fileName = file.name.toLowerCase();
     console.log("File selected:", file.name, "Type:", file.type);
 
-    if (allowedTypes.includes(file.type) || fileName.endsWith('.pdf') || fileName.endsWith('.docx') || fileName.endsWith('.txt')) {
+    if (
+      allowedTypes.includes(file.type) ||
+      fileName.endsWith(".pdf") ||
+      fileName.endsWith(".docx") ||
+      fileName.endsWith(".txt")
+    ) {
       setSelectedFile(file);
       setHasStartedProcess(true); // Mark that user has started the process
       console.log("File accepted:", file.name);
     } else {
-      alert(`Please select a PDF, DOCX, or TXT file. You selected: ${file.type}`);
+      alert(
+        `Please select a PDF, DOCX, or TXT file. You selected: ${file.type}`,
+      );
       console.log("File rejected - invalid type:", file.type);
     }
   };
@@ -186,13 +200,17 @@ export default function Upload() {
       const fileName = file.name.toLowerCase();
 
       // PDF files - use PDF.js or similar for parsing in production
-      if (fileType === 'application/pdf' || fileName.endsWith('.pdf')) {
-        console.log('PDF file detected, processing with file reader...');
+      if (fileType === "application/pdf" || fileName.endsWith(".pdf")) {
+        console.log("PDF file detected, processing with file reader...");
 
         // Check file size limit (5MB for PDFs to prevent processing issues)
         const maxPdfSize = 5 * 1024 * 1024; // 5MB
         if (file.size > maxPdfSize) {
-          reject(new Error(`PDF file is too large (${Math.round(file.size / 1024 / 1024)}MB). Please use a PDF smaller than 5MB or convert to text format.`));
+          reject(
+            new Error(
+              `PDF file is too large (${Math.round(file.size / 1024 / 1024)}MB). Please use a PDF smaller than 5MB or convert to text format.`,
+            ),
+          );
           return;
         }
 
@@ -203,69 +221,90 @@ export default function Upload() {
           try {
             const arrayBuffer = e.target?.result as ArrayBuffer;
             if (!arrayBuffer) {
-              reject(new Error('Failed to read PDF file'));
+              reject(new Error("Failed to read PDF file"));
               return;
             }
 
-            console.log(`📄 Processing PDF: ${file.name} (${Math.round(file.size / 1024)}KB)`);
+            console.log(
+              `📄 Processing PDF: ${file.name} (${Math.round(file.size / 1024)}KB)`,
+            );
 
             // Convert to base64 using the most reliable method for large files
             const uint8Array = new Uint8Array(arrayBuffer);
-            let base64 = '';
+            let base64 = "";
 
             // Process in smaller chunks to avoid "Maximum call stack size exceeded" error
             const chunkSize = 1024; // Smaller chunk size for better reliability
             for (let i = 0; i < uint8Array.length; i += chunkSize) {
               const chunk = uint8Array.slice(i, i + chunkSize);
               // Use safer approach without .apply() which causes stack overflow
-              let chunkString = '';
+              let chunkString = "";
               for (let j = 0; j < chunk.length; j++) {
                 chunkString += String.fromCharCode(chunk[j]);
               }
               base64 += btoa(chunkString);
             }
 
-            console.log(`✅ PDF converted to base64 successfully (${Math.round(base64.length / 1024)}KB)`);
+            console.log(
+              `✅ PDF converted to base64 successfully (${Math.round(base64.length / 1024)}KB)`,
+            );
 
             // Return special marker indicating this is a PDF that needs backend processing
             resolve(`PDF_FILE_BASE64:${base64}`);
           } catch (error) {
-            console.error('❌ PDF processing error:', error);
-            reject(new Error(`Failed to process PDF file: ${error instanceof Error ? error.message : 'Unknown error'}. Please try a smaller PDF or convert to text format.`));
+            console.error("❌ PDF processing error:", error);
+            reject(
+              new Error(
+                `Failed to process PDF file: ${error instanceof Error ? error.message : "Unknown error"}. Please try a smaller PDF or convert to text format.`,
+              ),
+            );
           }
         };
         reader.onerror = (error) => {
-          console.error('❌ PDF file reading error:', error);
-          reject(new Error('Failed to read PDF file. Please ensure the file is not corrupted.'));
+          console.error("❌ PDF file reading error:", error);
+          reject(
+            new Error(
+              "Failed to read PDF file. Please ensure the file is not corrupted.",
+            ),
+          );
         };
         reader.readAsArrayBuffer(file);
         return;
       }
 
       // For text files, read as text
-      if (fileType === 'text/plain' || fileName.endsWith('.txt')) {
+      if (fileType === "text/plain" || fileName.endsWith(".txt")) {
         const reader = new FileReader();
         reader.onload = (e) => {
           const content = e.target?.result as string;
           if (content && content.trim().length > 0) {
             resolve(content);
           } else {
-            reject(new Error('File appears to be empty or unreadable'));
+            reject(new Error("File appears to be empty or unreadable"));
           }
         };
-        reader.onerror = (e) => reject(new Error('Failed to read file: ' + e.target?.error?.message));
+        reader.onerror = (e) =>
+          reject(new Error("Failed to read file: " + e.target?.error?.message));
         reader.readAsText(file);
         return;
       }
 
       // DOCX files - process similarly to PDF
-      if (fileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || fileName.endsWith('.docx')) {
-        console.log('DOCX file detected, processing with file reader...');
+      if (
+        fileType ===
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+        fileName.endsWith(".docx")
+      ) {
+        console.log("DOCX file detected, processing with file reader...");
 
         // Check file size limit (5MB for DOCX files)
         const maxDocxSize = 5 * 1024 * 1024; // 5MB
         if (file.size > maxDocxSize) {
-          reject(new Error(`DOCX file is too large (${Math.round(file.size / 1024 / 1024)}MB). Please use a file smaller than 5MB or convert to text format.`));
+          reject(
+            new Error(
+              `DOCX file is too large (${Math.round(file.size / 1024 / 1024)}MB). Please use a file smaller than 5MB or convert to text format.`,
+            ),
+          );
           return;
         }
 
@@ -274,65 +313,81 @@ export default function Upload() {
           try {
             const arrayBuffer = e.target?.result as ArrayBuffer;
             if (!arrayBuffer) {
-              reject(new Error('Failed to read DOCX file'));
+              reject(new Error("Failed to read DOCX file"));
               return;
             }
 
-            console.log(`📄 Processing DOCX: ${file.name} (${Math.round(file.size / 1024)}KB)`);
+            console.log(
+              `📄 Processing DOCX: ${file.name} (${Math.round(file.size / 1024)}KB)`,
+            );
 
             // Convert to base64 using the most reliable method for large files
             const uint8Array = new Uint8Array(arrayBuffer);
-            let base64 = '';
+            let base64 = "";
 
             // Process in smaller chunks to avoid "Maximum call stack size exceeded" error
             const chunkSize = 1024; // Smaller chunk size for better reliability
             for (let i = 0; i < uint8Array.length; i += chunkSize) {
               const chunk = uint8Array.slice(i, i + chunkSize);
               // Use safer approach without .apply() which causes stack overflow
-              let chunkString = '';
+              let chunkString = "";
               for (let j = 0; j < chunk.length; j++) {
                 chunkString += String.fromCharCode(chunk[j]);
               }
               base64 += btoa(chunkString);
             }
 
-            console.log(`✅ DOCX converted to base64 successfully (${Math.round(base64.length / 1024)}KB)`);
+            console.log(
+              `✅ DOCX converted to base64 successfully (${Math.round(base64.length / 1024)}KB)`,
+            );
 
             // Return special marker indicating this is a DOCX that needs backend processing
             resolve(`DOCX_FILE_BASE64:${base64}`);
           } catch (error) {
-            console.error('❌ DOCX processing error:', error);
-            reject(new Error(`Failed to process DOCX file: ${error instanceof Error ? error.message : 'Unknown error'}. Please try a smaller file or convert to text format.`));
+            console.error("❌ DOCX processing error:", error);
+            reject(
+              new Error(
+                `Failed to process DOCX file: ${error instanceof Error ? error.message : "Unknown error"}. Please try a smaller file or convert to text format.`,
+              ),
+            );
           }
         };
         reader.onerror = (error) => {
-          console.error('❌ DOCX file reading error:', error);
-          reject(new Error('Failed to read DOCX file. Please ensure the file is not corrupted.'));
+          console.error("❌ DOCX file reading error:", error);
+          reject(
+            new Error(
+              "Failed to read DOCX file. Please ensure the file is not corrupted.",
+            ),
+          );
         };
         reader.readAsArrayBuffer(file);
         return;
       }
 
       // Unsupported file type
-      reject(new Error(`Unsupported file type: ${fileType}. Please upload a PDF, DOCX, or TXT file.`));
+      reject(
+        new Error(
+          `Unsupported file type: ${fileType}. Please upload a PDF, DOCX, or TXT file.`,
+        ),
+      );
     });
   };
 
   // Helper function to determine review type from perspective
   const getReviewTypeFromPerspective = (perspectiveValue: string): string => {
     switch (perspectiveValue) {
-      case 'risk':
-        return 'risk_assessment';
-      case 'compliance':
-        return 'compliance_score';
-      case 'perspective':
-        return 'perspective_review';
-      case 'summary':
-        return 'full_summary';
-      case 'ai':
-        return 'ai_integration';
+      case "risk":
+        return "risk_assessment";
+      case "compliance":
+        return "compliance_score";
+      case "perspective":
+        return "perspective_review";
+      case "summary":
+        return "full_summary";
+      case "ai":
+        return "ai_integration";
       default:
-        return 'full_summary';
+        return "full_summary";
     }
   };
 
@@ -365,15 +420,16 @@ export default function Upload() {
 
     // Validate file type
     const allowedTypes = [
-      'application/pdf',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'text/plain'
+      "application/pdf",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "text/plain",
     ];
     const fileName = selectedFile.name.toLowerCase();
-    const isValidType = allowedTypes.includes(selectedFile.type) ||
-                       fileName.endsWith('.pdf') ||
-                       fileName.endsWith('.docx') ||
-                       fileName.endsWith('.txt');
+    const isValidType =
+      allowedTypes.includes(selectedFile.type) ||
+      fileName.endsWith(".pdf") ||
+      fileName.endsWith(".docx") ||
+      fileName.endsWith(".txt");
 
     if (!isValidType) {
       toast({
@@ -388,15 +444,19 @@ export default function Upload() {
     let maxSize: number;
     let fileTypeName: string;
 
-    if (selectedFile.type === 'application/pdf' || fileName.endsWith('.pdf')) {
+    if (selectedFile.type === "application/pdf" || fileName.endsWith(".pdf")) {
       maxSize = 5 * 1024 * 1024; // 5MB for PDFs
-      fileTypeName = 'PDF';
-    } else if (selectedFile.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || fileName.endsWith('.docx')) {
+      fileTypeName = "PDF";
+    } else if (
+      selectedFile.type ===
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+      fileName.endsWith(".docx")
+    ) {
       maxSize = 5 * 1024 * 1024; // 5MB for DOCX
-      fileTypeName = 'DOCX';
+      fileTypeName = "DOCX";
     } else {
       maxSize = 1 * 1024 * 1024; // 1MB for text files
-      fileTypeName = 'text';
+      fileTypeName = "text";
     }
 
     if (selectedFile.size > maxSize) {
@@ -414,7 +474,8 @@ export default function Upload() {
     if (selectedFile.size === 0) {
       toast({
         title: "Empty file",
-        description: "The selected file appears to be empty. Please choose a different file.",
+        description:
+          "The selected file appears to be empty. Please choose a different file.",
         variant: "destructive",
       });
       return;
@@ -435,7 +496,7 @@ export default function Upload() {
       name: selectedFile.name,
       type: selectedFile.type,
       size: selectedFile.size,
-      lastModified: new Date(selectedFile.lastModified).toISOString()
+      lastModified: new Date(selectedFile.lastModified).toISOString(),
     });
 
     // Step 1: Submit Clicked → Smart Animate - Ease Out - 1500ms
@@ -487,14 +548,17 @@ export default function Upload() {
           file_type: selectedFile.type,
           // contract_type will be automatically determined by AI classification
         },
-        reviewType
+        reviewType,
       );
 
       // Show classification results if available
       if (result.contract?.metadata?.classification) {
         setContractClassification(result.contract.metadata.classification);
         setShowClassification(true);
-        console.log("📊 Contract classification completed:", result.contract.metadata.classification);
+        console.log(
+          "📊 Contract classification completed:",
+          result.contract.metadata.classification,
+        );
       }
 
       // Show success toast
@@ -524,7 +588,6 @@ export default function Upload() {
           navigate("/contract-review");
         }
       }, 2500); // Longer delay to show classification
-
     } catch (error) {
       // Log error with detailed context
       const errorDetails = logError("❌ Contract processing error", error, {
@@ -532,7 +595,7 @@ export default function Upload() {
         fileSize: selectedFile?.size,
         fileType: selectedFile?.type,
         perspective,
-        userId: user?.id
+        userId: user?.id,
       });
 
       // Reset UI state immediately to prevent stuck state
@@ -541,38 +604,47 @@ export default function Upload() {
       setShowLoadingTransition(false);
 
       // Generate user-friendly error message using utility
-      const userMessage = createUserFriendlyMessage(error, "There was an error processing your contract.");
+      const userMessage = createUserFriendlyMessage(
+        error,
+        "There was an error processing your contract.",
+      );
       let shouldRetry = true;
 
       // Determine retry logic based on error characteristics
-      if (errorDetails.message.toLowerCase().includes('empty') ||
-          errorDetails.message.toLowerCase().includes('unsupported') ||
-          errorDetails.message.toLowerCase().includes('authentication') ||
-          errorDetails.message.toLowerCase().includes('user id') ||
-          errorDetails.message.toLowerCase().includes('invalid file')) {
+      if (
+        errorDetails.message.toLowerCase().includes("empty") ||
+        errorDetails.message.toLowerCase().includes("unsupported") ||
+        errorDetails.message.toLowerCase().includes("authentication") ||
+        errorDetails.message.toLowerCase().includes("user id") ||
+        errorDetails.message.toLowerCase().includes("invalid file")
+      ) {
         shouldRetry = false;
       }
 
       // Show appropriate error toast
       toast({
         title: "Processing failed",
-        description: `${userMessage}${shouldRetry ? ' Please try again.' : ''}`,
+        description: `${userMessage}${shouldRetry ? " Please try again." : ""}`,
         variant: "destructive",
       });
 
       // Additional debugging context (main error already logged above)
-      if (process.env.NODE_ENV === 'development') {
+      if (process.env.NODE_ENV === "development") {
         console.debug("📊 Error analysis context:", {
           userShouldRetry: shouldRetry,
           userMessage: userMessage,
           errorType: errorDetails.type,
           hasSelectedFile: !!selectedFile,
-          hasUser: !!user
+          hasUser: !!user,
         });
       }
 
       // Additional cleanup - clear selected file if it's a file issue
-      if (!shouldRetry && error instanceof Error && error.message.toLowerCase().includes('file')) {
+      if (
+        !shouldRetry &&
+        error instanceof Error &&
+        error.message.toLowerCase().includes("file")
+      ) {
         console.log("🧹 Clearing selected file due to file-related error");
         setSelectedFile(null);
       }
@@ -676,8 +748,9 @@ export default function Upload() {
                   Upload {solutionTitle}
                 </h1>
                 <p className="text-black font-roboto text-sm lg:text-base font-normal leading-relaxed">
-                  Your {solutionTitle.toLowerCase()} will be analyzed with the selected perspective.
-                  Maigon AI will start processing once submitted.
+                  Your {solutionTitle.toLowerCase()} will be analyzed with the
+                  selected perspective. Maigon AI will start processing once
+                  submitted.
                 </p>
               </>
             ) : (
@@ -686,8 +759,8 @@ export default function Upload() {
                   Upload your document
                 </h1>
                 <p className="text-black font-roboto text-sm lg:text-base font-normal leading-relaxed">
-                  Once your document is uploaded and submitted, Maigon AI will start
-                  analysing and generating your review.
+                  Once your document is uploaded and submitted, Maigon AI will
+                  start analysing and generating your review.
                 </p>
               </>
             )}
@@ -784,14 +857,22 @@ export default function Upload() {
             <div className="text-center text-sm text-[#9A7C7C] font-roboto">
               {quickUpload ? (
                 <>
-                  <span className="font-medium">{solutionTitle}</span> Analysis •{" "}
-                  <span className="font-medium capitalize">{perspective.replace("-", " ")}</span> Perspective
-                  {adminAccess && <span className="ml-2 px-2 py-1 bg-[#9A7C7C]/10 rounded text-xs">Admin Mode</span>}
+                  <span className="font-medium">{solutionTitle}</span> Analysis
+                  •{" "}
+                  <span className="font-medium capitalize">
+                    {perspective.replace("-", " ")}
+                  </span>{" "}
+                  Perspective
+                  {adminAccess && (
+                    <span className="ml-2 px-2 py-1 bg-[#9A7C7C]/10 rounded text-xs">
+                      Admin Mode
+                    </span>
+                  )}
                 </>
               ) : (
                 <>
-                  Selected: <span className="font-medium">{solutionTitle}</span> •
-                  Perspective:{" "}
+                  Selected: <span className="font-medium">{solutionTitle}</span>{" "}
+                  • Perspective:{" "}
                   <span className="font-medium capitalize">{perspective}</span>
                 </>
               )}

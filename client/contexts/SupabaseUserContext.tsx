@@ -1,11 +1,17 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from "react";
 import { supabase } from "@/lib/supabase";
 import type { User as SupabaseUser, Session } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase";
 import { DataService } from "@/services/dataService";
 import { EmailService } from "@/services/emailService";
 
-type UserProfile = Database['public']['Tables']['user_profiles']['Row'];
+type UserProfile = Database["public"]["Tables"]["user_profiles"]["Row"];
 
 export interface User {
   id: string;
@@ -17,7 +23,12 @@ export interface User {
   hasTemporaryPassword?: boolean; // Flag to indicate if user needs to change password
   // Mock plan and usage data for now - will be replaced with real data later
   plan: {
-    type: "free_trial" | "pay_as_you_go" | "monthly_10" | "monthly_15" | "professional";
+    type:
+      | "free_trial"
+      | "pay_as_you_go"
+      | "monthly_10"
+      | "monthly_15"
+      | "professional";
     name: string;
     price: number;
     contracts_limit: number;
@@ -72,11 +83,23 @@ interface UserContextType {
   logout: () => Promise<void>;
   isLoading: boolean;
   session: Session | null;
-  signUp: (userData: SignUpData) => Promise<{ success: boolean; message: string; user?: SupabaseUser }>;
-  signIn: (email: string, password: string) => Promise<{ success: boolean; message: string; user?: User }>;
-  resetPassword: (email: string) => Promise<{ success: boolean; message: string }>;
-  updatePassword: (newPassword: string) => Promise<{ success: boolean; message: string }>;
-  changePassword: (currentPassword: string, newPassword: string) => Promise<{ success: boolean; message: string }>;
+  signUp: (
+    userData: SignUpData,
+  ) => Promise<{ success: boolean; message: string; user?: SupabaseUser }>;
+  signIn: (
+    email: string,
+    password: string,
+  ) => Promise<{ success: boolean; message: string; user?: User }>;
+  resetPassword: (
+    email: string,
+  ) => Promise<{ success: boolean; message: string }>;
+  updatePassword: (
+    newPassword: string,
+  ) => Promise<{ success: boolean; message: string }>;
+  changePassword: (
+    currentPassword: string,
+    newPassword: string,
+  ) => Promise<{ success: boolean; message: string }>;
   clearAuthState: () => Promise<void>;
 }
 
@@ -95,7 +118,9 @@ export interface SignUpData {
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
 // Mock data for plan, usage, billing, etc. - will be replaced with real data later
-const getDefaultUserData = (profile: UserProfile): Omit<User, 'id' | 'name' | 'email' | 'company' | 'phone' | 'role'> => ({
+const getDefaultUserData = (
+  profile: UserProfile,
+): Omit<User, "id" | "name" | "email" | "company" | "phone" | "role"> => ({
   plan: {
     type: "free_trial",
     name: "Free Trial",
@@ -148,15 +173,21 @@ const getDefaultUserData = (profile: UserProfile): Omit<User, 'id' | 'name' | 'e
   },
 });
 
-export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+export const UserProvider: React.FC<{ children: ReactNode }> = ({
+  children,
+}) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // Convert UserProfile to User format
-  const convertProfileToUser = (profile: UserProfile, authUser?: SupabaseUser): User => {
+  const convertProfileToUser = (
+    profile: UserProfile,
+    authUser?: SupabaseUser,
+  ): User => {
     // Check if user has temporary password from auth metadata
-    const hasTemporaryPassword = authUser?.user_metadata?.is_temporary_password === true;
+    const hasTemporaryPassword =
+      authUser?.user_metadata?.is_temporary_password === true;
 
     return {
       id: profile.id,
@@ -171,31 +202,42 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   // Load user profile from database
-  const loadUserProfile = async (authUserId: string, retryCount = 0): Promise<User | null> => {
+  const loadUserProfile = async (
+    authUserId: string,
+    retryCount = 0,
+  ): Promise<User | null> => {
     try {
-      console.log(`Loading user profile for auth user: ${authUserId}, attempt: ${retryCount + 1}`);
+      console.log(
+        `Loading user profile for auth user: ${authUserId}, attempt: ${retryCount + 1}`,
+      );
 
       // Get auth user data first
-      const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
+      const {
+        data: { user: authUser },
+        error: authError,
+      } = await supabase.auth.getUser();
 
       if (authError) {
-        console.error('Error getting auth user:', authError);
+        console.error("Error getting auth user:", authError);
         throw authError;
       }
 
       const { data: profile, error } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('auth_user_id', authUserId)
+        .from("user_profiles")
+        .select("*")
+        .eq("auth_user_id", authUserId)
         .single();
 
       if (error) {
-        console.error(`Error loading user profile (attempt ${retryCount + 1}):`, error);
+        console.error(
+          `Error loading user profile (attempt ${retryCount + 1}):`,
+          error,
+        );
 
         // If profile not found and we haven't retried, try once more
-        if (error.code === 'PGRST116' && retryCount === 0) {
-          console.log('User profile not found, retrying in 1 second...');
-          await new Promise(resolve => setTimeout(resolve, 1000));
+        if (error.code === "PGRST116" && retryCount === 0) {
+          console.log("User profile not found, retrying in 1 second...");
+          await new Promise((resolve) => setTimeout(resolve, 1000));
           return await loadUserProfile(authUserId, retryCount + 1);
         }
 
@@ -203,18 +245,23 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
 
       const user = convertProfileToUser(profile, authUser || undefined);
-      console.log('User profile loaded successfully:', user.email);
+      console.log("User profile loaded successfully:", user.email);
       return user;
     } catch (error) {
-      console.error(`Failed to load user profile after ${retryCount + 1} attempts:`, error);
+      console.error(
+        `Failed to load user profile after ${retryCount + 1} attempts:`,
+        error,
+      );
 
       // If we've tried twice and still failed, sign out the user to clear inconsistent state
       if (retryCount > 0) {
-        console.warn('Multiple profile loading failures, signing out user to clear inconsistent state');
+        console.warn(
+          "Multiple profile loading failures, signing out user to clear inconsistent state",
+        );
         try {
           await supabase.auth.signOut();
         } catch (signOutError) {
-          console.error('Error signing out user:', signOutError);
+          console.error("Error signing out user:", signOutError);
         }
       }
 
@@ -228,33 +275,38 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     const initializeAuth = async () => {
       try {
-        console.log('🔍 Starting authentication initialization...');
-        
+        console.log("🔍 Starting authentication initialization...");
+
         // First, clear any demo authentication that might conflict
-        localStorage.removeItem('maigon_current_user');
-        sessionStorage.removeItem('maigon_current_user');
-        
+        localStorage.removeItem("maigon_current_user");
+        sessionStorage.removeItem("maigon_current_user");
+
         // Check if this is a special auth callback (email verification, password reset, etc.)
         const urlParams = new URLSearchParams(window.location.search);
-        const hashParams = new URLSearchParams(window.location.hash.substring(1));
-        
-        const isAuthCallback = 
-          urlParams.get('access_token') ||
-          hashParams.get('access_token') ||
-          urlParams.get('type') ||
-          hashParams.get('type') ||
-          window.location.pathname.includes('email-verification') ||
-          window.location.pathname.includes('reset-password');
+        const hashParams = new URLSearchParams(
+          window.location.hash.substring(1),
+        );
+
+        const isAuthCallback =
+          urlParams.get("access_token") ||
+          hashParams.get("access_token") ||
+          urlParams.get("type") ||
+          hashParams.get("type") ||
+          window.location.pathname.includes("email-verification") ||
+          window.location.pathname.includes("reset-password");
 
         if (isAuthCallback) {
-          console.log('🔗 Auth callback detected, processing session');
+          console.log("🔗 Auth callback detected, processing session");
         }
-        
+
         // Check for existing session (don't force clear unless explicitly signing out)
-        const { data: { session }, error } = await supabase.auth.getSession();
-        
+        const {
+          data: { session },
+          error,
+        } = await supabase.auth.getSession();
+
         if (error) {
-          console.warn('Session check error:', error.message);
+          console.warn("Session check error:", error.message);
           if (mounted) {
             setSession(null);
             setUser(null);
@@ -265,33 +317,33 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
         if (mounted) {
           if (session?.user) {
-            console.log('✅ Found existing session for:', session.user.email);
+            console.log("✅ Found existing session for:", session.user.email);
             setSession(session);
-            
+
             try {
               const userProfile = await loadUserProfile(session.user.id);
               if (userProfile) {
                 setUser(userProfile);
-                console.log('✅ User profile loaded successfully');
+                console.log("✅ User profile loaded successfully");
               } else {
-                console.warn('⚠️ Failed to load profile, clearing session');
+                console.warn("⚠️ Failed to load profile, clearing session");
                 setSession(null);
                 setUser(null);
               }
             } catch (profileError) {
-              console.warn('⚠️ Profile loading error:', profileError);
+              console.warn("⚠️ Profile loading error:", profileError);
               setSession(null);
               setUser(null);
             }
           } else {
-            console.log('🏠 No session found - starting in public state');
+            console.log("🏠 No session found - starting in public state");
             setSession(null);
             setUser(null);
           }
           setIsLoading(false);
         }
       } catch (error) {
-        console.error('Auth initialization error:', error);
+        console.error("Auth initialization error:", error);
         if (mounted) {
           setSession(null);
           setUser(null);
@@ -303,55 +355,61 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     initializeAuth();
 
     // Listen for auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (!mounted) return;
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!mounted) return;
 
-        console.log('🔄 Auth state changed:', event, session?.user?.email || 'no user');
+      console.log(
+        "🔄 Auth state changed:",
+        event,
+        session?.user?.email || "no user",
+      );
 
-        // Handle sign in events
-        if (event === 'SIGNED_IN') {
-          console.log('🔐 User signed in, loading profile...');
-          setSession(session);
+      // Handle sign in events
+      if (event === "SIGNED_IN") {
+        console.log("🔐 User signed in, loading profile...");
+        setSession(session);
 
-          if (session?.user) {
-            try {
-              const userProfile = await loadUserProfile(session.user.id);
-              if (userProfile) {
-                setUser(userProfile);
-                console.log('✅ User authenticated and profile loaded');
-              } else {
-                console.warn('⚠️ Authentication succeeded but profile loading failed');
-                await supabase.auth.signOut();
-                setSession(null);
-                setUser(null);
-              }
-            } catch (error) {
-              console.error('❌ Error loading profile after auth:', error);
+        if (session?.user) {
+          try {
+            const userProfile = await loadUserProfile(session.user.id);
+            if (userProfile) {
+              setUser(userProfile);
+              console.log("✅ User authenticated and profile loaded");
+            } else {
+              console.warn(
+                "⚠️ Authentication succeeded but profile loading failed",
+              );
               await supabase.auth.signOut();
               setSession(null);
               setUser(null);
             }
-          }
-          setIsLoading(false);
-        } else if (event === 'SIGNED_OUT') {
-          console.log('👋 User signed out, clearing state');
-          setSession(null);
-          setUser(null);
-          setIsLoading(false);
-          
-          // Clear demo authentication
-          localStorage.removeItem('maigon_current_user');
-          sessionStorage.removeItem('maigon_current_user');
-        } else if (event === 'TOKEN_REFRESHED') {
-          // Handle token refresh silently if we already have a user
-          if (user && session) {
-            console.log('🔄 Token refreshed for existing session');
-            setSession(session);
+          } catch (error) {
+            console.error("❌ Error loading profile after auth:", error);
+            await supabase.auth.signOut();
+            setSession(null);
+            setUser(null);
           }
         }
+        setIsLoading(false);
+      } else if (event === "SIGNED_OUT") {
+        console.log("👋 User signed out, clearing state");
+        setSession(null);
+        setUser(null);
+        setIsLoading(false);
+
+        // Clear demo authentication
+        localStorage.removeItem("maigon_current_user");
+        sessionStorage.removeItem("maigon_current_user");
+      } else if (event === "TOKEN_REFRESHED") {
+        // Handle token refresh silently if we already have a user
+        if (user && session) {
+          console.log("🔄 Token refreshed for existing session");
+          setSession(session);
+        }
       }
-    );
+    });
 
     return () => {
       mounted = false;
@@ -360,9 +418,11 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
 
   // Sign up with automatic password generation and email sending
-  const signUp = async (userData: SignUpData): Promise<{ success: boolean; message: string; user?: SupabaseUser }> => {
+  const signUp = async (
+    userData: SignUpData,
+  ): Promise<{ success: boolean; message: string; user?: SupabaseUser }> => {
     try {
-      console.log('📝 Starting sign up process for:', userData.email);
+      console.log("📝 Starting sign up process for:", userData.email);
       setIsLoading(true);
 
       // Generate a secure temporary password
@@ -382,48 +442,61 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             industry: userData.industry || null,
             hear_about_us: userData.hearAboutUs || null,
             is_temporary_password: true, // Flag to indicate this is a temporary password
-          }
-        }
+          },
+        },
       });
 
       if (error) {
-        console.error('Sign up error:', error);
+        console.error("Sign up error:", error);
         return { success: false, message: error.message };
       }
 
       if (data.user) {
         // Send welcome email with temporary credentials
-        const emailResult = await sendWelcomeEmail(userData.email, userData.firstName, temporaryPassword);
+        const emailResult = await sendWelcomeEmail(
+          userData.email,
+          userData.firstName,
+          temporaryPassword,
+        );
 
         if (emailResult.success) {
           return {
             success: true,
             message: `Account created successfully! Your login credentials have been sent to ${userData.email}. Please check your email and use the temporary password to sign in.`,
-            user: data.user
+            user: data.user,
           };
         } else {
           // Account was created but email failed - still consider it a success but with a different message
           return {
             success: true,
             message: `Account created successfully! However, there was an issue sending your credentials via email. Please contact support. Temporary password: ${temporaryPassword}`,
-            user: data.user
+            user: data.user,
           };
         }
       }
 
-      return { success: false, message: 'An unexpected error occurred during sign up.' };
+      return {
+        success: false,
+        message: "An unexpected error occurred during sign up.",
+      };
     } catch (error: any) {
-      console.error('Sign up error:', error);
-      return { success: false, message: error.message || 'An unexpected error occurred.' };
+      console.error("Sign up error:", error);
+      return {
+        success: false,
+        message: error.message || "An unexpected error occurred.",
+      };
     } finally {
       setIsLoading(false);
     }
   };
 
   // Sign in
-  const signIn = async (email: string, password: string): Promise<{ success: boolean; message: string; user?: User }> => {
+  const signIn = async (
+    email: string,
+    password: string,
+  ): Promise<{ success: boolean; message: string; user?: User }> => {
     try {
-      console.log('🔐 Starting sign in process for:', email);
+      console.log("🔐 Starting sign in process for:", email);
       setIsLoading(true);
 
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -432,17 +505,28 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       });
 
       if (error) {
-        console.error('Sign in error:', error);
+        console.error("Sign in error:", error);
 
-        if (error.message.includes('Email not confirmed')) {
-          return { success: false, message: 'Please check your email and click the verification link before signing in.' };
+        if (error.message.includes("Email not confirmed")) {
+          return {
+            success: false,
+            message:
+              "Please check your email and click the verification link before signing in.",
+          };
         }
 
-        if (error.message.includes('Invalid login credentials')) {
-          return { success: false, message: 'Invalid email or password. Please check your credentials.' };
+        if (error.message.includes("Invalid login credentials")) {
+          return {
+            success: false,
+            message:
+              "Invalid email or password. Please check your credentials.",
+          };
         }
 
-        return { success: false, message: `Authentication error: ${error.message}` };
+        return {
+          success: false,
+          message: `Authentication error: ${error.message}`,
+        };
       }
 
       if (data.user) {
@@ -453,21 +537,28 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           // Track login activity with improved error handling
           try {
             await DataService.userActivities.trackLogin(userProfile.id);
-            console.log('✅ Login activity tracked successfully');
+            console.log("✅ Login activity tracked successfully");
 
             // Initialize user data if first time
             try {
-              const existingStats = await DataService.userUsageStats.getUserStats(userProfile.id);
+              const existingStats =
+                await DataService.userUsageStats.getUserStats(userProfile.id);
               if (!existingStats) {
                 await DataService.initializeNewUser(userProfile.id);
-                console.log('✅ New user initialized successfully');
+                console.log("✅ New user initialized successfully");
               }
             } catch (initError) {
-              console.warn('Warning: Failed to initialize user data:', initError);
+              console.warn(
+                "Warning: Failed to initialize user data:",
+                initError,
+              );
               // Don't block login for this non-critical error
             }
           } catch (trackError) {
-            console.warn('Warning: Failed to track login activity:', trackError);
+            console.warn(
+              "Warning: Failed to track login activity:",
+              trackError,
+            );
             // Don't block login for tracking errors
           }
 
@@ -475,67 +566,97 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           if (userProfile.hasTemporaryPassword) {
             return {
               success: true,
-              message: 'Signed in successfully! You must change your temporary password before continuing.',
-              user: userProfile
+              message:
+                "Signed in successfully! You must change your temporary password before continuing.",
+              user: userProfile,
             };
           }
 
-          return { success: true, message: 'Signed in successfully!', user: userProfile };
+          return {
+            success: true,
+            message: "Signed in successfully!",
+            user: userProfile,
+          };
         }
       }
 
-      return { success: false, message: 'An unexpected error occurred during sign in.' };
+      return {
+        success: false,
+        message: "An unexpected error occurred during sign in.",
+      };
     } catch (error: any) {
-      console.error('Sign in error:', error);
-      return { success: false, message: error.message || 'An unexpected error occurred.' };
+      console.error("Sign in error:", error);
+      return {
+        success: false,
+        message: error.message || "An unexpected error occurred.",
+      };
     } finally {
       setIsLoading(false);
     }
   };
 
   // Reset password
-  const resetPassword = async (email: string): Promise<{ success: boolean; message: string }> => {
+  const resetPassword = async (
+    email: string,
+  ): Promise<{ success: boolean; message: string }> => {
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/reset-password`,
       });
 
       if (error) {
-        console.error('Password reset error:', error);
+        console.error("Password reset error:", error);
         return { success: false, message: error.message };
       }
 
-      return { success: true, message: 'Password reset email sent! Please check your inbox.' };
+      return {
+        success: true,
+        message: "Password reset email sent! Please check your inbox.",
+      };
     } catch (error: any) {
-      console.error('Password reset error:', error);
-      return { success: false, message: error.message || 'An unexpected error occurred.' };
+      console.error("Password reset error:", error);
+      return {
+        success: false,
+        message: error.message || "An unexpected error occurred.",
+      };
     }
   };
 
   // Update password
-  const updatePassword = async (newPassword: string): Promise<{ success: boolean; message: string }> => {
+  const updatePassword = async (
+    newPassword: string,
+  ): Promise<{ success: boolean; message: string }> => {
     try {
       const { error } = await supabase.auth.updateUser({
-        password: newPassword
+        password: newPassword,
       });
 
       if (error) {
-        console.error('Password update error:', error);
+        console.error("Password update error:", error);
         return { success: false, message: error.message };
       }
 
-      return { success: true, message: 'Password updated successfully!' };
+      return { success: true, message: "Password updated successfully!" };
     } catch (error: any) {
-      console.error('Password update error:', error);
-      return { success: false, message: error.message || 'An unexpected error occurred.' };
+      console.error("Password update error:", error);
+      return {
+        success: false,
+        message: error.message || "An unexpected error occurred.",
+      };
     }
   };
 
   // Change password from temporary to permanent
-  const changePassword = async (currentPassword: string, newPassword: string): Promise<{ success: boolean; message: string }> => {
+  const changePassword = async (
+    currentPassword: string,
+    newPassword: string,
+  ): Promise<{ success: boolean; message: string }> => {
     try {
       if (!user || !session) {
-        return { success: false, message: 'You must be logged in to change your password.' };
+        return {
+          success: false,
+          message: "You must be logged in to change your password.",
+        };
       }
 
       // Verify current password by attempting to sign in
@@ -545,8 +666,8 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       });
 
       if (verifyError) {
-        console.error('Current password verification failed:', verifyError);
-        return { success: false, message: 'Current password is incorrect.' };
+        console.error("Current password verification failed:", verifyError);
+        return { success: false, message: "Current password is incorrect." };
       }
 
       // Update to new password
@@ -554,28 +675,33 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         password: newPassword,
         data: {
           is_temporary_password: false, // Mark as no longer temporary
-        }
+        },
       });
 
       if (updateError) {
-        console.error('Password change error:', updateError);
+        console.error("Password change error:", updateError);
         return { success: false, message: updateError.message };
       }
 
       // Update local user state to reflect password change
-      setUser(prev => prev ? { ...prev, hasTemporaryPassword: false } : null);
+      setUser((prev) =>
+        prev ? { ...prev, hasTemporaryPassword: false } : null,
+      );
 
-      return { success: true, message: 'Password changed successfully!' };
+      return { success: true, message: "Password changed successfully!" };
     } catch (error: any) {
-      console.error('Password change error:', error);
-      return { success: false, message: error.message || 'An unexpected error occurred.' };
+      console.error("Password change error:", error);
+      return {
+        success: false,
+        message: error.message || "An unexpected error occurred.",
+      };
     }
   };
 
   // Logout
   const logout = async (): Promise<void> => {
     try {
-      console.log('🚪 Logging out user...');
+      console.log("🚪 Logging out user...");
 
       // Clear state first
       setUser(null);
@@ -585,26 +711,26 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       await supabase.auth.signOut();
 
       // Clear demo authentication
-      localStorage.removeItem('maigon_current_user');
-      sessionStorage.removeItem('maigon_current_user');
+      localStorage.removeItem("maigon_current_user");
+      sessionStorage.removeItem("maigon_current_user");
 
-      console.log('✅ Logout completed successfully');
+      console.log("✅ Logout completed successfully");
 
       // Navigate to home page
       setTimeout(() => {
-        window.location.href = '/';
+        window.location.href = "/";
       }, 100);
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error("Logout error:", error);
 
       // Force logout even if there's an error
       setUser(null);
       setSession(null);
-      localStorage.removeItem('maigon_current_user');
-      sessionStorage.removeItem('maigon_current_user');
-      
+      localStorage.removeItem("maigon_current_user");
+      sessionStorage.removeItem("maigon_current_user");
+
       setTimeout(() => {
-        window.location.href = '/';
+        window.location.href = "/";
       }, 100);
     }
   };
@@ -616,39 +742,44 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       // Update the database
       const { error } = await supabase
-        .from('user_profiles')
+        .from("user_profiles")
         .update({
-          first_name: updates.name ? updates.name.split(' ')[0] : undefined,
-          last_name: updates.name ? updates.name.split(' ').slice(1).join(' ') : undefined,
+          first_name: updates.name ? updates.name.split(" ")[0] : undefined,
+          last_name: updates.name
+            ? updates.name.split(" ").slice(1).join(" ")
+            : undefined,
           email: updates.email,
           company: updates.company,
           phone: updates.phone,
         })
-        .eq('auth_user_id', session.user.id);
+        .eq("auth_user_id", session.user.id);
 
       if (error) {
-        console.error('Error updating user profile:', error);
+        console.error("Error updating user profile:", error);
         return;
       }
 
       // Update local state
-      setUser(prev => prev ? { ...prev, ...updates } : null);
+      setUser((prev) => (prev ? { ...prev, ...updates } : null));
 
       // Track profile update activity
       try {
         const updatedFields = Object.keys(updates);
-        await DataService.userActivities.trackProfileUpdate(user.id, updatedFields);
+        await DataService.userActivities.trackProfileUpdate(
+          user.id,
+          updatedFields,
+        );
       } catch (trackError) {
-        console.error('Error tracking profile update:', trackError);
+        console.error("Error tracking profile update:", trackError);
       }
     } catch (error) {
-      console.error('Error updating user:', error);
+      console.error("Error updating user:", error);
     }
   };
 
   // Debug function to manually clear auth state (only for development/debugging)
   const clearAuthState = async () => {
-    console.log('🧹 [DEBUG] Manually clearing auth state...');
+    console.log("🧹 [DEBUG] Manually clearing auth state...");
     try {
       await supabase.auth.signOut();
       setSession(null);
@@ -656,13 +787,13 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setIsLoading(false);
 
       // Clear demo authentication
-      localStorage.removeItem('maigon_current_user');
-      sessionStorage.removeItem('maigon_current_user');
+      localStorage.removeItem("maigon_current_user");
+      sessionStorage.removeItem("maigon_current_user");
 
-      console.log('✅ [DEBUG] Auth state cleared successfully');
+      console.log("✅ [DEBUG] Auth state cleared successfully");
       window.location.reload();
     } catch (error) {
-      console.error('❌ [DEBUG] Error clearing auth state:', error);
+      console.error("❌ [DEBUG] Error clearing auth state:", error);
     }
   };
 
@@ -695,21 +826,26 @@ export const useUser = () => {
 
 // Helper functions
 function generateSecurePassword(): string {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
-  let password = '';
+  const chars =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*";
+  let password = "";
   for (let i = 0; i < 12; i++) {
     password += chars.charAt(Math.floor(Math.random() * chars.length));
   }
   return password;
 }
 
-async function sendWelcomeEmail(email: string, firstName: string, temporaryPassword: string): Promise<{ success: boolean; message: string }> {
+async function sendWelcomeEmail(
+  email: string,
+  firstName: string,
+  temporaryPassword: string,
+): Promise<{ success: boolean; message: string }> {
   const loginUrl = `${window.location.origin}/signin`;
 
   return await EmailService.sendWelcomeEmail({
     firstName,
     email,
     temporaryPassword,
-    loginUrl
+    loginUrl,
   });
 }

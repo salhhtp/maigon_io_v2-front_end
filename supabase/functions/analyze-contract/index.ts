@@ -1,55 +1,55 @@
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts"
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 
 // Advanced AI Model configurations for sophisticated contract analysis
 const AI_CONFIGS = {
-  'openai-gpt-4': {
-    baseUrl: 'https://api.openai.com/v1/chat/completions',
-    model: 'gpt-4-turbo-preview',
+  "openai-gpt-4": {
+    baseUrl: "https://api.openai.com/v1/chat/completions",
+    model: "gpt-4-turbo-preview",
     headers: (apiKey: string) => ({
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
     }),
     maxTokens: 4000,
     temperature: 0.1, // Lower temperature for more consistent legal analysis
   },
-  'openai-gpt-4o': {
-    baseUrl: 'https://api.openai.com/v1/chat/completions',
-    model: 'gpt-4o',
+  "openai-gpt-4o": {
+    baseUrl: "https://api.openai.com/v1/chat/completions",
+    model: "gpt-4o",
     headers: (apiKey: string) => ({
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
     }),
     maxTokens: 4000,
     temperature: 0.1,
   },
-  'openai-gpt-3.5-turbo': {
-    baseUrl: 'https://api.openai.com/v1/chat/completions',
-    model: 'gpt-3.5-turbo',
+  "openai-gpt-3.5-turbo": {
+    baseUrl: "https://api.openai.com/v1/chat/completions",
+    model: "gpt-3.5-turbo",
     headers: (apiKey: string) => ({
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
     }),
     maxTokens: 4000,
     temperature: 0.1,
   },
-  'anthropic-claude-3': {
-    baseUrl: 'https://api.anthropic.com/v1/messages',
-    model: 'claude-3-sonnet-20240229',
+  "anthropic-claude-3": {
+    baseUrl: "https://api.anthropic.com/v1/messages",
+    model: "claude-3-sonnet-20240229",
     headers: (apiKey: string) => ({
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
+      "Content-Type": "application/json",
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
     }),
     maxTokens: 4000,
     temperature: 0.1,
   },
-  'anthropic-claude-3-opus': {
-    baseUrl: 'https://api.anthropic.com/v1/messages',
-    model: 'claude-3-opus-20240229',
+  "anthropic-claude-3-opus": {
+    baseUrl: "https://api.anthropic.com/v1/messages",
+    model: "claude-3-opus-20240229",
     headers: (apiKey: string) => ({
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
+      "Content-Type": "application/json",
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
     }),
     maxTokens: 4000,
     temperature: 0.1,
@@ -76,8 +76,9 @@ interface AnalysisRequest {
 }
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
 const CONTRACT_PATTERNS: Record<string, RegExp[]> = {
@@ -86,33 +87,15 @@ const CONTRACT_PATTERNS: Record<string, RegExp[]> = {
     /confidential information/i,
     /disclosing party/i,
   ],
-  dpa: [
-    /data processing agreement/i,
-    /processor/i,
-    /controller/i,
-    /gdpr/i,
-  ],
-  eula: [
-    /end[-\s]?user license/i,
-    /software license/i,
-    /licensor/i,
-  ],
-  ppc: [
-    /purchase and sale contract/i,
-    /purchase price/i,
-    /buyer/i,
-    /seller/i,
-  ],
+  dpa: [/data processing agreement/i, /processor/i, /controller/i, /gdpr/i],
+  eula: [/end[-\s]?user license/i, /software license/i, /licensor/i],
+  ppc: [/purchase and sale contract/i, /purchase price/i, /buyer/i, /seller/i],
   rda: [
     /research and development/i,
     /collaboration/i,
     /intellectual property rights/i,
   ],
-  ca: [
-    /consulting agreement/i,
-    /services? provider/i,
-    /consultant/i,
-  ],
+  ca: [/consulting agreement/i, /services? provider/i, /consultant/i],
   psa: [
     /professional services agreement/i,
     /statement of work/i,
@@ -122,21 +105,25 @@ const CONTRACT_PATTERNS: Record<string, RegExp[]> = {
 
 function formatTitleCase(value: string) {
   return value
-    .replace(/[_-]+/g, ' ')
-    .replace(/\s+/g, ' ')
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
     .replace(/\b\w/g, (match) => match.toUpperCase());
 }
 
 function inferDocumentFormat(filename?: string, providedFormat?: string) {
   if (providedFormat) return providedFormat.toLowerCase();
   if (!filename) return undefined;
-  const ext = filename.split('.').pop()?.toLowerCase();
+  const ext = filename.split(".").pop()?.toLowerCase();
   if (!ext) return undefined;
-  if (ext === 'doc') return 'docx';
+  if (ext === "doc") return "docx";
   return ext;
 }
 
-function detectContractType(content: string, filename?: string, provided?: string) {
+function detectContractType(
+  content: string,
+  filename?: string,
+  provided?: string,
+) {
   if (provided) return provided;
   const shortContent = content.slice(0, 4000);
   let bestMatch: { type: string; score: number } | null = null;
@@ -155,22 +142,26 @@ function detectContractType(content: string, filename?: string, provided?: strin
     }
   }
 
-  return bestMatch && bestMatch.score >= 1 ? bestMatch.type : 'general';
+  return bestMatch && bestMatch.score >= 1 ? bestMatch.type : "general";
 }
 
 type ClauseSummary = {
   title: string;
   snippet: string;
-  importance?: 'high' | 'medium' | 'low';
+  importance?: "high" | "medium" | "low";
 };
 
-function extractClauses(content: string, contractType: string): ClauseSummary[] {
+function extractClauses(
+  content: string,
+  contractType: string,
+): ClauseSummary[] {
   const lines = content.split(/\r?\n/).map((line) => line.trim());
   const clauses: ClauseSummary[] = [];
-  let currentTitle = '';
+  let currentTitle = "";
   let buffer: string[] = [];
 
-  const headingRegex = /^(section\s+\d+|article\s+\d+|\d+\.\d+|[A-Z][^a-z\n]{3,})/i;
+  const headingRegex =
+    /^(section\s+\d+|article\s+\d+|\d+\.\d+|[A-Z][^a-z\n]{3,})/i;
 
   for (const line of lines) {
     if (!line) continue;
@@ -179,11 +170,11 @@ function extractClauses(content: string, contractType: string): ClauseSummary[] 
       if (currentTitle && buffer.length) {
         clauses.push({
           title: currentTitle,
-          snippet: buffer.join(' ').slice(0, 220),
+          snippet: buffer.join(" ").slice(0, 220),
         });
         buffer = [];
       }
-      currentTitle = line.replace(/[:.-\s]+$/, '').slice(0, 120);
+      currentTitle = line.replace(/[:.-\s]+$/, "").slice(0, 120);
     } else if (currentTitle) {
       buffer.push(line);
     }
@@ -192,7 +183,7 @@ function extractClauses(content: string, contractType: string): ClauseSummary[] 
   if (currentTitle && buffer.length) {
     clauses.push({
       title: currentTitle,
-      snippet: buffer.join(' ').slice(0, 220),
+      snippet: buffer.join(" ").slice(0, 220),
     });
   }
 
@@ -206,19 +197,26 @@ function extractClauses(content: string, contractType: string): ClauseSummary[] 
   return clauses.slice(0, 30);
 }
 
-function buildKpis(result: any, contractType: string, clauseCount: number, timeSavedLabel?: string) {
+function buildKpis(
+  result: any,
+  contractType: string,
+  clauseCount: number,
+  timeSavedLabel?: string,
+) {
   const base = {
     contract_type: contractType,
     clauses_mapped: clauseCount,
   } as Record<string, any>;
 
-  if (typeof result.score === 'number') {
+  if (typeof result.score === "number") {
     base.score = result.score;
   }
 
   if (Array.isArray(result.violations)) {
     base.high_risk_findings = result.violations.filter(
-      (item: any) => typeof item?.severity === 'string' && item.severity.toLowerCase() === 'high'
+      (item: any) =>
+        typeof item?.severity === "string" &&
+        item.severity.toLowerCase() === "high",
     ).length;
   }
 
@@ -237,108 +235,139 @@ function buildKpis(result: any, contractType: string, clauseCount: number, timeS
   return base;
 }
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
   }
 
   try {
-    console.log('🚀 Starting contract analysis request...');
+    console.log("🚀 Starting contract analysis request...");
 
     // Parse request body with error handling
     let request: AnalysisRequest;
     try {
       request = await req.json();
     } catch (parseError) {
-      const errorMessage = parseError instanceof Error ? parseError.message : String(parseError);
-      console.error('❌ Failed to parse request JSON:', {
+      const errorMessage =
+        parseError instanceof Error ? parseError.message : String(parseError);
+      console.error("❌ Failed to parse request JSON:", {
         error: errorMessage,
         type: parseError instanceof Error ? parseError.name : typeof parseError,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
       return new Response(
-        JSON.stringify({ error: 'Invalid JSON in request body' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: "Invalid JSON in request body" }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
     // Validate request
     if (!request.content || !request.reviewType) {
-      console.error('❌ Missing required fields in request:', {
+      console.error("❌ Missing required fields in request:", {
         hasContent: !!request.content,
         hasReviewType: !!request.reviewType,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
       return new Response(
-        JSON.stringify({ error: 'Missing required fields: content and reviewType' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({
+          error: "Missing required fields: content and reviewType",
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
-    console.log('✅ Request validation passed:', {
+    console.log("✅ Request validation passed:", {
       reviewType: request.reviewType,
       model: request.model,
       contentLength: request.content.length,
       fileType: request.fileType,
-      fileName: request.fileName
+      fileName: request.fileName,
     });
 
     // Handle PDF and DOCX file processing
     let processedContent = request.content;
-    if (request.content.startsWith('PDF_FILE_BASE64:') || request.content.startsWith('DOCX_FILE_BASE64:')) {
+    if (
+      request.content.startsWith("PDF_FILE_BASE64:") ||
+      request.content.startsWith("DOCX_FILE_BASE64:")
+    ) {
       try {
-        console.log('📄 Starting file text extraction...');
-        processedContent = await extractTextFromFile(request.content, request.fileType || '');
-        console.log('✅ File text extraction completed, content length:', processedContent.length);
+        console.log("📄 Starting file text extraction...");
+        processedContent = await extractTextFromFile(
+          request.content,
+          request.fileType || "",
+        );
+        console.log(
+          "✅ File text extraction completed, content length:",
+          processedContent.length,
+        );
 
         if (!processedContent || processedContent.trim().length === 0) {
           return new Response(
             JSON.stringify({
-              error: 'No text content could be extracted from the file. Please ensure the file contains readable text or try converting to a text file.'
+              error:
+                "No text content could be extracted from the file. Please ensure the file contains readable text or try converting to a text file.",
             }),
-            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            {
+              status: 400,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            },
           );
         }
       } catch (extractError) {
-        const errorMessage = extractError instanceof Error ? extractError.message : String(extractError);
-        console.error('❌ File extraction failed:', {
+        const errorMessage =
+          extractError instanceof Error
+            ? extractError.message
+            : String(extractError);
+        console.error("❌ File extraction failed:", {
           error: errorMessage,
-          type: extractError instanceof Error ? extractError.name : typeof extractError,
-          timestamp: new Date().toISOString()
+          type:
+            extractError instanceof Error
+              ? extractError.name
+              : typeof extractError,
+          timestamp: new Date().toISOString(),
         });
         return new Response(
           JSON.stringify({
-            error: `Failed to extract text from file: ${errorMessage}. Please try a smaller file or convert to text format.`
+            error: `Failed to extract text from file: ${errorMessage}. Please try a smaller file or convert to text format.`,
           }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
         );
       }
     }
 
     // Get API key based on model
-    const model = request.model || 'openai-gpt-4';
+    const model = request.model || "openai-gpt-4";
     let apiKey: string | undefined;
 
-    if (model.startsWith('openai')) {
-      apiKey = Deno.env.get('OPENAI_API_KEY');
-    } else if (model.startsWith('anthropic')) {
-      apiKey = Deno.env.get('ANTHROPIC_API_KEY');
-    } else if (model.startsWith('google')) {
-      apiKey = Deno.env.get('GOOGLE_AI_API_KEY');
+    if (model.startsWith("openai")) {
+      apiKey = Deno.env.get("OPENAI_API_KEY");
+    } else if (model.startsWith("anthropic")) {
+      apiKey = Deno.env.get("ANTHROPIC_API_KEY");
+    } else if (model.startsWith("google")) {
+      apiKey = Deno.env.get("GOOGLE_AI_API_KEY");
     }
 
     if (!apiKey) {
-      console.error('🔑 API key not configured:', {
+      console.error("🔑 API key not configured:", {
         model: model,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
       return new Response(
         JSON.stringify({
-          error: `API key not configured for model: ${model}. Please configure the appropriate API key in environment variables.`
+          error: `API key not configured for model: ${model}. Please configure the appropriate API key in environment variables.`,
         }),
         {
           status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -347,57 +376,58 @@ serve(async (req) => {
     // Create enhanced request with processed content
     const enhancedRequest = {
       ...request,
-      content: processedContent
+      content: processedContent,
     };
 
     // Analyze contract with AI using advanced models
     const result = await analyzeWithAI(enhancedRequest, apiKey);
-    
-    return new Response(
-      JSON.stringify(result),
-      { 
-        status: 200, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      }
-    );
 
+    return new Response(JSON.stringify(result), {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     const errorDetails = {
       message: errorMessage,
       type: error instanceof Error ? error.name : typeof error,
       stack: error instanceof Error ? error.stack : undefined,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
-    console.error('❌ Analysis error:', errorDetails);
+    console.error("❌ Analysis error:", errorDetails);
 
     return new Response(
       JSON.stringify({
         error: `Contract analysis failed: ${errorMessage}`,
         type: errorDetails.type,
-        timestamp: errorDetails.timestamp
+        timestamp: errorDetails.timestamp,
       }),
       {
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      }
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
     );
   }
 });
 
 // Extract text from PDF or DOCX files
-async function extractTextFromFile(content: string, fileType: string): Promise<string> {
-  if (content.startsWith('PDF_FILE_BASE64:')) {
-    const base64Data = content.replace('PDF_FILE_BASE64:', '');
+async function extractTextFromFile(
+  content: string,
+  fileType: string,
+): Promise<string> {
+  if (content.startsWith("PDF_FILE_BASE64:")) {
+    const base64Data = content.replace("PDF_FILE_BASE64:", "");
 
-    console.log('📄 Processing PDF file for text extraction...');
-    console.log(`📊 Base64 data length: ${Math.round(base64Data.length / 1024)}KB`);
+    console.log("📄 Processing PDF file for text extraction...");
+    console.log(
+      `📊 Base64 data length: ${Math.round(base64Data.length / 1024)}KB`,
+    );
 
     try {
       // Validate base64 data
       if (!base64Data || base64Data.length === 0) {
-        throw new Error('Invalid PDF data received');
+        throw new Error("Invalid PDF data received");
       }
 
       // For development/testing, decode base64 to validate file
@@ -405,13 +435,15 @@ async function extractTextFromFile(content: string, fileType: string): Promise<s
       try {
         binaryData = atob(base64Data);
       } catch (decodeError) {
-        throw new Error('Invalid base64 PDF data');
+        throw new Error("Invalid base64 PDF data");
       }
 
       const estimatedPages = Math.ceil(binaryData.length / 2000); // Rough estimation
       const fileSizeKB = Math.round(binaryData.length / 1024);
 
-      console.log(`📄 PDF file stats: ~${estimatedPages} pages, ${fileSizeKB}KB`);
+      console.log(
+        `📄 PDF file stats: ~${estimatedPages} pages, ${fileSizeKB}KB`,
+      );
 
       // For now, return a realistic contract content for testing
       // In production, replace this with actual PDF text extraction using pdf-parse or similar
@@ -458,26 +490,29 @@ File processing completed successfully.
 
       return mockContractContent.trim();
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      console.error('❌ PDF processing error:', {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      console.error("❌ PDF processing error:", {
         error: errorMessage,
         type: error instanceof Error ? error.name : typeof error,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
       throw new Error(`Failed to process PDF file: ${errorMessage}`);
     }
   }
 
-  if (content.startsWith('DOCX_FILE_BASE64:')) {
-    const base64Data = content.replace('DOCX_FILE_BASE64:', '');
+  if (content.startsWith("DOCX_FILE_BASE64:")) {
+    const base64Data = content.replace("DOCX_FILE_BASE64:", "");
 
-    console.log('📄 Processing DOCX file for text extraction...');
-    console.log(`📊 Base64 data length: ${Math.round(base64Data.length / 1024)}KB`);
+    console.log("📄 Processing DOCX file for text extraction...");
+    console.log(
+      `📊 Base64 data length: ${Math.round(base64Data.length / 1024)}KB`,
+    );
 
     try {
       // Validate base64 data
       if (!base64Data || base64Data.length === 0) {
-        throw new Error('Invalid DOCX data received');
+        throw new Error("Invalid DOCX data received");
       }
 
       // For development/testing, decode base64 to validate file
@@ -485,7 +520,7 @@ File processing completed successfully.
       try {
         binaryData = atob(base64Data);
       } catch (decodeError) {
-        throw new Error('Invalid base64 DOCX data');
+        throw new Error("Invalid base64 DOCX data");
       }
 
       const fileSizeKB = Math.round(binaryData.length / 1024);
@@ -535,11 +570,12 @@ Document processed successfully: ${fileSizeKB}KB
 
       return mockContractContent.trim();
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      console.error('❌ DOCX processing error:', {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      console.error("❌ DOCX processing error:", {
         error: errorMessage,
         type: error instanceof Error ? error.name : typeof error,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
       throw new Error(`Failed to process DOCX file: ${errorMessage}`);
     }
@@ -556,41 +592,41 @@ async function analyzeWithAI(request: AnalysisRequest, apiKey: string) {
 
   // Build prompt based on review type and custom solution
   const prompt = buildAnalysisPrompt(request);
-  
+
   // Prepare API request based on model type
   let apiRequest: any;
-  
-  if (request.model.startsWith('openai')) {
+
+  if (request.model.startsWith("openai")) {
     apiRequest = {
-      method: 'POST',
+      method: "POST",
       headers: modelConfig.headers(apiKey),
       body: JSON.stringify({
         model: modelConfig.model,
         messages: [
           {
-            role: 'system',
+            role: "system",
             content: prompt.systemPrompt,
           },
           {
-            role: 'user',
+            role: "user",
             content: `${prompt.analysisPrompt}\n\nContract Content:\n${request.content}`,
           },
         ],
         temperature: modelConfig.temperature || 0.1,
         max_tokens: modelConfig.maxTokens || 4000,
-        response_format: { type: 'json_object' },
+        response_format: { type: "json_object" },
       }),
     };
-  } else if (request.model.startsWith('anthropic')) {
+  } else if (request.model.startsWith("anthropic")) {
     apiRequest = {
-      method: 'POST',
+      method: "POST",
       headers: modelConfig.headers(apiKey),
       body: JSON.stringify({
         model: modelConfig.model,
         max_tokens: modelConfig.maxTokens || 4000,
         messages: [
           {
-            role: 'user',
+            role: "user",
             content: `${prompt.systemPrompt}\n\n${prompt.analysisPrompt}\n\nContract Content:\n${request.content}`,
           },
         ],
@@ -601,29 +637,29 @@ async function analyzeWithAI(request: AnalysisRequest, apiKey: string) {
 
   // Make API call
   const response = await fetch(modelConfig.baseUrl, apiRequest);
-  
+
   if (!response.ok) {
     const errorText = await response.text();
-    console.error('AI API Error:', {
+    console.error("AI API Error:", {
       status: response.status,
       errorText: errorText,
       model: modelConfig.model,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
     throw new Error(`AI API error: ${response.status}`);
   }
 
   const data = await response.json();
-  
+
   // Parse response based on model type
   let aiResponse: string;
-  
-  if (request.model.startsWith('openai')) {
-    aiResponse = data.choices?.[0]?.message?.content || '';
-  } else if (request.model.startsWith('anthropic')) {
-    aiResponse = data.content?.[0]?.text || '';
+
+  if (request.model.startsWith("openai")) {
+    aiResponse = data.choices?.[0]?.message?.content || "";
+  } else if (request.model.startsWith("anthropic")) {
+    aiResponse = data.content?.[0]?.text || "";
   } else {
-    throw new Error('Unsupported model for response parsing');
+    throw new Error("Unsupported model for response parsing");
   }
 
   // Parse AI response into structured format
@@ -635,14 +671,14 @@ function buildAnalysisPrompt(request: AnalysisRequest) {
   const classification = request.classification;
 
   // Build classification context for enhanced AI analysis
-  let classificationContext = '';
+  let classificationContext = "";
   if (classification) {
     classificationContext = `
 
 DOCUMENT CLASSIFICATION CONTEXT:
 Contract Type: ${classification.contractType}
 Classification Confidence: ${Math.round(classification.confidence * 100)}%
-Key Characteristics: ${classification.characteristics.join(', ')}
+Key Characteristics: ${classification.characteristics.join(", ")}
 Classification Reasoning: ${classification.reasoning}
 
 Use this classification context to provide more targeted and accurate analysis specific to this contract type.`;
@@ -935,12 +971,17 @@ Return JSON in this exact format:
   // Use custom solution prompts if available, otherwise use base prompts
   if (customSolution?.prompts) {
     return {
-      systemPrompt: customSolution.prompts.systemPrompt + " Always respond in valid JSON format.",
+      systemPrompt:
+        customSolution.prompts.systemPrompt +
+        " Always respond in valid JSON format.",
       analysisPrompt: customSolution.prompts.analysisPrompt,
     };
   }
 
-  return basePrompts[request.reviewType as keyof typeof basePrompts] || basePrompts.full_summary;
+  return (
+    basePrompts[request.reviewType as keyof typeof basePrompts] ||
+    basePrompts.full_summary
+  );
 }
 
 function parseAIResponse(aiResponse: string, reviewType: string) {
@@ -948,18 +989,20 @@ function parseAIResponse(aiResponse: string, reviewType: string) {
     // Try to parse as JSON first
     return JSON.parse(aiResponse);
   } catch (error) {
-    console.warn('Failed to parse AI response as JSON, attempting to extract JSON');
-    
+    console.warn(
+      "Failed to parse AI response as JSON, attempting to extract JSON",
+    );
+
     // Try to extract JSON from the response
     const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       try {
         return JSON.parse(jsonMatch[0]);
       } catch (e) {
-        console.warn('Failed to extract valid JSON from AI response');
+        console.warn("Failed to extract valid JSON from AI response");
       }
     }
-    
+
     // Fallback to mock response
     return generateMockResponseByType(reviewType);
   }
