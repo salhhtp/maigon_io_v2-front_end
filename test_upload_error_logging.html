@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Upload Error Logging</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f9f8f8;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        button {
+            background: #9A7C7C;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #8a6c6c;
+        }
+        .log-output {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+        .success { color: #28a745; }
+        .error { color: #dc3545; }
+        .warning { color: #ffc107; }
+        .info { color: #17a2b8; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Upload Error Logging Test Suite</h1>
+    
+    <div class="test-section">
+        <h2>Test 1: Standard Error Object</h2>
+        <p>Tests if Error objects are properly serialized without [object Object]</p>
+        <button onclick="testStandardError()">Run Test</button>
+        <div id="test1-output" class="log-output"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 2: Object Error</h2>
+        <p>Tests if plain object errors are properly serialized</p>
+        <button onclick="testObjectError()">Run Test</button>
+        <div id="test2-output" class="log-output"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 3: Complex Error with Context</h2>
+        <p>Tests if errors with context data are properly serialized</p>
+        <button onclick="testComplexError()">Run Test</button>
+        <div id="test3-output" class="log-output"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 4: Network Error Simulation</h2>
+        <p>Simulates a network error during contract processing</p>
+        <button onclick="testNetworkError()">Run Test</button>
+        <div id="test4-output" class="log-output"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 5: File Processing Error</h2>
+        <p>Simulates a file processing error during upload</p>
+        <button onclick="testFileProcessingError()">Run Test</button>
+        <div id="test5-output" class="log-output"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Console Output Monitor</h2>
+        <p>Real-time console error monitoring</p>
+        <button onclick="clearConsoleOutput()">Clear</button>
+        <div id="console-output" class="log-output"></div>
+    </div>
+
+    <script>
+        // Import the error logger utilities
+        const logError = (prefix, error, context) => {
+            const extractErrorDetails = (error, context) => {
+                const baseDetails = {
+                    timestamp: new Date().toISOString(),
+                    context: context || {}
+                };
+
+                if (error instanceof Error) {
+                    return {
+                        ...baseDetails,
+                        message: error.message,
+                        type: error.name,
+                        stack: error.stack
+                    };
+                }
+
+                if (typeof error === 'object' && error !== null) {
+                    return {
+                        ...baseDetails,
+                        message: error.message || JSON.stringify(error),
+                        type: 'ObjectError',
+                        details: JSON.parse(JSON.stringify(error))
+                    };
+                }
+
+                return {
+                    ...baseDetails,
+                    message: String(error),
+                    type: typeof error
+                };
+            };
+
+            const errorDetails = extractErrorDetails(error, context);
+            const logMessage = `${prefix}: ${JSON.stringify(errorDetails, null, 2)}`;
+            
+            // Log to console
+            console.error(logMessage);
+            
+            // Add to monitor
+            addToConsoleOutput(logMessage, 'error');
+            
+            return errorDetails;
+        };
+
+        const createUserFriendlyMessage = (error, fallback = 'An unexpected error occurred') => {
+            if (error instanceof Error) {
+                if (error.message.includes('network') || error.message.includes('Network')) {
+                    return 'Network connection error. Please check your internet connection and try again.';
+                }
+                if (error.message.includes('timeout') || error.message.includes('Timeout')) {
+                    return 'Request timed out. Please try again with a smaller file.';
+                }
+                if (error.message.includes('file') || error.message.includes('File')) {
+                    return 'File processing error. Please ensure the file is valid and try again.';
+                }
+                return error.message;
+            }
+            
+            if (typeof error === 'object' && error?.message) {
+                return error.message;
+            }
+            
+            return fallback;
+        };
+
+        // Test functions
+        function testStandardError() {
+            const output = document.getElementById('test1-output');
+            output.innerHTML = '<div class="info">Running test...</div>';
+            
+            try {
+                const testError = new Error('Test standard error message');
+                const errorDetails = logError('❌ Contract processing error', testError, {
+                    fileName: 'test-contract.pdf',
+                    fileSize: 123456,
+                    userId: 'test-user-123'
+                });
+
+                const hasObjectObject = JSON.stringify(errorDetails).includes('[object Object]');
+                
+                if (hasObjectObject) {
+                    output.innerHTML = `<div class="error">❌ FAILED: Found [object Object] in output</div>`;
+                } else {
+                    output.innerHTML = `
+                        <div class="success">✅ PASSED: No [object Object] found</div>
+                        <div class="info">User-friendly message: ${createUserFriendlyMessage(testError)}</div>
+                        <pre>${JSON.stringify(errorDetails, null, 2)}</pre>
+                    `;
+                }
+            } catch (error) {
+                output.innerHTML = `<div class="error">❌ Test failed: ${error.message}</div>`;
+            }
+        }
+
+        function testObjectError() {
+            const output = document.getElementById('test2-output');
+            output.innerHTML = '<div class="info">Running test...</div>';
+            
+            try {
+                const testError = {
+                    message: 'Database connection failed',
+                    code: 'ECONNREFUSED',
+                    errno: -111,
+                    syscall: 'connect'
+                };
+                
+                const errorDetails = logError('❌ Database error', testError, {
+                    operation: 'contract_save',
+                    userId: 'test-user-123'
+                });
+
+                const hasObjectObject = JSON.stringify(errorDetails).includes('[object Object]');
+                
+                if (hasObjectObject) {
+                    output.innerHTML = `<div class="error">❌ FAILED: Found [object Object] in output</div>`;
+                } else {
+                    output.innerHTML = `
+                        <div class="success">✅ PASSED: No [object Object] found</div>
+                        <div class="info">User-friendly message: ${createUserFriendlyMessage(testError)}</div>
+                        <pre>${JSON.stringify(errorDetails, null, 2)}</pre>
+                    `;
+                }
+            } catch (error) {
+                output.innerHTML = `<div class="error">❌ Test failed: ${error.message}</div>`;
+            }
+        }
+
+        function testComplexError() {
+            const output = document.getElementById('test3-output');
+            output.innerHTML = '<div class="info">Running test...</div>';
+            
+            try {
+                const testError = new Error('AI service unavailable');
+                testError.statusCode = 503;
+                testError.retryAfter = 60;
+                
+                const errorDetails = logError('❌ AI analysis failed', testError, {
+                    fileName: 'complex-contract.pdf',
+                    fileSize: 2500000,
+                    fileType: 'application/pdf',
+                    perspective: 'data-subject',
+                    userId: 'test-user-456',
+                    retryCount: 2,
+                    maxRetries: 3
+                });
+
+                const serialized = JSON.stringify(errorDetails, null, 2);
+                const hasObjectObject = serialized.includes('[object Object]');
+                
+                if (hasObjectObject) {
+                    output.innerHTML = `<div class="error">❌ FAILED: Found [object Object] in output</div><pre>${serialized}</pre>`;
+                } else {
+                    output.innerHTML = `
+                        <div class="success">✅ PASSED: No [object Object] found</div>
+                        <div class="info">User-friendly message: ${createUserFriendlyMessage(testError)}</div>
+                        <div class="info">Context preserved: ${Object.keys(errorDetails.context).length} fields</div>
+                        <pre>${serialized}</pre>
+                    `;
+                }
+            } catch (error) {
+                output.innerHTML = `<div class="error">❌ Test failed: ${error.message}</div>`;
+            }
+        }
+
+        function testNetworkError() {
+            const output = document.getElementById('test4-output');
+            output.innerHTML = '<div class="info">Running test...</div>';
+            
+            try {
+                const testError = new Error('Network request failed: ERR_CONNECTION_REFUSED');
+                
+                const errorDetails = logError('❌ Contract processing workflow failed', testError, {
+                    userId: 'test-user-789',
+                    reviewType: 'compliance_score',
+                    contractTitle: 'test-nda.pdf',
+                    contentLength: 15000,
+                    fileName: 'test-nda.pdf'
+                });
+
+                const serialized = JSON.stringify(errorDetails, null, 2);
+                const hasObjectObject = serialized.includes('[object Object]');
+                const userMessage = createUserFriendlyMessage(testError);
+                
+                if (hasObjectObject) {
+                    output.innerHTML = `<div class="error">❌ FAILED: Found [object Object] in output</div>`;
+                } else {
+                    output.innerHTML = `
+                        <div class="success">✅ PASSED: Network error properly serialized</div>
+                        <div class="info">User sees: "${userMessage}"</div>
+                        <div class="warning">Developer sees full details in console</div>
+                        <pre>${serialized}</pre>
+                    `;
+                }
+            } catch (error) {
+                output.innerHTML = `<div class="error">❌ Test failed: ${error.message}</div>`;
+            }
+        }
+
+        function testFileProcessingError() {
+            const output = document.getElementById('test5-output');
+            output.innerHTML = '<div class="info">Running test...</div>';
+            
+            try {
+                const testError = new Error('File processing error: Invalid PDF structure');
+                
+                const errorDetails = logError('❌ Contract processing error', testError, {
+                    fileName: 'corrupted.pdf',
+                    fileSize: 500000,
+                    fileType: 'application/pdf',
+                    perspective: 'organization',
+                    userId: 'test-user-999'
+                });
+
+                const serialized = JSON.stringify(errorDetails, null, 2);
+                const hasObjectObject = serialized.includes('[object Object]');
+                const userMessage = createUserFriendlyMessage(testError, 'There was an error processing your contract.');
+                
+                if (hasObjectObject) {
+                    output.innerHTML = `<div class="error">❌ FAILED: Found [object Object] in output</div>`;
+                } else {
+                    output.innerHTML = `
+                        <div class="success">✅ PASSED: File processing error properly serialized</div>
+                        <div class="info">User sees: "${userMessage}"</div>
+                        <div class="info">Should NOT retry: ${userMessage.includes('file')}</div>
+                        <pre>${serialized}</pre>
+                    `;
+                }
+            } catch (error) {
+                output.innerHTML = `<div class="error">❌ Test failed: ${error.message}</div>`;
+            }
+        }
+
+        // Console output monitoring
+        const consoleOutput = document.getElementById('console-output');
+        const originalConsoleError = console.error;
+        
+        function addToConsoleOutput(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const entry = document.createElement('div');
+            entry.className = type;
+            entry.textContent = `[${timestamp}] ${message}`;
+            consoleOutput.appendChild(entry);
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+        }
+
+        function clearConsoleOutput() {
+            consoleOutput.innerHTML = '<div class="info">Console cleared. Monitoring errors...</div>';
+        }
+
+        // Override console.error to capture all errors
+        console.error = function(...args) {
+            originalConsoleError.apply(console, args);
+            const message = args.map(arg => {
+                if (typeof arg === 'object') {
+                    return JSON.stringify(arg, null, 2);
+                }
+                return String(arg);
+            }).join(' ');
+            
+            // Check for [object Object]
+            if (message.includes('[object Object]')) {
+                addToConsoleOutput('⚠️ WARNING: [object Object] detected in console.error!', 'warning');
+            }
+        };
+
+        // Initialize
+        clearConsoleOutput();
+        addToConsoleOutput('Test suite loaded. Click buttons to run tests.', 'info');
+    </script>
+</body>
+</html>
