@@ -62,7 +62,10 @@ export class ContractClassificationService {
         clearTimeout(timeoutId);
 
         if (error) {
-          console.warn('⚠️ AI classification API error, using fallback rules:', error);
+          logError('⚠️ AI classification API error, using fallback rules', error, {
+            fileName: fileName || 'unknown',
+            contentLength: content.length
+          });
           return this.fallbackClassification(content, fileName);
         }
 
