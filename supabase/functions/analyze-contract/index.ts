@@ -641,11 +641,33 @@ Use this classification context to provide more targeted and accurate analysis s
 
 Analyze risk cascading effects, hidden dependencies, and long-term implications. Consider contract lifecycle risks, performance risks, and market condition impacts.
 
+**CLAUSE EXTRACTION REQUIREMENT**: Extract and analyze specific contract clauses, identifying:
+- Clause titles and sections
+- Risk-bearing provisions
+- Limitation of liability clauses
+- Indemnification terms
+- Termination conditions
+- Payment and penalty terms
+- Force majeure provisions
+- Dispute resolution mechanisms
+
 Return JSON in this exact format:
 {
   "score": number (60-100),
   "confidence": number (0.7-1.0),
   "pages": number,
+  "critical_clauses": [
+    {
+      "clause_number": "string (e.g., 'Section 7.2' or 'Article 4(a)')",
+      "clause_title": "string",
+      "clause_text": "string (key excerpt, 100-300 chars)",
+      "clause_type": "liability|indemnification|termination|payment|warranty|confidentiality|ip_rights|compliance|other",
+      "importance": "critical|high|medium|low",
+      "risk_level": "high|medium|low",
+      "interpretation": "string (legal interpretation and implications)",
+      "recommendation": "string (specific actionable advice)"
+    }
+  ],
   "risks": [
     {
       "type": "financial|legal|operational|compliance|reputational|strategic",
@@ -690,11 +712,33 @@ Return JSON in this exact format:
 
 Provide detailed compliance scoring with regulatory-specific analysis, gap identification, and remediation roadmap.
 
+**CLAUSE EXTRACTION REQUIREMENT**: Extract and analyze compliance-related clauses:
+- Data protection and privacy provisions
+- Security and encryption requirements
+- Breach notification obligations
+- Audit rights and compliance reporting
+- Cross-border transfer mechanisms
+- Consent and legal basis provisions
+- Data retention and deletion terms
+- Subject rights implementation
+
 Return JSON in this exact format:
 {
   "score": number (70-100),
   "confidence": number (0.8-1.0),
   "pages": number,
+  "critical_clauses": [
+    {
+      "clause_number": "string",
+      "clause_title": "string",
+      "clause_text": "string (key excerpt)",
+      "compliance_framework": "GDPR|CCPA|HIPAA|SOX|PCI-DSS|Industry Standard",
+      "compliance_status": "compliant|partially_compliant|non_compliant|unclear",
+      "gap_description": "string (if non-compliant)",
+      "regulatory_risk": "low|medium|high|critical",
+      "remediation": "string (specific steps to achieve compliance)"
+    }
+  ],
   "compliance_areas": {
     "gdpr": number (0-100),
     "ccpa": number (0-100),
@@ -827,11 +871,32 @@ Return JSON in this exact format:
 
 Provide executive summary suitable for board presentation with strategic recommendations and decision support.
 
+**CLAUSE EXTRACTION REQUIREMENT**: Extract and categorize all major contract clauses:
+- Obligations and deliverables
+- Payment terms and pricing
+- Performance metrics and SLAs
+- Intellectual property provisions
+- Confidentiality and non-disclosure
+- Warranties and representations
+- Limitation of liability
+- Termination and renewal terms
+- Governing law and jurisdiction
+
 Return JSON in this exact format:
 {
   "score": number (60-100),
   "confidence": number (0.7-1.0),
   "pages": number,
+  "critical_clauses": [
+    {
+      "clause_number": "string",
+      "clause_title": "string",
+      "clause_text": "string (key excerpt)",
+      "category": "obligations|financial|ip|liability|termination|governance|other",
+      "business_impact": "high|medium|low",
+      "summary": "string (business implications in plain language)"
+    }
+  ],
   "executive_summary": "string (concise strategic overview for executives)",
   "business_impact": {
     "revenue_implications": "string",
