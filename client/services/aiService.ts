@@ -217,7 +217,7 @@ class AIService {
       timestamp: new Date().toISOString(),
     };
 
-    console.error("❌ All AI analysis attempts failed:", errorDetails);
+    console.error("�� All AI analysis attempts failed:", errorDetails);
     throw new Error(
       `Contract analysis failed after ${maxRetries} attempts: ${finalErrorMessage}`,
     );
@@ -279,12 +279,13 @@ class AIService {
         clearTimeout(timeoutId);
 
         if (error) {
-          console.error("❌ Supabase Edge Function error:", error);
+          logError("❌ Supabase Edge Function error", error, { reviewType: request.reviewType });
           throw new Error(`AI service error: ${error.message}`);
         }
 
         if (!data) {
-          console.error("❌ No data returned from Edge Function");
+          const errorMsg = "No data returned from Edge Function";
+          console.error("❌", errorMsg);
           throw new Error("No data returned from AI service");
         }
 
@@ -336,7 +337,7 @@ class AIService {
         timestamp: new Date().toISOString(),
       };
 
-      console.error("❌ AI service call failed:", errorDetails);
+      console.error("❌ AI service call failed:", JSON.stringify(errorDetails, null, 2));
 
       // Enhanced error context
       const enhancedMessage = `AI service call failed: ${errorMessage}. Model: ${model}, Review Type: ${request.reviewType}`;
