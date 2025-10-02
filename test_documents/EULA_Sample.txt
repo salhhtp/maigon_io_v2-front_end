@@ -1,0 +1,245 @@
+END USER LICENSE AGREEMENT
+
+IMPORTANT - READ CAREFULLY: This End User License Agreement ("EULA" or "Agreement") is a legal agreement between you (either an individual or a single entity, "You" or "Licensee") and CloudSoft Technologies Inc. ("Licensor," "We," or "Us") for the software product identified above, which includes computer software and may include associated media, printed materials, and online or electronic documentation (collectively, the "Software").
+
+BY INSTALLING, COPYING, OR OTHERWISE USING THE SOFTWARE, YOU AGREE TO BE BOUND BY THE TERMS OF THIS EULA. IF YOU DO NOT AGREE TO THE TERMS OF THIS EULA, DO NOT INSTALL OR USE THE SOFTWARE AND RETURN IT TO YOUR PLACE OF PURCHASE FOR A FULL REFUND WITHIN 30 DAYS OF PURCHASE.
+
+Software Product: CloudSoft Enterprise Suite v5.0
+Version: 5.0.2024.01
+Effective Date: January 15, 2024
+License Type: Commercial End User License
+
+1. GRANT OF LICENSE
+
+1.1 License Grant. Subject to the terms and conditions of this Agreement, Licensor grants to Licensee a non-exclusive, non-transferable, revocable license to:
+
+(a) Install and use the Software on a number of devices not exceeding the number of licenses purchased;
+(b) Make one copy of the Software for backup or archival purposes only;
+(c) Use the Software strictly in accordance with the Documentation and for its intended purpose.
+
+1.2 License Types and Restrictions:
+
+ENTERPRISE LICENSE (Unlimited Users):
+- Unlimited installations within Licensee's organization
+- Covers all employees, contractors, and affiliates
+- Annual license fee: $49,999 per year
+- Includes priority support and maintenance
+
+PROFESSIONAL LICENSE (Up to 50 Users):
+- Maximum 50 named users
+- 50 device installations
+- Annual license fee: $9,999 per year
+- Includes standard support and maintenance
+
+BASIC LICENSE (Single User):
+- One named user
+- Up to 3 device installations
+- Annual license fee: $999 per year
+- Includes community support
+
+1.3 SaaS Deployment Option. For cloud-based deployment, Licensee may access the Software via Licensor's hosted environment, subject to additional terms in Section 12.
+
+2. RESTRICTIONS ON USE
+
+2.1 You may NOT:
+
+(a) Copy, distribute, rent, lease, lend, or sublicense the Software except as expressly permitted in this Agreement;
+(b) Reverse engineer, decompile, disassemble, or attempt to derive the source code of the Software, except to the extent such restriction is prohibited by applicable law;
+(c) Modify, adapt, translate, or create derivative works based upon the Software;
+(d) Remove, alter, or obscure any proprietary notices, labels, or marks on the Software;
+(e) Use the Software for any purpose that is unlawful or prohibited by this Agreement;
+(f) Use the Software to develop competing products or services;
+(g) Circumvent or attempt to circumvent any license key, authentication, or copy protection mechanisms;
+(h) Share access credentials or license keys with unauthorized users;
+(i) Use the Software in any manner that could damage, disable, overburden, or impair Licensor's servers or networks;
+(j) Attempt to gain unauthorized access to any services, accounts, or networks through the Software.
+
+2.2 Benchmarking. You may not publish or disclose to any third party the results of any benchmark tests or performance comparisons of the Software without Licensor's prior written consent.
+
+3. INTELLECTUAL PROPERTY RIGHTS
+
+3.1 Ownership. The Software is licensed, not sold. Licensor and its licensors retain all right, title, and interest in and to the Software, including all copyrights, patents, trade secrets, trademarks, and other intellectual property rights.
+
+3.2 Trademarks. CloudSoft, CloudSoft Enterprise Suite, and associated logos are trademarks or registered trademarks of CloudSoft Technologies Inc. You may not use these marks without prior written permission.
+
+3.3 Third-Party Components. The Software may include third-party software components subject to separate license terms as specified in the Documentation. Licensee's use of such components is governed by their respective licenses.
+
+3.4 Feedback. If you provide Licensor with any suggestions, comments, or feedback regarding the Software ("Feedback"), you grant Licensor a perpetual, irrevocable, worldwide, royalty-free license to use, modify, and incorporate such Feedback into the Software without compensation or attribution.
+
+4. TERM AND TERMINATION
+
+4.1 Term. This Agreement is effective upon your acceptance and continues until terminated as provided herein.
+
+4.2 Termination by Licensee. You may terminate this Agreement at any time by destroying all copies of the Software in your possession or control and ceasing all use.
+
+4.3 Termination by Licensor. Licensor may terminate this Agreement immediately upon notice if you:
+(a) Fail to comply with any term of this Agreement;
+(b) File for bankruptcy or become insolvent;
+(c) Engage in any conduct that damages or threatens to damage Licensor's reputation or business.
+
+4.4 Effect of Termination. Upon termination:
+(a) All licenses granted herein immediately terminate;
+(b) You must cease all use of the Software;
+(c) You must destroy or return all copies of the Software;
+(d) You must provide written certification of compliance within 10 days;
+(e) Sections 3, 5, 6, 7, 8, 9, and 10 survive termination.
+
+4.5 Renewal. Annual licenses automatically renew for successive one-year terms at the then-current rates unless either party provides 60 days' written notice of non-renewal.
+
+5. MAINTENANCE AND SUPPORT
+
+5.1 Maintenance. For the duration of your active license subscription, Licensor will provide:
+(a) Software updates and patches;
+(b) Security fixes and vulnerability remediation;
+(c) Bug fixes and error corrections;
+(d) Minor version upgrades (e.g., 5.0 to 5.1);
+(e) Access to knowledge base and documentation updates.
+
+5.2 Major Upgrades. Major version upgrades (e.g., 5.0 to 6.0) may require additional fees at Licensor's discretion.
+
+5.3 Support Services. Support levels vary by license type:
+
+Enterprise: 24/7 priority support, dedicated account manager, 1-hour response time for critical issues
+Professional: Business hours support (9AM-5PM EST), 4-hour response time
+Basic: Community forum support only, no guaranteed response time
+
+5.4 Support Channels:
+- Email: support@cloudsoft.com
+- Phone: +1-800-CLOUD-SOFT (Enterprise only)
+- Live Chat: Available business hours
+- Support Portal: https://support.cloudsoft.com
+
+6. LIMITED WARRANTY
+
+6.1 Software Warranty. Licensor warrants that for a period of ninety (90) days from the date of delivery:
+(a) The Software, when used as directed, will perform substantially in accordance with the Documentation;
+(b) The media on which the Software is delivered will be free from defects in materials and workmanship under normal use.
+
+6.2 Remedy. Your exclusive remedy and Licensor's entire liability under this warranty shall be, at Licensor's option, either:
+(a) Repair or replacement of the Software; or
+(b) Refund of the license fee paid for the Software.
+
+6.3 Warranty Exclusions. The above warranty does not apply to:
+(a) Software that has been modified or altered (except by Licensor);
+(b) Problems caused by accident, abuse, misapplication, or improper installation;
+(c) Use of the Software in combination with non-approved hardware or software;
+(d) Failure to install updates or patches provided by Licensor.
+
+6.4 DISCLAIMER. EXCEPT AS EXPRESSLY SET FORTH IN THIS SECTION 6, THE SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT. LICENSOR DOES NOT WARRANT THAT THE SOFTWARE WILL MEET YOUR REQUIREMENTS OR THAT OPERATION WILL BE UNINTERRUPTED OR ERROR-FREE.
+
+7. LIMITATION OF LIABILITY
+
+7.1 EXCLUSION OF DAMAGES. IN NO EVENT SHALL LICENSOR BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, INCLUDING BUT NOT LIMITED TO LOSS OF PROFITS, LOSS OF DATA, BUSINESS INTERRUPTION, OR LOSS OF BUSINESS INFORMATION, EVEN IF LICENSOR HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
+
+7.2 CAP ON LIABILITY. LICENSOR'S TOTAL CUMULATIVE LIABILITY ARISING OUT OF OR RELATED TO THIS AGREEMENT, WHETHER IN CONTRACT, TORT, OR OTHERWISE, SHALL NOT EXCEED THE AMOUNT PAID BY LICENSEE FOR THE SOFTWARE IN THE TWELVE (12) MONTHS PRECEDING THE CLAIM.
+
+7.3 Exceptions. The limitations in this Section 7 do not apply to:
+(a) Licensee's breach of the restrictions in Section 2;
+(b) Licensee's infringement of Licensor's intellectual property rights;
+(c) Licensee's violation of applicable laws or regulations;
+(d) Death or personal injury caused by Licensor's negligence.
+
+8. DATA COLLECTION AND PRIVACY
+
+8.1 Data Collection. The Software may collect and transmit certain data, including:
+(a) Usage analytics (features used, frequency, duration);
+(b) Performance metrics (crash reports, error logs);
+(c) System information (OS version, hardware configuration);
+(d) License validation data (license key, activation status);
+(e) User account information (name, email, company).
+
+8.2 Purpose. Collected data is used to:
+(a) Validate license compliance;
+(b) Improve software functionality and performance;
+(c) Provide technical support and troubleshooting;
+(d) Send product updates and security notifications;
+(e) Analyze usage patterns for product development.
+
+8.3 Privacy Policy. Use of the Software is also governed by Licensor's Privacy Policy available at https://cloudsoft.com/privacy, which is incorporated by reference.
+
+8.4 Data Protection. Licensor implements appropriate technical and organizational measures to protect collected data in accordance with applicable data protection laws, including GDPR and CCPA.
+
+8.5 Opt-Out. You may opt out of non-essential data collection through the Software's settings, though this may affect certain features or support capabilities.
+
+9. COMPLIANCE AND AUDIT
+
+9.1 Compliance. You agree to use the Software in compliance with all applicable laws and regulations, including export control laws, data protection laws, and intellectual property laws.
+
+9.2 Audit Rights. Licensor reserves the right, upon thirty (30) days' written notice, to audit your use of the Software to verify compliance with this Agreement. Such audits shall:
+(a) Be conducted during normal business hours;
+(b) Not unreasonably interfere with your business operations;
+(c) Occur no more than once per year unless prior non-compliance was found.
+
+9.3 Audit Results. If an audit reveals non-compliance:
+(a) You must immediately purchase additional licenses to cover any unlicensed use;
+(b) If unlicensed use exceeds 5%, you shall also pay Licensor's reasonable audit costs;
+(c) Persistent or willful non-compliance may result in immediate termination.
+
+10. EXPORT COMPLIANCE
+
+10.1 The Software and underlying technology may be subject to U.S. export control laws and regulations. You agree to comply strictly with all such laws and regulations and acknowledge that you have the responsibility to obtain such licenses to export, re-export, or import as may be required.
+
+10.2 You represent and warrant that you are not:
+(a) Located in, or a resident or national of, any country subject to U.S. embargo;
+(b) On any U.S. government list of prohibited or restricted parties;
+(c) Involved in any activities related to weapons of mass destruction.
+
+11. GOVERNMENT END USERS
+
+11.1 If you are a U.S. Government entity or acquiring the Software for use by a U.S. Government entity, the Software is "Commercial Computer Software" and "Commercial Computer Software Documentation" as defined in FAR 12.212 and DFARS 227.7202.
+
+11.2 Government users' rights are limited to those specified in this Agreement, consistent with FAR 12.212 and DFARS 227.7202-1 through 227.7202-4.
+
+12. CLOUD DEPLOYMENT SPECIFIC TERMS
+
+12.1 SaaS Access. If accessing the Software via Licensor's cloud environment:
+(a) Access is provided on a subscription basis;
+(b) Licensor maintains the infrastructure and ensures reasonable availability;
+(c) Uptime SLA: 99.9% monthly average (Enterprise), 99.5% (Professional);
+(d) Scheduled maintenance windows are excluded from SLA calculations;
+(e) Data backups are performed daily with 30-day retention.
+
+12.2 Data Storage. Your data stored in Licensor's cloud environment:
+(a) Remains your property;
+(b) Is encrypted at rest (AES-256) and in transit (TLS 1.3);
+(c) Is stored in Licensor's certified data centers;
+(d) Can be exported at any time in standard formats;
+(e) Is deleted within 30 days of termination unless legally required to retain.
+
+13. GENERAL PROVISIONS
+
+13.1 Entire Agreement. This Agreement constitutes the entire agreement between the parties concerning the Software and supersedes all prior agreements, representations, and understandings.
+
+13.2 Amendment. Licensor may modify this Agreement by providing thirty (30) days' notice. Continued use of the Software after such notice constitutes acceptance of the modified terms.
+
+13.3 Assignment. You may not assign this Agreement without Licensor's prior written consent. Licensor may assign this Agreement to any successor or affiliate without consent.
+
+13.4 Governing Law. This Agreement shall be governed by the laws of the State of Delaware, without regard to conflicts of law provisions.
+
+13.5 Jurisdiction. Any disputes shall be resolved exclusively in the state or federal courts located in Wilmington, Delaware.
+
+13.6 Severability. If any provision is held invalid or unenforceable, the remaining provisions shall remain in full force and effect.
+
+13.7 Waiver. No waiver of any provision shall be effective unless in writing and signed by Licensor.
+
+13.8 Force Majeure. Neither party shall be liable for delays or failures in performance resulting from causes beyond its reasonable control.
+
+13.9 Notices. All notices shall be in writing and sent to:
+CloudSoft Technologies Inc.
+Legal Department
+456 Software Avenue
+San Jose, CA 95110
+Email: legal@cloudsoft.com
+
+13.10 Survivability. Sections 3 (Intellectual Property), 5 (Warranties), 6 (Limitation of Liability), 8 (Data Collection), and 12 (General Provisions) shall survive termination of this Agreement.
+
+BY INSTALLING OR USING THE SOFTWARE, YOU ACKNOWLEDGE THAT YOU HAVE READ THIS AGREEMENT, UNDERSTAND IT, AND AGREE TO BE BOUND BY ITS TERMS AND CONDITIONS.
+
+FOR QUESTIONS OR SUPPORT:
+Email: support@cloudsoft.com
+Phone: +1-800-CLOUD-SOFT
+Web: https://www.cloudsoft.com/support
+
+CloudSoft Technologies Inc.
+Version: EULA-2024-01
+Last Updated: January 15, 2024
