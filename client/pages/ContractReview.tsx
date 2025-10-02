@@ -550,9 +550,6 @@ export default function ContractReview() {
                     <Send className="w-4 h-4" />
                   </Button>
                 </div>
-                <p className="text-[10px] text-[#725A5A] mt-2">
-                  This mock shows how the AI agent will behave once live. Replies are illustrative only.
-                </p>
               </div>
             </div>
           </div>
