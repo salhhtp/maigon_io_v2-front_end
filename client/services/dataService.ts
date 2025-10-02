@@ -194,11 +194,11 @@ export class DataService {
           break;
         } catch (aiError) {
           retryCount++;
-          logError(
-            `❌ AI analysis attempt ${retryCount} failed`,
-            aiError,
-            { userId, reviewType, retryCount }
-          );
+          logError(`❌ AI analysis attempt ${retryCount} failed`, aiError, {
+            userId,
+            reviewType,
+            retryCount,
+          });
 
           if (retryCount > maxRetries) {
             // Final fallback - create a basic review result

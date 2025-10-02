@@ -279,7 +279,9 @@ class AIService {
         clearTimeout(timeoutId);
 
         if (error) {
-          logError("❌ Supabase Edge Function error", error, { reviewType: request.reviewType });
+          logError("❌ Supabase Edge Function error", error, {
+            reviewType: request.reviewType,
+          });
           throw new Error(`AI service error: ${error.message}`);
         }
 
@@ -337,7 +339,10 @@ class AIService {
         timestamp: new Date().toISOString(),
       };
 
-      console.error("❌ AI service call failed:", JSON.stringify(errorDetails, null, 2));
+      console.error(
+        "❌ AI service call failed:",
+        JSON.stringify(errorDetails, null, 2),
+      );
 
       // Enhanced error context
       const enhancedMessage = `AI service call failed: ${errorMessage}. Model: ${model}, Review Type: ${request.reviewType}`;

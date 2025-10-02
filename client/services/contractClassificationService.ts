@@ -1,6 +1,6 @@
-import { supabase } from '@/lib/supabase';
-import logger from '@/utils/logger';
-import { logError } from '@/utils/errorLogger';
+import { supabase } from "@/lib/supabase";
+import logger from "@/utils/logger";
+import { logError } from "@/utils/errorLogger";
 
 export interface ContractClassificationResult {
   contractType: string;
@@ -13,10 +13,11 @@ export interface ContractClassificationResult {
 
 export class ContractClassificationService {
   private static instance: ContractClassificationService;
-  
+
   static getInstance(): ContractClassificationService {
     if (!ContractClassificationService.instance) {
-      ContractClassificationService.instance = new ContractClassificationService();
+      ContractClassificationService.instance =
+        new ContractClassificationService();
     }
     return ContractClassificationService.instance;
   }
@@ -24,23 +25,26 @@ export class ContractClassificationService {
   /**
    * Analyze contract content to automatically determine its type
    */
-  async classifyContract(content: string, fileName?: string): Promise<ContractClassificationResult> {
+  async classifyContract(
+    content: string,
+    fileName?: string,
+  ): Promise<ContractClassificationResult> {
     try {
-      console.log('🤖 Starting intelligent contract classification...', {
+      console.log("🤖 Starting intelligent contract classification...", {
         contentLength: content.length,
-        fileName: fileName || 'unknown',
-        hasContent: content.length > 0
+        fileName: fileName || "unknown",
+        hasContent: content.length > 0,
       });
 
       // Validate input
       if (!content || content.trim().length === 0) {
-        console.warn('⚠️ Empty content provided, using general classification');
+        console.warn("⚠️ Empty content provided, using general classification");
         return {
-          contractType: 'general_commercial',
+          contractType: "general_commercial",
           confidence: 0.3,
-          characteristics: ['No content available for classification'],
-          reasoning: 'Empty or invalid content provided',
-          suggestedSolutions: ['full_summary']
+          characteristics: ["No content available for classification"],
+          reasoning: "Empty or invalid content provided",
+          suggestedSolutions: ["full_summary"],
         };
       }
 
@@ -51,58 +55,67 @@ export class ContractClassificationService {
       let classificationResult: ContractClassificationResult;
 
       try {
-        const { data, error } = await supabase.functions.invoke('classify-contract', {
-          body: {
-            content: content.substring(0, 5000), // First 5000 chars for classification
-            fileName: fileName || 'unknown'
+        const { data, error } = await supabase.functions.invoke(
+          "classify-contract",
+          {
+            body: {
+              content: content.substring(0, 5000), // First 5000 chars for classification
+              fileName: fileName || "unknown",
+            },
+            signal: controller.signal,
           },
-          signal: controller.signal
-        });
+        );
 
         clearTimeout(timeoutId);
 
         if (error) {
-          logError('⚠️ AI classification API error, using fallback rules', error, {
-            fileName: fileName || 'unknown',
-            contentLength: content.length
-          });
+          logError(
+            "⚠️ AI classification API error, using fallback rules",
+            error,
+            {
+              fileName: fileName || "unknown",
+              contentLength: content.length,
+            },
+          );
           return this.fallbackClassification(content, fileName);
         }
 
         if (!data) {
-          console.warn('⚠️ No classification data returned, using fallback');
+          console.warn("⚠️ No classification data returned, using fallback");
           return this.fallbackClassification(content, fileName);
         }
 
         // Validate the classification result
         const validatedData = this.validateClassificationResult(data);
-        console.log('✅ AI contract classification completed:', {
+        console.log("✅ AI contract classification completed:", {
           contractType: validatedData.contractType,
           confidence: validatedData.confidence,
-          characteristicsCount: validatedData.characteristics.length
+          characteristicsCount: validatedData.characteristics.length,
         });
 
         classificationResult = validatedData;
-
       } catch (timeoutError) {
         clearTimeout(timeoutId);
-        if (timeoutError.name === 'AbortError') {
-          console.warn('⚠️ Classification timed out, using fallback');
+        if (timeoutError.name === "AbortError") {
+          console.warn("⚠️ Classification timed out, using fallback");
         } else {
-          logError('⚠️ Classification request failed, using fallback', timeoutError, {
-            fileName: fileName || 'unknown',
-            contentLength: content.length
-          });
+          logError(
+            "⚠️ Classification request failed, using fallback",
+            timeoutError,
+            {
+              fileName: fileName || "unknown",
+              contentLength: content.length,
+            },
+          );
         }
         return this.fallbackClassification(content, fileName);
       }
 
       return classificationResult;
-
     } catch (error) {
-      logError('⚠️ Classification error, using fallback', error, {
-        fileName: fileName || 'unknown',
-        contentLength: content.length
+      logError("⚠️ Classification error, using fallback", error, {
+        fileName: fileName || "unknown",
+        contentLength: content.length,
       });
       return this.fallbackClassification(content, fileName);
     }
@@ -111,94 +124,202 @@ export class ContractClassificationService {
   /**
    * Validate and sanitize classification result from AI
    */
-  private validateClassificationResult(data: any): ContractClassificationResult {
+  private validateClassificationResult(
+    data: any,
+  ): ContractClassificationResult {
     const validTypes = [
-      'data_processing_agreement',
-      'non_disclosure_agreement',
-      'privacy_policy_document',
-      'consultancy_agreement',
-      'research_development_agreement',
-      'end_user_license_agreement',
-      'product_supply_agreement',
-      'general_commercial'
+      "data_processing_agreement",
+      "non_disclosure_agreement",
+      "privacy_policy_document",
+      "consultancy_agreement",
+      "research_development_agreement",
+      "end_user_license_agreement",
+      "product_supply_agreement",
+      "general_commercial",
     ];
 
     return {
-      contractType: validTypes.includes(data.contractType) ? data.contractType : 'general_commercial',
+      contractType: validTypes.includes(data.contractType)
+        ? data.contractType
+        : "general_commercial",
       confidence: Math.min(Math.max(data.confidence || 0.5, 0), 1),
       subType: data.subType || undefined,
-      characteristics: Array.isArray(data.characteristics) ? data.characteristics : ['Commercial agreement'],
-      reasoning: data.reasoning || 'AI-powered classification',
-      suggestedSolutions: Array.isArray(data.suggestedSolutions) ? data.suggestedSolutions : ['full_summary', 'risk_assessment']
+      characteristics: Array.isArray(data.characteristics)
+        ? data.characteristics
+        : ["Commercial agreement"],
+      reasoning: data.reasoning || "AI-powered classification",
+      suggestedSolutions: Array.isArray(data.suggestedSolutions)
+        ? data.suggestedSolutions
+        : ["full_summary", "risk_assessment"],
     };
   }
 
   /**
    * Fallback rule-based classification when AI is unavailable
    */
-  private fallbackClassification(content: string, fileName?: string): ContractClassificationResult {
+  private fallbackClassification(
+    content: string,
+    fileName?: string,
+  ): ContractClassificationResult {
     const contentLower = content.toLowerCase();
-    const fileNameLower = (fileName || '').toLowerCase();
+    const fileNameLower = (fileName || "").toLowerCase();
 
     // Define classification rules based on the 7 specific solution types
     const rules = [
       {
-        type: 'data_processing_agreement',
+        type: "data_processing_agreement",
         confidence: 0.95,
-        keywords: ['data processing', 'personal data', 'gdpr', 'data subject', 'controller', 'processor', 'privacy', 'edpb', 'data protection'],
-        characteristics: ['GDPR compliance focused', 'Data processing roles defined', 'EDPB guidelines adherence', 'Data protection safeguards'],
-        solutions: ['compliance_score', 'perspective_review']
+        keywords: [
+          "data processing",
+          "personal data",
+          "gdpr",
+          "data subject",
+          "controller",
+          "processor",
+          "privacy",
+          "edpb",
+          "data protection",
+        ],
+        characteristics: [
+          "GDPR compliance focused",
+          "Data processing roles defined",
+          "EDPB guidelines adherence",
+          "Data protection safeguards",
+        ],
+        solutions: ["compliance_score", "perspective_review"],
       },
       {
-        type: 'non_disclosure_agreement',
+        type: "non_disclosure_agreement",
         confidence: 0.95,
-        keywords: ['non-disclosure', 'confidentiality', 'proprietary information', 'trade secrets', 'confidential', 'nda', 'non disclosure'],
-        characteristics: ['Confidentiality protection', 'Trade secret safeguards', 'Information disclosure restrictions', 'Penalty enforcement'],
-        solutions: ['compliance_score', 'risk_assessment']
+        keywords: [
+          "non-disclosure",
+          "confidentiality",
+          "proprietary information",
+          "trade secrets",
+          "confidential",
+          "nda",
+          "non disclosure",
+        ],
+        characteristics: [
+          "Confidentiality protection",
+          "Trade secret safeguards",
+          "Information disclosure restrictions",
+          "Penalty enforcement",
+        ],
+        solutions: ["compliance_score", "risk_assessment"],
       },
       {
-        type: 'privacy_policy_document',
+        type: "privacy_policy_document",
         confidence: 0.9,
-        keywords: ['privacy policy', 'privacy statement', 'data collection', 'privacy notice', 'cookies', 'user data', 'privacy practices'],
-        characteristics: ['GDPR criteria compliance', 'Privacy rights outlined', 'Data usage transparency', 'User consent mechanisms'],
-        solutions: ['compliance_score', 'perspective_review']
+        keywords: [
+          "privacy policy",
+          "privacy statement",
+          "data collection",
+          "privacy notice",
+          "cookies",
+          "user data",
+          "privacy practices",
+        ],
+        characteristics: [
+          "GDPR criteria compliance",
+          "Privacy rights outlined",
+          "Data usage transparency",
+          "User consent mechanisms",
+        ],
+        solutions: ["compliance_score", "perspective_review"],
       },
       {
-        type: 'consultancy_agreement',
+        type: "consultancy_agreement",
         confidence: 0.9,
-        keywords: ['consultancy', 'professional services', 'consulting', 'advisory', 'expertise', 'consultant', 'service provider'],
-        characteristics: ['Professional service delivery', 'Expertise provision', 'Service standards defined', 'Deliverable specifications'],
-        solutions: ['risk_assessment', 'full_summary', 'perspective_review']
+        keywords: [
+          "consultancy",
+          "professional services",
+          "consulting",
+          "advisory",
+          "expertise",
+          "consultant",
+          "service provider",
+        ],
+        characteristics: [
+          "Professional service delivery",
+          "Expertise provision",
+          "Service standards defined",
+          "Deliverable specifications",
+        ],
+        solutions: ["risk_assessment", "full_summary", "perspective_review"],
       },
       {
-        type: 'research_development_agreement',
+        type: "research_development_agreement",
         confidence: 0.85,
-        keywords: ['research', 'development', 'r&d', 'innovation', 'technology', 'intellectual property', 'research and development'],
-        characteristics: ['Industry standards compliance', 'Innovation framework', 'IP ownership clauses', 'Research deliverables'],
-        solutions: ['compliance_score', 'risk_assessment', 'perspective_review']
+        keywords: [
+          "research",
+          "development",
+          "r&d",
+          "innovation",
+          "technology",
+          "intellectual property",
+          "research and development",
+        ],
+        characteristics: [
+          "Industry standards compliance",
+          "Innovation framework",
+          "IP ownership clauses",
+          "Research deliverables",
+        ],
+        solutions: [
+          "compliance_score",
+          "risk_assessment",
+          "perspective_review",
+        ],
       },
       {
-        type: 'end_user_license_agreement',
+        type: "end_user_license_agreement",
         confidence: 0.9,
-        keywords: ['end user license', 'eula', 'software license', 'license agreement', 'usage rights', 'software terms', 'license terms'],
-        characteristics: ['Software usage rights', 'License restrictions', 'User obligations', 'IP protections'],
-        solutions: ['compliance_score', 'risk_assessment']
+        keywords: [
+          "end user license",
+          "eula",
+          "software license",
+          "license agreement",
+          "usage rights",
+          "software terms",
+          "license terms",
+        ],
+        characteristics: [
+          "Software usage rights",
+          "License restrictions",
+          "User obligations",
+          "IP protections",
+        ],
+        solutions: ["compliance_score", "risk_assessment"],
       },
       {
-        type: 'product_supply_agreement',
+        type: "product_supply_agreement",
         confidence: 0.85,
-        keywords: ['product supply', 'supply agreement', 'supplier', 'product delivery', 'manufacturing', 'goods supply', 'procurement'],
-        characteristics: ['Product delivery terms', 'Supply chain standards', 'Quality specifications', 'Delivery obligations'],
-        solutions: ['risk_assessment', 'full_summary', 'perspective_review']
-      }
+        keywords: [
+          "product supply",
+          "supply agreement",
+          "supplier",
+          "product delivery",
+          "manufacturing",
+          "goods supply",
+          "procurement",
+        ],
+        characteristics: [
+          "Product delivery terms",
+          "Supply chain standards",
+          "Quality specifications",
+          "Delivery obligations",
+        ],
+        solutions: ["risk_assessment", "full_summary", "perspective_review"],
+      },
     ];
 
     // Score each rule
     let bestMatch = {
-      type: 'general_commercial',
+      type: "general_commercial",
       confidence: 0.5,
-      characteristics: ['General commercial agreement'],
-      solutions: ['full_summary', 'risk_assessment']
+      characteristics: ["General commercial agreement"],
+      solutions: ["full_summary", "risk_assessment"],
     };
 
     for (const rule of rules) {
@@ -213,22 +334,23 @@ export class ContractClassificationService {
         }
       }
 
-      // Check filename keywords  
+      // Check filename keywords
       for (const keyword of rule.keywords) {
-        if (fileNameLower.includes(keyword.replace(' ', '_'))) {
+        if (fileNameLower.includes(keyword.replace(" ", "_"))) {
           score += 0.5;
         }
       }
 
       // Calculate confidence based on keyword matches
-      const keywordConfidence = Math.min(score / rule.keywords.length, 1) * rule.confidence;
+      const keywordConfidence =
+        Math.min(score / rule.keywords.length, 1) * rule.confidence;
 
       if (keywordConfidence > bestMatch.confidence) {
         bestMatch = {
           type: rule.type,
           confidence: keywordConfidence,
           characteristics: rule.characteristics,
-          solutions: rule.solutions
+          solutions: rule.solutions,
         };
       }
     }
@@ -238,7 +360,7 @@ export class ContractClassificationService {
       confidence: bestMatch.confidence,
       characteristics: bestMatch.characteristics,
       reasoning: `Classified based on content analysis and keyword matching. Primary indicators: document structure and terminology.`,
-      suggestedSolutions: bestMatch.solutions
+      suggestedSolutions: bestMatch.solutions,
     };
   }
 
@@ -247,17 +369,17 @@ export class ContractClassificationService {
    */
   static getContractTypeDisplayName(contractType: string): string {
     const displayNames: Record<string, string> = {
-      data_processing_agreement: 'Data Processing Agreement',
-      non_disclosure_agreement: 'Non-Disclosure Agreement',
-      privacy_policy_document: 'Privacy Policy Document',
-      consultancy_agreement: 'Consultancy Agreement',
-      research_development_agreement: 'R&D Agreement',
-      end_user_license_agreement: 'End User License Agreement',
-      product_supply_agreement: 'Product Supply Agreement',
-      general_commercial: 'General Commercial Agreement'
+      data_processing_agreement: "Data Processing Agreement",
+      non_disclosure_agreement: "Non-Disclosure Agreement",
+      privacy_policy_document: "Privacy Policy Document",
+      consultancy_agreement: "Consultancy Agreement",
+      research_development_agreement: "R&D Agreement",
+      end_user_license_agreement: "End User License Agreement",
+      product_supply_agreement: "Product Supply Agreement",
+      general_commercial: "General Commercial Agreement",
     };
 
-    return displayNames[contractType] || 'Commercial Agreement';
+    return displayNames[contractType] || "Commercial Agreement";
   }
 
   /**
@@ -265,19 +387,32 @@ export class ContractClassificationService {
    */
   static getRecommendedSolutions(contractType: string): string[] {
     const recommendations: Record<string, string[]> = {
-      data_processing_agreement: ['compliance_score', 'perspective_review'],
-      non_disclosure_agreement: ['compliance_score', 'risk_assessment'],
-      privacy_policy_document: ['compliance_score', 'perspective_review'],
-      consultancy_agreement: ['risk_assessment', 'full_summary', 'perspective_review'],
-      research_development_agreement: ['compliance_score', 'risk_assessment', 'perspective_review'],
-      end_user_license_agreement: ['compliance_score', 'risk_assessment'],
-      product_supply_agreement: ['risk_assessment', 'full_summary', 'perspective_review'],
-      general_commercial: ['full_summary', 'risk_assessment']
+      data_processing_agreement: ["compliance_score", "perspective_review"],
+      non_disclosure_agreement: ["compliance_score", "risk_assessment"],
+      privacy_policy_document: ["compliance_score", "perspective_review"],
+      consultancy_agreement: [
+        "risk_assessment",
+        "full_summary",
+        "perspective_review",
+      ],
+      research_development_agreement: [
+        "compliance_score",
+        "risk_assessment",
+        "perspective_review",
+      ],
+      end_user_license_agreement: ["compliance_score", "risk_assessment"],
+      product_supply_agreement: [
+        "risk_assessment",
+        "full_summary",
+        "perspective_review",
+      ],
+      general_commercial: ["full_summary", "risk_assessment"],
     };
 
-    return recommendations[contractType] || ['full_summary', 'risk_assessment'];
+    return recommendations[contractType] || ["full_summary", "risk_assessment"];
   }
 }
 
-export const contractClassificationService = ContractClassificationService.getInstance();
+export const contractClassificationService =
+  ContractClassificationService.getInstance();
 export default contractClassificationService;
