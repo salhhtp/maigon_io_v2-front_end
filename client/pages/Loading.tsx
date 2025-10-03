@@ -99,8 +99,9 @@ export default function Loading() {
         });
       } catch (error) {
         const errorDetails = logError("❌ Contract processing error", error, {
-          reviewId: reviewProcessingStore.getReviewId(),
-          contractId: reviewProcessingStore.getContractId(),
+          userId: pending.userId,
+          reviewType: pending.reviewType,
+          fileName: pending.metadata.fileName,
         });
 
         const userMessage = createUserFriendlyMessage(

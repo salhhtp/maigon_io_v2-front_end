@@ -219,7 +219,8 @@ class AIService {
 
     logError("❌ All AI analysis attempts failed", new Error(finalErrorMessage), {
       attempts: maxRetries,
-      contractType: contractType || 'unknown',
+      reviewType: request.reviewType,
+      userId: request.userId,
       errorDetails,
     });
     throw new Error(
