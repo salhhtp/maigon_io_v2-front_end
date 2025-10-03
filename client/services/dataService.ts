@@ -351,24 +351,20 @@ export class DataService {
 
       return result;
     } catch (error) {
-      logError("❌ AI analysis failed", error, { reviewType, userId });
-
-      // Log detailed error information with proper serialization
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
-      console.error("AI analysis error details:", {
-        errorMessage: errorMessage,
-        errorType: error instanceof Error ? error.name : typeof error,
-        errorStack: error instanceof Error ? error.stack : undefined,
+      const errorInfo = logError("❌ AI analysis failed", error, {
         reviewType,
+        userId,
         contentLength: contractData.content?.length,
-        userId: contractData.user_id,
         contractType: contractData.contract_type,
-        timestamp: new Date().toISOString(),
       });
 
-      // Re-throw error with proper message
-      throw new Error(`AI contract analysis failed: ${errorMessage}`);
+      // Re-throw error with safe user-friendly message
+      const userMessage = createUserFriendlyMessage(
+        error,
+        "AI contract analysis failed. Please try again."
+      );
+
+      throw new Error(userMessage);
     }
   }
 

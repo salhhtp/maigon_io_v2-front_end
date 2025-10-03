@@ -73,7 +73,16 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
+    // Safely extract error message
+    let errorMessage: string;
+    if (error instanceof Error) {
+      errorMessage = error.message;
+    } else if (error && typeof error === 'object') {
+      errorMessage = JSON.stringify(error);
+    } else {
+      errorMessage = String(error);
+    }
+
     const errorDetails = {
       message: errorMessage,
       type: error instanceof Error ? error.name : typeof error,

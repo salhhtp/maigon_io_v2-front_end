@@ -331,26 +331,20 @@ class AIService {
         throw timeoutError;
       }
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
-      const errorDetails = {
-        message: errorMessage,
-        type: error instanceof Error ? error.name : typeof error,
-        stack: error instanceof Error ? error.stack : undefined,
+      const errorInfo = extractErrorDetails(error, {
         model,
         reviewType: request.reviewType,
         contractType: request.contractType,
         contentLength: request.content.length,
-        timestamp: new Date().toISOString(),
-      };
+      });
 
       console.error(
         "❌ AI service call failed:",
-        JSON.stringify(errorDetails, null, 2),
+        JSON.stringify(errorInfo, null, 2),
       );
 
-      // Enhanced error context
-      const enhancedMessage = `AI service call failed: ${errorMessage}. Model: ${model}, Review Type: ${request.reviewType}`;
+      // Enhanced error context with safe message
+      const enhancedMessage = `AI service call failed: ${errorInfo.message}. Model: ${model}, Review Type: ${request.reviewType}`;
 
       throw new Error(enhancedMessage);
     }
