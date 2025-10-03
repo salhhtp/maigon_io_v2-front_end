@@ -13,37 +13,45 @@ The application already includes:
 
 ### **1. Error Tracking - Sentry (Recommended)**
 
-#### **Setup Instructions:**
-1. [Connect to Sentry](#open-mcp-popover) via MCP integration
-2. Or manually configure:
+The codebase now ships with first-class Sentry instrumentation for both the Vite React client and the Express API server. You only need to provide credentials.
 
+#### **Setup Checklist:**
+1. [Connect to Sentry](#open-mcp-popover) and note your organization, project, and DSN. (If you cannot create projects via MCP due to permissions, create one manually in the Sentry UI and copy the DSN.)
+2. Configure the following environment variables:
+   - `VITE_SENTRY_DSN` – client DSN (required for browser reporting)
+   - `VITE_SENTRY_TRACES_SAMPLE_RATE` (optional, default `0.1`)
+   - `VITE_SENTRY_REPLAYS_SESSION_SAMPLE_RATE` (optional, default `0.1`)
+   - `VITE_SENTRY_REPLAYS_ERROR_SAMPLE_RATE` (optional, default `1`)
+   - `SENTRY_DSN` – server DSN (can reuse the client DSN if you prefer)
+   - `SENTRY_TRACES_SAMPLE_RATE` (optional, default `0.1`)
+   - `SENTRY_ENVIRONMENT` / `VITE_APP_ENV` (optional, for custom environment names)
+   - `SENTRY_RELEASE` / `VITE_SENTRY_RELEASE` (optional, release tagging)
+3. (Optional) Enable automated source map uploads by setting build-time variables:
+   - `SENTRY_AUTH_TOKEN`
+   - `SENTRY_ORG`
+   - `SENTRY_PROJECT`
+
+#### **How it works in code:**
+- `client/lib/sentry.ts` initialises Sentry with Browser Tracing & Session Replay when `VITE_SENTRY_DSN` is present.
+- `client/App.tsx` bootstraps the client instrumentation before rendering.
+- `client/components/ErrorBoundary.tsx` forwards captured errors to Sentry automatically.
+- `server/index.ts` wires Sentry’s request, tracing, and error handlers into Express when `SENTRY_DSN` is provided.
+
+#### **Testing the integration:**
 ```bash
-npm install @sentry/react @sentry/tracing
+# In development, trigger a test error after configuring the DSN
+npm run dev
+# Then open the app and execute in the browser console:
+throw new Error("Sentry test error")
 ```
-
-```typescript
-// Add to main.tsx or App.tsx
-import * as Sentry from "@sentry/react";
-
-Sentry.init({
-  dsn: "YOUR_SENTRY_DSN",
-  environment: import.meta.env.MODE,
-  integrations: [
-    new Sentry.BrowserTracing(),
-    new Sentry.Replay(),
-  ],
-  tracesSampleRate: 1.0,
-  replaysSessionSampleRate: 0.1,
-  replaysOnErrorSampleRate: 1.0,
-});
-```
+Visit Sentry to confirm the event appears with environment, release, and breadcrumbs.
 
 #### **Benefits:**
 - Real-time error tracking
-- Performance monitoring
-- User session replay
-- Release tracking
-- Custom dashboards
+- Performance monitoring (frontend & backend)
+- User session replay (configurable sample rates)
+- Release tracking with version tags
+- Centralised logging and alerting
 
 ### **2. User Analytics - Google Analytics 4**
 
