@@ -273,7 +273,7 @@ serve(async (req) => {
     }
 
     // Validate request
-    if (!request.content || !request.reviewType) {
+    if (!request || !request.content || !request.reviewType) {
       console.error("❌ Missing required fields in request:", {
         hasContent: !!request.content,
         hasReviewType: !!request.reviewType,
