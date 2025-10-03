@@ -14,7 +14,6 @@ import ContractClassificationDisplay from "@/components/ContractClassificationDi
 import { useUser } from "@/contexts/SupabaseUserContext";
 import { useToast } from "@/hooks/use-toast";
 import { logError, createUserFriendlyMessage } from "@/utils/errorLogger";
-import { DataService } from "@/services/dataService";
 import { reviewProcessingStore } from "@/lib/reviewProcessingStore";
 
 export default function Upload() {
