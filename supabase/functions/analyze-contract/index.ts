@@ -299,7 +299,7 @@ serve(async (req) => {
     });
 
     // Handle PDF and DOCX file processing
-    let processedContent = request.content;
+    processedContent = request.content;
     if (
       request.content.startsWith("PDF_FILE_BASE64:") ||
       request.content.startsWith("DOCX_FILE_BASE64:")
