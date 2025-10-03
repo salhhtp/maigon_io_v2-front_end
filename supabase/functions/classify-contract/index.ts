@@ -106,7 +106,8 @@ serve(async (req) => {
         request.content,
         request.fileName,
       );
-      fallback.fallback_reason = "OpenAI API key not configured for classification";
+      fallback.fallback_reason =
+        "OpenAI API key not configured for classification";
 
       return new Response(JSON.stringify(fallback), {
         status: 200,
@@ -668,10 +669,7 @@ function generateFallbackClassification(
     }
 
     if (fileLower) {
-      const targets = [
-        rule.type.replace(/_/g, " "),
-        ...(rule.aliases ?? []),
-      ];
+      const targets = [rule.type.replace(/_/g, " "), ...(rule.aliases ?? [])];
       for (const target of targets) {
         const normalized = target.toLowerCase();
         if (
@@ -717,11 +715,7 @@ function deriveKeyTerms(contentLower: string, rule: FallbackRule): string[] {
 
   if (unique.size === 0) {
     if (rule === DEFAULT_RULE) {
-      return [
-        "commercial obligations",
-        "service levels",
-        "payment terms",
-      ];
+      return ["commercial obligations", "service levels", "payment terms"];
     }
     return rule.keywords.slice(0, 6).map(formatKeyword);
   }
