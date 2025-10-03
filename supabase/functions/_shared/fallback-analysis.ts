@@ -108,6 +108,33 @@ function analyseWordCounts(text: string) {
   return { wordCount, estimatedPages, estimatedProcessingSeconds };
 }
 
+function estimateScore(wordCount: number, reviewType: string): number {
+  // Base score depends on review type
+  const baseScores: Record<string, number> = {
+    compliance_score: 78,
+    risk_assessment: 72,
+    perspective_review: 75,
+    full_summary: 74,
+    ai_integration: 74,
+  };
+
+  const baseScore = baseScores[reviewType] || 74;
+
+  // Adjust slightly based on content length (more content = slightly higher confidence)
+  const contentBonus = Math.min(4, Math.floor(wordCount / 1000));
+
+  return Math.min(100, baseScore + contentBonus);
+}
+
+function estimateConfidence(wordCount: number, reviewType: string): number {
+  // Fallback confidence is always moderate (0.75-0.82)
+  // More content = slightly higher confidence
+  const baseConfidence = 0.75;
+  const contentBonus = Math.min(0.07, wordCount / 10000);
+
+  return Number((baseConfidence + contentBonus).toFixed(2));
+}
+
 function splitSentences(text: string) {
   return text
     .replace(/\s+/g, " ")
