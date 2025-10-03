@@ -143,9 +143,7 @@ const fallbackContext: UserContextType = {
     );
   },
   updateUser: async () => {
-    console.warn(
-      "updateUser called on fallback context. No action performed.",
-    );
+    console.warn("updateUser called on fallback context. No action performed.");
   },
   isLoggedIn: false,
   isLoading: false,
@@ -156,14 +154,18 @@ const fallbackContext: UserContextType = {
     console.warn("logout called on fallback context. No action performed.");
   },
   signUp: async () => {
-    console.warn("signUp called on fallback context. Returning failure response.");
+    console.warn(
+      "signUp called on fallback context. Returning failure response.",
+    );
     return {
       success: false,
       message: "Authentication is currently unavailable. Please try again.",
     };
   },
   signIn: async () => {
-    console.warn("signIn called on fallback context. Returning failure response.");
+    console.warn(
+      "signIn called on fallback context. Returning failure response.",
+    );
     return {
       success: false,
       message: "Authentication is currently unavailable. Please try again.",
@@ -202,7 +204,9 @@ const fallbackContext: UserContextType = {
     );
   },
   refreshUser: async () => {
-    console.warn("refreshUser called on fallback context. No action performed.");
+    console.warn(
+      "refreshUser called on fallback context. No action performed.",
+    );
   },
 };
 
