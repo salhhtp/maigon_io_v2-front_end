@@ -231,11 +231,10 @@ export class DataService {
 
       // 6. Update user usage statistics
       await UserUsageStatsService.trackReviewCompletion(userId, reviewType, 1);
-      await UserActivitiesService.trackContractReview(
+      await UserActivitiesService.trackReviewCompleted(
         userId,
         contract.id,
         reviewType,
-        { score: reviewResults.score, confidence: reviewResults.confidence },
       );
 
       console.log("✅ Contract processing workflow completed successfully");
