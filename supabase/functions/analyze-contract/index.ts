@@ -349,6 +349,25 @@ serve(async (req) => {
       }
     }
 
+    const filename = request.fileName || request.filename;
+    const resolvedContractType =
+      request.contractType ||
+      request.classification?.contractType ||
+      detectContractType(processedContent, filename);
+    const resolvedDocumentFormat = inferDocumentFormat(
+      filename,
+      request.documentFormat,
+    );
+
+    const baseFallbackContext = {
+      reviewType: request.reviewType,
+      contractContent: processedContent,
+      contractType: resolvedContractType,
+      classification: request.classification,
+      documentFormat: resolvedDocumentFormat,
+      fileName: filename,
+    } as const;
+
     // Get API key based on model
     const model = request.model || "openai-gpt-4";
     let apiKey: string | undefined;
@@ -366,15 +385,16 @@ serve(async (req) => {
         model: model,
         timestamp: new Date().toISOString(),
       });
-      return new Response(
-        JSON.stringify({
-          error: `API key not configured for model: ${model}. Please configure the appropriate API key in environment variables.`,
-        }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        },
-      );
+
+      const fallbackResponse = generateFallbackAnalysis({
+        ...baseFallbackContext,
+        fallbackReason: `API key not configured for model: ${model}`,
+      });
+
+      return new Response(JSON.stringify(fallbackResponse), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     console.log(`🔑 API key found for model: ${model}`);
@@ -383,15 +403,39 @@ serve(async (req) => {
     const enhancedRequest = {
       ...request,
       content: processedContent,
+      contractType: resolvedContractType,
+      documentFormat: resolvedDocumentFormat,
     };
 
-    // Analyze contract with AI using advanced models
-    const result = await analyzeWithAI(enhancedRequest, apiKey);
+    try {
+      const result = await analyzeWithAI(enhancedRequest, apiKey);
 
-    return new Response(JSON.stringify(result), {
-      status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+      return new Response(JSON.stringify(result), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    } catch (analysisError) {
+      const errorMessage =
+        analysisError instanceof Error
+          ? analysisError.message
+          : String(analysisError);
+
+      console.error("❌ AI provider failed, using fallback analysis:", {
+        message: errorMessage,
+        model,
+        timestamp: new Date().toISOString(),
+      });
+
+      const fallbackResponse = generateFallbackAnalysis({
+        ...baseFallbackContext,
+        fallbackReason: `Primary AI provider error: ${errorMessage}`,
+      });
+
+      return new Response(JSON.stringify(fallbackResponse), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
   } catch (error) {
     // Safely extract error message
     let errorMessage: string;
