@@ -263,7 +263,8 @@ class AIService {
       });
 
       // Prepare the request body with all necessary data
-      const requestBody = {
+      // First, ensure all properties are serializable
+      const requestBody: any = {
         content: request.content,
         reviewType: request.reviewType,
         model,
@@ -275,6 +276,23 @@ class AIService {
         documentFormat: request.documentFormat,
         classification: (request as any).classification,
       };
+
+      // Log the full request body for debugging (with content truncated)
+      console.log("📦 Request body prepared:", {
+        ...requestBody,
+        content: `${requestBody.content?.substring(0, 100)}... (${requestBody.content?.length} chars)`,
+        customSolutionKeys: customSolution ? Object.keys(customSolution) : null,
+        classificationKeys: requestBody.classification ? Object.keys(requestBody.classification) : null,
+      });
+
+      // Validate that the request body is JSON-serializable
+      try {
+        const testSerialization = JSON.stringify(requestBody);
+        console.log("✅ Request body is JSON-serializable, size:", testSerialization.length, "bytes");
+      } catch (serError) {
+        console.error("❌ Request body is NOT JSON-serializable:", serError);
+        throw new Error(`Request body serialization failed: ${serError instanceof Error ? serError.message : String(serError)}`);
+      }
 
       // Call Supabase Edge Function for AI processing with timeout
       const controller = new AbortController();
