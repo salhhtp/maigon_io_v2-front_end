@@ -3,7 +3,6 @@ import {
   ChevronDown,
   User,
   Upload as UploadIcon,
-  AlertCircle,
 } from "lucide-react";
 import { Link, useLocation, useNavigate, useBlocker } from "react-router-dom";
 import Logo from "@/components/Logo";
@@ -802,7 +801,7 @@ export default function Upload() {
                 Supported Formats
               </span>
               <span className="text-black font-roboto text-xs font-normal tracking-[0.08px]">
-                docx • pdf •
+                docx �� pdf •
               </span>
             </div>
 
