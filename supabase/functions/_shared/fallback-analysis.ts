@@ -17,21 +17,12 @@ export interface FallbackAnalysisContext {
 const FALLBACK_MODEL_NAME = "maigon-fallback-v1";
 
 export function generateFallbackAnalysis(context: FallbackAnalysisContext) {
-  const text = context.contractContent?.trim() ?? "";
-  const contractType = normaliseContractType(
+  const text = (context.contractContent || "").trim();
+  const contractTypeKey = normaliseContractType(
     context.contractType || context.classification?.contractType,
   );
-  const sentences = splitSentences(text);
-  const summary = buildSummary(sentences, contractType);
-  const keyPoints = buildKeyPoints(sentences, contractType);
-  const wordCount = countWords(text);
-  const pages = Math.max(1, Math.round(wordCount / 360));
-  const processingTime = Number(Math.max(2.5, Math.min(9, wordCount / 520)).toFixed(2));
-  const score = estimateScore(wordCount, context.reviewType);
-  const confidence = estimateConfidence(wordCount, context.reviewType);
-  const criticalClauses = buildCriticalClauses(text, contractType);
-  const recommendations = buildRecommendations(contractType, context.reviewType);
-  const actionItems = buildActionItems(contractType, context.reviewType);
+  const readableType = formatContractType(contractTypeKey);
+  const wordStats = analyseWordCounts(text);
 
   const baseResult: Record<string, unknown> = {
     model_used: FALLBACK_MODEL_NAME,
@@ -40,135 +31,130 @@ export function generateFallbackAnalysis(context: FallbackAnalysisContext) {
       context.fallbackReason ||
       "Primary AI provider unavailable. Generated deterministic analysis.",
     generated_at: new Date().toISOString(),
-    contract_type: contractType,
+    contract_type: contractTypeKey,
     classification_context: context.classification || null,
     file_metadata: {
-      name: context.fileName,
-      format: context.documentFormat,
-      word_count: wordCount,
+      name: context.fileName || null,
+      format: context.documentFormat || null,
+      word_count: wordStats.wordCount,
     },
-    score,
-    confidence,
-    pages,
-    processing_time: processingTime,
-    summary,
-    key_points: keyPoints,
-    critical_clauses: criticalClauses,
-    recommendations,
-    action_items: actionItems,
-    extracted_terms: extractBasicTerms(text),
+    score: estimateScore(wordStats.wordCount, context.reviewType),
+    confidence: estimateConfidence(wordStats.wordCount, context.reviewType),
+    pages: wordStats.estimatedPages,
+    processing_time: wordStats.estimatedProcessingSeconds,
+    summary: buildSummary(text, readableType),
+    key_points: buildKeyPoints(text, readableType),
+    critical_clauses: buildCriticalClauses(text, readableType),
+    recommendations: buildRecommendations(context.reviewType, readableType),
+    action_items: buildActionItems(context.reviewType, readableType),
+    extracted_terms: extractBasicTerms(text, readableType),
   };
 
   switch (context.reviewType) {
-    case "risk_assessment":
-      return {
-        ...baseResult,
-        risks: buildRisks(text, contractType),
-        risk_interactions: buildRiskInteractions(),
-        scenario_analysis: buildScenarioAnalysis(contractType),
-      };
     case "compliance_score":
       return {
         ...baseResult,
         compliance_areas: buildComplianceAreas(text),
         violations: buildComplianceViolations(text),
         compliance_gaps: buildComplianceGaps(text),
-        regulatory_landscape: buildRegulatoryLandscape(contractType),
-        remediation_roadmap: buildRemediationRoadmap(contractType),
+        regulatory_landscape: buildRegulatoryLandscape(readableType),
+        remediation_roadmap: buildRemediationRoadmap(readableType),
       };
-    case "perspective_review":
-      const perspectives = buildPerspectives(sentences);
+    case "risk_assessment":
       return {
         ...baseResult,
-        perspectives,
+        risks: buildRisks(text, readableType),
+        risk_interactions: buildRiskInteractions(),
+        scenario_analysis: buildScenarioAnalysis(readableType),
+      };
+    case "perspective_review":
+      return {
+        ...baseResult,
+        perspectives: buildPerspectives(text),
         stakeholder_conflicts: buildStakeholderConflicts(),
         negotiation_opportunities: buildNegotiationOpportunities(),
       };
-    case "ai_integration":
-    case "full_summary":
     default:
       return {
         ...baseResult,
-        executive_summary: summary,
-        business_impact: buildBusinessImpact(contractType),
-        key_commercial_terms: buildCommercialTerms(text),
-        risk_summary: buildRiskSummary(contractType),
-        commercial_analysis: buildCommercialAnalysis(contractType),
+        executive_summary: baseResult.summary,
+        business_impact: buildBusinessImpact(readableType),
+        key_commercial_terms: buildCommercialTerms(text, readableType),
+        risk_summary: buildRiskSummary(readableType),
+        commercial_analysis: buildCommercialAnalysis(readableType),
         performance_framework: buildPerformanceFramework(),
-        strategic_recommendations: buildStrategicRecommendations(contractType),
-        implementation_roadmap: buildImplementationRoadmap(contractType),
+        strategic_recommendations: buildStrategicRecommendations(readableType),
+        implementation_roadmap: buildImplementationRoadmap(readableType),
       };
   }
 }
 
 function normaliseContractType(contractType?: string) {
   if (!contractType) return "general_commercial";
-  return contractType.toLowerCase().replace(/\s+/g, "_");
+  return contractType.trim().toLowerCase().replace(/\s+/g, "_");
 }
 
-function splitSentences(content: string) {
-  return content
+function formatContractType(contractType: string) {
+  return contractType.replace(/_/g, " ");
+}
+
+function analyseWordCounts(text: string) {
+  const wordCount = text.length === 0 ? 1200 : text.split(/\s+/).filter(Boolean).length;
+  const estimatedPages = Math.max(1, Math.round(wordCount / 360));
+  const estimatedProcessingSeconds = Number(
+    Math.max(2.5, Math.min(9, wordCount / 520)).toFixed(2),
+  );
+  return { wordCount, estimatedPages, estimatedProcessingSeconds };
+}
+
+function splitSentences(text: string) {
+  return text
     .replace(/\s+/g, " ")
-    .split(/(?<=[.!?])\s+/)
+    .split(/[.!?]\s+/)
     .map((sentence) => sentence.trim())
     .filter((sentence) => sentence.length > 0);
 }
 
-function buildSummary(sentences: string[], contractType: string) {
+function buildSummary(text: string, readableType: string) {
+  const sentences = splitSentences(text);
   if (sentences.length === 0) {
-    return `This ${contractType.replace("_", " ")} outlines obligations, commercial terms, and mutual responsibilities.`;
+    return (
+      "This " +
+      readableType +
+      " outlines commercial obligations and should undergo standard legal and operational review."
+    );
   }
-  return sentences.slice(0, 3).join(" ");
+  const slice = sentences.slice(0, 3);
+  return slice.join(" ");
 }
 
-function buildKeyPoints(sentences: string[], contractType: string) {
+function buildKeyPoints(text: string, readableType: string) {
+  const sentences = splitSentences(text);
   if (sentences.length === 0) {
     return [
-      `The ${contractType.replace("_", " ")} specifies key duties for all parties involved.`,
-      "Risk allocation, commercial terms, and termination mechanics are highlighted for immediate review.",
+      "Commercial responsibilities and deliverables are clearly defined but require structured oversight.",
+      "Risk allocation and escalation mechanics should be aligned with business objectives.",
+      "Compliance commitments need evidence tracking and executive visibility.",
     ];
   }
-  return sentences.slice(0, 5);
+  return sentences.slice(0, Math.min(5, sentences.length));
 }
 
-function countWords(content: string) {
-  return content.split(/\s+/).filter(Boolean).length;
-}
-
-function estimateScore(wordCount: number, reviewType: string) {
-  const base = 66 + Math.min(22, Math.round(Math.log10(wordCount + 20) * 12));
-  const modifier =
-    reviewType === "compliance_score"
-      ? 5
-      : reviewType === "risk_assessment"
-        ? 3
-        : reviewType === "perspective_review"
-          ? 4
-          : 6;
-  return Math.max(60, Math.min(92, base + modifier));
-}
-
-function estimateConfidence(wordCount: number, reviewType: string) {
-  const base = 0.7 + Math.min(0.2, wordCount / 12000);
-  const modifier = reviewType === "compliance_score" ? 0.05 : 0.03;
-  return Number(Math.min(0.95, base + modifier).toFixed(2));
-}
-
-function buildCriticalClauses(content: string, contractType: string) {
-  const lines = content.split(/\r?\n/).map((line) => line.trim());
+function buildCriticalClauses(text: string, readableType: string) {
+  const lines = text.split(/\r?\n/).map((line) => line.trim());
   const clauses: Array<{ clause: string; importance: string; recommendation: string }> = [];
-  let currentHeading: string | null = null;
+  let currentTitle: string | null = null;
   let buffer: string[] = [];
   const headingPattern = /^(section\s+\d+|article\s+\d+|\d+\.\d+|[A-Z][A-Z\s\-]{3,})/;
 
   const pushClause = () => {
-    if (!currentHeading) return;
-    const text = buffer.join(" ");
-    if (text.length < 40) return;
+    if (!currentTitle) return;
+    const combined = buffer.join(" ");
+    if (combined.length < 40) return;
     clauses.push({
-      clause: currentHeading.replace(/[:\-\s]+$/, "").slice(0, 120),
-      importance: deriveClauseImportance(currentHeading),
-      recommendation: deriveClauseRecommendation(currentHeading, contractType),
+      clause: currentTitle.replace(/[:\-\s]+$/, ""),
+      importance: deriveClauseImportance(currentTitle),
+      recommendation: deriveClauseRecommendation(currentTitle, readableType),
     });
   };
 
@@ -176,9 +162,9 @@ function buildCriticalClauses(content: string, contractType: string) {
     if (!line) continue;
     if (headingPattern.test(line)) {
       pushClause();
-      currentHeading = line;
+      currentTitle = line;
       buffer = [];
-    } else if (currentHeading) {
+    } else if (currentTitle) {
       buffer.push(line);
     }
   }
@@ -186,10 +172,10 @@ function buildCriticalClauses(content: string, contractType: string) {
 
   if (clauses.length === 0) {
     clauses.push({
-      clause: `${contractType.replace("_", " ")} Overview`,
+      clause: readableType + " Overview",
       importance: "medium",
       recommendation:
-        "Summarise obligations, escalation paths, and termination mechanics for quick reference.",
+        "Summarise obligations, escalation paths, and termination mechanics so stakeholders can respond quickly.",
     });
   }
 
@@ -206,60 +192,59 @@ function deriveClauseImportance(heading: string) {
   return "medium";
 }
 
-function deriveClauseRecommendation(heading: string, contractType: string) {
+function deriveClauseRecommendation(heading: string, readableType: string) {
   const lowered = heading.toLowerCase();
   if (/(liability|indemnification|limitation)/.test(lowered)) {
-    return "Align liability caps, exclusions, and indemnity triggers with current insurance and risk appetite.";
+    return "Align liability caps, exclusions, and indemnity triggers with insurance limits and risk appetite.";
   }
   if (/(payment|fees|pricing)/.test(lowered)) {
-    return "Verify invoicing cadence, indexation mechanisms, and late payment remedies.";
+    return "Verify invoicing cadence, indexation mechanisms, and late payment remedies against finance policies.";
   }
   if (/(termination|term)/.test(lowered)) {
-    return "Clarify termination triggers, cure periods, and transition support obligations.";
+    return "Clarify termination triggers, cure periods, and transition support responsibilities.";
   }
   if (/(confidential|privacy|data)/.test(lowered)) {
-    return "Confirm confidentiality and data processing provisions meet regulatory expectations.";
+    return "Confirm confidentiality and data-processing provisions meet regulatory expectations.";
   }
   if (/(service level|sla|performance)/.test(lowered)) {
-    return "Benchmark SLAs against operational capacity and downstream commitments.";
+    return "Benchmark service commitments against operational capacity and downstream obligations.";
   }
-  return `Document how this section influences ongoing governance for the ${contractType.replace("_", " ")}.`;
+  return "Document how this section influences governance for the " + readableType + ".";
 }
 
-function buildRecommendations(contractType: string, reviewType: string) {
-  const items = [
-    "Circulate a concise briefing to legal, commercial, and delivery owners covering core obligations.",
+function buildRecommendations(reviewType: string, readableType: string) {
+  const recommendations = [
+    "Circulate a concise briefing covering legal, commercial, and operational obligations.",
     "Create a shared workspace to track milestones, approvals, and compliance evidence.",
   ];
-  switch (reviewType) {
-    case "risk_assessment":
-      items.push(
-        "Prioritise mitigation plans for high-impact clauses and update the enterprise risk register.",
-      );
-      break;
-    case "compliance_score":
-      items.push(
-        "Validate data handling, security safeguards, and audit readiness against the latest regulatory standards.",
-      );
-      break;
-    case "perspective_review":
-      items.push(
-        "Prepare negotiation scripts addressing each stakeholder's objectives before the next governance checkpoint.",
-      );
-      break;
-    default:
-      items.push(
-        `Translate the ${contractType.replace("_", " ")} into an executive playbook highlighting strategic opportunities.`,
-      );
+
+  if (reviewType === "risk_assessment") {
+    recommendations.push(
+      "Prioritise mitigation plans for high-impact clauses and update the enterprise risk register.",
+    );
+  } else if (reviewType === "compliance_score") {
+    recommendations.push(
+      "Validate privacy, data handling, and security commitments against current control frameworks.",
+    );
+  } else if (reviewType === "perspective_review") {
+    recommendations.push(
+      "Prepare negotiation options that address each stakeholder's commercial and strategic objectives.",
+    );
+  } else {
+    recommendations.push(
+      "Translate the " + readableType + " into an executive playbook highlighting strategic opportunities.",
+    );
   }
-  return items;
+
+  return recommendations;
 }
 
-function buildActionItems(contractType: string, reviewType: string) {
+function buildActionItems(reviewType: string, readableType: string) {
   const items = [
     "Assign accountable owners to monitor contractual milestones and escalate risks promptly.",
-    "Schedule a 30-day post-signature review to confirm implementation readiness.",
+    "Schedule a 30-day post-signature readiness review covering resources and compliance evidence.",
   ];
+
   if (reviewType === "compliance_score") {
     items.push(
       "Document data inventories, retention rules, and incident response steps tied to contractual obligations.",
@@ -267,31 +252,33 @@ function buildActionItems(contractType: string, reviewType: string) {
   } else if (reviewType === "risk_assessment") {
     items.push("Capture identified risks with owners, due dates, and success indicators.");
   } else if (reviewType === "perspective_review") {
-    items.push("Prepare tailored comms for each stakeholder covering benefits, trade-offs, and next steps.");
+    items.push("Prepare tailored communications for each stakeholder outlining benefits and trade-offs.");
   } else {
     items.push(
-      `Develop a one-page executive summary emphasising the ${contractType.replace("_", " ")} objectives and metrics.`,
+      "Develop a one-page executive summary emphasising the " + readableType + " objectives and metrics.",
     );
   }
+
   return items;
 }
 
-function extractBasicTerms(content: string) {
-  const sanitized = content.replace(/\s+/g, " ");
+function extractBasicTerms(text: string, readableType: string) {
+  const sanitized = text.replace(/\s+/g, " ");
   const money = sanitized.match(/\$\s?([0-9,.]+)/);
   const netTerms = sanitized.match(/net\s*(\d{1,3})/i);
   const governingLaw = sanitized.match(/governing law[:\s]+([A-Za-z ]{3,40})/i);
   const duration = sanitized.match(/(term|duration)[:\s]+([0-9]+\s*(days?|months?|years?))/i);
+
   return {
-    contract_value: money ? `$${money[1]}` : "Confirm contract value",
-    payment_terms: netTerms ? `Payment due net ${netTerms[1]} days` : "Review payment cadence",
+    contract_value: money ? "$" + money[1] : "Confirm contract value",
+    payment_terms: netTerms ? "Payment due net " + netTerms[1] + " days" : "Review payment cadence",
     governing_law: governingLaw ? governingLaw[1].trim() : "Confirm governing law",
     duration: duration ? duration[2] : "Review stated term",
     key_milestones: [
       "Capture milestone due dates and acceptance criteria in the delivery tracker.",
     ],
     performance_metrics: [
-      "Define measureable KPIs aligned to the contract's service expectations.",
+      "Define measurable KPIs aligned to the " + readableType + " service expectations.",
     ],
     termination_triggers: [
       "Document termination rights, notice periods, and exit responsibilities.",
@@ -299,15 +286,28 @@ function extractBasicTerms(content: string) {
   };
 }
 
-function buildRisks(content: string, contractType: string) {
-  const lowered = content.toLowerCase();
-  const risks = [] as Array<{ type: string; level: string; description: string; recommendation: string; impact_score: number; probability: number; mitigation_complexity: string; timeline: string; cascading_effects: string[] }>;
+function buildRisks(text: string, readableType: string) {
+  const lowered = text.toLowerCase();
+  const risks: Array<{
+    type: string;
+    level: string;
+    description: string;
+    recommendation: string;
+    impact_score: number;
+    probability: number;
+    mitigation_complexity: string;
+    timeline: string;
+    cascading_effects: string[];
+  }> = [];
+
   if (/(liability|indemnification|damages)/.test(lowered)) {
     risks.push({
       type: "legal",
       level: "high",
-      description: `Liability and indemnity language in the ${contractType.replace("_", " ")} may increase exposure if not aligned with insurance coverage.`,
-      recommendation: "Reconcile liability caps and exclusions with current insurance policies and negotiate fair carve-outs.",
+      description:
+        "Liability and indemnity language may increase exposure if not aligned with insurance coverage.",
+      recommendation:
+        "Reconcile liability caps and exclusions with insurance policies and negotiate fair carve-outs.",
       impact_score: 8,
       probability: 0.42,
       mitigation_complexity: "moderate",
@@ -315,12 +315,15 @@ function buildRisks(content: string, contractType: string) {
       cascading_effects: ["Higher litigation cost", "Potential disputes with counterparties"],
     });
   }
+
   if (/(payment|invoice|fees|pricing)/.test(lowered)) {
     risks.push({
       type: "financial",
       level: "medium",
-      description: "Payment and pricing clauses require disciplined cash-flow management and billing accuracy.",
-      recommendation: "Align invoicing cadence, approval workflows, and revenue recognition policies.",
+      description:
+        "Payment and pricing clauses require disciplined cash-flow management and billing accuracy.",
+      recommendation:
+        "Align invoicing cadence, approval workflows, and revenue recognition policies.",
       impact_score: 7,
       probability: 0.38,
       mitigation_complexity: "simple",
@@ -328,12 +331,14 @@ function buildRisks(content: string, contractType: string) {
       cascading_effects: ["Revenue leakage", "Customer dissatisfaction"],
     });
   }
+
   if (/(privacy|data|gdpr|security|breach)/.test(lowered)) {
     risks.push({
       type: "compliance",
       level: "high",
       description: "Data handling clauses impose regulatory obligations that must match internal controls.",
-      recommendation: "Review privacy and security commitments, confirm breach notification timings, and evidence safeguards.",
+      recommendation:
+        "Review privacy and security commitments, confirm breach notification timings, and evidence safeguards.",
       impact_score: 8,
       probability: 0.35,
       mitigation_complexity: "moderate",
@@ -341,11 +346,12 @@ function buildRisks(content: string, contractType: string) {
       cascading_effects: ["Regulatory enquiry", "Mandatory remediation"],
     });
   }
+
   if (risks.length === 0) {
     risks.push({
       type: "strategic",
       level: "medium",
-      description: `Ensure the ${contractType.replace("_", " ")} remains aligned with business objectives and capacity planning.",
+      description: "Ensure the " + readableType + " remains aligned with business objectives and capacity planning.",
       recommendation: "Hold a cross-functional review to validate objectives, resources, and success measures.",
       impact_score: 6,
       probability: 0.32,
@@ -354,6 +360,7 @@ function buildRisks(content: string, contractType: string) {
       cascading_effects: ["Delayed value realisation"],
     });
   }
+
   return risks.slice(0, 4);
 }
 
@@ -362,21 +369,27 @@ function buildRiskInteractions() {
     {
       risk_combination: ["legal", "financial"],
       compound_effect: "amplified",
-      description: "Financial penalties may escalate if liability provisions are triggered and payment controls lag behind.",
+      description:
+        "Financial penalties may escalate if liability provisions are triggered and payment controls lag behind.",
     },
   ];
 }
 
-function buildScenarioAnalysis(contractType: string) {
+function buildScenarioAnalysis(readableType: string) {
   return {
-    best_case: `All parties execute obligations smoothly, accelerating the ${contractType.replace("_", " ")} objectives and strengthening partnership confidence.`,
-    worst_case: "Unmanaged disputes, compliance findings, or service failures trigger renegotiation or termination events.",
-    most_likely: "Routine governance with targeted improvements keeps commitments on track and risks contained.",
+    best_case:
+      "All parties execute obligations smoothly, accelerating the " +
+      readableType +
+      " objectives and strengthening partnership confidence.",
+    worst_case:
+      "Unmanaged disputes, compliance findings, or service failures trigger renegotiation or termination events.",
+    most_likely:
+      "Routine governance with targeted improvements keeps commitments on track and risks contained.",
   };
 }
 
-function buildComplianceAreas(content: string) {
-  const lowered = content.toLowerCase();
+function buildComplianceAreas(text: string) {
+  const lowered = text.toLowerCase();
   return {
     gdpr: /(gdpr|european)/.test(lowered) ? 78 : 66,
     ccpa: /(ccpa|california)/.test(lowered) ? 74 : 62,
@@ -389,9 +402,18 @@ function buildComplianceAreas(content: string) {
   };
 }
 
-function buildComplianceViolations(content: string) {
-  const lowered = content.toLowerCase();
-  const violations = [] as Array<{ framework: string; severity: string; description: string; recommendation: string; regulatory_risk: string; enforcement_likelihood: number; potential_penalty: string }>;
+function buildComplianceViolations(text: string) {
+  const lowered = text.toLowerCase();
+  const violations: Array<{
+    framework: string;
+    severity: string;
+    description: string;
+    recommendation: string;
+    regulatory_risk: string;
+    enforcement_likelihood: number;
+    potential_penalty: string;
+  }> = [];
+
   if (!/(breach|notification|incident)/.test(lowered)) {
     violations.push({
       framework: "Incident Response",
@@ -403,6 +425,7 @@ function buildComplianceViolations(content: string) {
       potential_penalty: "Regulatory remediation and contractual penalties",
     });
   }
+
   if (!/(consent|opt[- ]out)/.test(lowered)) {
     violations.push({
       framework: "Consent Management",
@@ -414,6 +437,7 @@ function buildComplianceViolations(content: string) {
       potential_penalty: "Compliance remediation programme",
     });
   }
+
   if (violations.length === 0) {
     violations.push({
       framework: "General Compliance",
@@ -425,11 +449,19 @@ function buildComplianceViolations(content: string) {
       potential_penalty: "Minimal if monitoring remains active",
     });
   }
+
   return violations;
 }
 
-function buildComplianceGaps(content: string) {
-  const gaps = [] as Array<{ area: string; gap_description: string; remediation_steps: string[]; priority: string; timeline: string }>;
+function buildComplianceGaps(text: string) {
+  const gaps: Array<{
+    area: string;
+    gap_description: string;
+    remediation_steps: string[];
+    priority: string;
+    timeline: string;
+  }> = [];
+
   gaps.push({
     area: "Policy Alignment",
     gap_description: "Ensure internal policies reflect contractual obligations for data handling and security.",
@@ -441,19 +473,24 @@ function buildComplianceGaps(content: string) {
     priority: "high",
     timeline: "90_days",
   });
-  if (!/(audit|evidence|reporting)/i.test(content)) {
+
+  if (!/(audit|evidence|reporting)/i.test(text)) {
     gaps.push({
       area: "Audit Readiness",
       gap_description: "Audit and evidence production requirements are not explicitly documented.",
-      remediation_steps: ["Create audit checklist", "Define evidence storage process"],
+      remediation_steps: [
+        "Create audit checklist",
+        "Define evidence storage process",
+      ],
       priority: "medium",
       timeline: "120_days",
     });
   }
+
   return gaps;
 }
 
-function buildRegulatoryLandscape(contractType: string) {
+function buildRegulatoryLandscape(readableType: string) {
   return {
     upcoming_changes: [
       "Monitor evolving AI governance and privacy regulations impacting contractual obligations.",
@@ -462,12 +499,14 @@ function buildRegulatoryLandscape(contractType: string) {
       "Regulators increasingly expect demonstrable accountability and evidence of compliance controls.",
     ],
     best_practices: [
-      `Embed privacy-by-design and security-by-design checkpoints into the ${contractType.replace("_", " ")} delivery lifecycle.`,
+      "Embed privacy-by-design and security-by-design checkpoints into the " +
+        readableType +
+        " delivery lifecycle.",
     ],
   };
 }
 
-function buildRemediationRoadmap(contractType: string) {
+function buildRemediationRoadmap(readableType: string) {
   return [
     {
       phase: "Stabilise",
@@ -480,7 +519,9 @@ function buildRemediationRoadmap(contractType: string) {
     {
       phase: "Optimise",
       actions: [
-        `Introduce continuous monitoring dashboards covering ${contractType.replace("_", " ")} KPIs and compliance evidence.`,
+        "Introduce continuous monitoring dashboards covering " +
+          readableType +
+          " KPIs and compliance evidence.",
       ],
       timeline: "30-90 days",
       priority: "high",
@@ -488,31 +529,27 @@ function buildRemediationRoadmap(contractType: string) {
   ];
 }
 
-function buildPerspectives(sentences: string[]) {
+function buildPerspectives(text: string) {
+  const sentences = splitSentences(text);
+  const first = sentences[0] ||
+    "Validate that deliverables and acceptance criteria are measurable and achievable.";
+  const second = sentences[1] ||
+    "Structured obligations provide predictable service outcomes and transparency.";
+  const third = sentences[2] ||
+    "Manage resource allocation, change control, and out-of-scope requests carefully.";
+  const fourth = sentences[3] ||
+    "Contract clarifies payment structure and governance cadences for reliable delivery.";
+
   return {
     buyer: {
       score: 74,
-      concerns: [
-        sentences[0] || "Validate that deliverables and acceptance criteria are measurable and achievable.",
-      ],
-      advantages: [
-        sentences[1] || "Structured obligations provide predictable service outcomes and transparency.",
-      ],
-      strategic_priorities: ["Protect continuity", "Maintain cost predictability"],
-      negotiation_leverage: "medium",
-      risk_tolerance: "moderate",
+      concerns: [first],
+      advantages: [second],
     },
     seller: {
-      score: 76,
-      concerns: [
-        sentences[2] || "Manage resource allocation, change control, and out-of-scope requests carefully.",
-      ],
-      advantages: [
-        sentences[3] || "Contract clarifies payment structure and governance cadences for reliable delivery.",
-      ],
-      strategic_priorities: ["Secure long-term value", "Preserve margin"],
-      negotiation_leverage: "medium",
-      risk_tolerance: "moderate",
+      score: 77,
+      concerns: [third],
+      advantages: [fourth],
     },
     legal: {
       score: 72,
@@ -520,21 +557,17 @@ function buildPerspectives(sentences: string[]) {
         "Indemnity, liability, and dispute resolution terms require structured oversight and documentation.",
       ],
       advantages: [
-        "Confidentiality and IP protections appear sufficient but should be monitored for compliance.",
-      ],
-      enforcement_issues: ["Ensure governing law and jurisdiction align with enforcement strategy."],
-      regulatory_considerations: [
-        "Track privacy, data residency, and export control obligations introduced by the contract.",
+        "Confidentiality and intellectual property provisions appear sufficient but should be monitored for compliance.",
       ],
     },
     individual: {
-      score: 70,
+      score: 71,
       concerns: [
         "Confirm personal data usage, monitoring, or audit rights remain proportionate and transparent.",
       ],
-      advantages: ["Clear escalation channels support individual rights and issue resolution."],
-      privacy_impact: "medium",
-      rights_protection: "adequate",
+      advantages: [
+        "Clear escalation channels support individual rights and issue resolution.",
+      ],
     },
   };
 }
@@ -543,7 +576,8 @@ function buildStakeholderConflicts() {
   return [
     {
       conflicting_interests: ["buyer", "seller"],
-      impact: "Commercial flexibility versus cost certainty requires structured negotiation.",
+      impact:
+        "Commercial flexibility versus cost certainty requires structured negotiation and performance triggers.",
       resolution_strategies: [
         "Introduce tiered service options with aligned pricing to balance cost and flexibility.",
       ],
@@ -566,7 +600,7 @@ function buildNegotiationOpportunities() {
         "Offer credit mechanisms convertible to service enhancements for repeated SLA misses.",
       ],
       stakeholder_benefits: [
-        "Buyer gains operational assurance, seller retains flexibility to remediate issues collaboratively.",
+        "Buyer gains operational assurance while seller retains flexibility to remediate issues collaboratively.",
       ],
     },
     {
@@ -581,18 +615,21 @@ function buildNegotiationOpportunities() {
   ];
 }
 
-function buildBusinessImpact(contractType: string) {
+function buildBusinessImpact(readableType: string) {
   return {
-    revenue_implications: "Revenue realisation depends on disciplined invoicing and milestone acceptance.",
+    revenue_implications:
+      "Revenue realisation depends on disciplined invoicing and milestone acceptance aligned to the agreement.",
     cost_structure: "Cost management should reflect resourcing, change control, and potential penalties.",
-    operational_changes: "Operational teams must align processes to contractual obligations from day one.",
-    strategic_value: `Formalises a ${contractType.replace("_", " ")} partnership reinforcing strategic goals.`,
+    operational_changes:
+      "Operational teams must align processes to contractual obligations from day one.",
+    strategic_value: "Formalises a " + readableType + " partnership reinforcing strategic goals.",
   };
 }
 
-function buildCommercialTerms(content: string) {
-  const terms = [] as Array<{ term: string; value: string; business_impact: string; benchmark: string }>;
-  if (/net\s*30/i.test(content)) {
+function buildCommercialTerms(text: string, readableType: string) {
+  const terms: Array<{ term: string; value: string; business_impact: string; benchmark: string }> = [];
+
+  if (/net\s*30/i.test(text)) {
     terms.push({
       term: "Payment Terms",
       value: "Net 30",
@@ -600,30 +637,34 @@ function buildCommercialTerms(content: string) {
       benchmark: "market",
     });
   }
-  if (/exclusive/i.test(content)) {
+
+  if (/exclusive/i.test(text)) {
     terms.push({
       term: "Exclusivity",
       value: "Exclusive arrangement",
-      business_impact: "Limits optionality; ensure performance gates justify exclusivity.",
+      business_impact:
+        "Limits optionality; ensure performance gates justify exclusivity and capture renegotiation levers.",
       benchmark: "unfavorable",
     });
   }
+
   if (terms.length === 0) {
     terms.push({
       term: "Commercial Overview",
       value: "Standard obligations",
-      business_impact: "Document key commercial assumptions to support governance.",
+      business_impact: "Document key commercial assumptions to support governance and reporting.",
       benchmark: "market",
     });
   }
+
   return terms;
 }
 
-function buildRiskSummary(contractType: string) {
+function buildRiskSummary(readableType: string) {
   return {
     overall_risk_level: "medium",
     key_risks: [
-      `Monitor liability, payment, and termination provisions across the ${contractType.replace("_", " ")}.`,
+      "Monitor liability, payment, and termination provisions across the " + readableType + ".",
     ],
     mitigation_strategies: [
       "Assign owners, track mitigation progress, and integrate obligations into governance cadences.",
@@ -632,9 +673,9 @@ function buildRiskSummary(contractType: string) {
   };
 }
 
-function buildCommercialAnalysis(contractType: string) {
+function buildCommercialAnalysis(readableType: string) {
   return {
-    deal_structure: `Structured ${contractType.replace("_", " ")} with clear obligations and shared governance expectations.`,
+    deal_structure: "Structured " + readableType + " with clear obligations and shared governance expectations.",
     value_proposition: "Delivers mutual value when obligations are tracked and communication stays active.",
     competitive_position: "neutral",
     market_conditions: "Monitor regulatory and market developments influencing contractual assumptions.",
@@ -644,36 +685,38 @@ function buildCommercialAnalysis(contractType: string) {
 function buildPerformanceFramework() {
   return {
     success_metrics: [
-      "Service availability meets contractual thresholds",
-      "Milestones completed on schedule with approvals recorded",
+      "Service availability meets contractual thresholds.",
+      "Milestones completed on schedule with approvals recorded.",
     ],
     performance_standards: [
-      "Document SLAs and escalation paths with accountable owners",
+      "Document SLAs and escalation paths with accountable owners.",
     ],
     monitoring_requirements: [
-      "Publish monthly dashboards and convene quarterly governance reviews",
+      "Publish monthly dashboards and convene quarterly governance reviews.",
     ],
   };
 }
 
-function buildStrategicRecommendations(contractType: string) {
+function buildStrategicRecommendations(readableType: string) {
   return [
     {
-      recommendation: `Create a living playbook summarising the ${contractType.replace("_", " ")} obligations and decision points.",
+      recommendation:
+        "Create a living playbook summarising the " + readableType + " obligations and decision points.",
       rationale: "Improves cross-functional visibility and accelerates issue resolution.",
       priority: "high",
       timeline: "30_days",
     },
     {
-      recommendation: "Align commercial, legal, and delivery teams on renewal strategy six months ahead of expiry.",
-      rationale: "Reduces renegotiation friction and supports long-term value.\n",
+      recommendation:
+        "Align commercial, legal, and delivery teams on renewal strategy six months ahead of expiry.",
+      rationale: "Reduces renegotiation friction and supports long-term value.",
       priority: "medium",
       timeline: "90_days",
     },
   ];
 }
 
-function buildImplementationRoadmap(contractType: string) {
+function buildImplementationRoadmap(readableType: string) {
   return [
     {
       phase: "Mobilise",
