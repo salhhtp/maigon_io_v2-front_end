@@ -330,21 +330,24 @@ export default function Upload() {
               `📄 Processing DOCX: ${file.name} (${Math.round(file.size / 1024)}KB)`,
             );
 
-            // Convert to base64 using the most reliable method for large files
+            // Convert to base64 - build binary string first, then encode
             const uint8Array = new Uint8Array(arrayBuffer);
-            let base64 = "";
 
-            // Process in smaller chunks to avoid "Maximum call stack size exceeded" error
-            const chunkSize = 1024; // Smaller chunk size for better reliability
+            // First, convert entire Uint8Array to binary string
+            let binaryString = "";
+            const chunkSize = 8192; // Process in chunks to avoid call stack issues
             for (let i = 0; i < uint8Array.length; i += chunkSize) {
               const chunk = uint8Array.slice(i, i + chunkSize);
-              // Use safer approach without .apply() which causes stack overflow
-              let chunkString = "";
+              // Build binary string from chunk
+              let chunkStr = "";
               for (let j = 0; j < chunk.length; j++) {
-                chunkString += String.fromCharCode(chunk[j]);
+                chunkStr += String.fromCharCode(chunk[j]);
               }
-              base64 += btoa(chunkString);
+              binaryString += chunkStr;
             }
+
+            // Now encode the complete binary string to base64
+            const base64 = btoa(binaryString);
 
             console.log(
               `✅ DOCX converted to base64 successfully (${Math.round(base64.length / 1024)}KB)`,
