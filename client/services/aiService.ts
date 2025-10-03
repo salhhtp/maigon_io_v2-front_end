@@ -254,6 +254,13 @@ class AIService {
       throw new Error("Review type is required for analysis");
     }
 
+    const buildFallbackResult = (reason: string) =>
+      generateFallbackAnalysis(request.reviewType, request.classification, {
+        fallbackReason: reason,
+        contractContent: request.content,
+        contractType: request.contractType,
+      });
+
     try {
       console.log("🔗 Calling Supabase Edge Function for AI analysis...", {
         model,
