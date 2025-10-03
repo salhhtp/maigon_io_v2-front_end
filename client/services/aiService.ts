@@ -370,10 +370,17 @@ class AIService {
           const serializedError = safeStringify(error);
           const errorMessage = this.formatEdgeErrorMessage(error);
 
-          console.error(
-            "❌ Supabase Edge Function error object:",
-            serializedError,
-          );
+          if (isFunctionsFetchError(error)) {
+            console.warn(
+              "⚠️ Supabase Edge Function unreachable. Switching to resilient fallback analysis.",
+              serializedError,
+            );
+          } else {
+            console.error(
+              "❌ Supabase Edge Function error object:",
+              serializedError,
+            );
+          }
 
           if (!isFunctionsFetchError(error)) {
             try {
@@ -474,9 +481,11 @@ class AIService {
             );
           }
 
-          return buildFallbackResult(
-            `Edge Function error: ${errorMessage || "Unknown error"}`,
-          );
+          const fallbackReason = isFunctionsFetchError(error)
+            ? "Edge Function temporarily unreachable. Generated resilient fallback analysis."
+            : `Edge Function error: ${errorMessage || "Unknown error"}`;
+
+          return buildFallbackResult(fallbackReason);
         }
 
         if (!data) {
