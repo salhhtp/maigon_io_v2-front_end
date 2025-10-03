@@ -443,12 +443,15 @@ serve(async (req) => {
       });
     }
   } catch (error) {
-    // Safely extract error message
     let errorMessage: string;
     if (error instanceof Error) {
       errorMessage = error.message;
     } else if (error && typeof error === "object") {
-      errorMessage = JSON.stringify(error);
+      try {
+        errorMessage = JSON.stringify(error);
+      } catch {
+        errorMessage = String(error);
+      }
     } else {
       errorMessage = String(error);
     }
@@ -462,14 +465,37 @@ serve(async (req) => {
 
     console.error("❌ Analysis error:", errorDetails);
 
+    if (!fallbackContext) {
+      const filename = request?.fileName || request?.filename;
+      const inferredFormat = inferDocumentFormat(filename, request?.documentFormat);
+      const contentForFallback = processedContent || request?.content || "";
+      const inferredContractType =
+        request?.contractType ||
+        request?.classification?.contractType ||
+        detectContractType(contentForFallback, filename);
+
+      fallbackContext = {
+        reviewType: request?.reviewType || "full_summary",
+        contractContent: contentForFallback,
+        contractType: inferredContractType,
+        classification: request?.classification,
+        documentFormat: inferredFormat,
+        fileName: filename,
+      };
+    }
+
+    const fallbackResponse = generateFallbackAnalysis({
+      ...fallbackContext,
+      fallbackReason: `Edge function error: ${errorMessage}`,
+    });
+
     return new Response(
       JSON.stringify({
-        error: `Contract analysis failed: ${errorMessage}`,
-        type: errorDetails.type,
-        timestamp: errorDetails.timestamp,
+        ...fallbackResponse,
+        fallback_error_details: errorDetails,
       }),
       {
-        status: 500,
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       },
     );
