@@ -495,6 +495,56 @@ class AIService {
     }
   }
 
+  private formatEdgeErrorMessage(error: unknown): string {
+    if (!error) {
+      return "Unknown error";
+    }
+
+    if (error instanceof Error) {
+      return error.message;
+    }
+
+    if (typeof error === "string") {
+      return error;
+    }
+
+    if (typeof error === "object") {
+      const errObj = error as Record<string, unknown> & { name?: unknown };
+
+      const possibleKeys: Array<keyof typeof errObj> = [
+        "message" as const,
+        "error" as const,
+        "msg" as const,
+      ];
+
+      for (const key of possibleKeys) {
+        const value = errObj[key];
+        if (typeof value === "string" && value.trim().length > 0) {
+          if (typeof errObj.name === "string" && errObj.name.trim().length > 0) {
+            return `${errObj.name}: ${value}`;
+          }
+          return value;
+        }
+      }
+
+      if (errObj.details) {
+        try {
+          return JSON.stringify(errObj.details);
+        } catch {
+          // ignore JSON errors and fall through
+        }
+      }
+
+      try {
+        return JSON.stringify(errObj);
+      } catch {
+        return Object.prototype.toString.call(error);
+      }
+    }
+
+    return String(error);
+  }
+
   // Get default solution for review type
   private async getDefaultSolution(
     reviewType: string,
