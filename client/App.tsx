@@ -57,10 +57,10 @@ const queryClient = new QueryClient();
 const Layout = () => {
   // Initialize performance monitoring on app start
   React.useEffect(() => {
-    logger.info('Application started', {
-      version: '2.0.0',
+    logger.info("Application started", {
+      version: "2.0.0",
       environment: import.meta.env.MODE,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
 
     performanceMonitor.initializeMonitoring();
@@ -69,16 +69,16 @@ const Layout = () => {
     const startTime = performance.now();
     const handleLoad = () => {
       const loadTime = performance.now() - startTime;
-      logger.performance('App initial load', loadTime, {
-        url: window.location.href
+      logger.performance("App initial load", loadTime, {
+        url: window.location.href,
       });
     };
 
-    if (document.readyState === 'complete') {
+    if (document.readyState === "complete") {
       handleLoad();
     } else {
-      window.addEventListener('load', handleLoad);
-      return () => window.removeEventListener('load', handleLoad);
+      window.addEventListener("load", handleLoad);
+      return () => window.removeEventListener("load", handleLoad);
     }
   }, []);
 

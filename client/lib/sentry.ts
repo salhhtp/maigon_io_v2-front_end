@@ -63,7 +63,10 @@ export function initClientSentry() {
   isInitialized = true;
 }
 
-export function captureException(error: unknown, context?: Record<string, any>) {
+export function captureException(
+  error: unknown,
+  context?: Record<string, any>,
+) {
   const client = Sentry.getCurrentHub().getClient();
   if (!client) {
     return;

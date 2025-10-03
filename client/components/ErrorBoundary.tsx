@@ -1,7 +1,14 @@
-import React from 'react';
-import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
-import { Button } from './ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from './ui/card';
+import React from "react";
+import { AlertTriangle, RefreshCw, Home } from "lucide-react";
+import { Button } from "./ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "./ui/card";
 import { captureException } from "@/lib/sentry";
 
 interface ErrorBoundaryProps {
@@ -19,7 +26,10 @@ interface ErrorBoundaryState {
   error: Error | null;
 }
 
-export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+export class ErrorBoundary extends React.Component<
+  ErrorBoundaryProps,
+  ErrorBoundaryState
+> {
   constructor(props: ErrorBoundaryProps) {
     super(props);
     this.state = { hasError: false, error: null };
@@ -31,8 +41,8 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     // Log error to console in development
-    console.error('Error Boundary caught an error:', error, errorInfo);
-    
+    console.error("Error Boundary caught an error:", error, errorInfo);
+
     // In production, this would be sent to an error reporting service
     this.logErrorToService(error, errorInfo);
   }
@@ -49,7 +59,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
     };
 
     // For now, just log to console
-    console.error('Error Report:', errorReport);
+    console.error("Error Report:", errorReport);
 
     captureException(error, {
       componentStack: errorInfo.componentStack,
@@ -76,9 +86,12 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
   }
 }
 
-const DefaultErrorFallback: React.FC<ErrorFallbackProps> = ({ error, resetErrorBoundary }) => {
+const DefaultErrorFallback: React.FC<ErrorFallbackProps> = ({
+  error,
+  resetErrorBoundary,
+}) => {
   const handleGoHome = () => {
-    window.location.href = '/';
+    window.location.href = "/";
   };
 
   const handleReload = () => {
@@ -99,7 +112,7 @@ const DefaultErrorFallback: React.FC<ErrorFallbackProps> = ({ error, resetErrorB
             We encountered an unexpected error. Our team has been notified.
           </CardDescription>
         </CardHeader>
-        
+
         <CardContent>
           <details className="bg-gray-50 rounded-lg p-3 text-sm">
             <summary className="cursor-pointer font-medium text-[#271D1D] mb-2">
@@ -110,7 +123,7 @@ const DefaultErrorFallback: React.FC<ErrorFallbackProps> = ({ error, resetErrorB
             </code>
           </details>
         </CardContent>
-        
+
         <CardFooter className="flex flex-col sm:flex-row gap-2">
           <Button
             onClick={resetErrorBoundary}
@@ -144,8 +157,8 @@ const DefaultErrorFallback: React.FC<ErrorFallbackProps> = ({ error, resetErrorB
 // Hook for functional components to access error boundary functionality
 export const useErrorHandler = () => {
   return (error: Error, errorInfo?: string) => {
-    console.error('Error caught by useErrorHandler:', error, errorInfo);
-    
+    console.error("Error caught by useErrorHandler:", error, errorInfo);
+
     // This could trigger a toast notification or other user feedback
     // For now, just re-throw to be caught by Error Boundary
     throw error;

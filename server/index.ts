@@ -18,7 +18,8 @@ function initializeSentry() {
 
   Sentry.init({
     dsn,
-    environment: process.env.SENTRY_ENVIRONMENT || process.env.NODE_ENV || "development",
+    environment:
+      process.env.SENTRY_ENVIRONMENT || process.env.NODE_ENV || "development",
     release: process.env.SENTRY_RELEASE,
     tracesSampleRate: Number(process.env.SENTRY_TRACES_SAMPLE_RATE ?? 0.1),
   });
@@ -55,9 +56,15 @@ export function createServer() {
 
   // Fallback error handler to ensure responses are sent
   app.use(
-    (err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+    (
+      err: unknown,
+      _req: express.Request,
+      res: express.Response,
+      _next: express.NextFunction,
+    ) => {
       console.error("Server error:", err);
-      const status = err instanceof Error && (err as any).status ? (err as any).status : 500;
+      const status =
+        err instanceof Error && (err as any).status ? (err as any).status : 500;
       res.status(status).json({
         error: "Internal server error",
         requestId: res.getHeader("x-request-id") ?? null,
