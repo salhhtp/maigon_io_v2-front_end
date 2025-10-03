@@ -282,20 +282,31 @@ class AIService {
         ...requestBody,
         content: `${requestBody.content?.substring(0, 100)}... (${requestBody.content?.length} chars)`,
         customSolutionKeys: customSolution ? Object.keys(customSolution) : null,
-        classificationKeys: requestBody.classification ? Object.keys(requestBody.classification) : null,
+        classificationKeys: requestBody.classification
+          ? Object.keys(requestBody.classification)
+          : null,
       });
 
       // Validate that the request body is JSON-serializable
       try {
         const testSerialization = JSON.stringify(requestBody);
-        console.log("✅ Request body is JSON-serializable, size:", testSerialization.length, "bytes");
+        console.log(
+          "✅ Request body is JSON-serializable, size:",
+          testSerialization.length,
+          "bytes",
+        );
       } catch (serError) {
         console.error("❌ Request body is NOT JSON-serializable:", serError);
-        throw new Error(`Request body serialization failed: ${serError instanceof Error ? serError.message : String(serError)}`);
+        throw new Error(
+          `Request body serialization failed: ${serError instanceof Error ? serError.message : String(serError)}`,
+        );
       }
 
       // Check authentication state before calling Edge Function
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession();
       if (sessionError || !session) {
         console.error("❌ Authentication issue:", {
           hasSession: !!session,
@@ -303,7 +314,10 @@ class AIService {
         });
         throw new Error("Authentication required. Please sign in again.");
       }
-      console.log("✅ Authentication valid, session expires:", new Date(session.expires_at! * 1000).toISOString());
+      console.log(
+        "✅ Authentication valid, session expires:",
+        new Date(session.expires_at! * 1000).toISOString(),
+      );
 
       // Call Supabase Edge Function for AI processing with timeout
       const controller = new AbortController();
