@@ -7,12 +7,14 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables')
 }
 
+// Use sessionStorage instead of localStorage for sessions
+// This ensures sessions expire when browser tab is closed
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: true,
-    storage: window.localStorage,
+    storage: window.sessionStorage, // Changed from localStorage to sessionStorage
     storageKey: 'sb-auth-token'
   }
 })
