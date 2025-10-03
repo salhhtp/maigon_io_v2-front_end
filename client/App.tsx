@@ -12,6 +12,7 @@ import ScrollToTop from "@/components/ScrollToTop";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import logger from "@/utils/logger";
 import performanceMonitor from "@/utils/performance";
+import { initClientSentry } from "@/lib/sentry";
 import Index from "./pages/Index";
 import RootRedirect from "@/components/RootRedirect";
 import UserHome from "./pages/UserHome";
@@ -48,6 +49,8 @@ import ChangePassword from "./pages/ChangePassword";
 import EmailVerification from "./pages/EmailVerification";
 import AdminAnalytics from "./pages/AdminAnalytics";
 import NotFound from "./pages/NotFound";
+
+initClientSentry();
 
 const queryClient = new QueryClient();
 
