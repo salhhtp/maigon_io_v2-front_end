@@ -441,18 +441,43 @@ class AIService {
                         },
                       );
                     }
-                  }
+                  } else {
+                    // Edge Function returned an error status (400, 500, etc.)
+                    // Try to parse the error message from the response
+                    try {
+                      const errorBody = JSON.parse(respText);
+                      const userErrorMessage = errorBody.error || errorBody.message || respText;
 
-                  logError(
-                    "❌ Supabase Edge Function error",
-                    new Error(`Edge Function error ${directResp.status}`),
-                    {
-                      reviewType: request.reviewType,
-                      edgeStatus: directResp.status,
-                      edgeBody: respText,
-                      originalError: serializedError,
-                    },
-                  );
+                      // Log the error details
+                      logError(
+                        "❌ Supabase Edge Function returned error",
+                        new Error(userErrorMessage),
+                        {
+                          reviewType: request.reviewType,
+                          edgeStatus: directResp.status,
+                          edgeBody: respText,
+                          originalError: serializedError,
+                        },
+                      );
+
+                      // Throw the error to propagate to user
+                      throw new Error(userErrorMessage);
+                    } catch (jsonError) {
+                      // If response isn't JSON, use the raw text
+                      const errorMsg = respText || `Edge Function error ${directResp.status}`;
+                      logError(
+                        "❌ Supabase Edge Function error",
+                        new Error(errorMsg),
+                        {
+                          reviewType: request.reviewType,
+                          edgeStatus: directResp.status,
+                          edgeBody: respText,
+                          originalError: serializedError,
+                        },
+                      );
+                      throw new Error(errorMsg);
+                    }
+                  }
                 } catch (directError) {
                   clearTimeout(directTimeoutId);
                   logError(
