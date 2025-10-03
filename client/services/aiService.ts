@@ -2,6 +2,7 @@ import { supabase } from "@/lib/supabase";
 import { generateFallbackAnalysis } from "./fallbackAnalysis";
 import logger from "@/utils/logger";
 import { errorHandler } from "@/utils/errorHandler";
+import nativeFetch from "@/lib/nativeFetch";
 import {
   logError,
   createUserFriendlyMessage,
@@ -381,7 +382,7 @@ class AIService {
               edgeUrl,
             );
 
-            const directResp = await fetch(edgeUrl, {
+            const directResp = await nativeFetch(edgeUrl, {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
