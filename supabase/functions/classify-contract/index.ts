@@ -1,5 +1,3 @@
-import { serve } from "https://deno.land/std@0.208.0/http/server.ts";
-
 // AI Model configurations for classification
 const AI_CONFIGS = {
   "openai-gpt-4": {
@@ -34,6 +32,21 @@ interface ClassificationResult {
   fallback_reason?: string;
 }
 
+interface FallbackRule {
+  type: string;
+  confidence: number;
+  keywords: string[];
+  characteristics: string[];
+  solutions: string[];
+  reasoning: string;
+  subType?: string;
+  aliases?: string[];
+  partyRoles: {
+    party1: string;
+    party2: string;
+  };
+}
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -45,12 +58,29 @@ serve(async (req) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
+  let request: ClassificationRequest | null = null;
+
   try {
     console.log("🤖 Starting contract classification request...");
 
-    const request: ClassificationRequest = await req.json();
+    try {
+      request = await req.json();
+    } catch (parseError) {
+      const message = extractErrorMessage(parseError);
+      console.error("❌ Failed to parse request JSON:", {
+        message,
+        timestamp: new Date().toISOString(),
+      });
+      return new Response(
+        JSON.stringify({ error: "Invalid JSON in request body" }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
+    }
 
-    if (!request.content) {
+    if (!request || !request.content) {
       return new Response(
         JSON.stringify({ error: "Content is required for classification" }),
         {
@@ -71,17 +101,40 @@ serve(async (req) => {
       console.error("🔑 OpenAI API key not configured for classification:", {
         timestamp: new Date().toISOString(),
       });
-      return new Response(
-        JSON.stringify({ error: "AI classification service not available" }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        },
+
+      const fallback = generateFallbackClassification(
+        request.content,
+        request.fileName,
       );
+      fallback.fallback_reason = "OpenAI API key not configured for classification";
+
+      return new Response(JSON.stringify(fallback), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    // Classify contract using AI
-    const result = await classifyWithAI(request, apiKey);
+    let result: ClassificationResult;
+    try {
+      result = await classifyWithAI(request, apiKey);
+    } catch (analysisError) {
+      const message = extractErrorMessage(analysisError);
+      console.error("❌ AI classification provider failed:", {
+        message,
+        timestamp: new Date().toISOString(),
+      });
+
+      const fallback = generateFallbackClassification(
+        request.content,
+        request.fileName,
+      );
+      fallback.fallback_reason = `Primary classification provider error: ${message}`;
+
+      return new Response(JSON.stringify(fallback), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     console.log("✅ Contract classification completed:", {
       contractType: result.contractType,
@@ -93,40 +146,46 @@ serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
-    // Safely extract error message
-    let errorMessage: string;
-    if (error instanceof Error) {
-      errorMessage = error.message;
-    } else if (error && typeof error === "object") {
-      errorMessage = JSON.stringify(error);
-    } else {
-      errorMessage = String(error);
-    }
+    const message = extractErrorMessage(error);
+    const type = error instanceof Error ? error.name : typeof error;
 
-    const errorDetails = {
-      message: errorMessage,
-      type: error instanceof Error ? error.name : typeof error,
-      stack: error instanceof Error ? error.stack : undefined,
+    console.error("❌ Classification error:", {
+      message,
+      type,
       timestamp: new Date().toISOString(),
-    };
+    });
 
-    console.error("❌ Classification error:", errorDetails);
-
-    return new Response(
-      JSON.stringify({
-        error: `Contract classification failed: ${errorMessage}`,
-        type: errorDetails.type,
-        timestamp: errorDetails.timestamp,
-      }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      },
+    const fallback = generateFallbackClassification(
+      request?.content || "",
+      request?.fileName,
     );
+    fallback.fallback_reason = `Edge function error: ${message}`;
+
+    return new Response(JSON.stringify(fallback), {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });
 
-async function classifyWithAI(request: ClassificationRequest, apiKey: string) {
+function extractErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  if (error && typeof error === "object") {
+    try {
+      return JSON.stringify(error);
+    } catch {
+      return "[object Object]";
+    }
+  }
+  return String(error);
+}
+
+async function classifyWithAI(
+  request: ClassificationRequest,
+  apiKey: string,
+): Promise<ClassificationResult> {
   const modelConfig = AI_CONFIGS["openai-gpt-4"];
 
   const systemPrompt = `You are a world-class legal document classifier and contract analysis expert with 20+ years of experience across multiple jurisdictions and industries. You have deep expertise in:
@@ -271,7 +330,7 @@ Analyze thoroughly and provide precise classification based on the evidence foun
         content: analysisPrompt,
       },
     ],
-    temperature: 0.1, // Low temperature for consistent classification
+    temperature: 0.1,
     max_tokens: 1000,
     response_format: { type: "json_object" },
   };
@@ -307,8 +366,7 @@ Analyze thoroughly and provide precise classification based on the evidence foun
     const result = JSON.parse(content);
     console.log("📊 AI Classification result:", result);
 
-    // Validate and enhance the result with additional fields
-    const validatedResult = {
+    const validatedResult: ClassificationResult = {
       contractType: result.contractType || "general_commercial",
       confidence: Math.min(Math.max(result.confidence || 0.5, 0), 1),
       subType: result.subType || null,
@@ -327,7 +385,10 @@ Analyze thoroughly and provide precise classification based on the evidence foun
           : ["full_summary", "risk_assessment"],
       keyTerms: Array.isArray(result.keyTerms) ? result.keyTerms : [],
       jurisdiction: result.jurisdiction || "Not specified",
-      partyRoles: result.partyRoles || {},
+      partyRoles: {
+        party1: result.partyRoles?.party1 || "Not specified",
+        party2: result.partyRoles?.party2 || "Not specified",
+      },
     };
 
     console.log("✅ Enhanced classification result:", {
@@ -348,4 +409,326 @@ Analyze thoroughly and provide precise classification based on the evidence foun
     });
     throw new Error("Failed to parse AI classification response");
   }
+}
+
+const FALLBACK_RULES: FallbackRule[] = [
+  {
+    type: "data_processing_agreement",
+    confidence: 0.92,
+    keywords: [
+      "data processing",
+      "personal data",
+      "controller",
+      "processor",
+      "gdpr",
+      "data subject",
+      "edpb",
+      "data protection",
+      "sub-processor",
+      "breach notification",
+    ],
+    characteristics: [
+      "GDPR and data protection obligations referenced",
+      "Controller and processor roles defined",
+      "Security and breach notification terms present",
+      "Sub-processing or data transfer restrictions identified",
+    ],
+    solutions: ["compliance_score", "perspective_review"],
+    reasoning:
+      "References to personal data handling and GDPR-style obligations align with a data processing agreement.",
+    subType: "GDPR-aligned DPA",
+    aliases: ["dpa", "data-processing"],
+    partyRoles: {
+      party1: "Data Controller",
+      party2: "Data Processor",
+    },
+  },
+  {
+    type: "non_disclosure_agreement",
+    confidence: 0.9,
+    keywords: [
+      "confidential",
+      "non-disclosure",
+      "receiving party",
+      "disclosing party",
+      "trade secret",
+      "proprietary information",
+      "return or destroy",
+    ],
+    characteristics: [
+      "Confidential information definitions present",
+      "Restrictions on disclosure or use",
+      "Obligations to return or destroy materials",
+      "Duration or survival clauses for confidentiality",
+    ],
+    solutions: ["full_summary", "risk_assessment"],
+    reasoning:
+      "Confidentiality-focused language and party roles indicate a non-disclosure agreement.",
+    subType: "Mutual NDA",
+    aliases: ["nda", "non-disclosure"],
+    partyRoles: {
+      party1: "Disclosing Party",
+      party2: "Receiving Party",
+    },
+  },
+  {
+    type: "privacy_policy_document",
+    confidence: 0.88,
+    keywords: [
+      "privacy policy",
+      "personal information",
+      "cookie",
+      "user rights",
+      "data retention",
+      "data collection",
+      "do not sell",
+      "ccpa",
+      "gdpr",
+    ],
+    characteristics: [
+      "User rights and privacy disclosures present",
+      "References to data collection or retention",
+      "Mentions of GDPR, CCPA, or similar regulations",
+      "Instructions for contacting privacy officer or exercising rights",
+    ],
+    solutions: ["compliance_score", "full_summary"],
+    reasoning:
+      "Regulatory transparency and user rights language matches a privacy policy document.",
+    aliases: ["privacy", "privacy-policy"],
+    partyRoles: {
+      party1: "Service Provider",
+      party2: "End User",
+    },
+  },
+  {
+    type: "consultancy_agreement",
+    confidence: 0.85,
+    keywords: [
+      "consulting",
+      "services",
+      "professional services",
+      "statement of work",
+      "fees",
+      "expenses",
+      "deliverables",
+      "independent contractor",
+    ],
+    characteristics: [
+      "Professional services scope defined",
+      "Payment and expense handling clauses",
+      "Independent contractor language present",
+      "Deliverables or milestones described",
+    ],
+    solutions: ["full_summary", "risk_assessment"],
+    reasoning:
+      "Service delivery language and statement of work references align with a consultancy agreement.",
+    aliases: ["consulting", "consultancy"],
+    partyRoles: {
+      party1: "Client",
+      party2: "Consultant",
+    },
+  },
+  {
+    type: "research_development_agreement",
+    confidence: 0.87,
+    keywords: [
+      "research",
+      "development",
+      "intellectual property",
+      "invention",
+      "technology transfer",
+      "commercialization",
+      "publication",
+    ],
+    characteristics: [
+      "Innovation or R&D cooperation described",
+      "IP ownership or licensing language",
+      "Milestones or research phases outlined",
+      "Publication or confidentiality restrictions",
+    ],
+    solutions: ["full_summary", "perspective_review"],
+    reasoning:
+      "IP-centric collaboration language indicates a research and development agreement.",
+    aliases: ["r&d", "research-development", "collaboration"],
+    partyRoles: {
+      party1: "Research Sponsor",
+      party2: "Research Partner",
+    },
+  },
+  {
+    type: "end_user_license_agreement",
+    confidence: 0.9,
+    keywords: [
+      "license",
+      "end user",
+      "software",
+      "permitted use",
+      "license grant",
+      "restrictions",
+      "updates",
+      "support",
+    ],
+    characteristics: [
+      "Software license grant and restrictions",
+      "Usage limitations or prohibited actions",
+      "Update, maintenance, or support terms",
+      "Termination tied to license violations",
+    ],
+    solutions: ["risk_assessment", "full_summary"],
+    reasoning:
+      "Software usage and licensing restrictions identify an end user license agreement.",
+    aliases: ["eula", "license agreement"],
+    partyRoles: {
+      party1: "Licensor",
+      party2: "Licensee",
+    },
+  },
+  {
+    type: "product_supply_agreement",
+    confidence: 0.86,
+    keywords: [
+      "supply",
+      "purchase",
+      "buyer",
+      "seller",
+      "delivery",
+      "quantity",
+      "specifications",
+      "warranty",
+    ],
+    characteristics: [
+      "Product or goods supply obligations",
+      "Delivery schedule or logistics language",
+      "Pricing, invoicing, or acceptance terms",
+      "Quality standards or warranties referenced",
+    ],
+    solutions: ["risk_assessment", "perspective_review"],
+    reasoning:
+      "References to goods delivery and purchase obligations indicate a product supply agreement.",
+    aliases: ["supply", "supply-agreement", "purchase"],
+    partyRoles: {
+      party1: "Buyer",
+      party2: "Supplier",
+    },
+  },
+];
+
+const DEFAULT_RULE: FallbackRule = {
+  type: "general_commercial",
+  confidence: 0.6,
+  keywords: ["agreement", "services", "party", "terms", "obligations"],
+  characteristics: [
+    "General commercial obligations outlined",
+    "Payment and performance expectations implied",
+    "Risk allocation and termination provisions likely present",
+  ],
+  solutions: ["full_summary", "risk_assessment"],
+  reasoning:
+    "Contract content references broad commercial terms without clear indicators of a specialised template.",
+  aliases: ["general", "commercial"],
+  partyRoles: {
+    party1: "Primary Party",
+    party2: "Counterparty",
+  },
+};
+
+function generateFallbackClassification(
+  content: string,
+  fileName?: string,
+): ClassificationResult {
+  const contentLower = (content || "").toLowerCase();
+  const fileLower = (fileName || "").toLowerCase();
+
+  if (contentLower.length === 0) {
+    return {
+      contractType: DEFAULT_RULE.type,
+      confidence: DEFAULT_RULE.confidence,
+      subType: DEFAULT_RULE.subType || null,
+      characteristics: DEFAULT_RULE.characteristics,
+      reasoning: `${DEFAULT_RULE.reasoning} Original content unavailable for analysis.`,
+      suggestedSolutions: DEFAULT_RULE.solutions,
+      keyTerms: ["Contract content unavailable"],
+      jurisdiction: "Not specified",
+      partyRoles: DEFAULT_RULE.partyRoles,
+      fallback_used: true,
+    };
+  }
+
+  let bestRule: { rule: FallbackRule; score: number } = {
+    rule: DEFAULT_RULE,
+    score: 0,
+  };
+
+  for (const rule of FALLBACK_RULES) {
+    let score = 0;
+    for (const keyword of rule.keywords) {
+      if (contentLower.includes(keyword)) {
+        score += 1;
+      }
+    }
+
+    if (fileLower) {
+      const targets = [
+        rule.type.replace(/_/g, " "),
+        ...(rule.aliases ?? []),
+      ];
+      for (const target of targets) {
+        const normalized = target.toLowerCase();
+        if (
+          normalized &&
+          (fileLower.includes(normalized) ||
+            fileLower.includes(normalized.replace(/\s+/g, "")))
+        ) {
+          score += 1.5;
+        }
+      }
+    }
+
+    if (score > bestRule.score) {
+      bestRule = { rule, score };
+    }
+  }
+
+  const chosenRule = bestRule.score >= 2 ? bestRule.rule : DEFAULT_RULE;
+  const keyTerms = deriveKeyTerms(contentLower, chosenRule);
+
+  return {
+    contractType: chosenRule.type,
+    confidence: chosenRule.confidence,
+    subType: chosenRule.subType || null,
+    characteristics: chosenRule.characteristics,
+    reasoning: chosenRule.reasoning,
+    suggestedSolutions: chosenRule.solutions,
+    keyTerms,
+    jurisdiction: "Not specified",
+    partyRoles: chosenRule.partyRoles,
+    fallback_used: true,
+  };
+}
+
+function deriveKeyTerms(contentLower: string, rule: FallbackRule): string[] {
+  const unique = new Set<string>();
+
+  for (const keyword of rule.keywords) {
+    if (contentLower.includes(keyword)) {
+      unique.add(formatKeyword(keyword));
+    }
+  }
+
+  if (unique.size === 0) {
+    if (rule === DEFAULT_RULE) {
+      return [
+        "commercial obligations",
+        "service levels",
+        "payment terms",
+      ];
+    }
+    return rule.keywords.slice(0, 6).map(formatKeyword);
+  }
+
+  return Array.from(unique).slice(0, 8);
+}
+
+function formatKeyword(keyword: string): string {
+  return keyword.replace(/[_-]/g, " ").trim();
 }
