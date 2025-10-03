@@ -1,5 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 
+import nativeFetch from "./nativeFetch";
+
 type Json =
   | string
   | number
@@ -22,6 +24,9 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     detectSessionInUrl: true,
     storage: typeof window !== "undefined" ? window.sessionStorage : undefined,
     storageKey: "sb-auth-token",
+  },
+  global: {
+    fetch: nativeFetch,
   },
 });
 
