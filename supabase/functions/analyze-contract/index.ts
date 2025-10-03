@@ -430,7 +430,7 @@ serve(async (req) => {
       });
 
       const fallbackResponse = generateFallbackAnalysis({
-        ...baseFallbackContext,
+        ...fallbackContext!,
         fallbackReason: `Primary AI provider error: ${errorMessage}`,
       });
 
