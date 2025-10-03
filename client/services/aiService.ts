@@ -303,6 +303,13 @@ class AIService {
         );
       }
 
+      const buildFallbackResult = (reason: string) =>
+        generateFallbackAnalysis(request.reviewType, request.classification, {
+          fallbackReason: reason,
+          contractContent: request.content,
+          contractType: request.contractType,
+        });
+
       // Check authentication state before calling Edge Function
       const {
         data: { session },
@@ -392,11 +399,25 @@ class AIService {
               respText,
             );
 
-            const detailedMessage = `Edge Function error ${directResp.status}: ${respText}`;
+            if (directResp.ok) {
+              try {
+                const parsed = JSON.parse(respText);
+                return parsed;
+              } catch (parseError) {
+                logError(
+                  "❌ Failed to parse direct fetch fallback response",
+                  parseError,
+                  {
+                    reviewType: request.reviewType,
+                    edgeBody: respText,
+                  },
+                );
+              }
+            }
 
             logError(
               "❌ Supabase Edge Function error",
-              new Error(detailedMessage),
+              new Error(`Edge Function error ${directResp.status}`),
               {
                 reviewType: request.reviewType,
                 edgeStatus: directResp.status,
@@ -404,10 +425,7 @@ class AIService {
                 originalError: error,
               },
             );
-
-            throw new Error(`AI service error: ${detailedMessage}`);
           } catch (directError) {
-            // If direct fetch fails, fall back to the original errorMessage
             logError(
               "❌ Supabase Edge Function error (invoke + direct fetch failed)",
               directError,
@@ -416,9 +434,11 @@ class AIService {
                 originalError: error,
               },
             );
-
-            throw new Error(`AI service error: ${errorMessage}`);
           }
+
+          return buildFallbackResult(
+            `Edge Function error: ${errorMessage || "Unknown error"}`,
+          );
         }
 
         if (!data) {
