@@ -426,9 +426,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({
         setUser(null);
         setIsLoading(false);
 
-        // Clear demo authentication
-        localStorage.removeItem("maigon_current_user");
-        sessionStorage.removeItem("maigon_current_user");
+        clearAuthData();
       } else if (event === "TOKEN_REFRESHED") {
         // Handle token refresh silently if we already have a user
         if (user && session) {
