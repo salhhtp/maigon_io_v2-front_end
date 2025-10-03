@@ -390,7 +390,7 @@ serve(async (req) => {
       });
 
       const fallbackResponse = generateFallbackAnalysis({
-        ...baseFallbackContext,
+        ...fallbackContext!,
         fallbackReason: `API key not configured for model: ${model}`,
       });
 
