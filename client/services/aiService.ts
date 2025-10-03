@@ -294,6 +294,17 @@ class AIService {
         throw new Error(`Request body serialization failed: ${serError instanceof Error ? serError.message : String(serError)}`);
       }
 
+      // Check authentication state before calling Edge Function
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !session) {
+        console.error("❌ Authentication issue:", {
+          hasSession: !!session,
+          sessionError,
+        });
+        throw new Error("Authentication required. Please sign in again.");
+      }
+      console.log("✅ Authentication valid, session expires:", new Date(session.expires_at! * 1000).toISOString());
+
       // Call Supabase Edge Function for AI processing with timeout
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minute timeout
@@ -306,6 +317,13 @@ class AIService {
             signal: controller.signal,
           },
         );
+
+        console.log("📥 Edge Function response:", {
+          hasData: !!data,
+          hasError: !!error,
+          dataType: typeof data,
+          errorType: typeof error,
+        });
 
         clearTimeout(timeoutId);
 
