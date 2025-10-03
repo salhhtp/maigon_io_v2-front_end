@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase";
+import { generateFallbackAnalysis } from "./fallbackAnalysis";
 import logger from "@/utils/logger";
 import { errorHandler } from "@/utils/errorHandler";
 import {
