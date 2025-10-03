@@ -1,6 +1,6 @@
 import { supabase } from "@/lib/supabase";
 import logger from "@/utils/logger";
-import { logError } from "@/utils/errorLogger";
+import { logError, safeStringify } from "@/utils/errorLogger";
 
 export interface ContractClassificationResult {
   contractType: string;
@@ -69,14 +69,30 @@ export class ContractClassificationService {
         clearTimeout(timeoutId);
 
         if (error) {
-          logError(
-            "⚠️ AI classification API error, using fallback rules",
-            error,
-            {
-              fileName: fileName || "unknown",
-              contentLength: content.length,
-            },
-          );
+          const serialized = safeStringify(error);
+          const isFunctionsError =
+            typeof error === "object" &&
+            error !== null &&
+            ((error as any).name === "FunctionsFetchError" ||
+              ((error as any).message || "")
+                .toString()
+                .includes("Failed to send a request to the Edge Function"));
+
+          if (isFunctionsError) {
+            console.warn(
+              "⚠️ Classification edge function unreachable. Using deterministic fallback.",
+              serialized,
+            );
+          } else {
+            logError(
+              "⚠️ AI classification API error, using fallback rules",
+              error,
+              {
+                fileName: fileName || "unknown",
+                contentLength: content.length,
+              },
+            );
+          }
           return this.fallbackClassification(content, fileName);
         }
 
