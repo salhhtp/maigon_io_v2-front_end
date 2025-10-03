@@ -18,9 +18,9 @@ export async function extractTextFromPDF(base64Data: string): Promise<string> {
 
     const text = extractPDFText(bytes);
 
-    if (!text || text.trim().length < 50) {
+    if (!text || text.trim().length < 20) {
       throw new Error(
-        "Could not extract meaningful text from PDF. The file may be scanned or corrupted.",
+        "No text extracted from PDF. This PDF may be scanned (image-based) or use unsupported encoding. Please convert to text format or use a different PDF.",
       );
     }
 
@@ -93,11 +93,31 @@ function extractPDFText(pdfBytes: Uint8Array): string {
     const asciiRegex = /[\x20-\x7E]{10,}/g;
     const asciiMatches = pdfString.match(asciiRegex);
     if (asciiMatches) {
-      textMatches.push(...asciiMatches);
+      // Filter out common PDF structure keywords
+      const filtered = asciiMatches.filter(
+        (text) =>
+          !text.startsWith("/") &&
+          !text.includes("endobj") &&
+          !text.includes("stream") &&
+          text.split(" ").length > 1
+      );
+      textMatches.push(...filtered);
     }
   }
 
-  return textMatches.join(" ");
+  // Method 4: Ultra fallback - just get any readable text sequences
+  if (textMatches.length === 0) {
+    console.log("⚠️ Using ultra-fallback PDF extraction");
+    const ultraFallbackRegex = /[a-zA-Z]{3,}[\s\S]{0,100}[a-zA-Z]{3,}/g;
+    const ultraMatches = pdfString.match(ultraFallbackRegex);
+    if (ultraMatches) {
+      textMatches.push(...ultraMatches.slice(0, 50));
+    }
+  }
+
+  const extractedText = textMatches.join(" ");
+  console.log(`📄 PDF extraction found ${textMatches.length} text segments, total length: ${extractedText.length}`);
+  return extractedText;
 }
 
 function cleanExtractedText(text: string): string {
@@ -214,32 +234,36 @@ export function validateExtractedText(text: string): {
   error?: string;
 } {
   if (!text || text.trim().length === 0) {
-    return { valid: false, error: "No text extracted from document" };
-  }
-
-  if (text.trim().length < 100) {
     return {
       valid: false,
-      error: "Extracted text is too short. Document may be empty or corrupted.",
+      error: "No text extracted from document. This may be a scanned PDF (image-based) or use unsupported encoding. Please use a text-based PDF, TXT, or DOCX file instead."
     };
   }
 
-  // Check if text contains enough words
-  const words = text.split(/\s+/).filter((w) => w.length > 2);
-  if (words.length < 50) {
+  // More lenient minimum length - just 30 characters
+  if (text.trim().length < 30) {
+    return {
+      valid: false,
+      error: "Extracted text is too short (less than 30 characters). Document may be empty, corrupted, or scanned.",
+    };
+  }
+
+  // Check if text contains enough words - reduced to 10 words minimum
+  const words = text.split(/\s+/).filter((w) => w.length > 1);
+  if (words.length < 10) {
     return {
       valid: false,
       error:
-        "Not enough readable content found. Document may be scanned or encrypted.",
+        "Not enough readable words found (minimum 10 required). Document may be scanned, encrypted, or use unsupported encoding. Please convert to a text-based format.",
     };
   }
 
-  // Check for reasonable text distribution (not just repetitive characters)
+  // Check for reasonable text distribution (not just repetitive characters) - more lenient
   const uniqueChars = new Set(text.toLowerCase().split("")).size;
-  if (uniqueChars < 20) {
+  if (uniqueChars < 10) {
     return {
       valid: false,
-      error: "Text appears corrupted or contains only repetitive characters.",
+      error: "Text appears corrupted or contains only repetitive characters. Please use a different file format.",
     };
   }
 
