@@ -17,6 +17,23 @@ interface ClassificationRequest {
   fileName: string;
 }
 
+interface ClassificationResult {
+  contractType: string;
+  confidence: number;
+  subType: string | null;
+  characteristics: string[];
+  reasoning: string;
+  suggestedSolutions: string[];
+  keyTerms: string[];
+  jurisdiction: string;
+  partyRoles: {
+    party1: string;
+    party2: string;
+  };
+  fallback_used?: boolean;
+  fallback_reason?: string;
+}
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
