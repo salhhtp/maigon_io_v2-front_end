@@ -4,6 +4,7 @@ import {
   extractTextFromDOCX,
   validateExtractedText,
 } from "../_shared/pdf-parser.ts";
+import { generateFallbackAnalysis } from "../_shared/fallback-analysis.ts";
 
 // Advanced AI Model configurations for sophisticated contract analysis
 const AI_CONFIGS = {
