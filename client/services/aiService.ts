@@ -311,13 +311,31 @@ class AIService {
 
         if (error) {
           // Supabase Edge Function errors may have different structures
-          // For 400 errors, the error message might be in error.message or error.error
-          const errorMessage = error.message || error.error || JSON.stringify(error);
+          // Log the complete error object to understand its structure
+          console.error("❌ Supabase Edge Function error object:", {
+            error,
+            errorKeys: error ? Object.keys(error) : [],
+            errorType: typeof error,
+            errorConstructor: error?.constructor?.name,
+            errorMessage: error?.message,
+            errorStatus: error?.status,
+            errorDetails: error?.details,
+            errorHint: error?.hint,
+            errorCode: error?.code,
+          });
 
-          logError("❌ Supabase Edge Function error", error, {
+          // Try to extract a meaningful error message
+          const errorMessage =
+            error.message ||
+            error.error ||
+            error.msg ||
+            (error.details ? JSON.stringify(error.details) : null) ||
+            JSON.stringify(error);
+
+          logError("❌ Supabase Edge Function error", new Error(errorMessage), {
             reviewType: request.reviewType,
             errorMessage,
-            errorType: typeof error,
+            fullError: error,
           });
 
           throw new Error(`AI service error: ${errorMessage}`);
