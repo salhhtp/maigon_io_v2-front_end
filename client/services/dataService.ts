@@ -206,11 +206,15 @@ export class DataService {
             console.log(
               "🔄 Using fallback analysis due to repeated AI failures",
             );
-            reviewResults = generateFallbackAnalysis(reviewType, classification, {
-              fallbackReason: "Primary AI provider unavailable",
-              contractContent: contractData.content,
-              contractType: contractData.contract_type,
-            });
+            reviewResults = generateFallbackAnalysis(
+              reviewType,
+              classification,
+              {
+                fallbackReason: "Primary AI provider unavailable",
+                contractContent: contractData.content,
+                contractType: contractData.contract_type,
+              },
+            );
             break;
           }
 

@@ -467,7 +467,10 @@ serve(async (req) => {
 
     if (!fallbackContext) {
       const filename = request?.fileName || request?.filename;
-      const inferredFormat = inferDocumentFormat(filename, request?.documentFormat);
+      const inferredFormat = inferDocumentFormat(
+        filename,
+        request?.documentFormat,
+      );
       const contentForFallback = processedContent || request?.content || "";
       const inferredContractType =
         request?.contractType ||

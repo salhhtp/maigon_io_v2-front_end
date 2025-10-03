@@ -38,9 +38,13 @@ const RootRedirect: React.FC = () => {
     return (
       <div className="min-h-screen bg-[#F9F8F8] flex items-center justify-center px-4">
         <div className="max-w-md w-full bg-white shadow-lg rounded-xl p-8 text-center space-y-4">
-          <h1 className="text-2xl font-semibold text-[#271D1D]">We couldn't verify your session</h1>
+          <h1 className="text-2xl font-semibold text-[#271D1D]">
+            We couldn't verify your session
+          </h1>
           {lastError ? (
-            <p className="text-sm text-[#6B7280] leading-relaxed">{lastError}</p>
+            <p className="text-sm text-[#6B7280] leading-relaxed">
+              {lastError}
+            </p>
           ) : (
             <p className="text-sm text-[#6B7280] leading-relaxed">
               Please refresh the page or sign in again to continue.

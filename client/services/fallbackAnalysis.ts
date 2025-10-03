@@ -13,7 +13,9 @@ export function generateFallbackAnalysis(
 ) {
   const timestamp = new Date().toISOString();
   const contractType = (
-    options.contractType || classification?.contractType || DEFAULT_CONTRACT_TYPE
+    options.contractType ||
+    classification?.contractType ||
+    DEFAULT_CONTRACT_TYPE
   )
     .toString()
     .toLowerCase();

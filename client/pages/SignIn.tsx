@@ -37,7 +37,9 @@ export default function SignIn() {
         setError(result.message);
       }
     } catch (error: any) {
-      setError(error.message || "An unexpected error occurred. Please try again.");
+      setError(
+        error.message || "An unexpected error occurred. Please try again.",
+      );
     } finally {
       setIsLoading(false);
     }

@@ -1,9 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import {
-  ChevronDown,
-  User,
-  Upload as UploadIcon,
-} from "lucide-react";
+import { ChevronDown, User, Upload as UploadIcon } from "lucide-react";
 import { Link, useLocation, useNavigate, useBlocker } from "react-router-dom";
 import Logo from "@/components/Logo";
 import Footer from "@/components/Footer";
@@ -801,7 +797,7 @@ export default function Upload() {
                 Supported Formats
               </span>
               <span className="text-black font-roboto text-xs font-normal tracking-[0.08px]">
-                docx, pdf 
+                docx, pdf
               </span>
             </div>
 
@@ -849,7 +845,6 @@ export default function Upload() {
               )}
             </div>
           )}
-
         </div>
       </main>
 

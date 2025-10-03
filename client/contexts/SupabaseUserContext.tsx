@@ -26,7 +26,8 @@ type AuthStatus =
 
 type UserProfile = Database["public"]["Tables"]["user_profiles"]["Row"];
 type UserActivityRow = Database["public"]["Tables"]["user_activities"]["Row"];
-type UserUsageStatsRow = Database["public"]["Tables"]["user_usage_stats"]["Row"];
+type UserUsageStatsRow =
+  Database["public"]["Tables"]["user_usage_stats"]["Row"];
 
 export interface User {
   id: string;
@@ -37,7 +38,12 @@ export interface User {
   role: "user" | "admin";
   hasTemporaryPassword?: boolean;
   plan: {
-    type: "free_trial" | "pay_as_you_go" | "monthly_10" | "monthly_15" | "professional";
+    type:
+      | "free_trial"
+      | "pay_as_you_go"
+      | "monthly_10"
+      | "monthly_15"
+      | "professional";
     name: string;
     price: number;
     contracts_limit: number;
@@ -101,8 +107,12 @@ interface UserContextType {
     email: string,
     password: string,
   ) => Promise<{ success: boolean; message: string; user?: User }>;
-  resetPassword: (email: string) => Promise<{ success: boolean; message: string }>;
-  updatePassword: (newPassword: string) => Promise<{ success: boolean; message: string }>;
+  resetPassword: (
+    email: string,
+  ) => Promise<{ success: boolean; message: string }>;
+  updatePassword: (
+    newPassword: string,
+  ) => Promise<{ success: boolean; message: string }>;
   changePassword: (
     currentPassword: string,
     newPassword: string,
@@ -129,7 +139,13 @@ const getDefaultUserData = (
   profile: UserProfile,
 ): Omit<
   User,
-  "id" | "name" | "email" | "company" | "phone" | "role" | "hasTemporaryPassword"
+  | "id"
+  | "name"
+  | "email"
+  | "company"
+  | "phone"
+  | "role"
+  | "hasTemporaryPassword"
 > => ({
   plan: {
     type: "free_trial",
@@ -183,7 +199,9 @@ const getDefaultUserData = (
   },
 });
 
-const buildMonthlyUsage = (totalReviews: number): User["usage"]["monthly_usage"] => {
+const buildMonthlyUsage = (
+  totalReviews: number,
+): User["usage"]["monthly_usage"] => {
   const now = new Date();
   const months: User["usage"]["monthly_usage"] = [];
 
@@ -226,31 +244,48 @@ const formatActivityAction = (activity: UserActivityRow): string => {
 };
 
 const extractActivityFile = (activity: UserActivityRow): string => {
-  const metadata = (activity.metadata ?? null) as Record<string, unknown> | null;
+  const metadata = (activity.metadata ?? null) as Record<
+    string,
+    unknown
+  > | null;
   if (!metadata) {
     return activity.activity_type === "login" ? "Account" : "—";
   }
 
-  if (typeof metadata.file_name === "string" && metadata.file_name.trim().length > 0) {
+  if (
+    typeof metadata.file_name === "string" &&
+    metadata.file_name.trim().length > 0
+  ) {
     return metadata.file_name;
   }
 
-  if (typeof metadata.contract_title === "string" && metadata.contract_title.trim().length > 0) {
+  if (
+    typeof metadata.contract_title === "string" &&
+    metadata.contract_title.trim().length > 0
+  ) {
     return metadata.contract_title;
   }
 
-  if (typeof metadata.contract_id === "string" && metadata.contract_id.trim().length > 0) {
+  if (
+    typeof metadata.contract_id === "string" &&
+    metadata.contract_id.trim().length > 0
+  ) {
     return `Contract ${metadata.contract_id}`;
   }
 
-  if (typeof metadata.export_type === "string" && metadata.export_type.trim().length > 0) {
+  if (
+    typeof metadata.export_type === "string" &&
+    metadata.export_type.trim().length > 0
+  ) {
     return metadata.export_type;
   }
 
   return activity.activity_type === "login" ? "Account" : "—";
 };
 
-const mapActivitiesToTimeline = (activities: UserActivityRow[]): User["recent_activity"] =>
+const mapActivitiesToTimeline = (
+  activities: UserActivityRow[],
+): User["recent_activity"] =>
   activities.map((activity) => ({
     action: formatActivityAction(activity),
     file: extractActivityFile(activity),
@@ -266,7 +301,8 @@ const deriveProfileDefaults = (
   const metadata = (authUser.user_metadata ?? {}) as Record<string, unknown>;
 
   const fromMetadata = (key: string) =>
-    typeof metadata[key] === "string" && (metadata[key] as string).trim().length > 0
+    typeof metadata[key] === "string" &&
+    (metadata[key] as string).trim().length > 0
       ? (metadata[key] as string)
       : undefined;
 
@@ -278,20 +314,22 @@ const deriveProfileDefaults = (
     (overrides?.last_name ?? fromMetadata("last_name"))?.trim() || "Account";
 
   const company =
-    (overrides?.company ?? fromMetadata("company"))?.trim() || "Unknown Company";
+    (overrides?.company ?? fromMetadata("company"))?.trim() ||
+    "Unknown Company";
 
   return {
     email,
     first_name: firstName,
     last_name: lastName,
     company,
-    phone: overrides?.phone ?? (fromMetadata("phone") ?? null),
-    company_size: overrides?.company_size ?? (fromMetadata("company_size") ?? null),
+    phone: overrides?.phone ?? fromMetadata("phone") ?? null,
+    company_size:
+      overrides?.company_size ?? fromMetadata("company_size") ?? null,
     country_region:
-      overrides?.country_region ?? (fromMetadata("country_region") ?? null),
-    industry: overrides?.industry ?? (fromMetadata("industry") ?? null),
+      overrides?.country_region ?? fromMetadata("country_region") ?? null,
+    industry: overrides?.industry ?? fromMetadata("industry") ?? null,
     hear_about_us:
-      overrides?.hear_about_us ?? (fromMetadata("hear_about_us") ?? null),
+      overrides?.hear_about_us ?? fromMetadata("hear_about_us") ?? null,
     role:
       (overrides?.role as "user" | "admin") ??
       (fromMetadata("role") === "admin" ? "admin" : "user"),
@@ -323,7 +361,8 @@ const ensureUserProfile = async (
         const currentValue = data[key as keyof UserProfile];
 
         if (nextValue !== undefined && nextValue !== currentValue) {
-          diff[key as keyof UserProfile] = nextValue as UserProfile[keyof UserProfile];
+          diff[key as keyof UserProfile] =
+            nextValue as UserProfile[keyof UserProfile];
         }
       });
 
@@ -377,7 +416,8 @@ const buildUser = (
     company: profile.company,
     phone: profile.phone,
     role: (profile.role as "user" | "admin") ?? "user",
-    hasTemporaryPassword: authUser?.user_metadata?.is_temporary_password === true,
+    hasTemporaryPassword:
+      authUser?.user_metadata?.is_temporary_password === true,
     ...getDefaultUserData(profile),
   };
 
@@ -385,7 +425,8 @@ const buildUser = (
     base.usage = {
       total_reviews: stats.contracts_reviewed ?? 0,
       this_month_reviews: stats.contracts_reviewed ?? 0,
-      success_rate: stats.contracts_reviewed === 0 ? 100 : base.usage.success_rate,
+      success_rate:
+        stats.contracts_reviewed === 0 ? 100 : base.usage.success_rate,
       monthly_usage: buildMonthlyUsage(stats.contracts_reviewed ?? 0),
     };
   } else {
@@ -447,7 +488,9 @@ const mapSupabaseAuthError = (message: string): string => {
   return message;
 };
 
-export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+export const UserProvider: React.FC<{ children: ReactNode }> = ({
+  children,
+}) => {
   const [user, setUserState] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [authStatus, setAuthStatus] = useState<AuthStatus>("initializing");
@@ -486,7 +529,9 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setSession(incomingSession);
 
       if (!options.suppressLoadingState) {
-        setAuthStatus((prev) => (prev === "initializing" ? prev : "authenticating"));
+        setAuthStatus((prev) =>
+          prev === "initializing" ? prev : "authenticating",
+        );
       }
 
       try {
@@ -502,9 +547,13 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setLastError(null);
         return hydratedUser;
       } catch (error) {
-        const details = logError("Failed to hydrate authenticated user", error, {
-          authUserId: incomingSession.user.id,
-        });
+        const details = logError(
+          "Failed to hydrate authenticated user",
+          error,
+          {
+            authUserId: incomingSession.user.id,
+          },
+        );
 
         if (isMountedRef.current) {
           setUserState(null);
@@ -524,7 +573,10 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       try {
         const { data, error } = await supabase.auth.getSession();
         if (error) {
-          const details = logError("Failed to retrieve Supabase session", error);
+          const details = logError(
+            "Failed to retrieve Supabase session",
+            error,
+          );
           if (!isMountedRef.current) return;
           setSession(null);
           setUserState(null);
@@ -565,26 +617,28 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     bootstrap();
 
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, nextSession) => {
-      if (!isMountedRef.current) return;
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      (event, nextSession) => {
+        if (!isMountedRef.current) return;
 
-      switch (event) {
-        case "SIGNED_IN":
-        case "TOKEN_REFRESHED":
-        case "USER_UPDATED":
-          void handleSessionChange(nextSession ?? null);
-          break;
-        case "SIGNED_OUT":
-          clearAuthData();
-          setLastError(null);
-          setUserState(null);
-          setSession(null);
-          setAuthStatus("unauthenticated");
-          break;
-        default:
-          break;
-      }
-    });
+        switch (event) {
+          case "SIGNED_IN":
+          case "TOKEN_REFRESHED":
+          case "USER_UPDATED":
+            void handleSessionChange(nextSession ?? null);
+            break;
+          case "SIGNED_OUT":
+            clearAuthData();
+            setLastError(null);
+            setUserState(null);
+            setSession(null);
+            setAuthStatus("unauthenticated");
+            break;
+          default:
+            break;
+        }
+      },
+    );
 
     return () => {
       authListener.subscription.unsubscribe();
@@ -639,13 +693,16 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               hear_about_us: userData.hearAboutUs ?? null,
             });
           } catch (profileError) {
-            logError("Unable to provision user profile during signup", profileError, {
-              email: userData.email,
-            });
+            logError(
+              "Unable to provision user profile during signup",
+              profileError,
+              {
+                email: userData.email,
+              },
+            );
           }
 
-          let message =
-            `Account created successfully! Your login credentials have been sent to ${userData.email}.`;
+          let message = `Account created successfully! Your login credentials have been sent to ${userData.email}.`;
 
           if (typeof window !== "undefined") {
             const emailResult = await EmailService.sendWelcomeEmail({
@@ -670,7 +727,9 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           message: "An unexpected error occurred during sign up.",
         };
       } catch (error) {
-        const details = logError("Sign up error", error, { email: userData.email });
+        const details = logError("Sign up error", error, {
+          email: userData.email,
+        });
         setAuthStatus("error");
         setLastError(details.message);
         return {
@@ -738,7 +797,8 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         if (hydratedUser.hasTemporaryPassword) {
           return {
             success: true,
-            message: "Signed in successfully! Please change your temporary password before continuing.",
+            message:
+              "Signed in successfully! Please change your temporary password before continuing.",
             user: hydratedUser,
           };
         }
@@ -754,7 +814,8 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setLastError(details.message);
         return {
           success: false,
-          message: details.message ?? "An unexpected error occurred during sign in.",
+          message:
+            details.message ?? "An unexpected error occurred during sign in.",
         };
       }
     },
@@ -766,7 +827,9 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setLastError(null);
 
     try {
-      const { error: globalError } = await supabase.auth.signOut({ scope: "global" });
+      const { error: globalError } = await supabase.auth.signOut({
+        scope: "global",
+      });
       if (globalError) {
         logError("Global sign out error", globalError);
       }
@@ -775,7 +838,9 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
 
     try {
-      const { error: localError } = await supabase.auth.signOut({ scope: "local" });
+      const { error: localError } = await supabase.auth.signOut({
+        scope: "local",
+      });
       if (localError) {
         logError("Local sign out error", localError);
       }
@@ -854,7 +919,10 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         });
 
         if (error) {
-          return { success: false, message: mapSupabaseAuthError(error.message) };
+          return {
+            success: false,
+            message: mapSupabaseAuthError(error.message),
+          };
         }
 
         await refreshUser();
@@ -900,7 +968,10 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         });
 
         if (updateError) {
-          return { success: false, message: mapSupabaseAuthError(updateError.message) };
+          return {
+            success: false,
+            message: mapSupabaseAuthError(updateError.message),
+          };
         }
 
         await refreshUser();
@@ -922,12 +993,9 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       const nextName = updates.name ?? user.name;
       const [firstName, ...rest] = nextName.trim().split(/\s+/);
-      const lastName = rest.join(" ") ||
-        user.name
-          .trim()
-          .split(/\s+/)
-          .slice(1)
-          .join(" ") ||
+      const lastName =
+        rest.join(" ") ||
+        user.name.trim().split(/\s+/).slice(1).join(" ") ||
         "Account";
 
       const payload = {
@@ -964,7 +1032,9 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             : prev,
         );
       } catch (error) {
-        const details = logError("Error updating user profile", error, { userId: user.id });
+        const details = logError("Error updating user profile", error, {
+          userId: user.id,
+        });
         throw new Error(details.message ?? "Failed to update profile.");
       }
     },
@@ -998,7 +1068,8 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setUser,
       updateUser,
       isLoggedIn: authStatus === "authenticated" && !!user && !!session,
-      isLoading: authStatus === "initializing" || authStatus === "authenticating",
+      isLoading:
+        authStatus === "initializing" || authStatus === "authenticating",
       authStatus,
       lastError,
       session,
@@ -1029,7 +1100,9 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     ],
   );
 
-  return <UserContext.Provider value={contextValue}>{children}</UserContext.Provider>;
+  return (
+    <UserContext.Provider value={contextValue}>{children}</UserContext.Provider>
+  );
 };
 
 export const useUser = () => {
