@@ -186,10 +186,10 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({
   useInactivityMonitor(
     5 * 60 * 1000, // 5 minutes
     async () => {
-      console.log('⏰ User inactive for 5 minutes - auto logout');
+      console.log("⏰ User inactive for 5 minutes - auto logout");
       await logout();
     },
-    !!user && !!session // Only enable when user is logged in
+    !!user && !!session, // Only enable when user is logged in
   );
 
   // Convert UserProfile to User format
@@ -244,7 +244,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({
         logError(
           `Error loading user profile (attempt ${retryCount + 1})`,
           error,
-          { authUserId, retryCount }
+          { authUserId, retryCount },
         );
 
         // If profile not found and we haven't retried, try once more
@@ -264,7 +264,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({
       logError(
         `Failed to load user profile after ${retryCount + 1} attempts`,
         error,
-        { authUserId, retryCount }
+        { authUserId, retryCount },
       );
 
       // If we've tried twice and still failed, sign out the user to clear inconsistent state
@@ -290,7 +290,9 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({
     // Safety timeout to ensure loading state doesn't get stuck
     const safetyTimeout = setTimeout(() => {
       if (mounted) {
-        console.warn("⚠️ Auth initialization timeout - forcing loading complete");
+        console.warn(
+          "⚠️ Auth initialization timeout - forcing loading complete",
+        );
         setIsLoading(false);
       }
     }, 5000); // 5 second timeout

@@ -1,6 +1,6 @@
 /**
  * Inactivity Monitor
- * 
+ *
  * Tracks user activity and triggers logout after specified idle time
  */
 
@@ -21,12 +21,12 @@ export class InactivityMonitor {
     this.timeout = options.timeout;
     this.onInactive = options.onInactive;
     this.events = options.events || [
-      'mousedown',
-      'mousemove',
-      'keypress',
-      'scroll',
-      'touchstart',
-      'click',
+      "mousedown",
+      "mousemove",
+      "keypress",
+      "scroll",
+      "touchstart",
+      "click",
     ];
   }
 
@@ -38,7 +38,7 @@ export class InactivityMonitor {
       return;
     }
 
-    console.log('🕐 Starting inactivity monitor:', {
+    console.log("🕐 Starting inactivity monitor:", {
       timeout: `${this.timeout / 1000}s`,
       events: this.events.length,
     });
@@ -52,7 +52,7 @@ export class InactivityMonitor {
     });
 
     // Add visibility change listener
-    document.addEventListener('visibilitychange', this.handleVisibilityChange);
+    document.addEventListener("visibilitychange", this.handleVisibilityChange);
   }
 
   /**
@@ -63,7 +63,7 @@ export class InactivityMonitor {
       return;
     }
 
-    console.log('🛑 Stopping inactivity monitor');
+    console.log("🛑 Stopping inactivity monitor");
 
     this.isActive = false;
     this.clearTimer();
@@ -73,7 +73,10 @@ export class InactivityMonitor {
       window.removeEventListener(event, this.handleActivity, true);
     });
 
-    document.removeEventListener('visibilitychange', this.handleVisibilityChange);
+    document.removeEventListener(
+      "visibilitychange",
+      this.handleVisibilityChange,
+    );
   }
 
   /**
@@ -83,7 +86,7 @@ export class InactivityMonitor {
     this.clearTimer();
 
     this.timer = setTimeout(() => {
-      console.log('⏰ User inactive for', this.timeout / 1000, 'seconds');
+      console.log("⏰ User inactive for", this.timeout / 1000, "seconds");
       this.onInactive();
     }, this.timeout);
   };
@@ -131,12 +134,12 @@ export class InactivityMonitor {
 /**
  * React hook for using inactivity monitor
  */
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef } from "react";
 
 export function useInactivityMonitor(
   timeout: number,
   onInactive: () => void,
-  enabled = true
+  enabled = true,
 ): void {
   const monitorRef = useRef<InactivityMonitor | null>(null);
 

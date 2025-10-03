@@ -5,15 +5,18 @@ These HTML files are ready to be converted to PDF for testing with the Maigon co
 ## Method 1: Using Your Browser (Recommended - Free & Easy)
 
 1. **Open the HTML file** in any modern web browser (Chrome, Firefox, Safari, Edge)
+
    - Simply double-click the .html file, or
    - Right-click → Open With → Choose your browser
 
 2. **Print to PDF**:
+
    - **Chrome/Edge**: Press `Ctrl+P` (Windows) or `Cmd+P` (Mac)
    - **Firefox**: Press `Ctrl+P` (Windows) or `Cmd+P` (Mac)
    - **Safari**: Press `Cmd+P` (Mac)
 
 3. **Configure Print Settings**:
+
    - Destination: Select "Save as PDF" or "Microsoft Print to PDF"
    - Paper size: A4 or Letter
    - Margins: Default or Custom (0.5-1 inch recommended)
@@ -39,18 +42,22 @@ Simply upload the .html file and download the resulting PDF.
 Convert these HTML files to PDF:
 
 1. **NDA_Sample.html** → NDA_Sample.pdf
+
    - Mutual Non-Disclosure Agreement
    - Tests: Risk assessment, compliance, confidentiality analysis
 
 2. **DPA_Sample.html** → DPA_Sample.pdf (Coming next)
+
    - Data Processing Agreement (GDPR)
    - Tests: Compliance scoring, data protection, regulatory analysis
 
 3. **EULA_Sample.html** → EULA_Sample.pdf (Coming next)
+
    - End User License Agreement
    - Tests: License terms, limitations, intellectual property
 
 4. **Privacy_Policy_Sample.html** → Privacy_Policy_Sample.pdf (Coming next)
+
    - Comprehensive Privacy Policy
    - Tests: Privacy compliance, data handling, user rights
 
@@ -78,15 +85,19 @@ Once you have the PDF files:
 ## Troubleshooting
 
 **Problem**: Text is cut off or margins are wrong
+
 - **Solution**: Adjust print margins in print dialog, try 0.5 inch margins
 
 **Problem**: Formatting looks different from HTML
+
 - **Solution**: Use Chrome/Edge browser, enable background graphics
 
 **Problem**: File size too large
+
 - **Solution**: Use lower quality PDF settings or compress PDF after creation
 
 **Problem**: Can't print to PDF
+
 - **Solution**: Update browser or use online converter method
 
 ---
