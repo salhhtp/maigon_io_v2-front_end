@@ -7,6 +7,7 @@ import {
   logError,
   createUserFriendlyMessage,
   extractErrorDetails,
+  safeStringify,
 } from "@/utils/errorLogger";
 
 // Enhanced AI Model Configuration for Advanced Contract Analysis
@@ -352,18 +353,8 @@ class AIService {
 
         if (error) {
           // Log the complete error object to understand its structure
-          let serializedError: unknown = error;
-          try {
-            serializedError = JSON.parse(
-              JSON.stringify(error, Object.getOwnPropertyNames(error)),
-            );
-          } catch {
-            // ignore serialization issues, fall back to raw error
-          }
-          console.error(
-            "❌ Supabase Edge Function error object:",
-            serializedError,
-          );
+          const serializedError = safeStringify(error);
+          console.error("❌ Supabase Edge Function error object:", serializedError);
 
           // Try to extract a meaningful error message
           const errorMessage =
@@ -432,7 +423,7 @@ class AIService {
               directError,
               {
                 reviewType: request.reviewType,
-                originalError: error,
+                originalError: safeStringify(error),
               },
             );
           }
