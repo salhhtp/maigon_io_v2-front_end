@@ -814,14 +814,13 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({
   const clearAuthState = async () => {
     console.log("🧹 [DEBUG] Manually clearing auth state...");
     try {
-      await supabase.auth.signOut();
+      await supabase.auth.signOut({ scope: "global" });
+      await supabase.auth.signOut({ scope: "local" });
       setSession(null);
       setUser(null);
       setIsLoading(false);
 
-      // Clear demo authentication
-      localStorage.removeItem("maigon_current_user");
-      sessionStorage.removeItem("maigon_current_user");
+      clearAuthData();
 
       console.log("✅ [DEBUG] Auth state cleared successfully");
       window.location.reload();
