@@ -342,35 +342,56 @@ class AIService {
         clearTimeout(timeoutId);
 
         if (error) {
-          // Supabase Edge Function errors may have different structures
           // Log the complete error object to understand its structure
-          console.error("❌ Supabase Edge Function error object:", {
-            error,
-            errorKeys: error ? Object.keys(error) : [],
-            errorType: typeof error,
-            errorConstructor: error?.constructor?.name,
-            errorMessage: error?.message,
-            errorStatus: error?.status,
-            errorDetails: error?.details,
-            errorHint: error?.hint,
-            errorCode: error?.code,
-          });
+          console.error("❌ Supabase Edge Function error object:", JSON.parse(JSON.stringify(error, Object.getOwnPropertyNames(error))));
 
           // Try to extract a meaningful error message
           const errorMessage =
-            error.message ||
-            error.error ||
-            error.msg ||
-            (error.details ? JSON.stringify(error.details) : null) ||
+            error?.message ||
+            error?.error ||
+            error?.msg ||
+            (error?.details ? JSON.stringify(error.details) : null) ||
             JSON.stringify(error);
 
-          logError("❌ Supabase Edge Function error", new Error(errorMessage), {
-            reviewType: request.reviewType,
-            errorMessage,
-            fullError: error,
-          });
+          // Attempt a direct fetch to the Edge Function to capture the body for debugging
+          try {
+            const edgeUrl = `${import.meta.env.VITE_SUPABASE_URL.replace(/\/$/, "")}/functions/v1/analyze-contract`;
+            const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+            console.log("🔁 Attempting direct fetch to Edge Function for more details:", edgeUrl);
 
-          throw new Error(`AI service error: ${errorMessage}`);
+            const directResp = await fetch(edgeUrl, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                apikey: String(anonKey),
+                Authorization: `Bearer ${anonKey}`,
+              },
+              body: JSON.stringify(requestBody),
+              signal: controller.signal,
+            });
+
+            const respText = await directResp.text();
+            console.error("🔁 Direct Edge Function response status:", directResp.status, respText);
+
+            const detailedMessage = `Edge Function error ${directResp.status}: ${respText}`;
+
+            logError("❌ Supabase Edge Function error", new Error(detailedMessage), {
+              reviewType: request.reviewType,
+              edgeStatus: directResp.status,
+              edgeBody: respText,
+              originalError: error,
+            });
+
+            throw new Error(`AI service error: ${detailedMessage}`);
+          } catch (directError) {
+            // If direct fetch fails, fall back to the original errorMessage
+            logError("❌ Supabase Edge Function error (invoke + direct fetch failed)", directError, {
+              reviewType: request.reviewType,
+              originalError: error,
+            });
+
+            throw new Error(`AI service error: ${errorMessage}`);
+          }
         }
 
         if (!data) {
