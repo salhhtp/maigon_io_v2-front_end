@@ -49,7 +49,7 @@ export function createServer() {
 
   app.get("/api/demo", handleDemo);
 
-  if (hasSentry) {
+  if (hasSentry && Sentry.Handlers) {
     app.use(Sentry.Handlers.errorHandler());
   }
 
