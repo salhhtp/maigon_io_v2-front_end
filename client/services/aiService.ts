@@ -352,81 +352,103 @@ class AIService {
         clearTimeout(timeoutId);
 
         if (error) {
-          // Log the complete error object to understand its structure
           const serializedError = safeStringify(error);
+          const errorMessage = this.formatEdgeErrorMessage(error);
+
           console.error(
             "❌ Supabase Edge Function error object:",
             serializedError,
           );
 
-          // Try to extract a meaningful error message
-          const errorMessage =
-            error?.message ||
-            error?.error ||
-            error?.msg ||
-            (error?.details ? JSON.stringify(error.details) : null) ||
-            JSON.stringify(error);
-
-          // Attempt a direct fetch to the Edge Function to capture the body for debugging
           try {
-            const edgeUrl = `${import.meta.env.VITE_SUPABASE_URL.replace(/\/$/, "")}/functions/v1/analyze-contract`;
+            const supabaseBaseUrl = import.meta.env.VITE_SUPABASE_URL;
             const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-            console.log(
-              "🔁 Attempting direct fetch to Edge Function for more details:",
-              edgeUrl,
-            );
 
-            const directResp = await nativeFetch(edgeUrl, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                apikey: String(anonKey),
-                Authorization: `Bearer ${anonKey}`,
-              },
-              body: JSON.stringify(requestBody),
-              signal: controller.signal,
-            });
+            if (!supabaseBaseUrl || !anonKey) {
+              console.warn(
+                "⚠️ Missing Supabase configuration for direct Edge Function fallback.",
+              );
+            } else {
+              const edgeUrl = `${supabaseBaseUrl.replace(/\/$/, "")}/functions/v1/analyze-contract`;
+              const authToken = session.access_token || String(anonKey);
 
-            const respText = await directResp.text();
-            console.error(
-              "🔁 Direct Edge Function response status:",
-              directResp.status,
-              respText,
-            );
+              console.log(
+                "🔁 Attempting direct fetch to Edge Function for more details:",
+                edgeUrl,
+              );
 
-            if (directResp.ok) {
+              const directController = new AbortController();
+              const directTimeoutId = setTimeout(
+                () => directController.abort(),
+                120000,
+              );
+
               try {
-                const parsed = JSON.parse(respText);
-                return parsed;
-              } catch (parseError) {
+                const directResp = await nativeFetch(edgeUrl, {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                    apikey: String(anonKey),
+                    Authorization: `Bearer ${authToken}`,
+                  },
+                  body: JSON.stringify(requestBody),
+                  signal: directController.signal,
+                });
+
+                clearTimeout(directTimeoutId);
+
+                const respText = await directResp.text();
+                console.error(
+                  "🔁 Direct Edge Function response status:",
+                  directResp.status,
+                  respText,
+                );
+
+                if (directResp.ok) {
+                  try {
+                    const parsed = JSON.parse(respText);
+                    return parsed;
+                  } catch (parseError) {
+                    logError(
+                      "❌ Failed to parse direct fetch fallback response",
+                      parseError,
+                      {
+                        reviewType: request.reviewType,
+                        edgeBody: respText,
+                      },
+                    );
+                  }
+                }
+
                 logError(
-                  "❌ Failed to parse direct fetch fallback response",
-                  parseError,
+                  "❌ Supabase Edge Function error",
+                  new Error(`Edge Function error ${directResp.status}`),
                   {
                     reviewType: request.reviewType,
+                    edgeStatus: directResp.status,
                     edgeBody: respText,
+                    originalError: serializedError,
+                  },
+                );
+              } catch (directError) {
+                clearTimeout(directTimeoutId);
+                logError(
+                  "❌ Supabase Edge Function error (invoke + direct fetch failed)",
+                  directError,
+                  {
+                    reviewType: request.reviewType,
+                    originalError: serializedError,
                   },
                 );
               }
             }
-
+          } catch (directSetupError) {
             logError(
-              "❌ Supabase Edge Function error",
-              new Error(`Edge Function error ${directResp.status}`),
+              "❌ Failed to execute direct Edge Function fetch",
+              directSetupError,
               {
                 reviewType: request.reviewType,
-                edgeStatus: directResp.status,
-                edgeBody: respText,
-                originalError: error,
-              },
-            );
-          } catch (directError) {
-            logError(
-              "❌ Supabase Edge Function error (invoke + direct fetch failed)",
-              directError,
-              {
-                reviewType: request.reviewType,
-                originalError: safeStringify(error),
+                originalError: serializedError,
               },
             );
           }
