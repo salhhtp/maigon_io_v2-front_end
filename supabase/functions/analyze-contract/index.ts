@@ -13,7 +13,7 @@ import {
 const AI_CONFIGS = {
   "openai-gpt-4": {
     baseUrl: "https://api.openai.com/v1/chat/completions",
-    model: "gpt-4-turbo-preview",
+    model: "gpt-4-turbo",
     headers: (apiKey: string) => ({
       "Content-Type": "application/json",
       Authorization: `Bearer ${apiKey}`,
