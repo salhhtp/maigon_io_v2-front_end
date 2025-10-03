@@ -729,36 +729,38 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({
     try {
       console.log("🚪 Logging out user...");
 
-      // Clear state first
+      // Clear local state immediately so UI updates without delay
       setUser(null);
       setSession(null);
 
-      // Sign out from Supabase (this clears sessionStorage auth token)
-      await supabase.auth.signOut();
+      // Attempt to revoke the session server-side
+      const { error: globalError } = await supabase.auth.signOut({
+        scope: "global",
+      });
+      if (globalError) {
+        logError("Global sign out error", globalError);
+      }
 
-      // Clear all auth-related storage
-      localStorage.removeItem("maigon_current_user");
-      sessionStorage.removeItem("maigon_current_user");
+      // Ensure local session data is removed even if global sign out fails
+      const { error: localError } = await supabase.auth.signOut({
+        scope: "local",
+      });
+      if (localError) {
+        logError("Local sign out error", localError);
+      }
+
+      clearAuthData();
       sessionStorage.removeItem("maigon:lastReview");
-
-      // Clear any other session-related data
-      sessionStorage.clear();
 
       console.log("✅ Logout completed successfully");
 
-      // Navigate to signin page
       setTimeout(() => {
         window.location.href = "/signin";
       }, 100);
     } catch (error) {
       logError("Logout error", error);
-
-      // Force logout even if there's an error
-      setUser(null);
-      setSession(null);
-      localStorage.removeItem("maigon_current_user");
-      sessionStorage.removeItem("maigon_current_user");
-      sessionStorage.clear();
+      clearAuthData();
+      sessionStorage.removeItem("maigon:lastReview");
 
       setTimeout(() => {
         window.location.href = "/signin";
