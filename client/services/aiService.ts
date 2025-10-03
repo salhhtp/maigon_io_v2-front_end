@@ -343,7 +343,15 @@ class AIService {
 
         if (error) {
           // Log the complete error object to understand its structure
-          console.error("❌ Supabase Edge Function error object:", JSON.parse(JSON.stringify(error, Object.getOwnPropertyNames(error))));
+          let serializedError: unknown = error;
+          try {
+            serializedError = JSON.parse(
+              JSON.stringify(error, Object.getOwnPropertyNames(error)),
+            );
+          } catch {
+            // ignore serialization issues, fall back to raw error
+          }
+          console.error("❌ Supabase Edge Function error object:", serializedError);
 
           // Try to extract a meaningful error message
           const errorMessage =
