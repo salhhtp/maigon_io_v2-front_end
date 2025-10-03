@@ -31,7 +31,7 @@ export function createServer() {
   const app = express();
   const hasSentry = initializeSentry();
 
-  if (hasSentry) {
+  if (hasSentry && Sentry.Handlers) {
     app.use(Sentry.Handlers.requestHandler());
     app.use(Sentry.Handlers.tracingHandler());
   }
