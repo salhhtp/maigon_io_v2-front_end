@@ -245,11 +245,14 @@ serve(async (req) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
+  let request: AnalysisRequest | null = null;
+  let processedContent: string | null = null;
+  let fallbackContext: FallbackAnalysisContext | null = null;
+
   try {
     console.log("🚀 Starting contract analysis request...");
 
     // Parse request body with error handling
-    let request: AnalysisRequest;
     try {
       request = await req.json();
     } catch (parseError) {
