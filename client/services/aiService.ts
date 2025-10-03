@@ -494,10 +494,9 @@ class AIService {
         JSON.stringify(errorInfo, null, 2),
       );
 
-      // Enhanced error context with safe message
-      const enhancedMessage = `AI service call failed: ${errorInfo.message}. Model: ${model}, Review Type: ${request.reviewType}`;
-
-      throw new Error(enhancedMessage);
+      return buildFallbackResult(
+        `AI provider error: ${errorInfo.message || "Unknown error"}`,
+      );
     }
   }
 
