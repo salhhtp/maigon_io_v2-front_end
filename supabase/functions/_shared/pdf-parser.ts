@@ -94,6 +94,12 @@ function extractPDFText(pdfBytes: Uint8Array): string {
 
 function cleanExtractedText(text: string): string {
   return text
+    // Remove XMP metadata blocks (common in PDFs)
+    .replace(/<\?xpacket[\s\S]*?<\/x:xmpmeta>[\s\S]*?\?>/gi, '')
+    .replace(/<x:xmpmeta[\s\S]*?<\/x:xmpmeta>/gi, '')
+    .replace(/<rdf:RDF[\s\S]*?<\/rdf:RDF>/gi, '')
+    // Remove other common XML/metadata patterns
+    .replace(/<[^>]+>/g, '')
     // Remove PDF encoding artifacts
     .replace(/\\[0-9]{3}/g, '')
     // Remove excessive whitespace
