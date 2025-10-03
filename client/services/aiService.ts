@@ -310,13 +310,6 @@ class AIService {
         );
       }
 
-      const buildFallbackResult = (reason: string) =>
-        generateFallbackAnalysis(request.reviewType, request.classification, {
-          fallbackReason: reason,
-          contractContent: request.content,
-          contractType: request.contractType,
-        });
-
       // Check authentication state before calling Edge Function
       const {
         data: { session },
