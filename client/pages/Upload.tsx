@@ -851,13 +851,6 @@ export default function Upload() {
             </div>
           )}
 
-          {/* Contract Classification Display */}
-          {contractClassification && (
-            <ContractClassificationDisplay
-              classification={contractClassification}
-              isVisible={showClassification}
-            />
-          )}
         </div>
       </main>
 
