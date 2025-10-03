@@ -5,6 +5,7 @@ import { UserActivitiesService } from "./userActivitiesService";
 import { UserUsageStatsService } from "./userUsageStatsService";
 import { AdminAnalyticsService } from "./adminAnalyticsService";
 import aiService from "./aiService";
+import { generateFallbackAnalysis } from "./fallbackAnalysis";
 import logger from "@/utils/logger";
 import { logError, createUserFriendlyMessage } from "@/utils/errorLogger";
 
