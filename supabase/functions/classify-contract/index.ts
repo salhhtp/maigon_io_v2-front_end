@@ -1,13 +1,13 @@
-import { serve } from 'https://deno.land/std@0.208.0/http/server.ts';
+import { serve } from "https://deno.land/std@0.208.0/http/server.ts";
 
 // AI Model configurations for classification
 const AI_CONFIGS = {
-  'openai-gpt-4': {
-    baseUrl: 'https://api.openai.com/v1/chat/completions',
-    model: 'gpt-4-turbo-preview',
+  "openai-gpt-4": {
+    baseUrl: "https://api.openai.com/v1/chat/completions",
+    model: "gpt-4-turbo-preview",
     headers: (apiKey: string) => ({
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
     }),
   },
 };
@@ -18,66 +18,69 @@ interface ClassificationRequest {
 }
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
   }
 
   try {
-    console.log('🤖 Starting contract classification request...');
+    console.log("🤖 Starting contract classification request...");
 
     const request: ClassificationRequest = await req.json();
-    
+
     if (!request.content) {
       return new Response(
-        JSON.stringify({ error: 'Content is required for classification' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: "Content is required for classification" }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
-    console.log('📄 Classification request:', {
+    console.log("📄 Classification request:", {
       contentLength: request.content.length,
-      fileName: request.fileName
+      fileName: request.fileName,
     });
 
     // Get API key
-    const apiKey = Deno.env.get('OPENAI_API_KEY');
+    const apiKey = Deno.env.get("OPENAI_API_KEY");
     if (!apiKey) {
-      console.error('🔑 OpenAI API key not configured for classification:', {
-        timestamp: new Date().toISOString()
+      console.error("🔑 OpenAI API key not configured for classification:", {
+        timestamp: new Date().toISOString(),
       });
       return new Response(
-        JSON.stringify({ error: 'AI classification service not available' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: "AI classification service not available" }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
     // Classify contract using AI
     const result = await classifyWithAI(request, apiKey);
 
-    console.log('✅ Contract classification completed:', {
+    console.log("✅ Contract classification completed:", {
       contractType: result.contractType,
-      confidence: result.confidence
+      confidence: result.confidence,
     });
 
-    return new Response(
-      JSON.stringify(result),
-      {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      }
-    );
-
+    return new Response(JSON.stringify(result), {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   } catch (error) {
     // Safely extract error message
     let errorMessage: string;
     if (error instanceof Error) {
       errorMessage = error.message;
-    } else if (error && typeof error === 'object') {
+    } else if (error && typeof error === "object") {
       errorMessage = JSON.stringify(error);
     } else {
       errorMessage = String(error);
@@ -87,27 +90,27 @@ serve(async (req) => {
       message: errorMessage,
       type: error instanceof Error ? error.name : typeof error,
       stack: error instanceof Error ? error.stack : undefined,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
-    console.error('❌ Classification error:', errorDetails);
+    console.error("❌ Classification error:", errorDetails);
 
     return new Response(
       JSON.stringify({
         error: `Contract classification failed: ${errorMessage}`,
         type: errorDetails.type,
-        timestamp: errorDetails.timestamp
+        timestamp: errorDetails.timestamp,
       }),
       {
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      }
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
     );
   }
 });
 
 async function classifyWithAI(request: ClassificationRequest, apiKey: string) {
-  const modelConfig = AI_CONFIGS['openai-gpt-4'];
+  const modelConfig = AI_CONFIGS["openai-gpt-4"];
 
   const systemPrompt = `You are a world-class legal document classifier and contract analysis expert with 20+ years of experience across multiple jurisdictions and industries. You have deep expertise in:
 
@@ -193,7 +196,7 @@ Provide detailed classification with:
 - **Suggested Solutions**: Recommended analysis types based on contract type and complexity
 
 **CRITICAL INDICATORS TO EXAMINE**:
-${request.fileName ? `- File Name: "${request.fileName}" (may contain type hints)` : ''}
+${request.fileName ? `- File Name: "${request.fileName}" (may contain type hints)` : ""}
 - Opening recitals and whereas clauses
 - Definitions section (especially defined terms like "Personal Data", "Confidential Information")
 - Primary obligations and deliverables
@@ -233,9 +236,9 @@ Return JSON in this EXACT structure (valid JSON required):
 **CONTRACT CONTENT TO ANALYZE**:
 ${request.content.substring(0, 8000)}
 
-${request.content.length > 8000 ? `\n[Note: Content truncated at 8000 characters for analysis. Full length: ${request.content.length} characters]` : ''}
+${request.content.length > 8000 ? `\n[Note: Content truncated at 8000 characters for analysis. Full length: ${request.content.length} characters]` : ""}
 
-**FILE NAME**: ${request.fileName || 'Not provided'}
+**FILE NAME**: ${request.fileName || "Not provided"}
 
 Analyze thoroughly and provide precise classification based on the evidence found in the contract.`;
 
@@ -243,82 +246,89 @@ Analyze thoroughly and provide precise classification based on the evidence foun
     model: modelConfig.model,
     messages: [
       {
-        role: 'system',
+        role: "system",
         content: systemPrompt,
       },
       {
-        role: 'user',
+        role: "user",
         content: analysisPrompt,
       },
     ],
     temperature: 0.1, // Low temperature for consistent classification
     max_tokens: 1000,
-    response_format: { type: 'json_object' },
+    response_format: { type: "json_object" },
   };
 
-  console.log('🚀 Calling OpenAI for contract classification...');
+  console.log("🚀 Calling OpenAI for contract classification...");
 
   const response = await fetch(modelConfig.baseUrl, {
-    method: 'POST',
+    method: "POST",
     headers: modelConfig.headers(apiKey),
     body: JSON.stringify(requestBody),
   });
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error('❌ OpenAI API error:', {
+    console.error("❌ OpenAI API error:", {
       status: response.status,
       errorText: errorText,
       model: modelConfig.model,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
     throw new Error(`OpenAI API error: ${response.status} ${errorText}`);
   }
 
   const data = await response.json();
-  
+
   if (!data.choices || !data.choices[0] || !data.choices[0].message) {
-    throw new Error('Invalid response from OpenAI API');
+    throw new Error("Invalid response from OpenAI API");
   }
 
   const content = data.choices[0].message.content;
-  
+
   try {
     const result = JSON.parse(content);
-    console.log('📊 AI Classification result:', result);
-    
+    console.log("📊 AI Classification result:", result);
+
     // Validate and enhance the result with additional fields
     const validatedResult = {
-      contractType: result.contractType || 'general_commercial',
+      contractType: result.contractType || "general_commercial",
       confidence: Math.min(Math.max(result.confidence || 0.5, 0), 1),
       subType: result.subType || null,
-      characteristics: Array.isArray(result.characteristics) && result.characteristics.length > 0
-        ? result.characteristics
-        : ['Commercial agreement requiring detailed analysis'],
-      reasoning: result.reasoning || 'AI-powered classification based on content analysis',
-      suggestedSolutions: Array.isArray(result.suggestedSolutions) && result.suggestedSolutions.length > 0
-        ? result.suggestedSolutions
-        : ['full_summary', 'risk_assessment'],
+      characteristics:
+        Array.isArray(result.characteristics) &&
+        result.characteristics.length > 0
+          ? result.characteristics
+          : ["Commercial agreement requiring detailed analysis"],
+      reasoning:
+        result.reasoning ||
+        "AI-powered classification based on content analysis",
+      suggestedSolutions:
+        Array.isArray(result.suggestedSolutions) &&
+        result.suggestedSolutions.length > 0
+          ? result.suggestedSolutions
+          : ["full_summary", "risk_assessment"],
       keyTerms: Array.isArray(result.keyTerms) ? result.keyTerms : [],
-      jurisdiction: result.jurisdiction || 'Not specified',
-      partyRoles: result.partyRoles || {}
+      jurisdiction: result.jurisdiction || "Not specified",
+      partyRoles: result.partyRoles || {},
     };
 
-    console.log('✅ Enhanced classification result:', {
+    console.log("✅ Enhanced classification result:", {
       type: validatedResult.contractType,
       confidence: validatedResult.confidence,
       subType: validatedResult.subType,
-      suggestedSolutions: validatedResult.suggestedSolutions
+      suggestedSolutions: validatedResult.suggestedSolutions,
     });
 
     return validatedResult;
   } catch (parseError) {
-    const errorMessage = parseError instanceof Error ? parseError.message : String(parseError);
-    console.error('❌ Failed to parse AI response:', {
+    const errorMessage =
+      parseError instanceof Error ? parseError.message : String(parseError);
+    console.error("❌ Failed to parse AI response:", {
       error: errorMessage,
       type: parseError instanceof Error ? parseError.name : typeof parseError,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
-    throw new Error('Failed to parse AI classification response');
+    throw new Error("Failed to parse AI classification response");
   }
 }

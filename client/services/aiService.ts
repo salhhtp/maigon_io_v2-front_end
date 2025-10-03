@@ -1,7 +1,11 @@
 import { supabase } from "@/lib/supabase";
 import logger from "@/utils/logger";
 import { errorHandler } from "@/utils/errorHandler";
-import { logError, createUserFriendlyMessage, extractErrorDetails } from "@/utils/errorLogger";
+import {
+  logError,
+  createUserFriendlyMessage,
+  extractErrorDetails,
+} from "@/utils/errorLogger";
 
 // Enhanced AI Model Configuration for Advanced Contract Analysis
 export enum AIModel {
@@ -217,12 +221,16 @@ class AIService {
       timestamp: new Date().toISOString(),
     };
 
-    logError("❌ All AI analysis attempts failed", new Error(finalErrorMessage), {
-      attempts: maxRetries,
-      reviewType: request.reviewType,
-      userId: request.userId,
-      errorDetails,
-    });
+    logError(
+      "❌ All AI analysis attempts failed",
+      new Error(finalErrorMessage),
+      {
+        attempts: maxRetries,
+        reviewType: request.reviewType,
+        userId: request.userId,
+        errorDetails,
+      },
+    );
     throw new Error(
       `Contract analysis failed after ${maxRetries} attempts: ${finalErrorMessage}`,
     );

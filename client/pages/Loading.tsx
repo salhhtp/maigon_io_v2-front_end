@@ -23,14 +23,13 @@ export default function Loading() {
   );
   const [isProcessing, setIsProcessing] = useState(true);
   const [processingError, setProcessingError] = useState<string | null>(null);
-  const [pendingResult, setPendingResult] = useState<ContractReviewPayload | null>(
-    null,
-  );
+  const [pendingResult, setPendingResult] =
+    useState<ContractReviewPayload | null>(null);
   const [animationComplete, setAnimationComplete] = useState(false);
   const [logoProgress, setLogoProgress] = useState(4);
-  const [processingFinishedAt, setProcessingFinishedAt] = useState<number | null>(
-    null,
-  );
+  const [processingFinishedAt, setProcessingFinishedAt] = useState<
+    number | null
+  >(null);
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -83,10 +82,7 @@ export default function Loading() {
           metadata: pending.metadata,
         };
 
-        sessionStorage.setItem(
-          "maigon:lastReview",
-          JSON.stringify(payload),
-        );
+        sessionStorage.setItem("maigon:lastReview", JSON.stringify(payload));
 
         setPendingResult(payload);
         setIsProcessing(false);
@@ -106,7 +102,7 @@ export default function Loading() {
 
         const userMessage = createUserFriendlyMessage(
           error,
-          "There was an error processing your contract. Please try again."
+          "There was an error processing your contract. Please try again.",
         );
 
         setProcessingError(userMessage);

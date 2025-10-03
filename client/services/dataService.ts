@@ -361,7 +361,7 @@ export class DataService {
       // Re-throw error with safe user-friendly message
       const userMessage = createUserFriendlyMessage(
         error,
-        "AI contract analysis failed. Please try again."
+        "AI contract analysis failed. Please try again.",
       );
 
       throw new Error(userMessage);

@@ -1,5 +1,9 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { extractTextFromPDF, extractTextFromDOCX, validateExtractedText } from "../_shared/pdf-parser.ts";
+import {
+  extractTextFromPDF,
+  extractTextFromDOCX,
+  validateExtractedText,
+} from "../_shared/pdf-parser.ts";
 
 // Advanced AI Model configurations for sophisticated contract analysis
 const AI_CONFIGS = {
@@ -392,7 +396,7 @@ serve(async (req) => {
     let errorMessage: string;
     if (error instanceof Error) {
       errorMessage = error.message;
-    } else if (error && typeof error === 'object') {
+    } else if (error && typeof error === "object") {
       errorMessage = JSON.stringify(error);
     } else {
       errorMessage = String(error);
@@ -462,11 +466,15 @@ async function extractTextFromFile(
       // Validate extracted text
       const validation = validateExtractedText(extractedText);
       if (!validation.valid) {
-        throw new Error(validation.error || 'PDF text extraction failed');
+        throw new Error(validation.error || "PDF text extraction failed");
       }
 
-      console.log(`✅ Successfully extracted ${extractedText.length} characters from PDF`);
-      console.log(`📊 Estimated pages: ~${estimatedPages}, File size: ${fileSizeKB}KB`);
+      console.log(
+        `✅ Successfully extracted ${extractedText.length} characters from PDF`,
+      );
+      console.log(
+        `📊 Estimated pages: ~${estimatedPages}, File size: ${fileSizeKB}KB`,
+      );
 
       return extractedText;
     } catch (error) {
@@ -513,10 +521,12 @@ async function extractTextFromFile(
       // Validate extracted text
       const validation = validateExtractedText(extractedText);
       if (!validation.valid) {
-        throw new Error(validation.error || 'DOCX text extraction failed');
+        throw new Error(validation.error || "DOCX text extraction failed");
       }
 
-      console.log(`✅ Successfully extracted ${extractedText.length} characters from DOCX`);
+      console.log(
+        `✅ Successfully extracted ${extractedText.length} characters from DOCX`,
+      );
       console.log(`📊 File size: ${fileSizeKB}KB`);
 
       return extractedText;
@@ -1022,7 +1032,7 @@ function parseAIResponse(aiResponse: string, reviewType: string) {
     // Throw error instead of falling back to mock response
     console.error("AI Response that failed to parse:", aiResponse);
     throw new Error(
-      `AI response could not be parsed as JSON. This may indicate an issue with the AI model or prompt. Review type: ${reviewType}`
+      `AI response could not be parsed as JSON. This may indicate an issue with the AI model or prompt. Review type: ${reviewType}`,
     );
   }
 }
