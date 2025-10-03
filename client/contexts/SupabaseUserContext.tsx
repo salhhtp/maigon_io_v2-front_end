@@ -181,6 +181,16 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Inactivity auto-logout after 5 minutes (300000 ms)
+  useInactivityMonitor(
+    5 * 60 * 1000, // 5 minutes
+    async () => {
+      console.log('⏰ User inactive for 5 minutes - auto logout');
+      await logout();
+    },
+    !!user && !!session // Only enable when user is logged in
+  );
+
   // Convert UserProfile to User format
   const convertProfileToUser = (
     profile: UserProfile,
@@ -712,7 +722,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({
     }
   };
 
-  // Logout
+  // Logout with complete session cleanup
   const logout = async (): Promise<void> => {
     try {
       console.log("🚪 Logging out user...");
@@ -721,30 +731,35 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({
       setUser(null);
       setSession(null);
 
-      // Sign out from Supabase
+      // Sign out from Supabase (this clears sessionStorage auth token)
       await supabase.auth.signOut();
 
-      // Clear demo authentication
+      // Clear all auth-related storage
       localStorage.removeItem("maigon_current_user");
       sessionStorage.removeItem("maigon_current_user");
+      sessionStorage.removeItem("maigon:lastReview");
+
+      // Clear any other session-related data
+      sessionStorage.clear();
 
       console.log("✅ Logout completed successfully");
 
-      // Navigate to home page
+      // Navigate to signin page
       setTimeout(() => {
-        window.location.href = "/";
+        window.location.href = "/signin";
       }, 100);
     } catch (error) {
-      console.error("Logout error:", error);
+      logError("Logout error", error);
 
       // Force logout even if there's an error
       setUser(null);
       setSession(null);
       localStorage.removeItem("maigon_current_user");
       sessionStorage.removeItem("maigon_current_user");
+      sessionStorage.clear();
 
       setTimeout(() => {
-        window.location.href = "/";
+        window.location.href = "/signin";
       }, 100);
     }
   };
