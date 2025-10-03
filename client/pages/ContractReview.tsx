@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DataService } from "@/services/dataService";
 import { useToast } from "@/hooks/use-toast";
+import { logError, createUserFriendlyMessage } from "@/utils/errorLogger";
 
 interface ContractData {
   id: string;
@@ -150,10 +151,19 @@ export default function ContractReview() {
         description: "Contract analysis data has been exported.",
       });
     } catch (error) {
-      console.error('Export error:', error);
+      logError('❌ Export error', error, {
+        contractId: review?.contract_id,
+        reviewId: review?.id,
+      });
+
+      const errorMessage = createUserFriendlyMessage(
+        error,
+        "There was an error exporting the data."
+      );
+
       toast({
         title: "Export failed",
-        description: "There was an error exporting the data.",
+        description: errorMessage,
         variant: "destructive",
       });
     }
