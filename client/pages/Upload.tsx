@@ -29,9 +29,6 @@ export default function Upload() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadButtonHidden, setUploadButtonHidden] = useState(false);
   const [showLoadingTransition, setShowLoadingTransition] = useState(false);
-  const [contractClassification, setContractClassification] =
-    useState<any>(null);
-  const [showClassification, setShowClassification] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const location = useLocation();
   const navigate = useNavigate();
