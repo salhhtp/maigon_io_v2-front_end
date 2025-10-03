@@ -346,12 +346,18 @@ serve(async (req) => {
 
         // Provide helpful error message based on the failure type
         let userMessage = errorMessage;
-        if (errorMessage.toLowerCase().includes("scanned") ||
-            errorMessage.toLowerCase().includes("no text extracted")) {
-          userMessage = "This PDF appears to be scanned (image-based) or uses unsupported encoding. Please try: 1) Converting the PDF to text using a PDF reader, 2) Using a text-based PDF instead, or 3) Uploading as a TXT or DOCX file.";
-        } else if (errorMessage.toLowerCase().includes("too short") ||
-                   errorMessage.toLowerCase().includes("not enough")) {
-          userMessage = "Unable to extract sufficient text from this document. The file may be empty, corrupted, or use unsupported formatting. Please try a different file format (TXT or DOCX).";
+        if (
+          errorMessage.toLowerCase().includes("scanned") ||
+          errorMessage.toLowerCase().includes("no text extracted")
+        ) {
+          userMessage =
+            "This PDF appears to be scanned (image-based) or uses unsupported encoding. Please try: 1) Converting the PDF to text using a PDF reader, 2) Using a text-based PDF instead, or 3) Uploading as a TXT or DOCX file.";
+        } else if (
+          errorMessage.toLowerCase().includes("too short") ||
+          errorMessage.toLowerCase().includes("not enough")
+        ) {
+          userMessage =
+            "Unable to extract sufficient text from this document. The file may be empty, corrupted, or use unsupported formatting. Please try a different file format (TXT or DOCX).";
         }
 
         return new Response(

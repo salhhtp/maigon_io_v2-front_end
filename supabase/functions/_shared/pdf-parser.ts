@@ -99,7 +99,7 @@ function extractPDFText(pdfBytes: Uint8Array): string {
           !text.startsWith("/") &&
           !text.includes("endobj") &&
           !text.includes("stream") &&
-          text.split(" ").length > 1
+          text.split(" ").length > 1,
       );
       textMatches.push(...filtered);
     }
@@ -116,7 +116,9 @@ function extractPDFText(pdfBytes: Uint8Array): string {
   }
 
   const extractedText = textMatches.join(" ");
-  console.log(`📄 PDF extraction found ${textMatches.length} text segments, total length: ${extractedText.length}`);
+  console.log(
+    `📄 PDF extraction found ${textMatches.length} text segments, total length: ${extractedText.length}`,
+  );
   return extractedText;
 }
 
@@ -236,7 +238,8 @@ export function validateExtractedText(text: string): {
   if (!text || text.trim().length === 0) {
     return {
       valid: false,
-      error: "No text extracted from document. This may be a scanned PDF (image-based) or use unsupported encoding. Please use a text-based PDF, TXT, or DOCX file instead."
+      error:
+        "No text extracted from document. This may be a scanned PDF (image-based) or use unsupported encoding. Please use a text-based PDF, TXT, or DOCX file instead.",
     };
   }
 
@@ -244,7 +247,8 @@ export function validateExtractedText(text: string): {
   if (text.trim().length < 30) {
     return {
       valid: false,
-      error: "Extracted text is too short (less than 30 characters). Document may be empty, corrupted, or scanned.",
+      error:
+        "Extracted text is too short (less than 30 characters). Document may be empty, corrupted, or scanned.",
     };
   }
 
@@ -263,7 +267,8 @@ export function validateExtractedText(text: string): {
   if (uniqueChars < 10) {
     return {
       valid: false,
-      error: "Text appears corrupted or contains only repetitive characters. Please use a different file format.",
+      error:
+        "Text appears corrupted or contains only repetitive characters. Please use a different file format.",
     };
   }
 

@@ -5,6 +5,7 @@
 **Error:** `Failed to extract text from file: Failed to process PDF file: No text extracted from document`
 
 **Root Causes:**
+
 1. ❌ PDF parser validation was too strict (100+ chars, 50+ words required)
 2. ❌ PDF extraction only worked for simple, uncompressed PDFs
 3. ❌ Error messages from Edge Function were being converted to generic fallback instead of showing to user
@@ -17,12 +18,14 @@
 **File:** `supabase/functions/_shared/pdf-parser.ts`
 
 **Changes:**
+
 - Reduced minimum text length: 100 → 30 characters
-- Reduced minimum words: 50 → 10 words  
+- Reduced minimum words: 50 → 10 words
 - Reduced unique characters: 20 → 10 characters
 - Added better error messages explaining file format issues
 
 **Before:**
+
 ```typescript
 if (text.trim().length < 100) {
   return { valid: false, error: "Extracted text is too short..." };
@@ -30,11 +33,13 @@ if (text.trim().length < 100) {
 ```
 
 **After:**
+
 ```typescript
 if (text.trim().length < 30) {
-  return { 
-    valid: false, 
-    error: "Extracted text is too short (less than 30 characters). Document may be empty, corrupted, or scanned." 
+  return {
+    valid: false,
+    error:
+      "Extracted text is too short (less than 30 characters). Document may be empty, corrupted, or scanned.",
   };
 }
 ```
@@ -44,12 +49,14 @@ if (text.trim().length < 30) {
 **File:** `supabase/functions/_shared/pdf-parser.ts`
 
 **Changes:**
+
 - Added Method 4: Ultra-fallback extraction for difficult PDFs
 - Added filtering to remove PDF structure keywords
 - Added better logging to debug extraction issues
 - Added XMP metadata removal (from previous fix)
 
 **New ultra-fallback extraction:**
+
 ```typescript
 // Method 4: Ultra fallback - just get any readable text sequences
 if (textMatches.length === 0) {
@@ -67,11 +74,13 @@ if (textMatches.length === 0) {
 **File:** `supabase/functions/analyze-contract/index.ts`
 
 **Changes:**
+
 - Added user-friendly error messages for different failure types
 - Separated technical details from user message
 - Provided actionable suggestions (convert to text, use different format)
 
 **Error Response Format:**
+
 ```json
 {
   "error": "This PDF appears to be scanned (image-based)... Please try: 1) Converting to text, 2) Using text-based PDF, 3) Upload as TXT/DOCX",
@@ -84,15 +93,17 @@ if (textMatches.length === 0) {
 **File:** `client/services/aiService.ts`
 
 **Changes:**
+
 - Errors from Edge Function now properly throw instead of falling back
 - User-facing errors (PDF/file issues) are shown to user
 - Generic API errors still use fallback gracefully
 - Direct fetch errors are properly propagated
 
 **Key Fix - Error Detection:**
+
 ```typescript
 // Check if this is a user-facing error that should be shown
-const isUserFacingError = 
+const isUserFacingError =
   errorMessage.toLowerCase().includes("pdf") ||
   errorMessage.toLowerCase().includes("scanned") ||
   errorMessage.toLowerCase().includes("file") ||
@@ -106,6 +117,7 @@ if (isUserFacingError && error instanceof Error) {
 ```
 
 **Key Fix - Direct Fetch Error Throwing:**
+
 ```typescript
 // Parse error from Edge Function response
 const errorBody = JSON.parse(respText);
@@ -119,30 +131,36 @@ throw new Error(userErrorMessage);
 ## Expected Behavior After Fixes
 
 ### ✅ Scanned/Image-Based PDFs
+
 **Before:** Generic fallback with 0% score  
 **After:** Clear error message:
+
 ```
-"This PDF appears to be scanned (image-based) or uses unsupported encoding. 
-Please try: 
+"This PDF appears to be scanned (image-based) or uses unsupported encoding.
+Please try:
 1) Converting the PDF to text using a PDF reader
-2) Using a text-based PDF instead  
+2) Using a text-based PDF instead
 3) Uploading as a TXT or DOCX file"
 ```
 
 ### ✅ Empty/Corrupted PDFs
+
 **Before:** Generic error  
 **After:** Clear error message:
+
 ```
-"Unable to extract sufficient text from this document. The file may be 
-empty, corrupted, or use unsupported formatting. Please try a different 
+"Unable to extract sufficient text from this document. The file may be
+empty, corrupted, or use unsupported formatting. Please try a different
 file format (TXT or DOCX)."
 ```
 
 ### ✅ Valid Text-Based PDFs
+
 **Before:** Worked, but strict validation sometimes failed  
 **After:** Works with more lenient validation (10+ words minimum)
 
 ### ✅ Valid TXT/DOCX Files
+
 **Before:** Worked  
 **After:** Still works (no change)
 
@@ -151,16 +169,19 @@ file format (TXT or DOCX)."
 ### Manual Testing Steps
 
 1. **Test Scanned PDF:**
+
    - Upload a scanned (image-based) PDF
    - Should show clear error about file being scanned
    - Should suggest conversion or alternative format
 
 2. **Test Text-Based PDF:**
+
    - Upload a normal PDF with text
    - Should extract and analyze successfully
    - Should show score 60-100% (not 0%)
 
 3. **Test Empty PDF:**
+
    - Upload minimal/empty PDF
    - Should show clear error about insufficient text
    - Should suggest using different format
@@ -175,6 +196,7 @@ file format (TXT or DOCX)."
 **Test File:** `test-pdf-extraction.html`
 
 Open in browser to test:
+
 - Real PDF upload and extraction
 - Simulated scanned PDF (empty text)
 - Direct Edge Function call with text
@@ -182,6 +204,7 @@ Open in browser to test:
 **Test Script:** `test-edge-function.js`
 
 Run with:
+
 ```bash
 node test-edge-function.js
 ```
@@ -217,6 +240,7 @@ npx supabase functions deploy analyze-contract --project-ref cqvufndxjakdbmbjhwl
 ## Fallback Strategy
 
 When PDF extraction fails:
+
 1. ✅ Show clear error message to user
 2. ✅ Explain why it failed (scanned, corrupted, etc.)
 3. ✅ Suggest actionable solutions (convert, use different format)

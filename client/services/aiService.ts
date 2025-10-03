@@ -446,7 +446,8 @@ class AIService {
                     // Try to parse the error message from the response
                     try {
                       const errorBody = JSON.parse(respText);
-                      const userErrorMessage = errorBody.error || errorBody.message || respText;
+                      const userErrorMessage =
+                        errorBody.error || errorBody.message || respText;
 
                       // Log the error details
                       logError(
@@ -464,7 +465,8 @@ class AIService {
                       throw new Error(userErrorMessage);
                     } catch (jsonError) {
                       // If response isn't JSON, use the raw text
-                      const errorMsg = respText || `Edge Function error ${directResp.status}`;
+                      const errorMsg =
+                        respText || `Edge Function error ${directResp.status}`;
                       logError(
                         "❌ Supabase Edge Function error",
                         new Error(errorMsg),
@@ -483,14 +485,10 @@ class AIService {
 
                   // If the error is from the Edge Function (with a user message), throw it
                   if (directError instanceof Error && directError.message) {
-                    logError(
-                      "❌ Supabase Edge Function error",
-                      directError,
-                      {
-                        reviewType: request.reviewType,
-                        originalError: serializedError,
-                      },
-                    );
+                    logError("❌ Supabase Edge Function error", directError, {
+                      reviewType: request.reviewType,
+                      originalError: serializedError,
+                    });
                     // Throw the error to show user-friendly message
                     throw directError;
                   }

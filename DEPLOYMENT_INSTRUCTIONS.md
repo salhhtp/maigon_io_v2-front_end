@@ -3,20 +3,24 @@
 ## Issues Fixed
 
 ### 1. ✅ PDF Extraction Errors
+
 - **Problem:** PDFs failing with "No text extracted" error
 - **Fix:** More lenient validation (30 chars, 10 words vs 100 chars, 50 words)
 - **Fix:** Better error messages explaining the issue to users
 
-### 2. ✅ Error Message Display  
+### 2. ✅ Error Message Display
+
 - **Problem:** Users seeing `[object Object]` instead of actual error
 - **Fix:** Proper error propagation from Edge Function to client
 - **Fix:** User-facing errors now shown, generic errors use fallback
 
 ### 3. ✅ Scanned PDF Detection
+
 - **Problem:** Scanned PDFs silently failed
 - **Fix:** Clear error messages suggesting conversion or alternative formats
 
 ### 4. ✅ Invalid OpenAI Model (404 Error)
+
 - **Problem:** Using deprecated `gpt-4-turbo-preview` model
 - **Fix:** Updated to `gpt-4-turbo`
 
@@ -66,6 +70,7 @@ supabase functions deploy analyze-contract --project-ref cqvufndxjakdbmbjhwlx
 ### Option 3: GitHub Integration (If Available)
 
 If you have GitHub integration set up:
+
 1. Commit all changes
 2. Push to your repository
 3. Supabase will auto-deploy the function
@@ -77,7 +82,7 @@ If you have GitHub integration set up:
 ### Set API Key in Supabase:
 
 1. Go to: https://supabase.com/dashboard/project/cqvufndxjakdbmbjhwlx/settings/functions
-2. Navigate to "Edge Functions" → "Secrets"  
+2. Navigate to "Edge Functions" → "Secrets"
 3. Add secret:
    - **Name:** `OPENAI_API_KEY`
    - **Value:** `sk-...` (your OpenAI API key from https://platform.openai.com/api-keys)
@@ -98,6 +103,7 @@ node test-edge-function.js
 ```
 
 **Expected Result:**
+
 - ✅ Score: 60-95% (realistic, not 0%)
 - ✅ Model: `openai-gpt-4` (not fallback)
 - ✅ No "AI API error: 404"
@@ -108,6 +114,7 @@ node test-edge-function.js
 Upload a scanned (image-based) PDF through the UI.
 
 **Expected Result:**
+
 - ❌ Clear error message: "This PDF appears to be scanned..."
 - ❌ Suggestions: Convert to text, use TXT/DOCX
 - ✅ NOT a silent fallback with 0% score
@@ -117,6 +124,7 @@ Upload a scanned (image-based) PDF through the UI.
 Upload a text-based PDF through the UI.
 
 **Expected Result:**
+
 - ✅ Successful analysis
 - ✅ Score 60-95%
 - ✅ Meaningful summary (no XMP metadata)
@@ -129,6 +137,7 @@ Upload a text-based PDF through the UI.
 **Problem:** OpenAI API returning 404
 
 **Solutions:**
+
 1. Check if OpenAI API key is set in Supabase secrets
 2. Verify the key is valid at https://platform.openai.com/api-keys
 3. Check if you have sufficient credits in OpenAI account
@@ -139,6 +148,7 @@ Upload a text-based PDF through the UI.
 **Problem:** Error messages not displaying properly
 
 **Solution:**
+
 1. Clear browser cache
 2. Refresh the application
 3. Ensure client-side changes are deployed
@@ -148,6 +158,7 @@ Upload a text-based PDF through the UI.
 **Problem:** PDFs not extracting text
 
 **Solutions:**
+
 1. Verify Edge Function is deployed with latest changes
 2. Check Edge Function logs in Supabase Dashboard
 3. Try converting PDF to text format first
@@ -169,6 +180,7 @@ After deployment, verify:
 ## Expected Improvements
 
 ### Before Fixes:
+
 - ❌ PDFs failing with generic errors
 - ❌ Users seeing `[object Object]`
 - ❌ Scanned PDFs silent failures
@@ -176,6 +188,7 @@ After deployment, verify:
 - ❌ 404 errors from invalid model
 
 ### After Fixes:
+
 - ✅ Clear error messages for PDF issues
 - ✅ User-friendly error display
 - ✅ Scanned PDFs show helpful suggestions
