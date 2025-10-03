@@ -135,6 +135,77 @@ export interface SignUpData {
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
+const fallbackContext: UserContextType = {
+  user: null,
+  setUser: () => {
+    console.warn(
+      "useUser fallback context invoked. Ensure component tree is wrapped in UserProvider.",
+    );
+  },
+  updateUser: async () => {
+    console.warn(
+      "updateUser called on fallback context. No action performed.",
+    );
+  },
+  isLoggedIn: false,
+  isLoading: false,
+  authStatus: "unauthenticated",
+  lastError: null,
+  session: null,
+  logout: async () => {
+    console.warn("logout called on fallback context. No action performed.");
+  },
+  signUp: async () => {
+    console.warn("signUp called on fallback context. Returning failure response.");
+    return {
+      success: false,
+      message: "Authentication is currently unavailable. Please try again.",
+    };
+  },
+  signIn: async () => {
+    console.warn("signIn called on fallback context. Returning failure response.");
+    return {
+      success: false,
+      message: "Authentication is currently unavailable. Please try again.",
+    };
+  },
+  resetPassword: async () => {
+    console.warn(
+      "resetPassword called on fallback context. Returning failure response.",
+    );
+    return {
+      success: false,
+      message: "Password reset is unavailable outside authenticated context.",
+    };
+  },
+  updatePassword: async () => {
+    console.warn(
+      "updatePassword called on fallback context. Returning failure response.",
+    );
+    return {
+      success: false,
+      message: "Password update is unavailable outside authenticated context.",
+    };
+  },
+  changePassword: async () => {
+    console.warn(
+      "changePassword called on fallback context. Returning failure response.",
+    );
+    return {
+      success: false,
+      message: "Password change is unavailable outside authenticated context.",
+    };
+  },
+  clearAuthState: async () => {
+    console.warn(
+      "clearAuthState called on fallback context. No action performed.",
+    );
+  },
+  refreshUser: async () => {
+    console.warn("refreshUser called on fallback context. No action performed.");
+  },
+};
+
 const getDefaultUserData = (
   profile: UserProfile,
 ): Omit<
@@ -1108,7 +1179,10 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({
 export const useUser = () => {
   const context = useContext(UserContext);
   if (context === undefined) {
-    throw new Error("useUser must be used within a UserProvider");
+    console.warn(
+      "useUser accessed outside of UserProvider. Returning fallback unauthenticated context.",
+    );
+    return fallbackContext;
   }
   return context;
 };
