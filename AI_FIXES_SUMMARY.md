@@ -3,6 +3,7 @@
 ## Issues Identified
 
 ### 1. ❌ Invalid OpenAI Model Name (404 Error)
+
 **Root Cause:** Edge Function was using deprecated model name `gpt-4-turbo-preview` which no longer exists in OpenAI's API.
 
 **Symptom:** All AI requests returned 404 error, triggering fallback analysis.
@@ -10,9 +11,11 @@
 **Fix:** Updated model name to `gpt-4-turbo` (current valid model).
 
 **Files Changed:**
+
 - `supabase/functions/analyze-contract/index.ts` (line 16)
 
 ### 2. ❌ PDF Parser Extracting XMP Metadata
+
 **Root Cause:** PDF text extraction was capturing XML metadata (XMP/RDF) instead of filtering it out.
 
 **Symptom:** Contract summaries displayed raw XML tags like `<?xpacket begin...>` and `<x:xmpmeta>`.
@@ -20,9 +23,11 @@
 **Fix:** Added regex filters to remove XMP metadata, RDF blocks, and XML tags from extracted text.
 
 **Files Changed:**
+
 - `supabase/functions/_shared/pdf-parser.ts`
 
 ### 3. ✅ Fallback Analysis Working Correctly
+
 **Status:** Fallback analysis is properly returning scores (72-78%) when AI provider fails.
 
 **Note:** The 0% scores in the UI were due to the 404 error, not the fallback logic.
@@ -65,6 +70,7 @@ node test-edge-function.js
 ```
 
 **Expected Output:**
+
 - ✅ Scores: 60-100% (not 0%)
 - ✅ No XMP metadata in summaries
 - ✅ Model used: `openai-gpt-4` (not fallback)
