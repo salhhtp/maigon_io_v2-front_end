@@ -759,6 +759,8 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({
       }, 100);
     } catch (error) {
       logError("Logout error", error);
+      setUser(null);
+      setSession(null);
       clearAuthData();
       sessionStorage.removeItem("maigon:lastReview");
 
