@@ -480,8 +480,24 @@ class AIService {
                   }
                 } catch (directError) {
                   clearTimeout(directTimeoutId);
+
+                  // If the error is from the Edge Function (with a user message), throw it
+                  if (directError instanceof Error && directError.message) {
+                    logError(
+                      "❌ Supabase Edge Function error",
+                      directError,
+                      {
+                        reviewType: request.reviewType,
+                        originalError: serializedError,
+                      },
+                    );
+                    // Throw the error to show user-friendly message
+                    throw directError;
+                  }
+
+                  // Otherwise, log the network/fetch error
                   logError(
-                    "❌ Supabase Edge Function error (invoke + direct fetch failed)",
+                    "❌ Direct fetch to Edge Function failed",
                     directError,
                     {
                       reviewType: request.reviewType,
