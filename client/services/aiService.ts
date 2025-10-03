@@ -292,10 +292,17 @@ class AIService {
         clearTimeout(timeoutId);
 
         if (error) {
+          // Supabase Edge Function errors may have different structures
+          // For 400 errors, the error message might be in error.message or error.error
+          const errorMessage = error.message || error.error || JSON.stringify(error);
+
           logError("❌ Supabase Edge Function error", error, {
             reviewType: request.reviewType,
+            errorMessage,
+            errorType: typeof error,
           });
-          throw new Error(`AI service error: ${error.message}`);
+
+          throw new Error(`AI service error: ${errorMessage}`);
         }
 
         if (!data) {
