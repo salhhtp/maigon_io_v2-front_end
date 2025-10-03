@@ -1,7 +1,7 @@
 import { supabase } from "@/lib/supabase";
 import logger from "@/utils/logger";
 import { errorHandler } from "@/utils/errorHandler";
-import { logError, createUserFriendlyMessage } from "@/utils/errorLogger";
+import { logError, createUserFriendlyMessage, extractErrorDetails } from "@/utils/errorLogger";
 
 // Enhanced AI Model Configuration for Advanced Contract Analysis
 export enum AIModel {
