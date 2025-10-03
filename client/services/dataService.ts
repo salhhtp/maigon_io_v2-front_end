@@ -230,7 +230,7 @@ export class DataService {
       });
 
       // 6. Update user usage statistics
-      await UserUsageStatsService.incrementReviewCount(userId, reviewType);
+      await UserUsageStatsService.trackReviewCompletion(userId, reviewType, 1);
       await UserActivitiesService.trackContractReview(
         userId,
         contract.id,
