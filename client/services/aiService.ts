@@ -217,7 +217,11 @@ class AIService {
       timestamp: new Date().toISOString(),
     };
 
-    console.error("�� All AI analysis attempts failed:", errorDetails);
+    logError("❌ All AI analysis attempts failed", new Error(finalErrorMessage), {
+      attempts: maxRetries,
+      contractType: contractType || 'unknown',
+      errorDetails,
+    });
     throw new Error(
       `Contract analysis failed after ${maxRetries} attempts: ${finalErrorMessage}`,
     );
