@@ -10,7 +10,6 @@ import Logo from "@/components/Logo";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import ConfirmationModal from "@/components/ConfirmationModal";
-import ContractClassificationDisplay from "@/components/ContractClassificationDisplay";
 import { useUser } from "@/contexts/SupabaseUserContext";
 import { useToast } from "@/hooks/use-toast";
 import { logError, createUserFriendlyMessage } from "@/utils/errorLogger";
