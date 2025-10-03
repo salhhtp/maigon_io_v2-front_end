@@ -509,25 +509,25 @@ class AIService {
     }
 
     if (typeof error === "object") {
-      const errObj = error as Record<string, unknown> & { name?: unknown };
+      const errObj = error as Record<string, unknown> & {
+        name?: unknown;
+        details?: unknown;
+      };
 
-      const possibleKeys: Array<keyof typeof errObj> = [
-        "message" as const,
-        "error" as const,
-        "msg" as const,
-      ];
+      const possibleKeys: string[] = ["message", "error", "msg"];
 
       for (const key of possibleKeys) {
         const value = errObj[key];
         if (typeof value === "string" && value.trim().length > 0) {
-          if (typeof errObj.name === "string" && errObj.name.trim().length > 0) {
-            return `${errObj.name}: ${value}`;
-          }
-          return value;
+          const name =
+            typeof errObj.name === "string" && errObj.name.trim().length > 0
+              ? errObj.name
+              : null;
+          return name ? `${name}: ${value}` : value;
         }
       }
 
-      if (errObj.details) {
+      if (errObj.details !== undefined) {
         try {
           return JSON.stringify(errObj.details);
         } catch {
