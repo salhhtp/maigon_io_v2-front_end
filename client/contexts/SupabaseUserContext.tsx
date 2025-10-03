@@ -12,6 +12,7 @@ import { DataService } from "@/services/dataService";
 import { EmailService } from "@/services/emailService";
 import { logError } from "@/utils/errorLogger";
 import { useInactivityMonitor } from "@/utils/inactivityMonitor";
+import { clearAuthData } from "@/utils/authCleanup";
 
 type UserProfile = Database["public"]["Tables"]["user_profiles"]["Row"];
 
