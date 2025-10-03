@@ -252,7 +252,10 @@ export default function Upload() {
             // Return special marker indicating this is a PDF that needs backend processing
             resolve(`PDF_FILE_BASE64:${base64}`);
           } catch (error) {
-            console.error("❌ PDF processing error:", error);
+            logError("❌ PDF processing error", error, {
+              fileName: file.name,
+              fileSize: file.size,
+            });
             reject(
               new Error(
                 `Failed to process PDF file: ${error instanceof Error ? error.message : "Unknown error"}. Please try a smaller PDF or convert to text format.`,
@@ -261,7 +264,9 @@ export default function Upload() {
           }
         };
         reader.onerror = (error) => {
-          console.error("❌ PDF file reading error:", error);
+          logError("❌ PDF file reading error", error, {
+            fileName: file.name,
+          });
           reject(
             new Error(
               "Failed to read PDF file. Please ensure the file is not corrupted.",
@@ -344,7 +349,10 @@ export default function Upload() {
             // Return special marker indicating this is a DOCX that needs backend processing
             resolve(`DOCX_FILE_BASE64:${base64}`);
           } catch (error) {
-            console.error("❌ DOCX processing error:", error);
+            logError("❌ DOCX processing error", error, {
+              fileName: file.name,
+              fileSize: file.size,
+            });
             reject(
               new Error(
                 `Failed to process DOCX file: ${error instanceof Error ? error.message : "Unknown error"}. Please try a smaller file or convert to text format.`,
@@ -353,7 +361,9 @@ export default function Upload() {
           }
         };
         reader.onerror = (error) => {
-          console.error("❌ DOCX file reading error:", error);
+          logError("❌ DOCX file reading error", error, {
+            fileName: file.name,
+          });
           reject(
             new Error(
               "Failed to read DOCX file. Please ensure the file is not corrupted.",

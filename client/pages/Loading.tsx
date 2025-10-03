@@ -7,6 +7,7 @@ import AnimatedLoadingLogo from "@/components/AnimatedLoadingLogo";
 import ConfirmationModal from "@/components/ConfirmationModal";
 import { useUser } from "@/contexts/SupabaseUserContext";
 import { useToast } from "@/hooks/use-toast";
+import { logError, createUserFriendlyMessage } from "@/utils/errorLogger";
 import { reviewProcessingStore } from "@/lib/reviewProcessingStore";
 import { DataService } from "@/services/dataService";
 import type { ContractReviewPayload } from "@shared/api";
@@ -97,16 +98,23 @@ export default function Loading() {
           description: "Review completed. Preparing your report...",
         });
       } catch (error) {
-        console.error("Contract processing error:", error);
-        setProcessingError(
-          "There was an error processing your contract. Please try again.",
+        const errorDetails = logError("❌ Contract processing error", error, {
+          reviewId: reviewProcessingStore.getReviewId(),
+          contractId: reviewProcessingStore.getContractId(),
+        });
+
+        const userMessage = createUserFriendlyMessage(
+          error,
+          "There was an error processing your contract. Please try again."
         );
+
+        setProcessingError(userMessage);
         setIsProcessing(false);
         setProcessingFinishedAt(Date.now());
         reviewProcessingStore.clear();
         toast({
           title: "Processing failed",
-          description: "There was an error processing your contract.",
+          description: userMessage,
           variant: "destructive",
         });
       }
