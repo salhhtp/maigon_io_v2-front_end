@@ -362,14 +362,14 @@ serve(async (req) => {
       request.documentFormat,
     );
 
-    const baseFallbackContext = {
+    fallbackContext = {
       reviewType: request.reviewType,
       contractContent: processedContent,
       contractType: resolvedContractType,
       classification: request.classification,
       documentFormat: resolvedDocumentFormat,
       fileName: filename,
-    } as const;
+    };
 
     // Get API key based on model
     const model = request.model || "openai-gpt-4";
