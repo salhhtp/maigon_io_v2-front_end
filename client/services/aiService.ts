@@ -582,6 +582,24 @@ class AIService {
         JSON.stringify(errorInfo, null, 2),
       );
 
+      // Check if this is a user-facing error that should be shown (not a generic API failure)
+      const errorMessage = errorInfo.message || "";
+      const isUserFacingError =
+        errorMessage.toLowerCase().includes("pdf") ||
+        errorMessage.toLowerCase().includes("scanned") ||
+        errorMessage.toLowerCase().includes("docx") ||
+        errorMessage.toLowerCase().includes("file") ||
+        errorMessage.toLowerCase().includes("text") ||
+        errorMessage.toLowerCase().includes("extract") ||
+        errorMessage.toLowerCase().includes("document") ||
+        errorMessage.toLowerCase().includes("convert");
+
+      // If this is a specific user error (like file format issue), throw it so user sees it
+      if (isUserFacingError && error instanceof Error) {
+        throw error;
+      }
+
+      // Otherwise, use fallback for generic API/network errors
       return buildFallbackResult(
         `AI provider error: ${errorInfo.message || "Unknown error"}`,
       );
