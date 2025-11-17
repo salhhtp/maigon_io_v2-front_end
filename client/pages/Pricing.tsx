@@ -8,11 +8,21 @@ import {
   Calculator,
 } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Logo from "@/components/Logo";
 import Footer from "@/components/Footer";
 import MobileNavigation from "@/components/MobileNavigation";
 import { useUser } from "@/contexts/SupabaseUserContext";
+import { toast } from "sonner";
+import {
+  getPlanByKey,
+  type PlanKey,
+  type PlanDefinition,
+} from "@shared/plans";
+import { createCheckoutSession } from "@/services/billingService";
+
+const formatCurrency = (value: number) =>
+  `€${value.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
 
 const PricingCard = ({
   tier,
@@ -27,6 +37,7 @@ const PricingCard = ({
   highlighted = false,
   savings = null,
   popular = false,
+  loading = false,
 }: {
   tier: string;
   title: string;
@@ -40,6 +51,7 @@ const PricingCard = ({
   highlighted?: boolean;
   savings?: string | null;
   popular?: boolean;
+  loading?: boolean;
 }) => (
   <div
     className={`relative bg-white rounded-lg p-6 border transition-all duration-200 ${
@@ -90,13 +102,14 @@ const PricingCard = ({
 
     <Button
       onClick={buttonAction}
+      disabled={loading}
       className={`w-full ${
         highlighted
           ? "bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white"
           : "bg-[#F3F3F3] hover:bg-[#D6CECE] text-[#271D1D] border border-[#271D1D]/20"
       }`}
     >
-      {buttonText}
+      {loading ? "Redirecting..." : buttonText}
     </Button>
   </div>
 );
@@ -104,31 +117,47 @@ const PricingCard = ({
 const PricingCalculator = ({
   onPlanSelect,
 }: {
-  onPlanSelect: (contracts: number) => void;
+  onPlanSelect: (plan: PlanKey) => void;
 }) => {
   const [contractCount, setContractCount] = useState(5);
 
   const calculatePricing = (contracts: number) => {
-    if (contracts <= 1) return { plan: "Free Trial", price: 0, savings: 0 };
-    if (contracts <= 10) {
-      const payAsYouGo = contracts * 89;
-      const monthly10 = 799;
+    const paygCost = contracts * 69;
+
+    if (contracts <= 0) {
       return {
-        plan: contracts <= 9 ? "Pay-as-you-go" : "Monthly 10",
-        price: contracts <= 9 ? payAsYouGo : monthly10,
-        savings: contracts <= 9 ? 0 : payAsYouGo - monthly10,
+        planLabel: "Free Trial",
+        planKey: "free_trial" as const,
+        price: 0,
+        savings: 0,
       };
     }
-    if (contracts <= 15) {
-      const payAsYouGo = contracts * 89;
-      const monthly15 = 1199;
+
+    if (contracts <= 9) {
       return {
-        plan: "Monthly 15",
-        price: monthly15,
-        savings: payAsYouGo - monthly15,
+        planLabel: "Pay-As-You-Go",
+        planKey: "pay_as_you_go" as const,
+        price: paygCost,
+        savings: 0,
       };
     }
-    return { plan: "Enterprise Plan", price: "Custom", savings: "Contact us" };
+
+    if (contracts === 10) {
+      const savings = paygCost - 590;
+      return {
+        planLabel: "Monthly Subscription",
+        planKey: "monthly_10" as const,
+        price: 590,
+        savings: savings > 0 ? savings : 0,
+      };
+    }
+
+    return {
+      planLabel: "Enterprise Plan",
+      planKey: "professional" as const,
+      price: "Custom" as const,
+      savings: null,
+    };
   };
 
   const result = calculatePricing(contractCount);
@@ -181,29 +210,31 @@ const PricingCalculator = ({
         <div className="text-center">
           <p className="text-sm text-[#271D1D]/70 mb-1">Recommended Plan</p>
           <p className="font-lora text-lg font-medium text-[#271D1D]">
-            {result.plan}
+            {result.planLabel}
           </p>
           <p className="font-lora text-2xl font-bold text-[#9A7C7C]">
             {typeof result.price === "number"
-              ? `€${result.price}`
+              ? formatCurrency(result.price)
               : result.price}
-            {typeof result.price === "number" && (
+            {result.planKey === "monthly_10" && (
               <span className="text-sm font-normal">/month</span>
             )}
           </p>
           {typeof result.savings === "number" && result.savings > 0 && (
             <p className="text-sm text-green-600 font-medium">
-              Save €{result.savings}/month
+              Save {formatCurrency(result.savings)} vs pay-as-you-go
             </p>
           )}
         </div>
       </div>
 
       <Button
-        onClick={() => onPlanSelect(contractCount)}
+        onClick={() => onPlanSelect(result.planKey)}
         className="w-full bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white"
       >
-        {contractCount >= 15 ? "Request Consultation" : "Select This Plan"}
+        {result.planKey === "professional"
+          ? "Request Consultation"
+          : "Select This Plan"}
       </Button>
     </div>
   );
@@ -214,6 +245,27 @@ export default function Pricing() {
   const navigate = useNavigate();
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const location = useLocation();
+  const [checkoutPlanKey, setCheckoutPlanKey] = useState<PlanKey | null>(null);
+  const freeTrialPlan = useMemo<PlanDefinition | undefined>(
+    () => getPlanByKey("free_trial"),
+    [],
+  );
+  const paygPlan = useMemo<PlanDefinition | undefined>(
+    () => getPlanByKey("pay_as_you_go"),
+    [],
+  );
+  const monthlyPlan = useMemo<PlanDefinition | undefined>(
+    () => getPlanByKey("monthly_10"),
+    [],
+  );
+  const enterprisePlan = useMemo<PlanDefinition | undefined>(
+    () => getPlanByKey("professional"),
+    [],
+  );
+  const monthlySavingsLabel = useMemo(() => {
+    const savings = 69 * 10 - 590;
+    return savings > 0 ? `${formatCurrency(savings)} vs pay-as-you-go` : null;
+  }, []);
 
   // Custom styles for range slider
   const rangeSliderStyles = `
@@ -304,33 +356,73 @@ export default function Pricing() {
     }
   `;
 
-  const handlePlanSelect = (planType: string) => {
-    if (isLoggedIn) {
-      // Navigate to plan selection/upgrade page
-      console.log(`Selecting plan: ${planType}`);
-      // In a real app, this would trigger plan upgrade flow
-    } else {
-      // Navigate to sign up with selected plan
-      // navigate('/signup', { state: { selectedPlan: planType } });
-      console.log(`Sign up with plan: ${planType}`);
+  const handlePlanSelect = async (planKey: PlanKey) => {
+    const plan = getPlanByKey(planKey);
+
+    if (!plan) {
+      toast.error("Unknown plan selected. Please refresh and try again.");
+      return;
+    }
+
+    if (planKey === "professional") {
+      navigate("/demo-login", { state: { selectedPlan: planKey } });
+      return;
+    }
+
+    if (planKey === "free_trial") {
+      if (isLoggedIn) {
+        toast.info("You're already in the platform. Reach out to support to adjust your plan if needed.");
+      } else {
+        navigate("/demo-login", { state: { selectedPlan: planKey } });
+      }
+      return;
+    }
+
+    if (!isLoggedIn || !user) {
+      navigate("/demo-login", { state: { selectedPlan: planKey } });
+      return;
+    }
+
+    if (!plan.stripe || plan.stripe.mode === "none") {
+      toast.info("Please contact support to activate this plan.");
+      return;
+    }
+
+    try {
+      setCheckoutPlanKey(planKey);
+      const session = await createCheckoutSession({
+        planKey,
+        userId: user.id,
+        email: user.email,
+        organizationId: user.organization?.id,
+        successPath: "/pricing/checkout-success",
+        cancelPath: location.pathname,
+        metadata: {
+          source: "app-pricing",
+        },
+      });
+
+      if (session.url) {
+        window.location.href = session.url;
+      } else {
+        toast.success("Checkout session created. Please follow the Stripe window.");
+      }
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Failed to start checkout";
+      toast.error(message);
+    } finally {
+      setCheckoutPlanKey(null);
     }
   };
 
-  const handleCalculatorSelect = (contracts: number) => {
-    if (contracts >= 15) {
-      // Trigger consultation request
-      console.log("Requesting consultation for enterprise plan");
-    } else {
-      const planType =
-        contracts <= 1
-          ? "free_trial"
-          : contracts <= 9
-            ? "pay_as_you_go"
-            : contracts <= 10
-              ? "monthly_10"
-              : "monthly_15";
-      handlePlanSelect(planType);
+  const handleCalculatorSelect = (planKey: PlanKey) => {
+    if (planKey === "professional") {
+      handlePlanSelect(planKey);
+      return;
     }
+
+    handlePlanSelect(planKey);
   };
 
   return (
@@ -419,8 +511,10 @@ export default function Pricing() {
                     Profile & Settings
                   </Link>
                   <button
+                    type="button"
                     onClick={() => {
-                      logout(); // Navigation handled in logout function
+                      setUserDropdownOpen(false);
+                      void logout();
                     }}
                     className="block w-full text-left px-4 py-2 text-sm text-[#271D1D] hover:bg-[#F9F8F8] transition-colors"
                   >
@@ -503,7 +597,7 @@ export default function Pricing() {
             <div className="bg-white rounded-lg p-4 border border-[#9A7C7C]/20 mb-8 max-w-md mx-auto">
               <p className="text-sm text-[#271D1D] mb-1">Current Plan</p>
               <p className="font-medium text-[#9A7C7C]">{user.plan.name}</p>
-              {user.plan.type !== "enterprise" && (
+              {user.plan.type !== "professional" && (
                 <p className="text-xs text-[#271D1D]/70">
                   Looking to upgrade? Choose a new plan below.
                 </p>
@@ -542,116 +636,58 @@ export default function Pricing() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-            {/* Free Trial */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <PricingCard
               tier="free_trial"
               title="Free Trial"
               subtitle="Try Maigon Risk-Free"
-              price="€0"
+              price={formatCurrency(0)}
               period=""
-              description="Perfect for testing our platform"
-              features={[
-                "One complete contract review",
-                "Full compliance report with risk assessment",
-                "Clause extraction and recommendations",
-                "Access to all 7 contract type modules",
-                "Professional-grade analysis (worth €89)",
-                "Personal dashboard access",
-                "Contract review history tracking",
-                "Report storage for 7 days only",
-              ]}
+              description="Perfect for getting started with our platform"
+              features={freeTrialPlan?.features ?? []}
               buttonText={isLoggedIn ? "Already Using" : "Start Free Trial"}
               buttonAction={() => handlePlanSelect("free_trial")}
               highlighted={user?.plan.type === "free_trial"}
             />
 
-            {/* Pay-as-you-go */}
             <PricingCard
               tier="pay_as_you_go"
               title="Pay-As-You-Go"
               subtitle="Perfect for Occasional Use"
-              price="€89"
+              price={formatCurrency(paygPlan?.price ?? 69)}
               period="per contract"
               description="Ideal for irregular contract review needs"
-              features={[
-                "Instant compliance reports",
-                "All 7 contract type modules",
-                "Risk assessment and scoring",
-                "Clause extraction with recommendations",
-                "Email support (48-hour response)",
-                "Permanent report storage",
-                "Basic playbook templates",
-                "Unlimited report storage",
-                "Download reports in multiple formats",
-              ]}
+              features={paygPlan?.features ?? []}
               buttonText={
                 user?.plan.type === "pay_as_you_go"
                   ? "Current Plan"
-                  : "Choose Plan"
+                  : "Purchase Now"
               }
               buttonAction={() => handlePlanSelect("pay_as_you_go")}
               highlighted={user?.plan.type === "pay_as_you_go"}
+              loading={checkoutPlanKey === "pay_as_you_go"}
             />
 
-            {/* Monthly 10 */}
             <PricingCard
               tier="monthly_10"
-              title="Monthly 10"
-              subtitle="Save with Volume Package"
-              price="€799"
+              title="Monthly Subscription"
+              subtitle="Save with a Volume Package"
+              price={formatCurrency(monthlyPlan?.price ?? 590)}
               period="per month"
               description="10 contracts per month"
-              savings="Save €91/month vs pay-as-you-go"
-              features={[
-                "10 contracts per month (€79.90 each)",
-                "10% savings vs. pay-as-you-go",
-                "Priority processing",
-                "Enhanced email support (48-hour response)",
-                "90-day usage analytics and reporting",
-                "Advanced playbook templates",
-                "Monthly billing cycle",
-                "Cancel anytime with 30-day notice",
-              ]}
+              savings={monthlySavingsLabel}
+              features={monthlyPlan?.features ?? []}
               buttonText={
                 user?.plan.type === "monthly_10"
                   ? "Current Plan"
-                  : "Choose Plan"
+                  : "Subscribe"
               }
               buttonAction={() => handlePlanSelect("monthly_10")}
               highlighted={user?.plan.type === "monthly_10"}
               popular={true}
+              loading={checkoutPlanKey === "monthly_10"}
             />
 
-            {/* Monthly 15 */}
-            <PricingCard
-              tier="monthly_15"
-              title="Monthly 15"
-              subtitle="Maximum Value Package"
-              price="€1,199"
-              period="per month"
-              description="15 contracts per month"
-              savings="Save €136/month vs pay-as-you-go"
-              features={[
-                "15 contracts per month (€79.93 each)",
-                "10% savings vs. pay-as-you-go",
-                "Priority processing",
-                "Enhanced email support (24-hour response)",
-                "90-day usage analytics and reporting",
-                "Advanced playbook templates",
-                "Monthly billing cycle",
-                "Cancel anytime with 30-day notice",
-              ]}
-              buttonText={
-                user?.plan.type === "monthly_15"
-                  ? "Current Plan"
-                  : "Choose Plan"
-              }
-              buttonAction={() => handlePlanSelect("monthly_15")}
-              highlighted={user?.plan.type === "monthly_15"}
-            />
-
-            {/* Enterprise Plan */}
             <div className="rounded-lg border bg-card text-card-foreground shadow-sm relative">
               <div className="bg-gradient-to-r from-[#9A7C7C] to-[#B6A5A5] rounded-lg p-6 text-white text-center h-full flex flex-col">
                 <Building2 className="w-8 h-8 mx-auto mb-3" />
@@ -667,39 +703,21 @@ export default function Pricing() {
                   <div className="text-left">
                     <h4 className="text-xs font-medium mb-2 uppercase tracking-wider">Enterprise Features</h4>
                     <ul className="space-y-1">
-                      <li className="flex items-center gap-2 text-xs">
-                        <Check className="w-3 h-3 text-white flex-shrink-0" />
-                        <span>Unlimited contract reviews</span>
-                      </li>
-                      <li className="flex items-center gap-2 text-xs">
-                        <Check className="w-3 h-3 text-white flex-shrink-0" />
-                        <span>Custom pricing based on volume</span>
-                      </li>
-                      <li className="flex items-center gap-2 text-xs">
-                        <Check className="w-3 h-3 text-white flex-shrink-0" />
-                        <span>Dedicated account manager</span>
-                      </li>
-                      <li className="flex items-center gap-2 text-xs">
-                        <Check className="w-3 h-3 text-white flex-shrink-0" />
-                        <span>Custom integrations & API access</span>
-                      </li>
-                      <li className="flex items-center gap-2 text-xs">
-                        <Check className="w-3 h-3 text-white flex-shrink-0" />
-                        <span>Advanced analytics & reporting</span>
-                      </li>
-                      <li className="flex items-center gap-2 text-xs">
-                        <Check className="w-3 h-3 text-white flex-shrink-0" />
-                        <span>Priority support & training</span>
-                      </li>
+                      {(enterprisePlan?.features ?? []).map((feature) => (
+                        <li key={feature} className="flex items-center gap-2 text-xs">
+                          <Check className="w-3 h-3 text-white flex-shrink-0" />
+                          <span>{feature}</span>
+                        </li>
+                      ))}
                     </ul>
                   </div>
                 </div>
 
                 <Button
-                  onClick={() => handlePlanSelect("enterprise")}
+                  onClick={() => handlePlanSelect("professional")}
                   className="w-full bg-white text-[#9A7C7C] hover:bg-white/90 mt-auto"
                 >
-                  {user?.plan.type === "enterprise"
+                  {user?.plan.type === "professional"
                     ? "Current Plan"
                     : "Request Consultation"}
                 </Button>
@@ -730,7 +748,7 @@ export default function Pricing() {
                     Pay-as-you-go
                   </th>
                   <th className="text-center p-4 font-medium text-[#271D1D]">
-                    Monthly Plans
+                    Monthly Subscription
                   </th>
                   <th className="text-center p-4 font-medium text-[#271D1D]">
                     Enterprise Plan
@@ -740,12 +758,14 @@ export default function Pricing() {
               <tbody className="text-sm">
                 <tr className="border-b border-[#271D1D]/5">
                   <td className="p-4 text-[#271D1D]">Contract Reviews</td>
-                  <td className="p-4 text-center text-[#271D1D]/70">1</td>
                   <td className="p-4 text-center text-[#271D1D]/70">
-                    Unlimited
+                    5 contracts (14-day trial)
                   </td>
                   <td className="p-4 text-center text-[#271D1D]/70">
-                    10 or 15/month
+                    Pay per contract
+                  </td>
+                  <td className="p-4 text-center text-[#271D1D]/70">
+                    10/month
                   </td>
                   <td className="p-4 text-center text-[#271D1D]/70">
                     Unlimited
@@ -767,13 +787,13 @@ export default function Pricing() {
                 <tr className="border-b border-[#271D1D]/5">
                   <td className="p-4 text-[#271D1D]">Support Response</td>
                   <td className="p-4 text-center text-[#271D1D]/70">
-                    Email only
+                    Email (48 hours)
                   </td>
                   <td className="p-4 text-center text-[#271D1D]/70">
-                    48 hours
+                    Email (48 hours)
                   </td>
                   <td className="p-4 text-center text-[#271D1D]/70">
-                    24-48 hours
+                    Enhanced email (48 hours)
                   </td>
                   <td className="p-4 text-center text-[#271D1D]/70">
                     Priority + dedicated

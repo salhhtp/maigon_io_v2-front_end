@@ -1,6 +1,7 @@
 import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useUser } from "@/contexts/SupabaseUserContext";
+import { getDefaultDashboardRoute } from "@/utils/navigation";
 import Index from "@/pages/Index";
 
 const RootRedirect: React.FC = () => {
@@ -8,6 +9,19 @@ const RootRedirect: React.FC = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    if (!isLoading && authStatus === "unauthenticated") {
+      try {
+        const pendingRedirect = sessionStorage.getItem("maigon:postLogoutRedirect");
+        if (pendingRedirect) {
+          sessionStorage.removeItem("maigon:postLogoutRedirect");
+          navigate("/signin", { replace: true });
+          return;
+        }
+      } catch (error) {
+        console.warn("Unable to read logout redirect flag", error);
+      }
+    }
+
     const hash = window.location.hash;
     const searchParams = new URLSearchParams(window.location.search);
 
@@ -29,7 +43,8 @@ const RootRedirect: React.FC = () => {
       if (user.hasTemporaryPassword) {
         navigate("/change-password", { replace: true });
       } else {
-        navigate("/dashboard", { replace: true });
+        const target = getDefaultDashboardRoute(user);
+        navigate(target, { replace: true });
       }
     }
   }, [authStatus, isLoading, isLoggedIn, user, navigate]);

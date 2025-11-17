@@ -9,16 +9,45 @@ import {
   extractErrorDetails,
   safeStringify,
 } from "@/utils/errorLogger";
+import type { CustomSolution } from "@shared/api";
+import type { AnalysisReport } from "@shared/ai/reviewSchema";
 
 // Enhanced AI Model Configuration for Advanced Contract Analysis
 export enum AIModel {
+  OPENAI_GPT35 = "openai-gpt-3.5-turbo",
   OPENAI_GPT4 = "openai-gpt-4",
   OPENAI_GPT4O = "openai-gpt-4o",
-  OPENAI_GPT35 = "openai-gpt-3.5-turbo",
+  OPENAI_GPT5_PRO = "openai-gpt-5-pro",
+  OPENAI_GPT5 = "openai-gpt-5",
+  OPENAI_GPT5_MINI = "openai-gpt-5-mini",
   ANTHROPIC_CLAUDE = "anthropic-claude-3",
   ANTHROPIC_CLAUDE_OPUS = "anthropic-claude-3-opus",
   GOOGLE_GEMINI = "google-gemini-pro",
 }
+
+export const ensureGpt5Model = (
+  model?: string | null,
+  options: { defaultTier?: "mini" | "standard" | "pro" } = {},
+): AIModel => {
+  const normalized = typeof model === "string" ? model.toLowerCase() : "";
+  if (normalized.includes("gpt-5") && normalized.includes("mini")) {
+    return AIModel.OPENAI_GPT5_MINI;
+  }
+  if (normalized.includes("gpt-5") && normalized.includes("pro")) {
+    return AIModel.OPENAI_GPT5_PRO;
+  }
+  if (normalized.includes("gpt-5")) {
+    return AIModel.OPENAI_GPT5;
+  }
+  switch (options.defaultTier ?? "standard") {
+    case "mini":
+      return AIModel.OPENAI_GPT5_MINI;
+    case "pro":
+      return AIModel.OPENAI_GPT5_PRO;
+    default:
+      return AIModel.OPENAI_GPT5;
+  }
+};
 
 export interface ContractAnalysisRequest {
   content: string;
@@ -29,24 +58,13 @@ export interface ContractAnalysisRequest {
   userId: string;
   filename?: string;
   documentFormat?: string;
-}
-
-export interface CustomSolution {
-  id?: string;
-  name: string;
-  description: string;
-  contractType: string;
-  complianceFramework: string[];
-  riskLevel: "low" | "medium" | "high";
-  customRules: string;
-  analysisDepth: "basic" | "standard" | "comprehensive";
-  reportFormat: "summary" | "detailed" | "executive";
-  aiModel: AIModel;
-  prompts: {
-    systemPrompt: string;
-    analysisPrompt: string;
-    riskPrompt?: string;
-    compliancePrompt?: string;
+  ingestionId?: string;
+  ingestionWarnings?: unknown;
+  classification?: any;
+  selectedSolution?: {
+    id?: string;
+    key?: string;
+    title?: string;
   };
 }
 
@@ -96,14 +114,21 @@ export interface AnalysisResult {
   summary?: string;
   key_points?: string[];
   critical_clauses?: Array<{
-    clause: string;
-    importance: "high" | "medium" | "low";
+    clause?: string;
+    clause_title?: string;
+    clause_number?: string;
+    clause_text?: string;
+    importance?: "critical" | "high" | "medium" | "low";
     recommendation?: string;
+    page_reference?: string | null;
+    evidence_excerpt?: string;
+    negotiation_priority?: "must_have" | "should_have" | "nice_to_have";
   }>;
 
   // Common fields
-  recommendations: string[];
-  action_items?: string[];
+  recommendations?: Array<RecommendationEntry>;
+  strategic_recommendations?: Array<RecommendationEntry>;
+  action_items?: Array<RecommendationEntry>;
   extracted_terms?: Record<string, any>;
   confidence_breakdown?: {
     content_clarity: number;
@@ -111,6 +136,19 @@ export interface AnalysisResult {
     risk_identification: number;
     compliance_assessment: number;
   };
+  structured_report?: AnalysisReport;
+}
+
+export interface RecommendationEntry {
+  id: string;
+  description: string;
+  severity?: "critical" | "high" | "medium" | "low" | string;
+  department?: string;
+  owner?: string;
+  due_timeline?: string;
+  category?: string;
+  duplicate_of?: string | null;
+  next_step?: string;
 }
 
 const isFunctionsFetchError = (error: unknown): boolean => {
@@ -145,12 +183,15 @@ class AIService {
     const startTime = performance.now();
     let lastError: Error | null = null;
     const maxRetries = 3;
+    const enforcedModel = ensureGpt5Model(request.model, {
+      defaultTier: "pro",
+    });
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         logger.contractAction("AI analysis started", undefined, {
           reviewType: request.reviewType,
-          model: request.model || AIModel.OPENAI_GPT4,
+          model: enforcedModel,
           userId: request.userId,
           hasCustomSolution: !!request.customSolution,
           attempt,
@@ -166,19 +207,10 @@ class AIService {
         }
 
         // Call the appropriate AI service with retries for different models
-        let result: Partial<AnalysisResult>;
-        try {
-          result = await this.callAIService(request, customSolution);
-        } catch (apiError) {
-          // If primary model fails, try fallback model
-          if (attempt === 1 && request.model !== AIModel.OPENAI_GPT35) {
-            console.log("🔄 Primary model failed, trying fallback model...");
-            const fallbackRequest = { ...request, model: AIModel.OPENAI_GPT35 };
-            result = await this.callAIService(fallbackRequest, customSolution);
-          } else {
-            throw apiError;
-          }
-        }
+        const result = await this.callAIService(
+          { ...request, model: enforcedModel },
+          customSolution,
+        );
 
         const processingTime = (performance.now() - startTime) / 1000;
 
@@ -191,12 +223,11 @@ class AIService {
           ...result,
           processing_time: processingTime,
           timestamp: new Date().toISOString(),
-          model_used: request.model || AIModel.OPENAI_GPT4,
+          model_used: enforcedModel,
           custom_solution_id: customSolution?.id,
           pages: result.pages || 1,
           confidence: result.confidence || 0.75,
           score: result.score,
-          recommendations: result.recommendations || [],
         };
 
         logger.contractAction("AI analysis completed", undefined, {
@@ -206,6 +237,9 @@ class AIService {
           confidence: result.confidence,
           userId: request.userId,
           attempt,
+          contractType: request.contractType,
+          model: analysisResult.model_used,
+          fallbackUsed: Boolean((result as any)?.fallback_used),
         });
 
         return analysisResult;
@@ -231,6 +265,13 @@ class AIService {
 
     // All retries failed - provide detailed error message
     const finalErrorMessage = lastError?.message || "Unknown error occurred";
+    logger.contractAction("AI analysis failed", undefined, {
+      reviewType: request.reviewType,
+      userId: request.userId,
+      contractType: request.contractType,
+      attempts: maxRetries,
+      error: finalErrorMessage,
+    });
     const errorDetails = {
       attempts: maxRetries,
       reviewType: request.reviewType,
@@ -259,8 +300,12 @@ class AIService {
     request: ContractAnalysisRequest,
     customSolution?: CustomSolution,
   ): Promise<Partial<AnalysisResult>> {
-    const model =
-      request.model || customSolution?.aiModel || AIModel.OPENAI_GPT4;
+    const requestedModel =
+      request.model ||
+      customSolution?.modelSettings?.reasoningModel ||
+      customSolution?.aiModel ||
+      AIModel.OPENAI_GPT5_PRO;
+    const model = ensureGpt5Model(requestedModel, { defaultTier: "pro" });
 
     // Validate request before sending
     if (!request.content || request.content.trim().length === 0) {
@@ -279,11 +324,12 @@ class AIService {
       });
 
     try {
-      console.log("🔗 Calling Supabase Edge Function for AI analysis...", {
-        model,
-        reviewType: request.reviewType,
-        contractType: request.contractType,
+        console.log("🔗 Calling Supabase Edge Function for AI analysis...", {
+          model,
+          reviewType: request.reviewType,
+          contractType: request.contractType,
         contentLength: request.content.length,
+        ingestionId: request.ingestionId,
         hasClassification: !!(request as any).classification,
       });
 
@@ -300,6 +346,9 @@ class AIService {
         filename: request.filename,
         documentFormat: request.documentFormat,
         classification: (request as any).classification,
+        ingestionId: request.ingestionId,
+        ingestionWarnings: request.ingestionWarnings,
+        selectedSolution: request.selectedSolution,
       };
 
       // Log the full request body for debugging (with content truncated)
@@ -310,6 +359,7 @@ class AIService {
         classificationKeys: requestBody.classification
           ? Object.keys(requestBody.classification)
           : null,
+        selectedSolution: requestBody.selectedSolution,
       });
 
       // Validate that the request body is JSON-serializable
@@ -768,6 +818,7 @@ class AIService {
   async saveCustomSolution(
     solution: CustomSolution,
     userId: string,
+    organizationId: string,
   ): Promise<string> {
     const { data, error } = await supabase
       .from("custom_solutions")
@@ -782,6 +833,13 @@ class AIService {
         report_format: solution.reportFormat,
         ai_model: solution.aiModel,
         prompts: solution.prompts,
+        organization_id: organizationId,
+        section_layout: solution.sectionLayout ?? null,
+        clause_library: solution.clauseLibrary ?? [],
+        deviation_rules: solution.deviationRules ?? [],
+        similarity_benchmarks: solution.similarityBenchmarks ?? [],
+        model_settings: solution.modelSettings ?? null,
+        drafting_settings: solution.draftingSettings ?? null,
         created_by: userId,
         created_at: new Date().toISOString(),
       })
@@ -795,16 +853,25 @@ class AIService {
     logger.userAction("Custom solution created", {
       solutionName: solution.name,
       userId,
+      organizationId,
     });
 
     return data.id;
   }
 
-  async getCustomSolutions(userId: string): Promise<CustomSolution[]> {
+  async getCustomSolutions(
+    userId: string,
+    organizationId?: string | null,
+  ): Promise<CustomSolution[]> {
+    const filters = [`created_by.eq.${userId}`, "is_public.eq.true"];
+    if (organizationId) {
+      filters.push(`organization_id.eq.${organizationId}`);
+    }
+
     const { data, error } = await supabase
       .from("custom_solutions")
       .select("*")
-      .or(`created_by.eq.${userId},is_public.eq.true`)
+      .or(filters.join(","))
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -814,15 +881,35 @@ class AIService {
     return data.map((item) => ({
       id: item.id,
       name: item.name,
-      description: item.description,
+      description: item.description ?? "",
       contractType: item.contract_type,
-      complianceFramework: item.compliance_framework,
-      riskLevel: item.risk_level,
-      customRules: item.custom_rules,
-      analysisDepth: item.analysis_depth,
-      reportFormat: item.report_format,
-      aiModel: item.ai_model,
-      prompts: item.prompts,
+      complianceFramework: item.compliance_framework ?? [],
+      riskLevel: (item.risk_level as CustomSolution["riskLevel"]) ?? "medium",
+      customRules: item.custom_rules ?? "",
+      analysisDepth:
+        (item.analysis_depth as CustomSolution["analysisDepth"]) ?? "standard",
+      reportFormat:
+        (item.report_format as CustomSolution["reportFormat"]) ?? "detailed",
+      aiModel: (item.ai_model as AIModel) ?? AIModel.OPENAI_GPT4O,
+      prompts: (item.prompts as CustomSolution["prompts"]) ?? {
+        systemPrompt: "",
+        analysisPrompt: "",
+      },
+      organizationId: item.organization_id ?? null,
+      sectionLayout:
+        (item.section_layout as CustomSolution["sectionLayout"]) ?? [],
+      clauseLibrary:
+        (item.clause_library as CustomSolution["clauseLibrary"]) ?? [],
+      deviationRules:
+        (item.deviation_rules as CustomSolution["deviationRules"]) ?? [],
+      similarityBenchmarks:
+        (item.similarity_benchmarks as CustomSolution["similarityBenchmarks"]) ??
+        [],
+      modelSettings:
+        (item.model_settings as CustomSolution["modelSettings"]) ?? undefined,
+      draftingSettings:
+        (item.drafting_settings as CustomSolution["draftingSettings"]) ??
+        undefined,
     }));
   }
 }

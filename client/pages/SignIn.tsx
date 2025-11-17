@@ -7,6 +7,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import Logo from "@/components/Logo";
 import { useUser } from "@/contexts/SupabaseUserContext";
+import { getDefaultDashboardRoute } from "@/utils/navigation";
 
 export default function SignIn() {
   const [email, setEmail] = useState("");
@@ -31,7 +32,8 @@ export default function SignIn() {
         if (result.user?.hasTemporaryPassword) {
           navigate("/change-password");
         } else {
-          navigate("/dashboard");
+          const target = getDefaultDashboardRoute(result.user ?? null);
+          navigate(target);
         }
       } else {
         setError(result.message);

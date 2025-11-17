@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { AlertCircle, CheckCircle, Lock } from "lucide-react";
 import Logo from "@/components/Logo";
 import { useUser } from "@/contexts/SupabaseUserContext";
+import { getDefaultDashboardRoute } from "@/utils/navigation";
 
 const ChangePassword: React.FC = () => {
   const [currentPassword, setCurrentPassword] = useState("");
@@ -20,7 +21,8 @@ const ChangePassword: React.FC = () => {
   // Redirect if user doesn't need to change password
   React.useEffect(() => {
     if (!user?.hasTemporaryPassword) {
-      navigate("/dashboard", { replace: true });
+      const target = getDefaultDashboardRoute(user);
+      navigate(target, { replace: true });
     }
   }, [user, navigate]);
 
@@ -74,7 +76,8 @@ const ChangePassword: React.FC = () => {
 
       if (result.success) {
         // Redirect to dashboard after successful password change
-        navigate("/dashboard", { replace: true });
+        const target = getDefaultDashboardRoute(user);
+        navigate(target, { replace: true });
       } else {
         setError(result.message);
       }

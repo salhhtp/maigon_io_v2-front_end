@@ -14,7 +14,7 @@ export default function MobileNavigation({
 }: MobileNavigationProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
-  const { logout } = useUser();
+  const { logout, user } = useUser();
   const navigate = useNavigate();
 
   const toggleMenu = () => {
@@ -30,9 +30,18 @@ export default function MobileNavigation({
   };
 
   // Navigation links based on authentication state
+  const enterpriseLink = user?.isOrgAdmin && user.organization?.id
+    ? `/enterprise-dashboard?organizationId=${user.organization.id}`
+    : "/enterprise-dashboard";
+  const adminAnalyticsLink = user?.isMaigonAdmin ? "/admin-analytics" : null;
+
   const navLinks = isLoggedIn
     ? [
         { label: "Dashboard", href: "/dashboard" },
+        ...(user?.isOrgAdmin
+          ? [{ label: "Enterprise Admin", href: enterpriseLink }]
+          : []),
+        ...(adminAnalyticsLink ? [{ label: "Analytics", href: adminAnalyticsLink }] : []),
         { label: "Solutions", href: "/user-solutions" },
         { label: "News", href: "/user-news" },
         { label: "Team", href: "/user-team" },

@@ -1,8 +1,10 @@
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+
 // AI Model configurations for classification
 const AI_CONFIGS = {
-  "openai-gpt-4": {
+  "openai-gpt-5": {
     baseUrl: "https://api.openai.com/v1/chat/completions",
-    model: "gpt-4-turbo-preview",
+    model: "gpt-5-mini",
     headers: (apiKey: string) => ({
       "Content-Type": "application/json",
       Authorization: `Bearer ${apiKey}`,
@@ -187,7 +189,7 @@ async function classifyWithAI(
   request: ClassificationRequest,
   apiKey: string,
 ): Promise<ClassificationResult> {
-  const modelConfig = AI_CONFIGS["openai-gpt-4"];
+  const modelConfig = AI_CONFIGS["openai-gpt-5"];
 
   const systemPrompt = `You are a world-class legal document classifier and contract analysis expert with 20+ years of experience across multiple jurisdictions and industries. You have deep expertise in:
 
@@ -331,7 +333,6 @@ Analyze thoroughly and provide precise classification based on the evidence foun
         content: analysisPrompt,
       },
     ],
-    temperature: 0.1,
     max_tokens: 1000,
     response_format: { type: "json_object" },
   };

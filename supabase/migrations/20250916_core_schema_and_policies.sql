@@ -14,26 +14,39 @@ end;
 $$ language plpgsql;
 
 -- 2) user_profiles columns used by app (link to auth.users)
-alter table if exists public.user_profiles
-  add column if not exists auth_user_id uuid unique,
-  add column if not exists created_at timestamptz default now(),
-  add column if not exists updated_at timestamptz default now(),
-  add column if not exists role text check (role in ('user','admin')) default 'user',
-  add column if not exists is_active boolean default true;
-
-do $$
+do $user_profiles$
 begin
-  if not exists (select 1 from pg_constraint where conname = 'user_profiles_auth_user_id_fkey') then
-    alter table public.user_profiles
-      add constraint user_profiles_auth_user_id_fkey
-      foreign key (auth_user_id) references auth.users(id) on delete cascade;
+  if to_regclass('public.user_profiles') is null then
+    create table public.user_profiles (
+      id uuid primary key default gen_random_uuid(),
+      auth_user_id uuid unique,
+      created_at timestamptz default now(),
+      updated_at timestamptz default now(),
+      role text check (role in ('user','admin')) default 'user',
+      is_active boolean default true
+    );
+  else
+    alter table if exists public.user_profiles
+      add column if not exists auth_user_id uuid unique,
+      add column if not exists created_at timestamptz default now(),
+      add column if not exists updated_at timestamptz default now(),
+      add column if not exists role text check (role in ('user','admin')) default 'user',
+      add column if not exists is_active boolean default true;
   end if;
-end $$;
 
-drop trigger if exists trg_user_profiles_updated_at on public.user_profiles;
-create trigger trg_user_profiles_updated_at
-  before update on public.user_profiles
-  for each row execute function public.update_updated_at_column();
+  if to_regclass('public.user_profiles') is not null then
+    if not exists (select 1 from pg_constraint where conname = 'user_profiles_auth_user_id_fkey') then
+      alter table public.user_profiles
+        add constraint user_profiles_auth_user_id_fkey
+        foreign key (auth_user_id) references auth.users(id) on delete cascade;
+    end if;
+    drop trigger if exists trg_user_profiles_updated_at on public.user_profiles;
+    create trigger trg_user_profiles_updated_at
+      before update on public.user_profiles
+      for each row execute function public.update_updated_at_column();
+  end if;
+end;
+$user_profiles$;
 
 -- 3) contracts
 create table if not exists public.contracts (
@@ -254,14 +267,21 @@ for update using (
 ) with check (true);
 
 -- 7) admin_analytics (admin-only select)
-alter table if exists public.admin_analytics enable row level security;
+do $admin_analytics$
+begin
+  if to_regclass('public.admin_analytics') is not null then
+    alter table if exists public.admin_analytics enable row level security;
 
-drop policy if exists "admin_analytics_select_admins" on public.admin_analytics;
-create policy "admin_analytics_select_admins" on public.admin_analytics
-for select using (
-  exists (
-    select 1 from public.user_profiles p
-    where p.auth_user_id = auth.uid() and p.role = 'admin'
-  )
-);
-
+    drop policy if exists "admin_analytics_select_admins" on public.admin_analytics;
+    create policy "admin_analytics_select_admins" on public.admin_analytics
+    for select using (
+      exists (
+        select 1 from public.user_profiles p
+        where p.auth_user_id = auth.uid() and p.role = 'admin'
+      )
+    );
+  else
+    raise notice 'Skipping admin_analytics policies because table is missing.';
+  end if;
+end;
+$admin_analytics$;

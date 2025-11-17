@@ -24,10 +24,15 @@ export const AnimatedLoadingLogo = ({
   const hasCompletedRef = useRef(false);
   const progressRef = useRef(0);
   const externalProgressRef = useRef<number | undefined>(externalProgress);
+  const isCompleteRef = useRef(isComplete);
 
   useEffect(() => {
     externalProgressRef.current = externalProgress;
   }, [externalProgress]);
+
+  useEffect(() => {
+    isCompleteRef.current = isComplete;
+  }, [isComplete]);
 
   useEffect(() => {
     progressRef.current = progress;
@@ -38,8 +43,9 @@ export const AnimatedLoadingLogo = ({
     intervalRef.current = window.setInterval(() => {
       const elapsed = Date.now() - startTime;
       const fallbackProgress = (elapsed / duration) * 100;
+      const completionCap = isCompleteRef.current ? 100 : 97;
       const targetProgress = Math.min(
-        100,
+        completionCap,
         Math.max(
           externalProgressRef.current ?? 0,
           fallbackProgress,

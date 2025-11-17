@@ -12,10 +12,18 @@ import { supabase } from "@/lib/supabase";
 import type { User as SupabaseUser, Session } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase";
 import { DataService } from "@/services/dataService";
+import { syncUserProfile } from "@/services/profileService";
 import { EmailService } from "@/services/emailService";
+import { OrganizationsService } from "@/services/organizationsService";
 import { logError } from "@/utils/errorLogger";
 import { useInactivityMonitor } from "@/utils/inactivityMonitor";
 import { clearAuthData } from "@/utils/authCleanup";
+import type {
+  OrganizationQuotaConfig,
+  OrganizationRole,
+  UserAccessContext,
+} from "@shared/api";
+import { getPlanByKey } from "@shared/plans";
 
 type AuthStatus =
   | "initializing"
@@ -31,12 +39,25 @@ type UserUsageStatsRow =
 
 export interface User {
   id: string;
+  profileId: string;
   name: string;
   email: string;
   company: string;
   phone: string | null;
-  role: "user" | "admin";
+  role: "user" | "org_admin" | "admin";
+  authUserId: string;
   hasTemporaryPassword?: boolean;
+  isOrgAdmin: boolean;
+  isMaigonAdmin: boolean;
+  organization: {
+    id: string;
+    name: string;
+    slug: string | null;
+    billingPlan: string;
+    role: OrganizationRole | null;
+    quotas: OrganizationQuotaConfig | null;
+  } | null;
+  access: UserAccessContext | null;
   plan: {
     type:
       | "free_trial"
@@ -52,6 +73,12 @@ export interface User {
     next_billing_date?: string;
     trial_days_remaining?: number;
     features: string[];
+    payg?: {
+      creditsBalance: number;
+      creditsPurchased: number;
+      creditsConsumed: number;
+      updatedAt: string | null;
+    };
   };
   usage: {
     total_reviews: number;
@@ -210,69 +237,6 @@ const fallbackContext: UserContextType = {
   },
 };
 
-const getDefaultUserData = (
-  profile: UserProfile,
-): Omit<
-  User,
-  | "id"
-  | "name"
-  | "email"
-  | "company"
-  | "phone"
-  | "role"
-  | "hasTemporaryPassword"
-> => ({
-  plan: {
-    type: "free_trial",
-    name: "Free Trial",
-    price: 0,
-    contracts_limit: 1,
-    contracts_used: 0,
-    billing_cycle: "trial",
-    trial_days_remaining: 7,
-    features: [
-      "1 complete contract review",
-      "Full compliance report",
-      "All 7 contract modules",
-      "7-day report storage",
-    ],
-  },
-  usage: {
-    total_reviews: 0,
-    this_month_reviews: 0,
-    success_rate: 100,
-    monthly_usage: [
-      { month: "Jan", reviews: 0, max: 5 },
-      { month: "Feb", reviews: 0, max: 5 },
-      { month: "Mar", reviews: 0, max: 5 },
-      { month: "Apr", reviews: 0, max: 5 },
-      { month: "May", reviews: 0, max: 5 },
-      { month: "Jun", reviews: 0, max: 5 },
-    ],
-  },
-  billing: {
-    current_bill: 0,
-    payment_method: "No payment method",
-    billing_history: [],
-  },
-  recent_activity: [
-    {
-      action: "Account created",
-      file: profile.company || "Account",
-      time: new Date(profile.created_at ?? new Date()).toLocaleString(),
-      status: "completed",
-    },
-  ],
-  settings: {
-    email_notifications: true,
-    push_notifications: false,
-    marketing_emails: true,
-    two_factor_auth: false,
-    auto_save: true,
-    language: "en",
-    timezone: "UTC",
-  },
-});
 
 const buildMonthlyUsage = (
   totalReviews: number,
@@ -435,9 +399,13 @@ const ensureUserProfile = async (
         const nextValue = desired[key];
         const currentValue = data[key as keyof UserProfile];
 
-        if (nextValue !== undefined && nextValue !== currentValue) {
-          diff[key as keyof UserProfile] =
-            nextValue as UserProfile[keyof UserProfile];
+        if (
+          nextValue !== undefined &&
+          nextValue !== currentValue &&
+          key in data
+        ) {
+          (diff as Record<string, unknown>)[key as keyof UserProfile] =
+            nextValue as unknown;
         }
       });
 
@@ -463,6 +431,7 @@ const ensureUserProfile = async (
   const payload = {
     ...deriveProfileDefaults(authUser, overrides),
     auth_user_id: authUser.id,
+    id: authUser.id,
   };
 
   const { data: created, error: createError } = await supabase
@@ -483,18 +452,131 @@ const buildUser = (
   authUser: SupabaseUser | null,
   stats?: UserUsageStatsRow | null,
   activities?: UserActivityRow[] | null,
+  access?: UserAccessContext | null,
+  planRow?: UserPlanRow | null,
+  paygBalance?: UserPaygBalanceRow | null,
 ): User => {
-  const base = {
+  const profileRole: User["role"] =
+    profile.role === "admin" ? "admin" : "user";
+  const derivedRole: User["role"] = access?.isMaigonAdmin
+    ? "admin"
+    : access?.organizationRole === "org_admin"
+      ? "org_admin"
+      : profileRole;
+
+  const organizationDetails: User["organization"] = access?.organization
+    ? {
+        id: access.organization.id,
+        name: access.organization.name,
+        slug: access.organization.slug,
+        billingPlan: access.organization.billingPlan,
+        role: access.organizationRole ?? null,
+        quotas: access.quotas,
+      }
+    : null;
+
+  const displayName = `${profile.first_name ?? ""} ${profile.last_name ?? ""}`
+    .trim()
+    .replace(/\s+/g, " ");
+
+  const base: User = {
     id: profile.id,
-    name: `${profile.first_name} ${profile.last_name}`.trim() || profile.email,
+    profileId: profile.id,
+    name: displayName || profile.email,
     email: profile.email,
     company: profile.company,
     phone: profile.phone,
-    role: (profile.role as "user" | "admin") ?? "user",
+    role: derivedRole,
+    authUserId: authUser?.id ?? profile.auth_user_id ?? "",
     hasTemporaryPassword:
       authUser?.user_metadata?.is_temporary_password === true,
-    ...getDefaultUserData(profile),
+    isOrgAdmin: derivedRole === "org_admin",
+    isMaigonAdmin: access?.isMaigonAdmin ?? profileRole === "admin",
+    organization: organizationDetails,
+    access: access ?? null,
+    ...getDefaultUserData(profile, access),
   };
+
+  if (planRow) {
+    const planKey = (planRow.plan_type as User["plan"]["type"]) ?? base.plan.type;
+    const planDefinition = getPlanByKey(planKey);
+    let extractedFeatures: string[] | undefined;
+
+    if (Array.isArray(planRow.features)) {
+      extractedFeatures = (planRow.features as unknown[]).map((feature) =>
+        String(feature),
+      );
+    } else if (typeof planRow.features === "string") {
+      try {
+        const parsed = JSON.parse(planRow.features);
+        if (Array.isArray(parsed)) {
+          extractedFeatures = parsed.map((feature) => String(feature));
+        }
+      } catch (error) {
+        logError("Failed to parse plan feature list", error, {
+          profileId: profile.id,
+        });
+      }
+    }
+
+    if (!extractedFeatures) {
+      extractedFeatures = planDefinition?.features ?? base.plan.features;
+    }
+
+    base.plan = {
+      ...base.plan,
+      type: planKey,
+      name:
+        planRow.plan_name ?? planDefinition?.name ?? base.plan.name,
+      price:
+        typeof planRow.price === "number"
+          ? planRow.price
+          : planDefinition?.price ?? base.plan.price,
+      contracts_limit:
+        typeof planRow.contracts_limit === "number"
+          ? planRow.contracts_limit
+          : planDefinition?.quotas.contractsLimit ?? base.plan.contracts_limit,
+      contracts_used:
+        typeof planRow.contracts_used === "number"
+          ? planRow.contracts_used
+          : base.plan.contracts_used,
+      billing_cycle:
+        (planRow.billing_cycle as User["plan"]["billing_cycle"]) ??
+        planDefinition?.billingCycle ??
+        base.plan.billing_cycle,
+      next_billing_date:
+        planRow.next_billing_date ?? base.plan.next_billing_date,
+      trial_days_remaining:
+        typeof planRow.trial_days_remaining === "number"
+          ? planRow.trial_days_remaining
+          : base.plan.trial_days_remaining,
+      features: extractedFeatures,
+      payg:
+        planDefinition?.payg || planKey === "pay_as_you_go"
+          ? {
+              creditsBalance: paygBalance?.credits_balance ?? 0,
+              creditsPurchased: paygBalance?.credits_purchased ?? 0,
+              creditsConsumed: paygBalance?.credits_consumed ?? 0,
+              updatedAt: paygBalance?.updated_at ?? null,
+            }
+          : undefined,
+    };
+  } else if (base.isMaigonAdmin) {
+    const enterprise = getPlanByKey("professional");
+    if (enterprise) {
+      base.plan = {
+        ...base.plan,
+        type: "professional",
+        name: enterprise.name,
+        price: enterprise.price,
+        contracts_limit: enterprise.quotas.contractsLimit,
+        billing_cycle: enterprise.billingCycle,
+        features: enterprise.features,
+        trial_days_remaining: undefined,
+        payg: undefined,
+      };
+    }
+  }
 
   if (stats) {
     base.usage = {
@@ -515,13 +597,49 @@ const buildUser = (
   return base;
 };
 
+type UserPlanRow = {
+  plan_type: string | null;
+  plan_name: string | null;
+  price: number | null;
+  contracts_limit: number | null;
+  contracts_used: number | null;
+  billing_cycle: string | null;
+  features: unknown;
+  next_billing_date: string | null;
+  trial_days_remaining: number | null;
+};
+
+type UserPaygBalanceRow = {
+  credits_balance: number | null;
+  credits_purchased: number | null;
+  credits_consumed: number | null;
+  updated_at: string | null;
+};
+
 const composeUser = async (
   authUser: SupabaseUser,
   profile: UserProfile,
 ): Promise<User> => {
-  const [statsResult, activitiesResult] = await Promise.allSettled([
+  const [
+    statsResult,
+    activitiesResult,
+    planResult,
+    paygResult,
+  ] = await Promise.allSettled([
     DataService.userUsageStats.getUserStats(profile.id),
     DataService.userActivities.getRecentActivities(profile.id, 5),
+    supabase
+      .from("user_plans")
+      .select(
+        "plan_type, plan_name, price, contracts_limit, contracts_used, billing_cycle, features, next_billing_date, trial_days_remaining",
+      )
+      .eq("user_id", profile.id)
+      .maybeSingle<UserPlanRow>(),
+    supabase
+      .from("user_payg_balances")
+      .select("credits_balance, credits_purchased, credits_consumed, updated_at")
+      .eq("user_id", profile.id)
+      .maybeSingle<UserPaygBalanceRow>(),
   ]);
 
   let stats: UserUsageStatsRow | null = null;
@@ -542,7 +660,66 @@ const composeUser = async (
     });
   }
 
-  return buildUser(profile, authUser, stats, activities);
+  let access: UserAccessContext | null = null;
+  let resolvedProfile: UserProfile = profile;
+  let plan: UserPlanRow | null = null;
+
+  try {
+    const profileAccess = await OrganizationsService.getProfileWithAccess(
+      authUser.id,
+    );
+
+    if (profileAccess) {
+      access = profileAccess.access;
+      resolvedProfile = profileAccess.profile as UserProfile;
+    }
+  } catch (error) {
+    logError("Failed to resolve organization access context", error, {
+      profileId: profile.id,
+      authUserId: authUser.id,
+    });
+  }
+
+  if (planResult.status === "fulfilled") {
+    const { data, error } = planResult.value;
+    if (error) {
+      logError("Failed to load user plan", error, {
+        profileId: profile.id,
+      });
+    } else {
+      plan = data;
+    }
+  } else {
+    logError("Failed to load user plan", planResult.reason, {
+      profileId: profile.id,
+    });
+  }
+
+  let paygBalance: UserPaygBalanceRow | null = null;
+  if (paygResult.status === "fulfilled" && paygResult.value) {
+    const { data, error } = paygResult.value;
+    if (error) {
+      logError("Failed to load PAYG balance", error, {
+        profileId: profile.id,
+      });
+    } else {
+      paygBalance = data;
+    }
+  } else if (paygResult.status === "rejected") {
+    logError("Failed to load PAYG balance", paygResult.reason, {
+      profileId: profile.id,
+    });
+  }
+
+  return buildUser(
+    resolvedProfile,
+    authUser,
+    stats,
+    activities,
+    access,
+    plan,
+    paygBalance,
+  );
 };
 
 const mapSupabaseAuthError = (message: string): string => {
@@ -611,6 +788,21 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({
 
       try {
         const profile = await ensureUserProfile(incomingSession.user);
+        try {
+          await syncUserProfile({
+            profileId: profile.id,
+            authUserId: incomingSession.user.id,
+            email: profile.email,
+            firstName: profile.first_name || undefined,
+            lastName: profile.last_name || undefined,
+            company: profile.company || undefined,
+          });
+        } catch (syncError) {
+          logError("Failed to sync profile with server", syncError, {
+            profileId: profile.id,
+            authUserId: incomingSession.user.id,
+          });
+        }
         const hydratedUser = await composeUser(incomingSession.user, profile);
 
         if (!isMountedRef.current) {
@@ -937,6 +1129,11 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({
     }
 
     if (typeof window !== "undefined") {
+      try {
+        sessionStorage.setItem("maigon:postLogoutRedirect", "true");
+      } catch (storageError) {
+        console.warn("Unable to set logout redirect flag", storageError);
+      }
       window.location.replace("/signin");
     }
   }, []);
@@ -1189,4 +1386,106 @@ export const useUser = () => {
     return fallbackContext;
   }
   return context;
+};
+const getDefaultUserData = (
+  profile: UserProfile,
+  access?: UserAccessContext | null,
+): Omit<
+  User,
+  | "id"
+  | "name"
+  | "email"
+  | "company"
+  | "phone"
+  | "role"
+  | "profileId"
+  | "authUserId"
+  | "hasTemporaryPassword"
+  | "isOrgAdmin"
+  | "isMaigonAdmin"
+  | "organization"
+  | "access"
+> => {
+  const hasOrganization = Boolean(access?.organization);
+  const isMaigonAdmin = access?.isMaigonAdmin ?? false;
+  const contractsLimit =
+    typeof access?.quotas?.contractsLimit === "number"
+      ? access?.quotas?.contractsLimit || (hasOrganization ? 10 : 5)
+      : hasOrganization
+        ? 10
+        : 5;
+  const planType =
+    hasOrganization || isMaigonAdmin ? "professional" : "free_trial";
+
+  const planName = hasOrganization
+    ? `${access?.organization?.name ?? "Organization"} Plan`
+    : isMaigonAdmin
+      ? "Enterprise Plan"
+      : "Free Trial";
+
+  const planFeatures =
+    hasOrganization || isMaigonAdmin
+      ? [
+          "Organization-wide analytics dashboard",
+          "Role-based access controls",
+          "Priority support and onboarding",
+          "Team usage reporting",
+        ]
+      : [
+          "Review up to 5 agreements in 14 days",
+          "Full compliance report with risk assessment",
+          "Clause extraction and recommendations",
+          "Access to all 7 contract modules",
+          "Report storage for 7 days",
+        ];
+
+  const usageMonths = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"].map(
+    (month) => ({
+      month,
+      reviews: 0,
+      max: contractsLimit,
+    }),
+  );
+
+  return {
+    plan: {
+      type: planType,
+      name: planName,
+      price: hasOrganization || isMaigonAdmin ? 0 : 0,
+      contracts_limit: contractsLimit,
+      contracts_used: 0,
+      billing_cycle: hasOrganization || isMaigonAdmin ? "monthly" : "trial",
+      trial_days_remaining: hasOrganization || isMaigonAdmin ? undefined : 14,
+      features: planFeatures,
+    },
+    usage: {
+      total_reviews: 0,
+      this_month_reviews: 0,
+      success_rate: 100,
+      monthly_usage: usageMonths,
+    },
+    billing: {
+      current_bill: 0,
+      payment_method:
+        hasOrganization || isMaigonAdmin ? "Invoice" : "No payment method",
+      billing_history: [],
+    },
+    recent_activity: [
+      {
+        action: "Account created",
+        file: profile.company || "Account",
+        time: new Date(profile.created_at ?? new Date()).toLocaleString(),
+        status: "completed",
+      },
+    ],
+    settings: {
+      email_notifications: true,
+      push_notifications: false,
+      marketing_emails: true,
+      two_factor_auth: false,
+      auto_save: true,
+      language: profile.country_region ?? "en",
+      timezone: "UTC",
+    },
+  };
 };

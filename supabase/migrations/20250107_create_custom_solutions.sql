@@ -19,52 +19,86 @@ CREATE TABLE IF NOT EXISTS custom_solutions (
 );
 
 -- Create indexes for better performance
-CREATE INDEX idx_custom_solutions_created_by ON custom_solutions(created_by);
-CREATE INDEX idx_custom_solutions_contract_type ON custom_solutions(contract_type);
-CREATE INDEX idx_custom_solutions_is_public ON custom_solutions(is_public);
-CREATE INDEX idx_custom_solutions_is_active ON custom_solutions(is_active);
+CREATE INDEX IF NOT EXISTS idx_custom_solutions_created_by ON custom_solutions(created_by);
+CREATE INDEX IF NOT EXISTS idx_custom_solutions_contract_type ON custom_solutions(contract_type);
+CREATE INDEX IF NOT EXISTS idx_custom_solutions_is_public ON custom_solutions(is_public);
+CREATE INDEX IF NOT EXISTS idx_custom_solutions_is_active ON custom_solutions(is_active);
 
 -- Enable RLS
 ALTER TABLE custom_solutions ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policies
+DROP POLICY IF EXISTS "Users can view their own custom solutions" ON custom_solutions;
 CREATE POLICY "Users can view their own custom solutions" ON custom_solutions
   FOR SELECT USING (
     auth.uid() = created_by OR is_public = true
   );
 
+DROP POLICY IF EXISTS "Users can create custom solutions" ON custom_solutions;
 CREATE POLICY "Users can create custom solutions" ON custom_solutions
   FOR INSERT WITH CHECK (auth.uid() = created_by);
 
+DROP POLICY IF EXISTS "Users can update their own custom solutions" ON custom_solutions;
 CREATE POLICY "Users can update their own custom solutions" ON custom_solutions
   FOR UPDATE USING (auth.uid() = created_by);
 
+DROP POLICY IF EXISTS "Users can delete their own custom solutions" ON custom_solutions;
 CREATE POLICY "Users can delete their own custom solutions" ON custom_solutions
   FOR DELETE USING (auth.uid() = created_by);
 
 -- Admin access policy
-CREATE POLICY "Admins can manage all custom solutions" ON custom_solutions
-  FOR ALL USING (
-    EXISTS (
-      SELECT 1 FROM user_profiles 
-      WHERE id = auth.uid() AND role = 'admin'
-    )
-  );
+DROP POLICY IF EXISTS "Admins can manage all custom solutions" ON custom_solutions;
+DO $body$
+BEGIN
+  IF to_regclass('public.user_profiles') IS NOT NULL THEN
+    CREATE POLICY "Admins can manage all custom solutions" ON custom_solutions
+      FOR ALL USING (
+        EXISTS (
+          SELECT 1 FROM user_profiles
+          WHERE id = auth.uid() AND role = 'admin'
+        )
+      );
+  ELSE
+    RAISE NOTICE 'Skipping admin policy for custom_solutions because user_profiles table is missing.';
+  END IF;
+END;
+$body$;
 
--- Add custom_solution_id to contracts table
-ALTER TABLE contracts ADD COLUMN IF NOT EXISTS custom_solution_id UUID REFERENCES custom_solutions(id);
+-- Add custom_solution_id to contracts table (if contracts exists)
+DO $body$
+BEGIN
+  IF to_regclass('public.contracts') IS NOT NULL THEN
+    ALTER TABLE public.contracts
+      ADD COLUMN IF NOT EXISTS custom_solution_id UUID REFERENCES custom_solutions(id);
 
--- Add index for the new foreign key
-CREATE INDEX IF NOT EXISTS idx_contracts_custom_solution_id ON contracts(custom_solution_id);
+    CREATE INDEX IF NOT EXISTS idx_contracts_custom_solution_id
+      ON public.contracts(custom_solution_id);
+  ELSE
+    RAISE NOTICE 'Skipping contracts migration because contracts table is missing.';
+  END IF;
+END;
+$body$;
 
--- Add custom_solution_id to contract_reviews table  
-ALTER TABLE contract_reviews ADD COLUMN IF NOT EXISTS custom_solution_id UUID REFERENCES custom_solutions(id);
-ALTER TABLE contract_reviews ADD COLUMN IF NOT EXISTS model_used VARCHAR(50);
-ALTER TABLE contract_reviews ADD COLUMN IF NOT EXISTS confidence_breakdown JSONB;
+-- Add custom_solution_id to contract_reviews table (if contract_reviews exists)
+DO $body$
+BEGIN
+  IF to_regclass('public.contract_reviews') IS NOT NULL THEN
+    ALTER TABLE public.contract_reviews
+      ADD COLUMN IF NOT EXISTS custom_solution_id UUID REFERENCES custom_solutions(id);
+    ALTER TABLE public.contract_reviews
+      ADD COLUMN IF NOT EXISTS model_used VARCHAR(50);
+    ALTER TABLE public.contract_reviews
+      ADD COLUMN IF NOT EXISTS confidence_breakdown JSONB;
 
--- Add indexes for the new columns
-CREATE INDEX IF NOT EXISTS idx_contract_reviews_custom_solution_id ON contract_reviews(custom_solution_id);
-CREATE INDEX IF NOT EXISTS idx_contract_reviews_model_used ON contract_reviews(model_used);
+    CREATE INDEX IF NOT EXISTS idx_contract_reviews_custom_solution_id
+      ON public.contract_reviews(custom_solution_id);
+    CREATE INDEX IF NOT EXISTS idx_contract_reviews_model_used
+      ON public.contract_reviews(model_used);
+  ELSE
+    RAISE NOTICE 'Skipping contract_reviews migration because contract_reviews table is missing.';
+  END IF;
+END;
+$body$;
 
 -- Function to update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -76,7 +110,8 @@ END;
 $$ language 'plpgsql';
 
 -- Trigger to automatically update updated_at
-CREATE TRIGGER update_custom_solutions_updated_at 
+DROP TRIGGER IF EXISTS update_custom_solutions_updated_at ON custom_solutions;
+CREATE TRIGGER update_custom_solutions_updated_at
   BEFORE UPDATE ON custom_solutions
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 

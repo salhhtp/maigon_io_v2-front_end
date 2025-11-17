@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { ChevronDown, User, Upload as UploadIcon } from "lucide-react";
 import { Link, useLocation, useNavigate, useBlocker } from "react-router-dom";
 import Logo from "@/components/Logo";
@@ -9,9 +9,14 @@ import { useUser } from "@/contexts/SupabaseUserContext";
 import { useToast } from "@/hooks/use-toast";
 import { logError, createUserFriendlyMessage } from "@/utils/errorLogger";
 import { reviewProcessingStore } from "@/lib/reviewProcessingStore";
+import {
+  uploadDocument,
+  extractDocument,
+} from "@/services/documentIngestionService";
+import { deriveSolutionKey } from "@/utils/solutionMapping";
 
 export default function Upload() {
-  const { user } = useUser();
+  const { user, logout } = useUser();
   const { toast } = useToast();
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -24,13 +29,74 @@ export default function Upload() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadButtonHidden, setUploadButtonHidden] = useState(false);
   const [showLoadingTransition, setShowLoadingTransition] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [workflowStage, setWorkflowStage] = useState<string | null>(null);
+  const [hasNavigatedToLoading, setHasNavigatedToLoading] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
+  const {
+    solutionId,
+    solutionTitle,
+    solutionKey: stateSolutionKey,
+    perspective,
+    quickUpload,
+    adminAccess,
+    customSolutionId: stateCustomSolutionId,
+  } = location.state || {};
 
-  // Get the solution info from navigation state
-  const { solutionTitle, perspective, quickUpload, adminAccess } =
-    location.state || {};
+  const isUuid = (value?: string | null) =>
+    typeof value === "string" &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      value,
+    );
+
+  const customSolutionId =
+    stateCustomSolutionId ??
+    (typeof solutionId === "string" && isUuid(solutionId)
+      ? solutionId
+      : undefined);
+
+  const navigateToLoadingPage = useCallback(
+    (fileLabel: string) => {
+      if (hasNavigatedToLoading) {
+        return;
+      }
+      setHasNavigatedToLoading(true);
+      navigate("/loading", {
+        state: {
+          fileName: fileLabel,
+          solutionTitle,
+          perspective,
+          customSolutionId,
+        },
+        replace: false,
+      });
+    },
+    [
+      customSolutionId,
+      hasNavigatedToLoading,
+      navigate,
+      perspective,
+      solutionTitle,
+    ],
+  );
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const organizationId = user?.organization?.id ?? null;
+
+  const paygOutOfCredits = Boolean(
+    user?.plan?.type === "pay_as_you_go" &&
+      (user.plan.payg?.creditsBalance ?? 0) <= 0,
+  );
+
+  useEffect(() => {
+    if (paygOutOfCredits) {
+      toast({
+        title: "No reviews remaining",
+        description: "Buy another review before uploading a contract.",
+        variant: "destructive",
+      });
+      navigate("/user-dashboard", { replace: true });
+    }
+  }, [navigate, paygOutOfCredits, toast]);
 
   // Block navigation when user is on upload page (always show confirmation), but not during submission
   const blocker = useBlocker(
@@ -106,10 +172,21 @@ export default function Upload() {
     }
   };
 
+  const LOGOUT_DESTINATION = "__logout";
+
   const handleLinkClick = (path: string) => (e: React.MouseEvent) => {
     e.preventDefault(); // Always prevent default to avoid conflicts
     if (!isSubmitting) {
       setPendingNavigation(path);
+      setShowConfirmModal(true);
+    }
+  };
+
+  const handleLogoutClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setUserDropdownOpen(false);
+    if (!isSubmitting) {
+      setPendingNavigation(LOGOUT_DESTINATION);
       setShowConfirmModal(true);
     }
   };
@@ -129,9 +206,13 @@ export default function Upload() {
     setTimeout(() => {
       // Navigate to the pending destination
       if (pendingNavigation) {
-        // We have a specific destination to navigate to
-        navigate(pendingNavigation);
-        setPendingNavigation(null);
+        if (pendingNavigation === LOGOUT_DESTINATION) {
+          setPendingNavigation(null);
+          void logout();
+        } else {
+          navigate(pendingNavigation);
+          setPendingNavigation(null);
+        }
       } else if (wasBlocked) {
         // No pending navigation, proceed with the blocked navigation
         blocker.proceed();
@@ -184,219 +265,6 @@ export default function Upload() {
     }
   };
 
-  // Helper function to read file content
-  const readFileContent = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const fileType = file.type;
-      const fileName = file.name.toLowerCase();
-
-      // PDF files - use PDF.js or similar for parsing in production
-      if (fileType === "application/pdf" || fileName.endsWith(".pdf")) {
-        console.log("PDF file detected, processing with file reader...");
-
-        // Check file size limit (5MB for PDFs to prevent processing issues)
-        const maxPdfSize = 5 * 1024 * 1024; // 5MB
-        if (file.size > maxPdfSize) {
-          reject(
-            new Error(
-              `PDF file is too large (${Math.round(file.size / 1024 / 1024)}MB). Please use a PDF smaller than 5MB or convert to text format.`,
-            ),
-          );
-          return;
-        }
-
-        // For production PDF parsing, we'll read the file and send it to the backend
-        // The backend Edge function will handle PDF text extraction
-        const reader = new FileReader();
-        reader.onload = async (e) => {
-          try {
-            const arrayBuffer = e.target?.result as ArrayBuffer;
-            if (!arrayBuffer) {
-              reject(new Error("Failed to read PDF file"));
-              return;
-            }
-
-            console.log(
-              `📄 Processing PDF: ${file.name} (${Math.round(file.size / 1024)}KB)`,
-            );
-
-            // Convert to base64 - build binary string first, then encode
-            const uint8Array = new Uint8Array(arrayBuffer);
-
-            // First, convert entire Uint8Array to binary string
-            let binaryString = "";
-            const chunkSize = 8192; // Process in chunks to avoid call stack issues
-            for (let i = 0; i < uint8Array.length; i += chunkSize) {
-              const chunk = uint8Array.slice(i, i + chunkSize);
-              // Build binary string from chunk
-              let chunkStr = "";
-              for (let j = 0; j < chunk.length; j++) {
-                chunkStr += String.fromCharCode(chunk[j]);
-              }
-              binaryString += chunkStr;
-            }
-
-            // Now encode the complete binary string to base64
-            const base64 = btoa(binaryString);
-
-            console.log(
-              `✅ PDF converted to base64 successfully (${Math.round(base64.length / 1024)}KB)`,
-            );
-
-            // Return special marker indicating this is a PDF that needs backend processing
-            resolve(`PDF_FILE_BASE64:${base64}`);
-          } catch (error) {
-            logError("❌ PDF processing error", error, {
-              fileName: file.name,
-              fileSize: file.size,
-            });
-            reject(
-              new Error(
-                `Failed to process PDF file: ${error instanceof Error ? error.message : "Unknown error"}. Please try a smaller PDF or convert to text format.`,
-              ),
-            );
-          }
-        };
-        reader.onerror = (error) => {
-          logError("❌ PDF file reading error", error, {
-            fileName: file.name,
-          });
-          reject(
-            new Error(
-              "Failed to read PDF file. Please ensure the file is not corrupted.",
-            ),
-          );
-        };
-        reader.readAsArrayBuffer(file);
-        return;
-      }
-
-      // For text files, read as text
-      if (fileType === "text/plain" || fileName.endsWith(".txt")) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          const content = e.target?.result as string;
-          if (content && content.trim().length > 0) {
-            resolve(content);
-          } else {
-            reject(new Error("File appears to be empty or unreadable"));
-          }
-        };
-        reader.onerror = (e) =>
-          reject(new Error("Failed to read file: " + e.target?.error?.message));
-        reader.readAsText(file);
-        return;
-      }
-
-      // DOCX files - process similarly to PDF
-      if (
-        fileType ===
-          "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
-        fileName.endsWith(".docx")
-      ) {
-        console.log("DOCX file detected, processing with file reader...");
-
-        // Check file size limit (5MB for DOCX files)
-        const maxDocxSize = 5 * 1024 * 1024; // 5MB
-        if (file.size > maxDocxSize) {
-          reject(
-            new Error(
-              `DOCX file is too large (${Math.round(file.size / 1024 / 1024)}MB). Please use a file smaller than 5MB or convert to text format.`,
-            ),
-          );
-          return;
-        }
-
-        const reader = new FileReader();
-        reader.onload = async (e) => {
-          try {
-            const arrayBuffer = e.target?.result as ArrayBuffer;
-            if (!arrayBuffer) {
-              reject(new Error("Failed to read DOCX file"));
-              return;
-            }
-
-            console.log(
-              `📄 Processing DOCX: ${file.name} (${Math.round(file.size / 1024)}KB)`,
-            );
-
-            // Convert to base64 - build binary string first, then encode
-            const uint8Array = new Uint8Array(arrayBuffer);
-
-            // First, convert entire Uint8Array to binary string
-            let binaryString = "";
-            const chunkSize = 8192; // Process in chunks to avoid call stack issues
-            for (let i = 0; i < uint8Array.length; i += chunkSize) {
-              const chunk = uint8Array.slice(i, i + chunkSize);
-              // Build binary string from chunk
-              let chunkStr = "";
-              for (let j = 0; j < chunk.length; j++) {
-                chunkStr += String.fromCharCode(chunk[j]);
-              }
-              binaryString += chunkStr;
-            }
-
-            // Now encode the complete binary string to base64
-            const base64 = btoa(binaryString);
-
-            console.log(
-              `✅ DOCX converted to base64 successfully (${Math.round(base64.length / 1024)}KB)`,
-            );
-
-            // Return special marker indicating this is a DOCX that needs backend processing
-            resolve(`DOCX_FILE_BASE64:${base64}`);
-          } catch (error) {
-            logError("❌ DOCX processing error", error, {
-              fileName: file.name,
-              fileSize: file.size,
-            });
-            reject(
-              new Error(
-                `Failed to process DOCX file: ${error instanceof Error ? error.message : "Unknown error"}. Please try a smaller file or convert to text format.`,
-              ),
-            );
-          }
-        };
-        reader.onerror = (error) => {
-          logError("❌ DOCX file reading error", error, {
-            fileName: file.name,
-          });
-          reject(
-            new Error(
-              "Failed to read DOCX file. Please ensure the file is not corrupted.",
-            ),
-          );
-        };
-        reader.readAsArrayBuffer(file);
-        return;
-      }
-
-      // Unsupported file type
-      reject(
-        new Error(
-          `Unsupported file type: ${fileType}. Please upload a PDF, DOCX, or TXT file.`,
-        ),
-      );
-    });
-  };
-
-  // Helper function to determine review type from perspective
-  const getReviewTypeFromPerspective = (perspectiveValue: string): string => {
-    switch (perspectiveValue) {
-      case "risk":
-        return "risk_assessment";
-      case "compliance":
-        return "compliance_score";
-      case "perspective":
-        return "perspective_review";
-      case "summary":
-        return "full_summary";
-      case "ai":
-        return "ai_integration";
-      default:
-        return "full_summary";
-    }
-  };
 
   const handleSubmit = async () => {
     console.log(
@@ -405,6 +273,16 @@ export default function Upload() {
       "Perspective:",
       perspective,
     );
+
+    if (paygOutOfCredits) {
+      toast({
+        title: "No reviews remaining",
+        description: "Purchase another review before uploading.",
+        variant: "destructive",
+      });
+      navigate("/user-dashboard");
+      return;
+    }
 
     // Comprehensive validation before processing
     if (!selectedFile) {
@@ -416,7 +294,7 @@ export default function Upload() {
       return;
     }
 
-    if (!user) {
+    if (!user || !user.authUserId) {
       toast({
         title: "Authentication required",
         description: "Please log in to upload contracts.",
@@ -506,6 +384,9 @@ export default function Upload() {
       lastModified: new Date(selectedFile.lastModified).toISOString(),
     });
 
+    const userProfileId = user.profileId ?? user.id;
+    setHasNavigatedToLoading(false);
+
     // Step 1: Submit Clicked → Smart Animate - Ease Out - 1500ms
     setIsSubmitting(true);
     console.log("Starting contract processing workflow...");
@@ -519,42 +400,112 @@ export default function Upload() {
         setShowLoadingTransition(true);
       }, 2);
 
-      const fileContent = await readFileContent(selectedFile);
+      if (showLoadingTransition) {
+        console.warn("⚠️ Duplicate submission ignored while processing in progress.");
+        return;
+      }
+
+      setWorkflowStage("uploading");
+      const solutionKey = deriveSolutionKey(
+        solutionId ?? stateSolutionKey,
+        solutionTitle ?? stateSolutionKey,
+      );
+
+      const uploadResponse = await uploadDocument(selectedFile, {
+        userId: user.authUserId,
+        userProfileId,
+      });
+      console.log("📤 File uploaded to ingestion service", uploadResponse);
+
+      setWorkflowStage("extracting");
+      const extractionResponse = await extractDocument(
+        uploadResponse.ingestionId,
+      );
+      console.log("📄 Extraction response received", extractionResponse);
+
+      const extraction = extractionResponse.result;
+
+      if (!extraction) {
+        throw new Error("Document extraction did not return any data");
+      }
+
+      if (extraction.needsOcr) {
+        throw new Error(
+          "This document requires OCR processing before analysis. Please upload a text-based version (PDF/DOCX/TXT).",
+        );
+      }
+
+      const extractedText = (extraction.text || "").trim();
+
+      if (!extractedText) {
+        throw new Error(
+          "No readable text was extracted from the document. Please convert it to a text-based PDF or DOCX and try again.",
+        );
+      }
+
       const reviewType = getReviewTypeFromPerspective(perspective);
+      const normalizedFileName =
+        extraction.originalFileName || uploadResponse.file.originalName;
 
       reviewProcessingStore.setPending({
-        userId: user.id,
+        userAuthId: user.authUserId,
+        userProfileId,
         contractInput: {
-          title: selectedFile.name.replace(/\.[^/.]+$/, ""),
-          content: fileContent,
-          file_name: selectedFile.name,
-          file_size: selectedFile.size,
+          title: normalizedFileName.replace(/\.[^/.]+$/, ""),
+          content: extractedText,
+          content_html: extraction.html ?? null,
+          file_name: normalizedFileName,
+          file_size: extraction.fileSize ?? uploadResponse.file.size,
+          file_type: extraction.mimeType ?? uploadResponse.file.mimeType,
+          ingestion_id: uploadResponse.ingestionId,
+          ingestion_strategy: extraction.strategy,
+          ingestion_warnings: extraction.warnings ?? [],
+          ingestion_needs_ocr: extraction.needsOcr,
+          document_word_count: extraction.wordCount,
+          document_page_count: extraction.pageCount,
+          user_auth_id: user.authUserId,
+          user_profile_id: userProfileId,
+          custom_solution_id: customSolutionId,
+          selected_solution_id: solutionId,
+          selected_solution_title: solutionTitle,
+          selected_solution_key: solutionKey,
+          assets: extraction.assets ?? undefined,
+          organization_id: organizationId,
         },
         reviewType,
         metadata: {
-          fileName: selectedFile.name,
-          fileSize: selectedFile.size,
+          fileName: normalizedFileName,
+          fileSize: extraction.fileSize ?? uploadResponse.file.size,
           solutionTitle,
+          solutionId,
+          solutionKey,
           perspective,
+          ingestionWarnings: extraction.warnings ?? [],
+          userProfileId,
+          customSolutionId,
+          organizationId,
         },
       });
+
+      navigateToLoadingPage(normalizedFileName);
+
+      if (extraction.warnings && extraction.warnings.length > 0) {
+        console.warn("⚠️ Extraction warnings", extraction.warnings);
+        toast({
+          title: "Extraction completed with warnings",
+          description:
+            extraction.warnings[0] ||
+            "Some parts of the document may be low quality. Analysis will continue with available text.",
+        });
+      }
+
+      setWorkflowStage("ready");
 
       toast({
         title: "Processing contract",
         description: "Your contract is being analyzed...",
       });
 
-      // Immediately transition to dedicated loading workflow once input is prepared
-      setTimeout(() => {
-        navigate("/loading", {
-          state: {
-            fileName: selectedFile.name,
-            solutionTitle,
-            perspective,
-          },
-          replace: false,
-        });
-      }, 200); // Longer delay to show classification
     } catch (error) {
       // Log error with detailed context
       const errorDetails = logError("❌ Contract processing error", error, {
@@ -562,13 +513,15 @@ export default function Upload() {
         fileSize: selectedFile?.size,
         fileType: selectedFile?.type,
         perspective,
-        userId: user?.id,
+        userId: userProfileId,
       });
 
       // Reset UI state immediately to prevent stuck state
       setIsSubmitting(false);
       setUploadButtonHidden(false);
       setShowLoadingTransition(false);
+      setWorkflowStage(null);
+      setHasNavigatedToLoading(false);
 
       // Generate user-friendly error message using utility
       const userMessage = createUserFriendlyMessage(
@@ -583,7 +536,9 @@ export default function Upload() {
         errorDetails.message.toLowerCase().includes("unsupported") ||
         errorDetails.message.toLowerCase().includes("authentication") ||
         errorDetails.message.toLowerCase().includes("user id") ||
-        errorDetails.message.toLowerCase().includes("invalid file")
+        errorDetails.message.toLowerCase().includes("invalid file") ||
+        errorDetails.message.toLowerCase().includes("ocr") ||
+        errorDetails.message.toLowerCase().includes("extraction")
       ) {
         shouldRetry = false;
       }
@@ -618,9 +573,29 @@ export default function Upload() {
     }
   };
 
+function getReviewTypeFromPerspective(perspective: string): string {
+  switch (perspective) {
+    case 'compliance':
+    case 'compliance-review':
+      return 'compliance_score';
+    case 'risk':
+    case 'risk-review':
+      return 'risk_assessment';
+    case 'perspective':
+    case 'perspective-review':
+    case 'stakeholder':
+      return 'perspective_review';
+    case 'ai-integration':
+    case 'integration':
+      return 'ai_integration';
+    default:
+      return 'full_summary';
+  }
+}
+
   return (
     <div
-      className={`min-h-screen bg-[#F9F8F8] flex flex-col transition-all duration-[1500ms] ${
+      className={`min-h-screen bg-[#F9F8F8] flex flex-col transition-all duration-1000 ${
         showLoadingTransition
           ? "opacity-0 ease-in-out transform scale-105"
           : isSubmitting
@@ -683,12 +658,13 @@ export default function Upload() {
                 >
                   Settings
                 </a>
-                <div
-                  onClick={handleLinkClick("/")}
-                  className="block px-4 py-2 text-sm text-[#271D1D] hover:bg-[#F9F8F8] transition-colors cursor-pointer"
+                <button
+                  type="button"
+                  onClick={handleLogoutClick}
+                  className="block w-full text-left px-4 py-2 text-sm text-[#271D1D] hover:bg-[#F9F8F8] transition-colors"
                 >
                   Log Out
-                </div>
+                </button>
               </div>
             )}
           </div>
@@ -698,7 +674,7 @@ export default function Upload() {
       {/* Main Content */}
       <main className="flex-1 flex items-center justify-center px-8 lg:px-16 py-20">
         <div
-          className={`w-full max-w-[800px] flex flex-col items-center gap-8 transition-all duration-[1500ms] ${
+          className={`w-full max-w-[800px] flex flex-col items-center gap-8 transition-all duration-1000 ${
             isSubmitting ? "ease-out" : ""
           } ${showLoadingTransition ? "opacity-0 scale-110" : isSubmitting ? "opacity-70 scale-98" : "opacity-100 scale-100"}`}
         >
@@ -739,6 +715,13 @@ export default function Upload() {
                     ? "Data Subject"
                     : "Organization"}
                 </span>
+              </div>
+            )}
+            {workflowStage && (
+              <div className="mt-4 text-sm text-[#6F5E5E]">
+                {workflowStage === "uploading" && 'Uploading document to secure ingestion...'}
+                {workflowStage === "extracting" && 'Extracting readable text from your document...'}
+                {workflowStage === "ready" && 'Text extracted. Preparing intelligent analysis...'}
               </div>
             )}
           </div>
@@ -803,7 +786,7 @@ export default function Upload() {
 
             {/* Submit Button */}
             <div
-              className={`absolute right-0 top-[66px] transition-all duration-[1500ms] ease-out ${
+              className={`absolute right-0 top-[66px] transition-all duration-1000 ease-out ${
                 uploadButtonHidden
                   ? "opacity-0 scale-0 pointer-events-none"
                   : "opacity-100 scale-100"

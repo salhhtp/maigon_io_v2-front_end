@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import {
   ChevronDown,
@@ -13,7 +13,11 @@ import {
   AlertTriangle,
   Download,
   RefreshCw,
-  Plus,
+  ShieldCheck,
+  Layers,
+  CreditCard,
+  Loader2,
+  X,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import Logo from "@/components/Logo";
@@ -21,7 +25,9 @@ import Footer from "@/components/Footer";
 import MobileNavigation from "@/components/MobileNavigation";
 import { useUser } from "@/contexts/SupabaseUserContext";
 import { DataService } from "@/services/dataService";
+import { SOLUTION_DISPLAY_NAMES, type SolutionKey } from "@/utils/solutionMapping";
 import { useToast } from "@/hooks/use-toast";
+import { startPaygCheckout } from "@/services/billingService";
 
 interface DashboardData {
   contracts: any[];
@@ -204,11 +210,243 @@ export default function UserDashboard() {
   const { user, isLoggedIn, logout } = useUser();
   const navigate = useNavigate();
   const { toast } = useToast();
-  
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+  const [showAllQuickSolutions, setShowAllQuickSolutions] = useState(false);
+  const [trialBannerDismissed, setTrialBannerDismissed] = useState(false);
+  const [paygBannerDismissed, setPaygBannerDismissed] = useState(false);
+  const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
+
+  const plan = user?.plan ?? null;
+  const isMonthlyPlan = plan?.billing_cycle === "monthly";
+  const isFreeTrial = plan?.type === "free_trial";
+  const isPayAsYouGo = plan?.type === "pay_as_you_go";
+  const trialDaysRemaining =
+    typeof plan?.trial_days_remaining === "number"
+      ? plan.trial_days_remaining
+      : null;
+  const trialExpired = Boolean(isFreeTrial && (trialDaysRemaining ?? 0) <= 0);
+
+  const paygBalance = plan?.payg?.creditsBalance ?? 0;
+  const paygConsumed = plan?.payg?.creditsConsumed ?? 0;
+  const paygTotalCredits = paygConsumed + (plan?.payg?.creditsBalance ?? 0);
+  const paygOutOfCredits = Boolean(isPayAsYouGo && paygBalance <= 0);
+  const paygLowCredits = Boolean(isPayAsYouGo && !paygOutOfCredits && paygBalance <= 1);
+
+  const fallbackTrialLimit =
+    isFreeTrial && typeof plan?.contracts_limit !== "number" ? 5 : null;
+  const rawContractsLimit = isPayAsYouGo
+    ? paygTotalCredits
+    : typeof plan?.contracts_limit === "number"
+      ? plan.contracts_limit
+      : fallbackTrialLimit;
+  const rawContractsUsed = isPayAsYouGo
+    ? paygConsumed
+    : typeof plan?.contracts_used === "number"
+      ? plan.contracts_used
+      : dashboardData?.usageStats?.contracts_reviewed ?? 0;
+
+  const showQuota = Boolean(
+    (isMonthlyPlan || isFreeTrial || isPayAsYouGo) &&
+      rawContractsLimit !== null &&
+      Number.isFinite(rawContractsLimit) &&
+      rawContractsLimit > 0,
+  );
+
+  const normalizedQuotaLimit = showQuota
+    ? Math.max(0, Math.floor(rawContractsLimit as number))
+    : 0;
+  const normalizedQuotaUsed = showQuota
+    ? Math.max(0, Math.floor(rawContractsUsed))
+    : 0;
+  const quotaUsageLabel = showQuota
+    ? normalizedQuotaLimit > 0
+      ? `${normalizedQuotaUsed.toLocaleString()}/${normalizedQuotaLimit.toLocaleString()}`
+      : `${normalizedQuotaUsed.toLocaleString()}/0`
+    : null;
+  const remainingQuota = showQuota
+    ? Math.max(normalizedQuotaLimit - normalizedQuotaUsed, 0)
+    : 0;
+  const quotaTimeframeLabel = isMonthlyPlan
+    ? "this month"
+    : isFreeTrial
+      ? "in trial"
+      : isPayAsYouGo
+        ? "from purchased credits"
+        : "";
+
+  const totalContractsValue: string | number = showQuota && quotaUsageLabel
+    ? quotaUsageLabel
+    : dashboardData?.contractStats.total || 0;
+  const totalContractsDescription = showQuota
+    ? `${remainingQuota.toLocaleString()} review${remainingQuota === 1 ? "" : "s"} remaining${quotaTimeframeLabel ? ` ${quotaTimeframeLabel}` : ""}`
+    : "Contracts uploaded";
+  const totalReviewsValue: string | number = showQuota && quotaUsageLabel
+    ? quotaUsageLabel
+    : dashboardData?.usageStats?.contracts_reviewed || 0;
+  const totalReviewsDescription = showQuota
+    ? `${remainingQuota.toLocaleString()} review${remainingQuota === 1 ? "" : "s"} remaining${quotaTimeframeLabel ? ` ${quotaTimeframeLabel}` : ""}`
+    : "All-time reviews";
+  const showQuickAccess = Boolean(
+    plan &&
+      !trialExpired &&
+      !paygOutOfCredits &&
+      (plan.type === "free_trial" ||
+        plan.type === "pay_as_you_go" ||
+        plan.billing_cycle === "monthly"),
+  );
+  const trialDaysLabel =
+    trialDaysRemaining === null
+      ? "—"
+      : trialDaysRemaining > 0
+        ? `${trialDaysRemaining} day${trialDaysRemaining === 1 ? "" : "s"}`
+        : "Expired";
+  const trialCardDescription = !isFreeTrial
+    ? undefined
+    : trialExpired
+      ? "Trial ended — choose a plan to keep analysing contracts."
+      : trialDaysRemaining !== null && trialDaysRemaining <= 3
+        ? "Upgrade now to avoid losing access."
+        : "Enjoy full access during your 14-day trial.";
+  const shouldShowTrialCard = Boolean(isFreeTrial);
+  const shouldShowTrialUrgencyBanner = Boolean(
+    isFreeTrial &&
+      trialDaysRemaining !== null &&
+      trialDaysRemaining > 0 &&
+      trialDaysRemaining <= 3 &&
+      !trialBannerDismissed,
+  );
+  const trialUrgencyHeadline =
+    shouldShowTrialUrgencyBanner && trialDaysRemaining !== null
+      ? trialDaysRemaining === 1
+        ? "Your trial ends tomorrow"
+        : `Your trial ends in ${trialDaysRemaining} days`
+      : null;
+  const shouldShowPaygBanner = Boolean(
+    isPayAsYouGo &&
+      (paygOutOfCredits || paygLowCredits) &&
+      !paygBannerDismissed,
+  );
+  const paygBannerHeadline = paygOutOfCredits
+    ? "No reviews remaining"
+    : "Low balance: buy another review";
+  const upgradeCtaLabel = trialExpired
+    ? "Choose a Plan"
+    : paygOutOfCredits
+      ? "Buy Review"
+      : "Upgrade Now";
+
+  useEffect(() => {
+    if (trialExpired || paygOutOfCredits) {
+      setShowAllQuickSolutions(false);
+    }
+  }, [trialExpired, paygOutOfCredits]);
+
+  const quickAccessSolutions = useMemo(
+    () => [
+      {
+        key: "dpa" as SolutionKey,
+        name: SOLUTION_DISPLAY_NAMES.dpa,
+        description: "Jump straight into a data processing agreement review.",
+        icon: <ShieldCheck className="w-5 h-5 text-[#9A7C7C]" />,
+      },
+      {
+        key: "nda" as SolutionKey,
+        name: SOLUTION_DISPLAY_NAMES.nda,
+        description: "Assess confidentiality terms and obligations within minutes.",
+        icon: <FileText className="w-5 h-5 text-[#9A7C7C]" />,
+      },
+      {
+        key: "psa" as SolutionKey,
+        name: SOLUTION_DISPLAY_NAMES.psa,
+        description: "Review supplier agreements for delivery and liability gaps.",
+        icon: <Layers className="w-5 h-5 text-[#9A7C7C]" />,
+      },
+    ],
+    [],
+  );
+
+  const allQuickSolutions = useMemo(
+    () =>
+      Object.entries(SOLUTION_DISPLAY_NAMES).map(([key, name]) => ({
+        key: key as SolutionKey,
+        name,
+        description: "Launch a review tailored to this contract type.",
+        icon: <Layers className="w-5 h-5 text-[#9A7C7C]" />,
+      })),
+    [],
+  );
+
+  const visibleQuickSolutions = showAllQuickSolutions ? allQuickSolutions : quickAccessSolutions;
+
+  const handlePaygPurchase = useCallback(async () => {
+    if (!user) {
+      navigate("/pricing?plan=pay-as-you-go");
+      return;
+    }
+
+    try {
+      setIsCheckoutLoading(true);
+      const session = await startPaygCheckout(user.id, {
+        email: user.email,
+        successPath: "/user-dashboard?checkout=payg-success",
+        cancelPath: "/user-dashboard",
+        metadata: {
+          source: "user-dashboard",
+        },
+      });
+
+      if (session.url) {
+        window.location.href = session.url;
+      } else {
+        toast({
+          title: "Checkout created",
+          description: "Follow the Stripe window to finish purchasing your review.",
+        });
+      }
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Failed to start checkout";
+      toast({
+        title: "Unable to start checkout",
+        description: message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsCheckoutLoading(false);
+    }
+  }, [navigate, toast, user]);
+
+  const handleQuickAccess = useCallback(
+    (solutionKey: SolutionKey) => {
+      if (trialExpired) {
+        navigate("/pricing");
+        return;
+      }
+
+      if (paygOutOfCredits) {
+        void handlePaygPurchase();
+        return;
+      }
+
+      const solutionTitle = SOLUTION_DISPLAY_NAMES[solutionKey];
+      navigate("/perspective-selection", {
+        state: {
+          solutionId: solutionKey,
+          solutionKey,
+          solutionTitle,
+          quickUpload: true,
+        },
+      });
+    },
+    [navigate, trialExpired, paygOutOfCredits, handlePaygPurchase],
+  );
+
+  const handleUpgradeNavigation = useCallback(() => {
+    navigate("/pricing");
+  }, [navigate]);
 
   // Load dashboard data
   const loadDashboardData = async () => {
@@ -261,6 +499,7 @@ export default function UserDashboard() {
       </div>
     );
   }
+
 
   return (
     <div className="min-h-screen bg-[#F9F8F8]">
@@ -328,7 +567,11 @@ export default function UserDashboard() {
                   Settings
                 </Link>
                 <button
-                  onClick={logout}
+                  type="button"
+                  onClick={() => {
+                    setUserDropdownOpen(false);
+                    void logout();
+                  }}
                   className="block w-full text-left px-4 py-2 text-sm text-[#271D1D] hover:bg-[#F9F8F8] transition-colors"
                 >
                   Log Out
@@ -352,10 +595,10 @@ export default function UserDashboard() {
                 Here's an overview of your contract analysis activity
               </p>
             </div>
-            <div className="flex items-center gap-3 mt-4 sm:mt-0">
-              <Button
-                onClick={loadDashboardData}
-                variant="outline"
+                <div className="flex items-center gap-3 mt-4 sm:mt-0">
+                  <Button
+                    onClick={loadDashboardData}
+                    variant="outline"
                 size="sm"
                 disabled={isLoading}
                 className="text-[#271D1D] border-[#271D1D]/20"
@@ -363,12 +606,28 @@ export default function UserDashboard() {
                 <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
                 Refresh
               </Button>
-              <Link to="/perspective-selection">
-                <Button className="bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white">
-                  <Plus className="w-4 h-4 mr-2" />
-                  New Review
+              {trialExpired ? (
+                <Link to="/pricing">
+                  <Button className="bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white">
+                    Choose a Plan
+                  </Button>
+                </Link>
+              ) : paygOutOfCredits ? (
+                <Button
+                  onClick={() => void handlePaygPurchase()}
+                  className="bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white"
+                  disabled={isCheckoutLoading}
+                >
+                  {isCheckoutLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Redirecting
+                    </>
+                  ) : (
+                    "Buy Review"
+                  )}
                 </Button>
-              </Link>
+              ) : null}
             </div>
           </div>
 
@@ -381,13 +640,169 @@ export default function UserDashboard() {
             </div>
           )}
 
+          {shouldShowTrialUrgencyBanner && (
+            <div className="mb-6 rounded-lg border border-[#9A7C7C]/40 bg-[#FDF1F1] p-4">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-start gap-3">
+                  <Clock className="w-5 h-5 text-[#9A7C7C] mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium text-[#271D1D]">
+                      {trialUrgencyHeadline ?? "Your trial is ending soon"}
+                    </p>
+                    <p className="text-xs text-[#725A5A] mt-1">
+                      Upgrade now to keep uploading contracts beyond the 5-review trial limit.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    className="bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white"
+                    onClick={handleUpgradeNavigation}
+                  >
+                    {upgradeCtaLabel}
+                  </Button>
+                  <button
+                    type="button"
+                    onClick={() => setTrialBannerDismissed(true)}
+                    className="rounded-full p-1 text-[#725A5A] hover:text-[#271D1D]"
+                  >
+                    <span className="sr-only">Dismiss</span>
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {shouldShowPaygBanner && (
+            <div
+              className={`mb-6 rounded-lg border p-4 ${
+                paygOutOfCredits
+                  ? "border-red-200 bg-red-50"
+                  : "border-[#9A7C7C]/40 bg-[#FDF1F1]"
+              }`}
+            >
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-start gap-3">
+                  <CreditCard
+                    className={`w-5 h-5 mt-0.5 ${
+                      paygOutOfCredits ? "text-red-500" : "text-[#9A7C7C]"
+                    }`}
+                  />
+                  <div>
+                    <p className="text-sm font-medium text-[#271D1D]">
+                      {paygBannerHeadline}
+                    </p>
+                    <p className="text-xs text-[#725A5A] mt-1">
+                      {paygOutOfCredits
+                        ? "Purchase another review to keep analysing your contracts."
+                        : "You're almost out of reviews. Top up now to avoid any interruptions."}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    className="bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white"
+                    onClick={() => void handlePaygPurchase()}
+                    disabled={isCheckoutLoading}
+                  >
+                    {isCheckoutLoading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Redirecting
+                      </>
+                    ) : (
+                      "Buy Review"
+                    )}
+                  </Button>
+                  <button
+                    type="button"
+                    onClick={() => setPaygBannerDismissed(true)}
+                    className="rounded-full p-1 text-[#725A5A] hover:text-[#271D1D]"
+                  >
+                    <span className="sr-only">Dismiss</span>
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {showQuickAccess && (
+            <section className="mb-8">
+              <div className="bg-gradient-to-br from-[#FDF1F1] via-[#F9E8E8] to-[#FDEDEA] border border-[#E8CACA] rounded-2xl p-6 space-y-6 shadow-sm">
+                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.2em] text-[#9A7C7C]">
+                      Quick Access
+                    </p>
+                    <h2 className="text-xl font-lora text-[#271D1D]">
+                      Launch Contract Reviews Instantly
+                    </h2>
+                    <p className="text-sm text-[#725A5A]">
+                      Pick a solution and jump straight to a tailored review workflow.
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="border-[#9A7C7C] text-[#9A7C7C]"
+                      onClick={() => setShowAllQuickSolutions((prev) => !prev)}
+                    >
+                      {showAllQuickSolutions ? "Collapse" : "Show all"}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="border-[#9A7C7C] text-[#9A7C7C]"
+                      onClick={() => navigate("/user-solutions")}
+                    >
+                      Browse all solutions
+                    </Button>
+                  </div>
+                </div>
+                <div
+                  className={`grid grid-cols-1 gap-4 ${
+                    showAllQuickSolutions
+                      ? "sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+                      : "sm:grid-cols-2 lg:grid-cols-3"
+                  }`}
+                >
+                  {visibleQuickSolutions.map((item) => (
+                    <button
+                      key={item.key}
+                      type="button"
+                      onClick={() => handleQuickAccess(item.key)}
+                      className="text-left bg-[#F9F8F8] border border-[#271D1D]/10 rounded-xl p-4 hover:border-[#9A7C7C]/40 hover:shadow-sm transition"
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="h-10 w-10 rounded-lg bg-[#9A7C7C]/15 text-[#9A7C7C] flex items-center justify-center">
+                          {item.icon}
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-[#271D1D] font-lora">
+                            {item.name}
+                          </p>
+                          <p className="text-xs text-[#725A5A] leading-relaxed mt-1">
+                            {item.description}
+                          </p>
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </section>
+          )}
+
           {/* Overview Metrics */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <MetricCard
               title="Total Contracts"
-              value={dashboardData?.contractStats.total || 0}
+              value={totalContractsValue}
               icon={<FileText className="w-5 h-5 text-[#9A7C7C]" />}
-              description="Contracts uploaded"
+              description={totalContractsDescription}
               isLoading={isLoading}
             />
             <MetricCard
@@ -397,11 +812,33 @@ export default function UserDashboard() {
               description="Successfully analyzed"
               isLoading={isLoading}
             />
+            {isPayAsYouGo && (
+              <MetricCard
+                title="Reviews Remaining"
+                value={paygBalance}
+                icon={<CreditCard className="w-5 h-5 text-[#9A7C7C]" />}
+                description={
+                  paygTotalCredits > 0
+                    ? `Used ${paygConsumed}/${paygTotalCredits} purchased`
+                    : "Buy your first review to get started"
+                }
+                isLoading={isLoading}
+              />
+            )}
+            {shouldShowTrialCard && (
+              <MetricCard
+                title="Trial Days Remaining"
+                value={trialDaysLabel}
+                icon={<Clock className="w-5 h-5 text-[#9A7C7C]" />}
+                description={trialCardDescription}
+                isLoading={isLoading}
+              />
+            )}
             <MetricCard
               title="Total Reviews"
-              value={dashboardData?.usageStats?.contracts_reviewed || 0}
+              value={totalReviewsValue}
               icon={<BarChart3 className="w-5 h-5 text-[#9A7C7C]" />}
-              description="All-time reviews"
+              description={totalReviewsDescription}
               isLoading={isLoading}
             />
             <MetricCard
@@ -446,11 +883,35 @@ export default function UserDashboard() {
                 <div className="text-center py-8 text-[#271D1D]/50">
                   <FileText className="w-12 h-12 mx-auto mb-4 text-[#271D1D]/30" />
                   <p className="text-sm mb-4">No contracts uploaded yet</p>
-                  <Link to="/perspective-selection">
-                    <Button className="bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white">
-                      Upload Your First Contract
+                  {trialExpired ? (
+                    <Button
+                      className="bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white"
+                      onClick={handleUpgradeNavigation}
+                    >
+                      Choose a Plan to Continue
                     </Button>
-                  </Link>
+                  ) : paygOutOfCredits ? (
+                    <Button
+                      className="bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white"
+                      onClick={() => void handlePaygPurchase()}
+                      disabled={isCheckoutLoading}
+                    >
+                      {isCheckoutLoading ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Redirecting
+                        </>
+                      ) : (
+                        "Buy a Review to Continue"
+                      )}
+                    </Button>
+                  ) : (
+                    <Link to="/perspective-selection">
+                      <Button className="bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white">
+                        Upload Your First Contract
+                      </Button>
+                    </Link>
+                  )}
                 </div>
               )}
             </div>

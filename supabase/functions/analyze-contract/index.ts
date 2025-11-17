@@ -8,22 +8,18 @@ import {
   generateFallbackAnalysis,
   type FallbackAnalysisContext,
 } from "../_shared/fallback-analysis.ts";
+import { runReasoningAnalysis } from "../_shared/reasoningEngine.ts";
+import type { AnalysisReport } from "../_shared/reviewSchema.ts";
+import {
+  createClient,
+  type SupabaseClient,
+} from "https://esm.sh/@supabase/supabase-js@2";
 
 // Advanced AI Model configurations for sophisticated contract analysis
 const AI_CONFIGS = {
-  "openai-gpt-4": {
+  "openai-gpt-5": {
     baseUrl: "https://api.openai.com/v1/chat/completions",
-    model: "gpt-4-turbo",
-    headers: (apiKey: string) => ({
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    }),
-    maxTokens: 4000,
-    temperature: 0.1, // Lower temperature for more consistent legal analysis
-  },
-  "openai-gpt-4o": {
-    baseUrl: "https://api.openai.com/v1/chat/completions",
-    model: "gpt-4o",
+    model: "gpt-5",
     headers: (apiKey: string) => ({
       "Content-Type": "application/json",
       Authorization: `Bearer ${apiKey}`,
@@ -31,9 +27,9 @@ const AI_CONFIGS = {
     maxTokens: 4000,
     temperature: 0.1,
   },
-  "openai-gpt-3.5-turbo": {
+  "openai-gpt-5-pro": {
     baseUrl: "https://api.openai.com/v1/chat/completions",
-    model: "gpt-3.5-turbo",
+    model: "gpt-5-pro",
     headers: (apiKey: string) => ({
       "Content-Type": "application/json",
       Authorization: `Bearer ${apiKey}`,
@@ -41,24 +37,12 @@ const AI_CONFIGS = {
     maxTokens: 4000,
     temperature: 0.1,
   },
-  "anthropic-claude-3": {
-    baseUrl: "https://api.anthropic.com/v1/messages",
-    model: "claude-3-sonnet-20240229",
+  "openai-gpt-5-mini": {
+    baseUrl: "https://api.openai.com/v1/chat/completions",
+    model: "gpt-5-mini",
     headers: (apiKey: string) => ({
       "Content-Type": "application/json",
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
-    }),
-    maxTokens: 4000,
-    temperature: 0.1,
-  },
-  "anthropic-claude-3-opus": {
-    baseUrl: "https://api.anthropic.com/v1/messages",
-    model: "claude-3-opus-20240229",
-    headers: (apiKey: string) => ({
-      "Content-Type": "application/json",
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
+      Authorization: `Bearer ${apiKey}`,
     }),
     maxTokens: 4000,
     temperature: 0.1,
@@ -66,7 +50,8 @@ const AI_CONFIGS = {
 };
 
 interface AnalysisRequest {
-  content: string;
+  content?: string;
+  ingestionId?: string;
   reviewType: string;
   model: string;
   customSolution?: any;
@@ -82,6 +67,12 @@ interface AnalysisRequest {
     reasoning: string;
     suggestedSolutions: string[];
   };
+  ingestionWarnings?: unknown;
+  selectedSolution?: {
+    id?: string;
+    key?: string;
+    title?: string;
+  };
 }
 
 const corsHeaders = {
@@ -89,6 +80,47 @@ const corsHeaders = {
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type",
 };
+
+interface ContractIngestionRecord {
+  id: string;
+  status: string;
+  storage_bucket: string;
+  storage_path: string;
+  original_name: string;
+  mime_type?: string;
+  file_size?: number;
+  strategy?: string;
+  word_count?: number;
+  character_count?: number;
+  page_count?: number;
+  warnings?: unknown;
+  needs_ocr: boolean;
+  extracted_text?: string;
+  extracted_html?: string;
+  metadata?: Record<string, unknown> | null;
+}
+
+let supabaseAdmin: SupabaseClient | null = null;
+
+function getSupabaseAdminClient(): SupabaseClient {
+  if (supabaseAdmin) return supabaseAdmin;
+
+  const url = Deno.env.get("SUPABASE_URL");
+  const serviceRole = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+
+  if (!url || !serviceRole) {
+    throw new Error("Supabase service credentials are not configured");
+  }
+
+  supabaseAdmin = createClient(url, serviceRole, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  });
+
+  return supabaseAdmin;
+}
 
 const CONTRACT_PATTERNS: Record<string, RegExp[]> = {
   nda: [
@@ -112,6 +144,222 @@ const CONTRACT_PATTERNS: Record<string, RegExp[]> = {
   ],
 };
 
+const SOLUTION_ANALYSIS_GUIDANCE: Record<
+  string,
+  {
+    title: string;
+    keywords: string[];
+    focus: string[];
+    scoring: string[];
+    mustHave: string[];
+    watchouts: string[];
+  }
+> = {
+  nda: {
+    title: "Non-Disclosure Agreement",
+    keywords: ["nda", "non-disclosure", "non disclosure"],
+    focus: [
+      "Assess the definition and scope of Confidential Information, including exclusions and residual knowledge carve-outs.",
+      "Evaluate obligations on the receiving party: permitted disclosures, use restrictions, security measures, and notice obligations.",
+      "Review duration, survival clauses, remedies (including injunctive relief), and processes for return/destroy mechanics.",
+    ],
+    scoring: [
+      "Confidentiality scope and exclusions should drive ~40% of the score.",
+      "Safeguards, remedies, and breach handling contribute ~30%.",
+      "Survival, termination, and dispute resolution make up the remaining 30%.",
+    ],
+    mustHave: [
+      "Clear definition of Confidential Information with standard exclusions.",
+      "Return or destruction obligations upon termination or request.",
+      "Remedies or injunctive relief plus survival period for confidentiality obligations.",
+    ],
+    watchouts: [
+      "No survival term for confidentiality obligations.",
+      "Exclusions so broad they undermine protection.",
+      "Lack of liability allocation or remedy for breaches.",
+    ],
+  },
+  dpa: {
+    title: "Data Processing Agreement",
+    keywords: ["dpa", "data processing"],
+    focus: [
+      "Verify lawful basis and clearly defined processing instructions from the controller.",
+      "Assess security measures, breach response, audit rights, and sub-processor governance.",
+      "Review cross-border transfer mechanisms, DPIA support, and data subject rights handling.",
+    ],
+    scoring: [
+      "Article 28/controller-processor clauses and instructions ~45% of the score.",
+      "Security measures, breach notification, and audit rights ~35%.",
+      "Transfers, DPIA cooperation, and data subject facilitation ~20%.",
+    ],
+    mustHave: [
+      "Documented processing instructions and purpose limitations.",
+      "Security measures with breach notification timelines.",
+      "Sub-processor approval, transfer safeguards, and data subject cooperation clauses.",
+    ],
+    watchouts: [
+      "No SLA for breach notification or incident cooperation.",
+      "Missing obligations or approvals for sub-processors.",
+      "Silence on cross-border transfers despite global operations.",
+    ],
+  },
+  eula: {
+    title: "End User License Agreement",
+    keywords: ["eula", "end user license", "software license"],
+    focus: [
+      "Clarify licence scope, permitted/forbidden uses, transfer rights, and geographic limitations.",
+      "Assess warranty disclaimers, liability caps, termination triggers, and remedies.",
+      "Review update, maintenance, and support commitments, including SLAs if applicable.",
+    ],
+    scoring: [
+      "License scope and restrictions ~40% of the score.",
+      "Liability, indemnity, and dispute mechanisms ~30%.",
+      "Maintenance, updates, and termination obligations ~30%.",
+    ],
+    mustHave: [
+      "Specific permitted/prohibited uses, assignment, and transfer terms.",
+      "Termination rights for breach with post-termination obligations.",
+      "Warranty disclaimers and limitation of liability aligned with risk appetite.",
+    ],
+    watchouts: [
+      "License scope overly broad or silent on assignment.",
+      "No provisions for software updates or support expectations.",
+      "Missing limitation of liability or dispute resolution mechanism.",
+    ],
+  },
+  ppc: {
+    title: "Privacy Policy Compliance",
+    keywords: ["ppc", "privacy policy", "privacy notice"],
+    focus: [
+      "Ensure transparency across data categories, purpose, legal bases, and contact details.",
+      "Confirm user rights, opt-out processes, consent mechanisms, and parent/child protections.",
+      "Assess cookie disclosures, analytics tracking, data sharing, and cross-border transfer statements.",
+    ],
+    scoring: [
+      "Transparency, data categories, and purposes ~35% of the score.",
+      "Rights handling, consent/opt-out, and contact details ~35%.",
+      "Transfer disclosures, security statements, and retention policies ~30%.",
+    ],
+    mustHave: [
+      "List of personal data collected with processing purposes and legal bases.",
+      "Instructions for exercising rights plus contact or DPO information.",
+      "Cookie/advertising disclosures and transfer safeguards.",
+    ],
+    watchouts: [
+      "No process for data subject rights or timelines.",
+      "Missing disclosure on cross-border transfers when applicable.",
+      "Cookies or trackers referenced but not explained.",
+    ],
+  },
+  ca: {
+    title: "Consultancy Agreement",
+    keywords: ["ca", "consultancy", "consulting"],
+    focus: [
+      "Clarify scope of services, deliverables, acceptance criteria, change control, and performance standards.",
+      "Review fee structure, invoicing cadence, expenses, milestones, and termination rights.",
+      "Assess IP ownership, confidentiality, non-solicitation, and liability/indemnity terms.",
+    ],
+    scoring: [
+      "Scope, deliverables, and acceptance ~35% of score.",
+      "Commercial terms, milestones, and change control ~30%.",
+      "IP ownership, confidentiality, and liability ~35%.",
+    ],
+    mustHave: [
+      "Detailed statement of work with milestones or deliverables.",
+      "Ownership/assignment of work product and pre-existing IP.",
+      "Termination rights, liability, and insurance/indemnity settings.",
+    ],
+    watchouts: [
+      "Scope vague or missing acceptance criteria.",
+      "No liability caps or indemnity provisions.",
+      "Key personnel or substitution rights absent.",
+    ],
+  },
+  rda: {
+    title: "Research & Development Agreement",
+    keywords: ["rda", "research", "development"],
+    focus: [
+      "Confirm research objectives, collaboration structure, governance, milestones, and contribution responsibilities.",
+      "Examine ownership of background and foreground IP, licensing rights, commercialisation terms, and joint inventions.",
+      "Evaluate publication rights, confidentiality, data sharing, ethical/regulatory compliance, and exit/termination mechanics.",
+    ],
+    scoring: [
+      "Ownership/licensing of background and foreground IP ~40% of score.",
+      "Governance, milestones, and funding controls ~35%.",
+      "Compliance, publication, and exit strategy ~25%.",
+    ],
+    mustHave: [
+      "Definition of background vs. new IP and ownership/outcome.",
+      "Governance mechanism (steering committee, reporting cadence).",
+      "Publication approval process and regulatory compliance covenants.",
+    ],
+    watchouts: [
+      "No dispute resolution around jointly developed IP.",
+      "Milestones and success criteria undefined.",
+      "No exit or wind-down mechanism if project halts early.",
+    ],
+  },
+  psa: {
+    title: "Product Supply Agreement",
+    keywords: ["psa", "product supply", "supply agreement", "purchase"],
+    focus: [
+      "Analyse product specifications, quality standards, inspection/acceptance procedures, and logistics responsibilities.",
+      "Review delivery schedules, forecasting, penalties, and change management mechanisms.",
+      "Assess warranty, liability, indemnities, force majeure, and continuity/resilience planning.",
+    ],
+    scoring: [
+      "Specifications, quality, and acceptance ~35% of scoring.",
+      "Logistics, delivery, and change control ~30%.",
+      "Warranty, liability, indemnity, and contingency planning ~35%.",
+    ],
+    mustHave: [
+      "Quality/inspection rights with acceptance criteria.",
+      "Forecasting, ordering cadence, and remedies for delays.",
+      "Risk allocation for defective goods and force majeure provisions.",
+    ],
+    watchouts: [
+      "No remedy for non-conforming goods.",
+      "Delivery lead times or penalties undefined.",
+      "Continuity or contingency obligations absent.",
+    ],
+  },
+};
+
+function getSolutionGuidance(
+  selected: AnalysisRequest["selectedSolution"],
+  fallbackContractType?: string,
+) {
+  const baseCandidates = [
+    selected?.key,
+    selected?.id,
+    selected?.title,
+    fallbackContractType,
+  ]
+    .filter((value): value is string => !!value && value.trim().length > 0)
+    .map((value) => value.toLowerCase());
+
+  const candidates = baseCandidates.flatMap((value) => {
+    if (value.includes("_") || value.includes("-")) {
+      return [value, value.replace(/[_-]+/g, " ")];
+    }
+    return [value];
+  });
+
+  for (const candidate of candidates) {
+    for (const [key, config] of Object.entries(SOLUTION_ANALYSIS_GUIDANCE)) {
+      if (
+        candidate === key ||
+        candidate.includes(key) ||
+        config.keywords.some((keyword) => candidate.includes(keyword))
+      ) {
+        return { key, ...config };
+      }
+    }
+  }
+
+  return null;
+}
+
 function formatTitleCase(value: string) {
   return value
     .replace(/[_-]+/g, " ")
@@ -119,8 +367,22 @@ function formatTitleCase(value: string) {
     .replace(/\b\w/g, (match) => match.toUpperCase());
 }
 
-function inferDocumentFormat(filename?: string, providedFormat?: string) {
+function inferDocumentFormat(
+  filename?: string,
+  providedFormat?: string,
+  mimeType?: string | null,
+) {
   if (providedFormat) return providedFormat.toLowerCase();
+
+  if (mimeType) {
+    const lower = mimeType.toLowerCase();
+    if (lower.includes("pdf")) return "pdf";
+    if (lower.includes("word") || lower.includes("doc")) return "docx";
+    if (lower.includes("markdown")) return "md";
+    if (lower.includes("html")) return "html";
+    if (lower.includes("plain")) return "txt";
+  }
+
   if (!filename) return undefined;
   const ext = filename.split(".").pop()?.toLowerCase();
   if (!ext) return undefined;
@@ -243,14 +505,111 @@ function buildKpis(
 
   return base;
 }
+
+type ModelTier = "default" | "premium" | "intensive";
+
+function parseTierEnv(key: string): ModelTier | null {
+  const value = Deno.env.get(key);
+  if (!value) return null;
+  const normalized = value.toLowerCase();
+  if (normalized === "default" || normalized === "premium" || normalized === "intensive") {
+    return normalized;
+  }
+  return null;
+}
+
+const FORCED_MODEL_TIER = parseTierEnv("OPENAI_REASONING_FORCE_TIER");
+const DEFAULT_MODEL_TIER =
+  FORCED_MODEL_TIER ?? parseTierEnv("OPENAI_REASONING_DEFAULT_TIER") ?? "intensive";
+
+function resolveModelTier(model?: string | null, reviewType?: string): ModelTier {
+  if (FORCED_MODEL_TIER) {
+    return FORCED_MODEL_TIER;
+  }
+  const value = model?.toLowerCase() ?? "";
+  if (value.includes("intensive") || value.includes("pro")) {
+    return "intensive";
+  }
+  if (value.includes("premium") || value.includes("gpt-5") || reviewType === "risk_assessment") {
+    return "premium";
+  }
+  return DEFAULT_MODEL_TIER;
+}
+
+function buildLegacyResponse(
+  report: AnalysisReport,
+  context: {
+    classification?: AnalysisRequest["classification"];
+    contractType: string;
+    reviewType: string;
+    modelTier: ModelTier;
+  },
+) {
+  const summary =
+    report.contractSummary.purpose ||
+    `Structured ${context.reviewType} analysis generated.`;
+  const keyPoints =
+    report.issuesToAddress.length > 0
+      ? report.issuesToAddress
+          .map((issue) => issue.recommendation)
+          .filter(Boolean)
+          .slice(0, 5)
+      : report.clauseFindings.map((clause) => clause.summary).slice(0, 5);
+
+  const recommendations = report.issuesToAddress.map((issue) => ({
+    id: issue.id,
+    description: issue.recommendation,
+    severity: issue.severity,
+    department: "legal",
+    owner: "Legal",
+    due_timeline: "Before execution",
+    category: issue.title,
+  }));
+
+  const actionItems = report.proposedEdits.map((edit) => ({
+    id: edit.id,
+    description: edit.intent || edit.proposedText.slice(0, 120),
+    severity: edit.applyByDefault ? "high" : "medium",
+    department: "legal",
+    owner: "Legal",
+    due_timeline: "Drafting phase",
+    category: "drafting",
+  }));
+
+  return {
+    model_used: report.metadata?.model,
+    model_tier: context.modelTier,
+    fallback_used: false,
+    generated_at: report.generatedAt,
+    contract_type: context.contractType,
+    classification_context: context.classification || null,
+    structured_report: report,
+    general_information: report.generalInformation,
+    contract_summary: report.contractSummary,
+    issues: report.issuesToAddress,
+    clause_findings: report.clauseFindings,
+    proposed_edits: report.proposedEdits,
+    score: report.generalInformation.complianceScore,
+    confidence:
+      context.classification?.confidence ??
+      report.metadata?.classification?.confidence ??
+      0.82,
+    summary,
+    key_points: keyPoints,
+    recommendations,
+    action_items: actionItems,
+    token_usage: report.metadata?.tokenUsage ?? null,
+  };
+}
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
 
   let request: AnalysisRequest | null = null;
-  let processedContent: string | null = null;
+  let processedContent = "";
   let fallbackContext: FallbackAnalysisContext | null = null;
+  let ingestionRecord: ContractIngestionRecord | null = null;
 
   try {
     console.log("🚀 Starting contract analysis request...");
@@ -276,15 +635,21 @@ serve(async (req) => {
     }
 
     // Validate request
-    if (!request || !request.content || !request.reviewType) {
+    if (
+      !request ||
+      (!request.content && !request.ingestionId) ||
+      !request.reviewType
+    ) {
       console.error("❌ Missing required fields in request:", {
-        hasContent: !!request.content,
-        hasReviewType: !!request.reviewType,
+        hasContent: !!request?.content,
+        hasIngestionId: !!request?.ingestionId,
+        hasReviewType: !!request?.reviewType,
         timestamp: new Date().toISOString(),
       });
       return new Response(
         JSON.stringify({
-          error: "Missing required fields: content and reviewType",
+          error:
+            "Missing required fields: Provide either ingestionId or content along with reviewType",
         }),
         {
           status: 400,
@@ -296,22 +661,75 @@ serve(async (req) => {
     console.log("✅ Request validation passed:", {
       reviewType: request.reviewType,
       model: request.model,
-      contentLength: request.content.length,
+      contentLength: request.content?.length,
+      ingestionId: request.ingestionId,
       fileType: request.fileType,
       fileName: request.fileName,
     });
 
-    // Handle PDF and DOCX file processing
-    processedContent = request.content;
+    processedContent = request.content ?? "";
+
+    if (request.ingestionId) {
+      try {
+        ingestionRecord = await loadIngestionRecord(request.ingestionId);
+        processedContent = ingestionRecord.extracted_text ?? "";
+
+        if (!processedContent || processedContent.trim().length === 0) {
+          const retryReason = ingestionRecord.needs_ocr
+            ? "Extraction requires OCR"
+            : "Extraction incomplete";
+          console.warn("⚠️ Ingestion missing extracted text", {
+            ingestionId: request.ingestionId,
+            status: ingestionRecord.status,
+            needsOcr: ingestionRecord.needs_ocr,
+            retryReason,
+          });
+          return new Response(
+            JSON.stringify({
+              error: ingestionRecord.needs_ocr
+                ? "Document requires OCR processing before AI analysis."
+                : "Document extraction not complete. Please retry shortly.",
+              ingestionStatus: ingestionRecord.status,
+              needsOcr: ingestionRecord.needs_ocr,
+            }),
+            {
+              status: 409,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            },
+          );
+        }
+      } catch (ingestionError) {
+        const errorMessage =
+          ingestionError instanceof Error
+            ? ingestionError.message
+            : String(ingestionError);
+        console.error("❌ Failed to load ingestion record:", {
+          ingestionId: request.ingestionId,
+          error: errorMessage,
+        });
+        return new Response(
+          JSON.stringify({
+            error: "Failed to load ingestion record",
+            details: errorMessage,
+          }),
+          {
+            status: 404,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
+        );
+      }
+    }
+
     if (
-      request.content.startsWith("PDF_FILE_BASE64:") ||
-      request.content.startsWith("DOCX_FILE_BASE64:")
+      processedContent &&
+      (processedContent.startsWith("PDF_FILE_BASE64:") ||
+        processedContent.startsWith("DOCX_FILE_BASE64:"))
     ) {
       try {
         console.log("📄 Starting file text extraction...");
         processedContent = await extractTextFromFile(
-          request.content,
-          request.fileType || "",
+          processedContent,
+          request.fileType || ingestionRecord?.mime_type || "",
         );
         console.log(
           "✅ File text extraction completed, content length:",
@@ -344,7 +762,6 @@ serve(async (req) => {
           timestamp: new Date().toISOString(),
         });
 
-        // Provide helpful error message based on the failure type
         let userMessage = errorMessage;
         if (
           errorMessage.toLowerCase().includes("scanned") ||
@@ -373,7 +790,10 @@ serve(async (req) => {
       }
     }
 
-    const filename = request.fileName || request.filename;
+    const filename =
+      request.fileName ||
+      request.filename ||
+      ingestionRecord?.original_name;
     const resolvedContractType =
       request.contractType ||
       request.classification?.contractType ||
@@ -381,6 +801,7 @@ serve(async (req) => {
     const resolvedDocumentFormat = inferDocumentFormat(
       filename,
       request.documentFormat,
+      request.fileType || ingestionRecord?.mime_type,
     );
 
     fallbackContext = {
@@ -392,49 +813,40 @@ serve(async (req) => {
       fileName: filename,
     };
 
-    // Get API key based on model
-    const model = request.model || "openai-gpt-4";
-    let apiKey: string | undefined;
-
-    if (model.startsWith("openai")) {
-      apiKey = Deno.env.get("OPENAI_API_KEY");
-    } else if (model.startsWith("anthropic")) {
-      apiKey = Deno.env.get("ANTHROPIC_API_KEY");
-    } else if (model.startsWith("google")) {
-      apiKey = Deno.env.get("GOOGLE_AI_API_KEY");
-    }
-
-    if (!apiKey) {
-      console.error("🔑 API key not configured:", {
-        model: model,
-        timestamp: new Date().toISOString(),
-      });
-
-      const fallbackResponse = generateFallbackAnalysis({
-        ...fallbackContext!,
-        fallbackReason: `API key not configured for model: ${model}`,
-      });
-
-      return new Response(JSON.stringify(fallbackResponse), {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+    if (
+      ingestionRecord?.warnings &&
+      Array.isArray(ingestionRecord.warnings) &&
+      ingestionRecord.warnings.length > 0
+    ) {
+      console.warn("⚠️ Ingestion warnings detected", {
+        ingestionId: ingestionRecord.id,
+        warnings: ingestionRecord.warnings,
       });
     }
 
-    console.log(`🔑 API key found for model: ${model}`);
-
-    // Create enhanced request with processed content
-    const enhancedRequest = {
-      ...request,
-      content: processedContent,
-      contractType: resolvedContractType,
-      documentFormat: resolvedDocumentFormat,
-    };
+    const modelTier = resolveModelTier(request.model, request.reviewType);
 
     try {
-      const result = await analyzeWithAI(enhancedRequest, apiKey);
+      const reasoningResult = await runReasoningAnalysis({
+        content: processedContent,
+        reviewType: request.reviewType,
+        classification: request.classification,
+        selectedSolution: request.selectedSolution,
+        filename,
+        documentFormat: resolvedDocumentFormat,
+        ingestionWarnings: ingestionRecord?.warnings,
+        ingestionId: request.ingestionId,
+        modelTier,
+      });
 
-      return new Response(JSON.stringify(result), {
+      const responsePayload = buildLegacyResponse(reasoningResult.report, {
+        classification: request.classification,
+        contractType: resolvedContractType,
+        reviewType: request.reviewType,
+        modelTier,
+      });
+
+      return new Response(JSON.stringify(responsePayload), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -446,7 +858,7 @@ serve(async (req) => {
 
       console.error("❌ AI provider failed, using fallback analysis:", {
         message: errorMessage,
-        model,
+        modelTier,
         timestamp: new Date().toISOString(),
       });
 
@@ -484,10 +896,14 @@ serve(async (req) => {
     console.error("❌ Analysis error:", errorDetails);
 
     if (!fallbackContext) {
-      const filename = request?.fileName || request?.filename;
+      const filename =
+        request?.fileName ||
+        request?.filename ||
+        ingestionRecord?.original_name;
       const inferredFormat = inferDocumentFormat(
         filename,
         request?.documentFormat,
+        request?.fileType || ingestionRecord?.mime_type,
       );
       const contentForFallback = processedContent || request?.content || "";
       const inferredContractType =
@@ -643,6 +1059,27 @@ async function extractTextFromFile(
   return content;
 }
 
+async function loadIngestionRecord(
+  ingestionId: string,
+): Promise<ContractIngestionRecord> {
+  const supabase = getSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from("contract_ingestions")
+    .select("*")
+    .eq("id", ingestionId)
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  if (!data) {
+    throw new Error("Ingestion record not found");
+  }
+
+  return data as ContractIngestionRecord;
+}
+
 async function analyzeWithAI(request: AnalysisRequest, apiKey: string) {
   const modelConfig = AI_CONFIGS[request.model as keyof typeof AI_CONFIGS];
   if (!modelConfig) {
@@ -652,47 +1089,26 @@ async function analyzeWithAI(request: AnalysisRequest, apiKey: string) {
   // Build prompt based on review type and custom solution
   const prompt = buildAnalysisPrompt(request);
 
-  // Prepare API request based on model type
-  let apiRequest: any;
-
-  if (request.model.startsWith("openai")) {
-    apiRequest = {
-      method: "POST",
-      headers: modelConfig.headers(apiKey),
-      body: JSON.stringify({
-        model: modelConfig.model,
-        messages: [
-          {
-            role: "system",
-            content: prompt.systemPrompt,
-          },
-          {
-            role: "user",
-            content: `${prompt.analysisPrompt}\n\nContract Content:\n${request.content}`,
-          },
-        ],
-        temperature: modelConfig.temperature || 0.1,
-        max_tokens: modelConfig.maxTokens || 4000,
-        response_format: { type: "json_object" },
-      }),
-    };
-  } else if (request.model.startsWith("anthropic")) {
-    apiRequest = {
-      method: "POST",
-      headers: modelConfig.headers(apiKey),
-      body: JSON.stringify({
-        model: modelConfig.model,
-        max_tokens: modelConfig.maxTokens || 4000,
-        messages: [
-          {
-            role: "user",
-            content: `${prompt.systemPrompt}\n\n${prompt.analysisPrompt}\n\nContract Content:\n${request.content}`,
-          },
-        ],
-        temperature: modelConfig.temperature || 0.1,
-      }),
-    };
-  }
+  const apiRequest = {
+    method: "POST",
+    headers: modelConfig.headers(apiKey),
+    body: JSON.stringify({
+      model: modelConfig.model,
+      messages: [
+        {
+          role: "system",
+          content: prompt.systemPrompt,
+        },
+        {
+          role: "user",
+          content: `${prompt.analysisPrompt}\n\nContract Content:\n${request.content}`,
+        },
+      ],
+      temperature: modelConfig.temperature || 0.1,
+      max_tokens: modelConfig.maxTokens || 4000,
+      response_format: { type: "json_object" },
+    }),
+  };
 
   // Make API call
   const response = await fetch(modelConfig.baseUrl, apiRequest);
@@ -709,17 +1125,7 @@ async function analyzeWithAI(request: AnalysisRequest, apiKey: string) {
   }
 
   const data = await response.json();
-
-  // Parse response based on model type
-  let aiResponse: string;
-
-  if (request.model.startsWith("openai")) {
-    aiResponse = data.choices?.[0]?.message?.content || "";
-  } else if (request.model.startsWith("anthropic")) {
-    aiResponse = data.content?.[0]?.text || "";
-  } else {
-    throw new Error("Unsupported model for response parsing");
-  }
+  const aiResponse = data.choices?.[0]?.message?.content || "";
 
   // Parse AI response into structured format
   return parseAIResponse(aiResponse, request.reviewType);
@@ -728,6 +1134,27 @@ async function analyzeWithAI(request: AnalysisRequest, apiKey: string) {
 function buildAnalysisPrompt(request: AnalysisRequest) {
   const customSolution = request.customSolution;
   const classification = request.classification;
+
+  const solutionGuidance = getSolutionGuidance(
+    request.selectedSolution,
+    request.contractType ?? classification?.contractType,
+  );
+
+  const solutionFocusText = solutionGuidance
+    ? `**SELECTED SOLUTION FOCUS (${solutionGuidance.title.toUpperCase()})**:
+${solutionGuidance.focus.map((item) => `- ${item}`).join("\n")}
+
+**SCORING & RISK PRIORITIES (${solutionGuidance.title})**:
+${solutionGuidance.scoring.map((item) => `- ${item}`).join("\n")}
+
+**MUST-HAVE CONTROLS TO VERIFY**:
+${solutionGuidance.mustHave.map((item) => `- ${item}`).join("\n")}
+
+**COMMON GAPS TO FLAG**:
+${solutionGuidance.watchouts.map((item) => `- ${item}`).join("\n")}
+
+Return a \"solution_alignment\" object in the JSON payload capturing these priorities.`
+    : "";
 
   // Build classification context for enhanced AI analysis
   let classificationContext = "";
@@ -758,8 +1185,15 @@ Use this classification context to provide more targeted and accurate analysis s
 
 Analyze risk cascading effects, hidden dependencies, and long-term implications. Consider contract lifecycle risks, performance risks, and market condition impacts.
 
+${solutionFocusText}
+
+**DEDUPLICATION RULES**:
+- Merge overlapping recommendations/action items and flag secondary entries with "duplicate_of" referencing the primary "id".
+- Do not create duplicate entries with the same description/owner.
+
 **CLAUSE EXTRACTION REQUIREMENT**: Extract and analyze specific contract clauses, identifying:
 - Clause titles and sections
+- Page or location references (e.g., "Page 4, Section 7.2")
 - Risk-bearing provisions
 - Limitation of liability clauses
 - Indemnification terms
@@ -778,6 +1212,8 @@ Return JSON in this exact format:
       "clause_number": "string (e.g., 'Section 7.2' or 'Article 4(a)')",
       "clause_title": "string",
       "clause_text": "string (key excerpt, 100-300 chars)",
+      "page_reference": "string | null",
+      "evidence_excerpt": "string",
       "clause_type": "liability|indemnification|termination|payment|warranty|confidentiality|ip_rights|compliance|other",
       "importance": "critical|high|medium|low",
       "risk_level": "high|medium|low",
@@ -805,12 +1241,45 @@ Return JSON in this exact format:
       "description": "string"
     }
   ],
-  "recommendations": ["string (strategic recommendations)"],
-  "action_items": ["string (specific action items with priority)"],
+  "recommendations": [
+    {
+      "id": "string",
+      "description": "string",
+      "severity": "critical|high|medium|low",
+      "department": "legal|privacy|security|operations|finance|executive|product|commercial|other",
+      "owner": "legal|operations|security|finance|privacy|executive|product|commercial|other",
+      "due_timeline": "string",
+      "category": "legal_obligation|risk_mitigation|commercial|operational|strategic|governance",
+      "duplicate_of": "string | null",
+      "next_step": "string"
+    }
+  ],
+  "action_items": [
+    {
+      "id": "string",
+      "description": "string",
+      "severity": "critical|high|medium|low",
+      "department": "legal|privacy|security|operations|finance|executive|product|commercial|other",
+      "owner": "legal|operations|security|finance|privacy|executive|product|commercial|other",
+      "due_timeline": "string",
+      "category": "legal_obligation|risk_mitigation|commercial|operational|strategic|governance",
+      "duplicate_of": "string | null",
+      "next_step": "string"
+    }
+  ],
   "scenario_analysis": {
     "best_case": "string",
     "worst_case": "string",
     "most_likely": "string"
+  },
+  "solution_alignment": {
+    "solution_key": "string | null",
+    "solution_title": "string | null",
+    "confidence": number (0.5-1.0),
+    "priorities": ["string"],
+    "recommended_controls": ["string"],
+    "gaps": ["string"],
+    "notes": ["string"]
   }
 }`,
     },
@@ -829,6 +1298,12 @@ Return JSON in this exact format:
 
 Provide detailed compliance scoring with regulatory-specific analysis, gap identification, and remediation roadmap.
 
+${solutionFocusText}
+
+**DEDUPLICATION RULES**:
+- Merge overlapping recommendations/action items and flag secondary entries with "duplicate_of" referencing the primary "id".
+- Avoid duplicate entries with equivalent descriptions, even if phrased differently.
+
 **CLAUSE EXTRACTION REQUIREMENT**: Extract and analyze compliance-related clauses:
 - Data protection and privacy provisions
 - Security and encryption requirements
@@ -838,6 +1313,7 @@ Provide detailed compliance scoring with regulatory-specific analysis, gap ident
 - Consent and legal basis provisions
 - Data retention and deletion terms
 - Subject rights implementation
+- Include page or section references and cite the evidence excerpt.
 
 Return JSON in this exact format:
 {
@@ -849,6 +1325,8 @@ Return JSON in this exact format:
       "clause_number": "string",
       "clause_title": "string",
       "clause_text": "string (key excerpt)",
+      "page_reference": "string | null",
+      "evidence_excerpt": "string",
       "compliance_framework": "GDPR|CCPA|HIPAA|SOX|PCI-DSS|Industry Standard",
       "compliance_status": "compliant|partially_compliant|non_compliant|unclear",
       "gap_description": "string (if non-compliant)",
@@ -891,7 +1369,19 @@ Return JSON in this exact format:
     "enforcement_trends": ["string"],
     "best_practices": ["string"]
   },
-  "recommendations": ["string (strategic compliance recommendations)"],
+  "recommendations": [
+    {
+      "id": "string",
+      "description": "string",
+      "severity": "critical|high|medium|low",
+      "department": "legal|privacy|security|operations|finance|executive|product|commercial|other",
+      "owner": "legal|operations|security|finance|privacy|executive|product|commercial|other",
+      "due_timeline": "string",
+      "category": "legal_obligation|risk_mitigation|commercial|operational|strategic|governance",
+      "duplicate_of": "string | null",
+      "next_step": "string"
+    }
+  ],
   "remediation_roadmap": [
     {
       "phase": "string",
@@ -899,7 +1389,16 @@ Return JSON in this exact format:
       "timeline": "string",
       "priority": "string"
     }
-  ]
+  ],
+  "solution_alignment": {
+    "solution_key": "string | null",
+    "solution_title": "string | null",
+    "confidence": number (0.5-1.0),
+    "priorities": ["string"],
+    "recommended_controls": ["string"],
+    "gaps": ["string"],
+    "notes": ["string"]
+  }
 }`,
     },
     perspective_review: {
@@ -916,6 +1415,11 @@ Return JSON in this exact format:
 8. **Relationship Dynamics**: Consider ongoing relationship management
 
 Provide detailed perspective analysis with strategic insights, negotiation opportunities, and relationship implications.
+
+${solutionFocusText}
+
+**DEDUPLICATION RULES**:
+- Provide unique recommendations/action items. If overlap exists, consolidate or reference the primary "id" via "duplicate_of".
 
 Return JSON in this exact format:
 {
@@ -968,7 +1472,28 @@ Return JSON in this exact format:
       "stakeholder_benefits": ["string"]
     }
   ],
-  "recommendations": ["string (strategic recommendations for balanced outcomes)"]
+  "recommendations": [
+    {
+      "id": "string",
+      "description": "string",
+      "severity": "critical|high|medium|low",
+      "department": "legal|privacy|security|operations|finance|executive|product|commercial|other",
+      "owner": "legal|operations|security|finance|privacy|executive|product|commercial|other",
+      "due_timeline": "string",
+      "category": "legal_obligation|risk_mitigation|commercial|operational|strategic|governance",
+      "duplicate_of": "string | null",
+      "next_step": "string"
+    }
+  ],
+  "solution_alignment": {
+    "solution_key": "string | null",
+    "solution_title": "string | null",
+    "confidence": number (0.5-1.0),
+    "priorities": ["string"],
+    "recommended_controls": ["string"],
+    "gaps": ["string"],
+    "notes": ["string"]
+  }
 }`,
     },
     full_summary: {
@@ -988,6 +1513,11 @@ Return JSON in this exact format:
 
 Provide executive summary suitable for board presentation with strategic recommendations and decision support.
 
+${solutionFocusText}
+
+**DEDUPLICATION RULES**:
+- Ensure recommendations/action items are unique. If similar, merge or flag with "duplicate_of" referencing the primary "id".
+
 **CLAUSE EXTRACTION REQUIREMENT**: Extract and categorize all major contract clauses:
 - Obligations and deliverables
 - Payment terms and pricing
@@ -998,6 +1528,7 @@ Provide executive summary suitable for board presentation with strategic recomme
 - Limitation of liability
 - Termination and renewal terms
 - Governing law and jurisdiction
+- Include the page or location reference for each clause and the supporting evidence excerpt.
 
 Return JSON in this exact format:
 {
@@ -1035,6 +1566,8 @@ Return JSON in this exact format:
       "importance": "critical|high|medium|low",
       "business_impact": "string",
       "recommendation": "string",
+      "page_reference": "string | null",
+      "evidence_excerpt": "string",
       "negotiation_priority": "must_have|should_have|nice_to_have"
     }
   ],
@@ -1057,18 +1590,29 @@ Return JSON in this exact format:
   },
   "strategic_recommendations": [
     {
-      "recommendation": "string",
+      "id": "string",
+      "description": "string",
       "rationale": "string",
-      "priority": "critical|high|medium|low",
-      "timeline": "immediate|30_days|90_days|ongoing"
+      "severity": "critical|high|medium|low",
+      "department": "legal|privacy|security|operations|finance|executive|product|commercial|other",
+      "owner": "legal|operations|security|finance|privacy|executive|product|commercial|other",
+      "due_timeline": "immediate|30_days|90_days|ongoing|custom",
+      "category": "strategic|commercial|operational|legal_obligation|risk_mitigation",
+      "duplicate_of": "string | null",
+      "next_step": "string"
     }
   ],
   "action_items": [
     {
-      "action": "string",
-      "owner": "legal|business|finance|operations",
-      "priority": "critical|high|medium|low",
-      "timeline": "string"
+      "id": "string",
+      "description": "string",
+      "severity": "critical|high|medium|low",
+      "department": "legal|privacy|security|operations|finance|executive|product|commercial|other",
+      "owner": "legal|operations|security|finance|privacy|executive|product|commercial|other",
+      "due_timeline": "string",
+      "category": "legal_obligation|risk_mitigation|commercial|operational|strategic|governance",
+      "duplicate_of": "string | null",
+      "next_step": "string"
     }
   ],
   "extracted_terms": {
@@ -1087,18 +1631,35 @@ Return JSON in this exact format:
       "timeline": "string",
       "resources_required": ["string"]
     }
-  ]
+  ],
+  "solution_alignment": {
+    "solution_key": "string | null",
+    "solution_title": "string | null",
+    "confidence": number (0.5-1.0),
+    "priorities": ["string"],
+    "recommended_controls": ["string"],
+    "gaps": ["string"],
+    "notes": ["string"]
+  }
 }`,
     },
   };
 
   // Use custom solution prompts if available, otherwise use base prompts
   if (customSolution?.prompts) {
+    const customAnalysisPrompt = [
+      customSolution.prompts.analysisPrompt ?? "",
+      solutionFocusText.trim().length > 0 ? solutionFocusText.trim() : "",
+    ]
+      .filter((section) => section.length > 0)
+      .join("\n\n");
+
     return {
       systemPrompt:
-        customSolution.prompts.systemPrompt +
+        (customSolution.prompts.systemPrompt ?? "") +
+        classificationContext +
         " Always respond in valid JSON format.",
-      analysisPrompt: customSolution.prompts.analysisPrompt,
+      analysisPrompt: customAnalysisPrompt,
     };
   }
 

@@ -1,207 +1,173 @@
-# 🔧 Admin User Management System
+# Maigon User & Admin Management CLI
 
-A Django-like admin user management system for creating admin users without going through the regular signup process.
+The project now ships with a single TypeScript CLI (`scripts/manage.ts`) that gives you Django-like control over users, Maigon admins, and organization admins directly from the terminal.
 
-## 🚀 Quick Setup (5 minutes)
+All commands run against Supabase using the **service role key**, so no HTTP edge functions are required.
 
-### 1. Deploy the Admin Management Function
+---
 
-**Option A: Manual via Supabase Dashboard**
+## 1. Prerequisites
 
-1. Go to [Supabase Dashboard](https://supabase.com/dashboard) → Your project → Functions
-2. Click "Create Function" → Name: `admin-user-management`
-3. Copy the entire code from `supabase/functions/admin-user-management/index.ts`
-4. Click "Deploy"
+Add the following to your `.env` file (they already exist for local development):
 
-**Option B: CLI Deployment**
+```env
+SUPABASE_SERVICE_ROLE_KEY=...
+SUPABASE_SERVICE_URL=...        # or VITE_SUPABASE_URL
+```
+
+> The CLI loads the root `.env` automatically. If you are running in CI, expose these variables in the environment first.
+
+Install dependencies if you have not already:
 
 ```bash
-npx supabase functions deploy admin-user-management --project-ref cqvufndxjakdbmbjhwlx
+npm install
 ```
 
-### 2. Set Admin Management Key (Security)
+The commands are powered by `tsx`, so Node ≥18 is sufficient.
 
-In Supabase Dashboard → Settings → Secrets:
+---
 
-```
-ADMIN_MANAGEMENT_KEY = your_secure_admin_key_here
-```
+## 2. Available Commands
 
-Or via CLI:
+Every command follows the pattern:
 
 ```bash
-npx supabase secrets set ADMIN_MANAGEMENT_KEY=your_secure_admin_key_here --project-ref cqvufndxjakdbmbjhwlx
+npx tsx scripts/manage.ts <group> <command> [options]
 ```
 
-### 3. Update Environment Variable
+Or via the pre-defined npm scripts:
 
-Add to your `.env` file:
+| Shortcut Script            | Equivalent Command                                      | Description                          |
+|----------------------------|-----------------------------------------------------------|--------------------------------------|
+| `npm run admin:create`     | `tsx scripts/manage.ts admin create`                      | Create a Maigon super admin          |
+| `npm run admin:list`       | `tsx scripts/manage.ts admin list`                        | List super admins                    |
+| `npm run admin:delete`     | `tsx scripts/manage.ts admin delete --email …`            | Delete a super admin                 |
+| `npm run admin:help`       | `tsx scripts/manage.ts admin help`                        | CLI usage overview                   |
+| `npm run org-admin:create` | `tsx scripts/manage.ts org-admin create --org …`          | Create an org admin                  |
+| `npm run org-admin:list`   | `tsx scripts/manage.ts org-admin list [--org …]`          | List org admins                      |
+| `npm run org-admin:delete` | `tsx scripts/manage.ts org-admin delete --email …`        | Delete an org admin                  |
+| `npm run user:create`      | `tsx scripts/manage.ts user create [options]`             | Create a standard user               |
+| `npm run user:list`        | `tsx scripts/manage.ts user list [--org …] [--admins]`    | List users                           |
+| `npm run user:delete`      | `tsx scripts/manage.ts user delete --email …`             | Delete a user                        |
+
+Common options:
+
+```
+--email <email>                 Target email address
+--password <password>           Provide password (otherwise prompted or generated)
+--first-name <name>             First name metadata
+--last-name <name>              Last name metadata
+--company <company>             Company metadata
+--org <organization_id>         Organization (org-admin/user commands)
+  --plan <plan_key>               Plan key for users (default: free_trial)
+  --contracts-limit <number>      Override contracts quota when creating users/org admins
+  --documents-limit <number>      Override documents quota
+  --seats-limit <number>          Override seats quota (org admins + users)
+  --non-interactive               Fail if required data missing instead of prompting
+```
+
+> In interactive mode the CLI will prompt for any missing fields and mask passwords. In `--non-interactive` mode you **must** supply all required flags.
+
+---
+
+## 3. What Each Command Does
+
+### Admin (`admin create` / `list` / `delete`)
+
+- Creates Supabase auth user with email confirmed and generated password (if not provided)
+- Upserts `user_profiles` row with `role = 'admin'`
+- No organization is attached
+- Sets `is_temporary_password = true` in auth metadata so the user must change their password after first login
+- Delete command removes both auth user and profile
+
+### Organization Admin (`org-admin create` / `list` / `delete`)
+
+- Requires an existing organization ID (`--org <uuid>`)
+- Creates auth user, assigns profile with `organization_role = 'org_admin'`
+- Password is generated if not supplied
+- Temporary-password flag is enabled exactly like the super-admin flow
+- `--plan`, `--documents-limit`, and `--seats-limit` can optionally update the organization’s billing plan and quotas during creation
+- Listing shows org name (via `organizations` join)
+
+### User (`user create` / `list` / `delete`)
+
+- Creates auth user and profile with `role = 'user'`
+- Optional `--org` attaches the user to an organization (`organization_role = 'member'`)
+- Optional `--plan` chooses from catalog (`free_trial`, `pay_as_you_go`, etc.)
+- Automatically upserts `user_usage_stats` and `user_plans` records
+- Sets the temporary-password flag so they must complete the Change Password flow on first sign-in
+- `--contracts-limit`, `--documents-limit`, and `--seats-limit` override the assigned plan quotas when provisioning
+- Listing can include admins with `--admins`
+
+All delete commands remove the auth user first (ensuring tokens are invalidated) and then clean up the profile record. Related tables that cascade on delete (`user_usage_stats`, `user_plans`, etc.) are cleaned up automatically.
+
+---
+
+## 4. Example Workflows
+
+### Create a Maigon Super Admin
 
 ```bash
-ADMIN_MANAGEMENT_KEY=your_secure_admin_key_here
+npm run admin:create -- --email admin@maigon.io --first-name Ada --last-name Lovelace
 ```
 
-## 📝 Usage
+If you omit `--password` a secure random password is printed at the end of the run. Share it out-of-band.
 
-### Create Admin User (like Django's createsuperuser)
+### Create an Organization Admin
 
 ```bash
-# Interactive creation
-npm run admin:create
-
-# Or directly
-node scripts/manage_admin.js create
+npm run org-admin:create -- --email boss@example.com --org 6b2a6f5c-... --first-name Boss
 ```
 
-**Example:**
+This ensures the profile is set to `organization_role = 'org_admin'` for that organization.
 
-```
-🔧 Create Super Admin User
-==============================
-
-Email address: admin@maigon.io
-Password: ********
-First name: Super
-Last name: Admin
-Company (optional): Maigon
-
-📤 Creating admin user...
-
-✅ Admin user created successfully!
-📧 Email: admin@maigon.io
-👤 Name: Super Admin
-🏢 Company: Maigon
-🔐 Role: admin
-
-🎉 The admin user can now sign in to the application!
-```
-
-### List All Admin Users
+### Create a Standard User on the Trial Plan
 
 ```bash
-npm run admin:list
+npm run user:create -- --email user@example.com --org 6b2a6f5c-...
 ```
 
-**Example Output:**
+Result:
 
-```
-👥 Admin Users List
-====================
+1. Auth user created (email confirmed)
+2. Profile inserted with `role = 'user'`
+3. `user_usage_stats` initialized
+4. `user_plans` row created using the `free_trial` plan definition
+5. `is_temporary_password` metadata flag set so the user must change the password on first login
 
-📊 Found 2 admin user(s):
-
-1. Super Admin
-   📧 Email: admin@maigon.io
-   🏢 Company: Maigon
-   📅 Created: 1/15/2025
-   ✅ Active: Yes
-
-2. John Developer
-   📧 Email: john@maigon.io
-   🏢 Company: Maigon
-   📅 Created: 1/14/2025
-   ✅ Active: Yes
-```
-
-### Delete Admin User
+### List Users for an Organization
 
 ```bash
-npm run admin:delete
-
-# Or specify email directly
-node scripts/manage_admin.js delete admin@example.com
+npm run user:list -- --org 6b2a6f5c-...
 ```
 
-### Help
+### Delete a User
 
 ```bash
-npm run admin:help
+npm run user:delete -- --email user@example.com
 ```
 
-## 🔐 Security Features
+---
 
-- **Admin Key Protection**: All operations require a secure admin management key
-- **Auto Email Confirmation**: Admin users are automatically email-verified
-- **Professional Plan**: Admin users get unlimited access
-- **Proper Cleanup**: Failed operations are automatically cleaned up
+## 5. Tips & Safety
 
-## 🎯 What Gets Created
+- **Service role access**: the CLI uses the service role key, so protect your `.env` file.
+- **Dry runs**: there is no dry-run flag (yet). Double-check arguments before running delete commands.
+- **Auditing**: each command prints success/error messages; wrap them in shell scripts or CI jobs as needed.
+- **Extensibility**: the dispatcher is simple—add new subcommands in `scripts/manage.ts` and corresponding handlers under `scripts/cli/`.
 
-When you create an admin user, the system automatically:
+---
 
-1. **Auth User**: Creates user in Supabase auth with email confirmation
-2. **User Profile**: Creates profile with admin role
-3. **User Plan**: Assigns professional plan with unlimited features
-4. **Usage Stats**: Initializes usage tracking
-5. **Full Access**: Admin can access all features including:
-   - Custom solution builder
-   - Admin analytics dashboard
-   - User management
-   - System monitoring
+## 6. Troubleshooting
 
-## 🆚 Django Comparison
+| Issue | Fix |
+|-------|-----|
+| `Missing Supabase service role key` | Ensure `SUPABASE_SERVICE_ROLE_KEY` is in `.env` or environment |
+| `Unknown plan ...` | Check `shared/plans.ts` for valid keys |
+| `Organization ... not found` | Verify the organization UUID exists in `organizations` table |
+| `Auth user already exists` | Delete the existing account first (`... delete --email ...`) |
+| User keeps getting asked to change password | They still have the temporary flag. Have them complete the Change Password flow or clear it via Supabase Admin if resetting manually. |
 
-| Django                             | Maigon Admin Management |
-| ---------------------------------- | ----------------------- |
-| `python manage.py createsuperuser` | `npm run admin:create`  |
-| Interactive prompts                | Interactive prompts     |
-| Database direct access             | Supabase Edge Function  |
-| Built-in command                   | Custom CLI script       |
+Run `npm run admin:help` (or `tsx scripts/manage.ts --help`) to show the usage summary at any time.
 
-## 🔧 Technical Details
-
-### Architecture
-
-```
-CLI Script (manage_admin.js)
-     ↓ HTTPS Request
-Supabase Edge Function (admin-user-management)
-     ↓ Admin API Calls
-Supabase Auth + Database
-```
-
-### Files Created
-
-- `supabase/functions/admin-user-management/index.ts` - Edge function
-- `scripts/manage_admin.js` - CLI management script
-- `package.json` - Added npm scripts
-
-### Environment Variables
-
-- `ADMIN_MANAGEMENT_KEY` - Security key for admin operations
-- `VITE_SUPABASE_URL` - Your Supabase project URL
-- `VITE_SUPABASE_ANON_KEY` - Your Supabase anonymous key
-
-## 🚨 Troubleshooting
-
-### "Invalid admin management key"
-
-- Make sure `ADMIN_MANAGEMENT_KEY` is set in both Supabase secrets and your `.env`
-- Keys must match exactly
-
-### "Function not found"
-
-- Deploy the edge function first
-- Check function name is exactly `admin-user-management`
-
-### "Failed to create auth user"
-
-- Check Supabase service role key permissions
-- Ensure email doesn't already exist
-
-### "Permission denied"
-
-- Verify the admin management key
-- Check Supabase project access
-
-## 🎉 Success!
-
-Once deployed, you can create admin users instantly without going through the regular signup flow, just like Django's admin system!
-
-**Created admin users can immediately:**
-
-- ✅ Sign in to the application
-- ✅ Access admin dashboard
-- ✅ Create custom solutions
-- ✅ Manage users and analytics
-- ✅ Use all AI features with unlimited quota
+Happy debugging and provisioning! 🎉

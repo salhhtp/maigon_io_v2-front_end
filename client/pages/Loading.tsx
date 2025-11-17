@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ChevronDown, User } from "lucide-react";
 import { Link, useLocation, useNavigate, useBlocker } from "react-router-dom";
 import Logo from "@/components/Logo";
@@ -12,8 +12,34 @@ import { reviewProcessingStore } from "@/lib/reviewProcessingStore";
 import { DataService } from "@/services/dataService";
 import type { ContractReviewPayload } from "@shared/api";
 
+const PROGRESS_MESSAGES: Record<string, string> = {
+  preparing: "Preparing contract upload…",
+  uploading: "Uploading securely…",
+  extracting: "Extracting text…",
+  classification_complete: "Identifying contract type…",
+  contract_persisted: "Saving contract securely…",
+  analysis_start: "Analyzing clauses with GPT-5…",
+  analysis_complete: "Summarizing review findings…",
+  review_saved: "Finalizing your report…",
+  complete: "Report ready",
+  error: "Review interrupted",
+};
+
+const STAGE_PROGRESS: Record<string, number> = {
+  preparing: 6,
+  uploading: 12,
+  extracting: 18,
+  classification_complete: 22,
+  contract_persisted: 42,
+  analysis_start: 55,
+  analysis_complete: 85,
+  review_saved: 96,
+  complete: 99,
+  error: 96,
+};
+
 export default function Loading() {
-  const { user } = useUser();
+  const { user, logout, refreshUser } = useUser();
   const { toast } = useToast();
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
@@ -27,9 +53,12 @@ export default function Loading() {
     useState<ContractReviewPayload | null>(null);
   const [animationComplete, setAnimationComplete] = useState(false);
   const [logoProgress, setLogoProgress] = useState(4);
-  const [processingFinishedAt, setProcessingFinishedAt] = useState<
-    number | null
-  >(null);
+  const [targetProgress, setTargetProgress] = useState(6);
+  const [workflowStageMessage, setWorkflowStageMessage] = useState(
+    PROGRESS_MESSAGES.preparing,
+  );
+  const [allowCompletion, setAllowCompletion] = useState(false);
+  const hasStartedProcessingRef = useRef(false); // prevents duplicate workflow execution when context updates
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -47,11 +76,34 @@ export default function Loading() {
       isProcessing && currentLocation.pathname !== nextLocation.pathname,
   );
 
+  const handleWorkflowProgress = useCallback((stage: string, percent: number) => {
+    setWorkflowStageMessage(
+      PROGRESS_MESSAGES[stage] ?? "Processing contract…",
+    );
+    setTargetProgress((prev) => {
+      const fallbackPercent =
+        typeof percent === "number" && Number.isFinite(percent) ? percent : prev;
+      const mapped =
+        stage === "complete"
+          ? STAGE_PROGRESS.complete
+          : Math.min(
+              STAGE_PROGRESS[stage] ?? fallbackPercent,
+              STAGE_PROGRESS.complete - 2,
+            );
+      return Math.max(prev, mapped);
+    });
+  }, []);
+
   const handleAnimationFinished = () => {
     setAnimationComplete(true);
   };
 
   useEffect(() => {
+    if (hasStartedProcessingRef.current) {
+      return;
+    }
+    hasStartedProcessingRef.current = true;
+
     const pending = reviewProcessingStore.consumePending();
 
     if (!pending) {
@@ -71,23 +123,53 @@ export default function Loading() {
     const runProcessing = async () => {
       try {
         const result = await DataService.processContractWorkflow(
-          pending.userId,
+          {
+            authId: pending.userAuthId,
+            profileId: pending.userProfileId,
+          },
           pending.contractInput,
           pending.reviewType,
+          {
+            onProgress: handleWorkflowProgress,
+          },
         );
+
+        if (user?.plan.type === "pay_as_you_go" && user?.id) {
+          try {
+            await DataService.paygCredits.consume({
+              userId: user.id,
+              amount: 1,
+              reason: "consumption",
+              referenceId: result.contract?.id ?? null,
+              metadata: {
+                ingestionId: (pending as any)?.contractInput?.ingestion_id ?? null,
+              },
+            });
+            void refreshUser();
+          } catch (creditError) {
+            logError("Failed to decrement PAYG credits", creditError, {
+              userId: user.id,
+            });
+          }
+        }
 
         const payload: ContractReviewPayload = {
           contract: result.contract,
           review: result.review,
           metadata: pending.metadata,
+          classification: result.classification ?? null,
+          timings: result.timings,
         };
 
         sessionStorage.setItem("maigon:lastReview", JSON.stringify(payload));
 
         setPendingResult(payload);
         setIsProcessing(false);
-        setProcessingFinishedAt(Date.now());
-        setLogoProgress((prev) => Math.max(prev, 94));
+        setWorkflowStageMessage(PROGRESS_MESSAGES.complete);
+        setTargetProgress((prev) =>
+          Math.max(prev, STAGE_PROGRESS.complete - 1),
+        );
+        setAllowCompletion(true);
 
         toast({
           title: "Contract processed successfully",
@@ -95,7 +177,7 @@ export default function Loading() {
         });
       } catch (error) {
         const errorDetails = logError("❌ Contract processing error", error, {
-          userId: pending.userId,
+          userId: pending.userProfileId || pending.userAuthId,
           reviewType: pending.reviewType,
           fileName: pending.metadata.fileName,
         });
@@ -105,9 +187,11 @@ export default function Loading() {
           "There was an error processing your contract. Please try again.",
         );
 
+        setWorkflowStageMessage(PROGRESS_MESSAGES.error);
         setProcessingError(userMessage);
         setIsProcessing(false);
-        setProcessingFinishedAt(Date.now());
+        setAllowCompletion(true);
+        setTargetProgress((prev) => Math.max(prev, 96));
         reviewProcessingStore.clear();
         toast({
           title: "Processing failed",
@@ -118,49 +202,26 @@ export default function Loading() {
     };
 
     runProcessing();
-  }, [toast]);
+  }, [handleWorkflowProgress, refreshUser, toast, user?.id, user?.plan?.type]);
 
   useEffect(() => {
     const updateInterval = window.setInterval(() => {
       setLogoProgress((prev) => {
-        const finishedAt = processingFinishedAt;
-        const now = Date.now();
-
-        let target = 92;
-        let step = 0.8;
-
-        if (pendingResult) {
-          const elapsed = finishedAt ? now - finishedAt : 0;
-          if (elapsed >= 1400) {
-            target = 100;
-            step = 1.5;
-          } else {
-            target = 99;
-            step = 1.0;
-          }
-        } else if (!isProcessing) {
-          target = 96;
-          step = 0.9;
-        }
-
-        if (processingError) {
-          target = 96;
-          step = 0.6;
-        }
-
-        if (prev >= target) {
+        const destination = allowCompletion ? 100 : targetProgress;
+        if (prev >= destination) {
           return prev;
         }
-
-        const next = Math.min(target, prev + step);
+        const delta = destination - prev;
+        const increment = Math.max(0.1, Math.min(delta, delta * 0.12));
+        const next = Math.min(destination, prev + increment);
         return Number(next.toFixed(2));
       });
-    }, 120);
+    }, 160);
 
     return () => {
       window.clearInterval(updateInterval);
     };
-  }, [isProcessing, pendingResult, processingFinishedAt, processingError]);
+  }, [allowCompletion, targetProgress]);
 
   useEffect(() => {
     if (!pendingResult || !animationComplete) {
@@ -169,11 +230,7 @@ export default function Loading() {
 
     const timeout = window.setTimeout(() => {
       navigate("/contract-review", {
-        state: {
-          contract: pendingResult.contract,
-          review: pendingResult.review,
-          metadata: pendingResult.metadata,
-        },
+        state: pendingResult,
         replace: true,
       });
     }, 650);
@@ -183,6 +240,8 @@ export default function Loading() {
     };
   }, [pendingResult, animationComplete, navigate]);
 
+  const LOGOUT_DESTINATION = "__logout";
+
   const handleLinkClick = (path: string) => (e: React.MouseEvent) => {
     e.preventDefault(); // Always prevent default to avoid conflicts
     if (isProcessing) {
@@ -190,13 +249,34 @@ export default function Loading() {
       setShowConfirmModal(true);
     } else {
       // If not processing, navigate directly
-      navigate(path);
+      if (path === LOGOUT_DESTINATION) {
+        void logout();
+      } else {
+        navigate(path);
+      }
+    }
+  };
+
+  const handleLogoutClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setUserDropdownOpen(false);
+    if (isProcessing) {
+      setPendingNavigation(LOGOUT_DESTINATION);
+      setShowConfirmModal(true);
+    } else {
+      void logout();
     }
   };
 
   const handleConfirmNavigation = () => {
     setIsProcessing(false);
     setShowConfirmModal(false);
+
+    if (pendingNavigation === LOGOUT_DESTINATION) {
+      setPendingNavigation(null);
+      void logout();
+      return;
+    }
 
     if (blocker.state === "blocked") {
       blocker.proceed();
@@ -326,12 +406,13 @@ export default function Loading() {
                 >
                   Settings
                 </a>
-                <div
-                  onClick={handleLinkClick("/")}
-                  className="block px-4 py-2 text-sm text-[#271D1D] hover:bg-[#F9F8F8] transition-colors cursor-pointer"
+                <button
+                  type="button"
+                  onClick={handleLogoutClick}
+                  className="block w-full text-left px-4 py-2 text-sm text-[#271D1D] hover:bg-[#F9F8F8] transition-colors"
                 >
                   Log Out
-                </div>
+                </button>
               </div>
             )}
           </div>
@@ -369,35 +450,23 @@ export default function Loading() {
           {/* Animated Loading Logo */}
           <div className="w-full px-2.5 py-2.5">
             <AnimatedLoadingLogo
+              duration={45000}
               onComplete={handleAnimationFinished}
-              isComplete={Boolean(pendingResult)}
+              isComplete={allowCompletion}
               externalProgress={logoProgress}
               outlineColor="#CDBABA"
               fillColor="#CDBABA"
             />
+            <p className="mt-3 text-center text-xs text-[#9A7C7C]">
+              {workflowStageMessage}
+            </p>
           </div>
 
           {/* Processing Info */}
-          {(displayInfo.fileName || displayInfo.solutionTitle) && (
+          {displayInfo.fileName && (
             <div className="text-center text-sm text-[#9A7C7C] font-roboto mt-4">
-              <div>
-                Processing:{" "}
-                <span className="font-medium">
-                  {displayInfo.fileName || "Contract"}
-                </span>
-              </div>
-              <div>
-                Solution:{" "}
-                <span className="font-medium">
-                  {displayInfo.solutionTitle || "Custom Analysis"}
-                </span>
-              </div>
-              <div>
-                Perspective:{" "}
-                <span className="font-medium capitalize">
-                  {displayInfo.perspective || "general"}
-                </span>
-              </div>
+              Processing:
+              <span className="font-medium"> {displayInfo.fileName}</span>
             </div>
           )}
 

@@ -176,7 +176,8 @@ export default function Profile() {
     updateUser({ settings: newSettings });
   };
 
-  const isAdmin = user.role === "admin";
+  const isAdmin = user.isMaigonAdmin;
+  const isOrgAdmin = user.isOrgAdmin;
 
   return (
     <div className="min-h-screen bg-[#F9F8F8]">
@@ -262,9 +263,10 @@ export default function Profile() {
                   Profile & Settings
                 </Link>
                 <button
+                  type="button"
                   onClick={() => {
-                    logout();
-                    navigate("/");
+                    setUserDropdownOpen(false);
+                    void logout();
                   }}
                   className="block w-full text-left px-4 py-2 text-sm text-[#271D1D] hover:bg-[#F9F8F8] transition-colors"
                 >
@@ -324,7 +326,12 @@ export default function Profile() {
                 </h2>
                 <p className="text-[#271D1D]/70 mb-1">{user.email}</p>
                 <p className="text-sm text-[#271D1D]/60">
-                  {user.company} • {user.role === "admin" ? "Administrator" : "User"}
+                  {user.company} •{" "}
+                  {user.isMaigonAdmin
+                    ? "Maigon Administrator"
+                    : user.isOrgAdmin
+                      ? "Organization Admin"
+                      : "User"}
                 </p>
                 <div className="mt-3 flex items-center gap-4">
                   <div className="text-sm">

@@ -42,21 +42,29 @@ export class AdminAnalyticsService {
   }
 
   // Get contract analytics
-  static async getContractAnalytics() {
-    const { data: totalContracts, error: contractsError } = await supabase
+  static async getContractAnalytics(organizationId?: string) {
+    let totalContractsQuery = supabase
       .from('contracts')
       .select('*', { count: 'exact', head: true });
-
-    const { data: contractsByStatus, error: statusError } = await supabase
+    let contractsByStatusQuery = supabase
       .from('contracts')
       .select('status')
       .order('status');
-
-    const { data: recentContracts, error: recentError } = await supabase
+    let recentContractsQuery = supabase
       .from('contracts')
       .select('*')
       .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
       .order('created_at', { ascending: false });
+
+    if (organizationId) {
+      totalContractsQuery = totalContractsQuery.eq('organization_id', organizationId);
+      contractsByStatusQuery = contractsByStatusQuery.eq('organization_id', organizationId);
+      recentContractsQuery = recentContractsQuery.eq('organization_id', organizationId);
+    }
+
+    const { data: totalContracts, error: contractsError } = await totalContractsQuery;
+    const { data: contractsByStatus, error: statusError } = await contractsByStatusQuery;
+    const { data: recentContracts, error: recentError } = await recentContractsQuery;
 
     if (contractsError || statusError || recentError) {
       throw contractsError || statusError || recentError;
@@ -77,15 +85,22 @@ export class AdminAnalyticsService {
   }
 
   // Get review analytics
-  static async getReviewAnalytics() {
-    const { data: totalReviews, error: reviewsError } = await supabase
+  static async getReviewAnalytics(organizationId?: string) {
+    let totalReviewsQuery = supabase
       .from('contract_reviews')
       .select('*', { count: 'exact', head: true });
-
-    const { data: reviewsByType, error: typeError } = await supabase
+    let reviewsByTypeQuery = supabase
       .from('contract_reviews')
       .select('review_type, score')
       .order('review_type');
+
+    if (organizationId) {
+      totalReviewsQuery = totalReviewsQuery.eq('organization_id', organizationId);
+      reviewsByTypeQuery = reviewsByTypeQuery.eq('organization_id', organizationId);
+    }
+
+    const { data: totalReviews, error: reviewsError } = await totalReviewsQuery;
+    const { data: reviewsByType, error: typeError } = await reviewsByTypeQuery;
 
     if (reviewsError || typeError) {
       throw reviewsError || typeError;
@@ -108,15 +123,63 @@ export class AdminAnalyticsService {
     };
   }
 
+  // Get AI analysis metrics aggregated by status and fallback usage
+  static async getAnalysisMetrics(days = 7, organizationId?: string) {
+    let metricsQuery = supabase
+      .from('analysis_metrics')
+      .select('status, fallback_used, model_used, review_type, created_at')
+      .gte('created_at', new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString());
+
+    if (organizationId) {
+      metricsQuery = metricsQuery.eq('organization_id', organizationId);
+    }
+
+    const { data, error } = await metricsQuery;
+
+    if (error) throw error;
+
+    const summary = {
+      total: data?.length ?? 0,
+      byStatus: {} as Record<string, number>,
+      fallbackCount: 0,
+      byModel: {} as Record<string, number>,
+      byReviewType: {} as Record<string, number>,
+    };
+
+    data?.forEach((metric) => {
+      summary.byStatus[metric.status ?? 'unknown'] =
+        (summary.byStatus[metric.status ?? 'unknown'] || 0) + 1;
+      if (metric.fallback_used) {
+        summary.fallbackCount += 1;
+      }
+      if (metric.model_used) {
+        summary.byModel[metric.model_used] =
+          (summary.byModel[metric.model_used] || 0) + 1;
+      }
+      if (metric.review_type) {
+        summary.byReviewType[metric.review_type] =
+          (summary.byReviewType[metric.review_type] || 0) + 1;
+      }
+    });
+
+    return summary;
+  }
+
   // Get user activity analytics
-  static async getUserActivityAnalytics(days = 30) {
+  static async getUserActivityAnalytics(days = 30, organizationId?: string) {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
 
-    const { data: activities, error } = await supabase
+    let activityQuery = supabase
       .from('user_activities')
       .select('activity_type, created_at, user_id')
       .gte('created_at', startDate.toISOString());
+
+    if (organizationId) {
+      activityQuery = activityQuery.eq('organization_id', organizationId);
+    }
+
+    const { data: activities, error } = await activityQuery;
 
     if (error) throw error;
 
@@ -149,12 +212,12 @@ export class AdminAnalyticsService {
   }
 
   // Get platform overview
-  static async getPlatformOverview() {
+  static async getPlatformOverview(organizationId?: string) {
     const [userStats, contractStats, reviewStats, activityStats] = await Promise.all([
-      this.getUserStats(),
-      this.getContractAnalytics(),
-      this.getReviewAnalytics(),
-      this.getUserActivityAnalytics(7), // Last 7 days
+      this.getUserStats(organizationId),
+      this.getContractAnalytics(organizationId),
+      this.getReviewAnalytics(organizationId),
+      this.getUserActivityAnalytics(7, organizationId), // Last 7 days
     ]);
 
     return {
@@ -166,21 +229,29 @@ export class AdminAnalyticsService {
   }
 
   // Get user statistics
-  static async getUserStats() {
-    const { data: totalUsers, error: usersError } = await supabase
+  static async getUserStats(organizationId?: string) {
+    let totalUsersQuery = supabase
       .from('user_profiles')
       .select('*', { count: 'exact', head: true });
-
-    const { data: recentUsers, error: recentError } = await supabase
+    let recentUsersQuery = supabase
       .from('user_profiles')
       .select('*')
       .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
       .order('created_at', { ascending: false });
-
-    const { data: activeUsers, error: activeError } = await supabase
+    let activeUsersQuery = supabase
       .from('user_profiles')
       .select('*')
       .eq('is_active', true);
+
+    if (organizationId) {
+      totalUsersQuery = totalUsersQuery.eq('organization_id', organizationId);
+      recentUsersQuery = recentUsersQuery.eq('organization_id', organizationId);
+      activeUsersQuery = activeUsersQuery.eq('organization_id', organizationId);
+    }
+
+    const { data: totalUsers, error: usersError } = await totalUsersQuery;
+    const { data: recentUsers, error: recentError } = await recentUsersQuery;
+    const { data: activeUsers, error: activeError } = await activeUsersQuery;
 
     if (usersError || recentError || activeError) {
       throw usersError || recentError || activeError;

@@ -49,6 +49,8 @@ export type Database = {
           industry: string | null;
           hear_about_us: string | null;
           role: "user" | "admin" | null;
+          organization_id: string | null;
+          organization_role: "member" | "org_admin" | null;
           is_active: boolean | null;
         };
         Insert: {
@@ -66,6 +68,8 @@ export type Database = {
           industry?: string | null;
           hear_about_us?: string | null;
           role?: "user" | "admin" | null;
+          organization_id?: string | null;
+          organization_role?: "member" | "org_admin" | null;
           is_active?: boolean | null;
         };
         Update: {
@@ -83,7 +87,76 @@ export type Database = {
           industry?: string | null;
           hear_about_us?: string | null;
           role?: "user" | "admin" | null;
+          organization_id?: string | null;
+          organization_role?: "member" | "org_admin" | null;
           is_active?: boolean | null;
+        };
+      };
+      organizations: {
+        Row: {
+          id: string;
+          name: string;
+          slug: string | null;
+          billing_plan: string;
+          seats_limit: number;
+          documents_limit: number;
+          metadata: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          slug?: string | null;
+          billing_plan?: string;
+          seats_limit?: number;
+          documents_limit?: number;
+          metadata?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          slug?: string | null;
+          billing_plan?: string;
+          seats_limit?: number;
+          documents_limit?: number;
+          metadata?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      organization_alert_preferences: {
+        Row: {
+          organization_id: string;
+          notify_high_risk: boolean;
+          notify_pending_edits: boolean;
+          alert_channel: string;
+          metadata: Json;
+          last_digest_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          organization_id: string;
+          notify_high_risk?: boolean;
+          notify_pending_edits?: boolean;
+          alert_channel?: string;
+          metadata?: Json;
+          last_digest_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          organization_id?: string;
+          notify_high_risk?: boolean;
+          notify_pending_edits?: boolean;
+          alert_channel?: string;
+          metadata?: Json;
+          last_digest_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
         };
       };
       user_activities: {
@@ -94,6 +167,7 @@ export type Database = {
           description: string | null;
           metadata: Json | null;
           created_at: string | null;
+          organization_id: string | null;
         };
         Insert: {
           id?: string;
@@ -102,6 +176,7 @@ export type Database = {
           description?: string | null;
           metadata?: Json | null;
           created_at?: string | null;
+          organization_id?: string | null;
         };
         Update: {
           id?: string;
@@ -110,6 +185,7 @@ export type Database = {
           description?: string | null;
           metadata?: Json | null;
           created_at?: string | null;
+          organization_id?: string | null;
         };
       };
       user_usage_stats: {
@@ -123,6 +199,7 @@ export type Database = {
           last_activity: string | null;
           created_at: string | null;
           updated_at: string | null;
+          organization_id: string | null;
         };
         Insert: {
           id?: string;
@@ -134,6 +211,7 @@ export type Database = {
           last_activity?: string | null;
           created_at?: string | null;
           updated_at?: string | null;
+          organization_id?: string | null;
         };
         Update: {
           id?: string;
@@ -145,6 +223,7 @@ export type Database = {
           last_activity?: string | null;
           created_at?: string | null;
           updated_at?: string | null;
+          organization_id?: string | null;
         };
       };
       contracts: {
@@ -153,6 +232,7 @@ export type Database = {
           user_id: string;
           title: string;
           content: string;
+          content_html: string | null;
           file_name: string | null;
           file_size: number | null;
           upload_date: string | null;
@@ -161,12 +241,14 @@ export type Database = {
           updated_at: string | null;
           custom_solution_id: string | null;
           metadata: Json | null;
+          organization_id: string | null;
         };
         Insert: {
           id?: string;
           user_id: string;
           title: string;
           content: string;
+          content_html?: string | null;
           file_name?: string | null;
           file_size?: number | null;
           upload_date?: string | null;
@@ -175,12 +257,14 @@ export type Database = {
           updated_at?: string | null;
           custom_solution_id?: string | null;
           metadata?: Json | null;
+          organization_id?: string | null;
         };
         Update: {
           id?: string;
           user_id?: string;
           title?: string;
           content?: string;
+          content_html?: string | null;
           file_name?: string | null;
           file_size?: number | null;
           upload_date?: string | null;
@@ -189,6 +273,7 @@ export type Database = {
           updated_at?: string | null;
           custom_solution_id?: string | null;
           metadata?: Json | null;
+          organization_id?: string | null;
         };
       };
       contract_reviews: {
@@ -205,6 +290,7 @@ export type Database = {
           custom_solution_id: string | null;
           model_used: string | null;
           confidence_breakdown: Json | null;
+          organization_id: string | null;
         };
         Insert: {
           id?: string;
@@ -219,6 +305,7 @@ export type Database = {
           custom_solution_id?: string | null;
           model_used?: string | null;
           confidence_breakdown?: Json | null;
+          organization_id?: string | null;
         };
         Update: {
           id?: string;
@@ -233,6 +320,166 @@ export type Database = {
           custom_solution_id?: string | null;
           model_used?: string | null;
           confidence_breakdown?: Json | null;
+          organization_id?: string | null;
+        };
+      };
+      analysis_metrics: {
+        Row: {
+          id: string;
+          user_id: string;
+          contract_id: string | null;
+          review_id: string | null;
+          ingestion_id: string | null;
+          model_used: string | null;
+          review_type: string | null;
+          contract_type: string | null;
+          solution_key: string | null;
+          fallback_used: boolean | null;
+          retry_count: number | null;
+          latency_ms: number | null;
+          started_at: string | null;
+          completed_at: string | null;
+          status: string | null;
+          error_code: string | null;
+          error_message: string | null;
+          metadata: Json | null;
+          created_at: string | null;
+          organization_id: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          contract_id?: string | null;
+          review_id?: string | null;
+          ingestion_id?: string | null;
+          model_used?: string | null;
+          review_type?: string | null;
+          contract_type?: string | null;
+          solution_key?: string | null;
+          fallback_used?: boolean | null;
+          retry_count?: number | null;
+          latency_ms?: number | null;
+          started_at?: string | null;
+          completed_at?: string | null;
+          status?: string | null;
+          error_code?: string | null;
+          error_message?: string | null;
+          metadata?: Json | null;
+          created_at?: string | null;
+          organization_id?: string | null;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          contract_id?: string | null;
+          review_id?: string | null;
+          ingestion_id?: string | null;
+          model_used?: string | null;
+          review_type?: string | null;
+          contract_type?: string | null;
+          solution_key?: string | null;
+          fallback_used?: boolean | null;
+          retry_count?: number | null;
+          latency_ms?: number | null;
+          started_at?: string | null;
+          completed_at?: string | null;
+          status?: string | null;
+          error_code?: string | null;
+          error_message?: string | null;
+          metadata?: Json | null;
+          created_at?: string | null;
+          organization_id?: string | null;
+        };
+      };
+      agent_interaction_logs: {
+        Row: {
+          id: string;
+          organization_id: string | null;
+          user_id: string;
+          contract_id: string | null;
+          review_id: string | null;
+          provider: string | null;
+          model: string | null;
+          edit_count: number | null;
+          fallback_used: boolean | null;
+          latency_ms: number | null;
+          metadata: Json;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id?: string | null;
+          user_id: string;
+          contract_id?: string | null;
+          review_id?: string | null;
+          provider?: string | null;
+          model?: string | null;
+          edit_count?: number | null;
+          fallback_used?: boolean | null;
+          latency_ms?: number | null;
+          metadata?: Json;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string | null;
+          user_id?: string;
+          contract_id?: string | null;
+          review_id?: string | null;
+          provider?: string | null;
+          model?: string | null;
+          edit_count?: number | null;
+          fallback_used?: boolean | null;
+          latency_ms?: number | null;
+          metadata?: Json;
+          created_at?: string;
+        };
+      };
+      agent_edit_approvals: {
+        Row: {
+          id: string;
+          organization_id: string | null;
+          interaction_id: string | null;
+          user_id: string;
+          contract_id: string | null;
+          review_id: string | null;
+          proposed_edit_id: string | null;
+          clause_reference: string | null;
+          change_type: string | null;
+          suggested_text: string | null;
+          rationale: string | null;
+          metadata: Json;
+          accepted_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id?: string | null;
+          interaction_id?: string | null;
+          user_id: string;
+          contract_id?: string | null;
+          review_id?: string | null;
+          proposed_edit_id?: string | null;
+          clause_reference?: string | null;
+          change_type?: string | null;
+          suggested_text?: string | null;
+          rationale?: string | null;
+          metadata?: Json;
+          accepted_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string | null;
+          interaction_id?: string | null;
+          user_id?: string;
+          contract_id?: string | null;
+          review_id?: string | null;
+          proposed_edit_id?: string | null;
+          clause_reference?: string | null;
+          change_type?: string | null;
+          suggested_text?: string | null;
+          rationale?: string | null;
+          metadata?: Json;
+          accepted_at?: string;
         };
       };
       custom_solutions: {
@@ -250,9 +497,16 @@ export type Database = {
           prompts: Json | null;
           is_public: boolean | null;
           is_active: boolean | null;
+          organization_id: string | null;
           created_by: string | null;
           created_at: string | null;
           updated_at: string | null;
+          section_layout: Json | null;
+          clause_library: Json | null;
+          deviation_rules: Json | null;
+          similarity_benchmarks: Json | null;
+          model_settings: Json | null;
+          drafting_settings: Json | null;
         };
         Insert: {
           id?: string;
@@ -268,9 +522,16 @@ export type Database = {
           prompts?: Json | null;
           is_public?: boolean | null;
           is_active?: boolean | null;
+          organization_id?: string | null;
           created_by?: string | null;
           created_at?: string | null;
           updated_at?: string | null;
+          section_layout?: Json | null;
+          clause_library?: Json | null;
+          deviation_rules?: Json | null;
+          similarity_benchmarks?: Json | null;
+          model_settings?: Json | null;
+          drafting_settings?: Json | null;
         };
         Update: {
           id?: string;
@@ -286,9 +547,16 @@ export type Database = {
           prompts?: Json | null;
           is_public?: boolean | null;
           is_active?: boolean | null;
+          organization_id?: string | null;
           created_by?: string | null;
           created_at?: string | null;
           updated_at?: string | null;
+          section_layout?: Json | null;
+          clause_library?: Json | null;
+          deviation_rules?: Json | null;
+          similarity_benchmarks?: Json | null;
+          model_settings?: Json | null;
+          drafting_settings?: Json | null;
         };
       };
       admin_analytics: {

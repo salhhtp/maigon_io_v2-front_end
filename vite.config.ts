@@ -1,9 +1,13 @@
+import "tsconfig-paths/register";
 import { defineConfig, Plugin } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
-import { defineConfig, Plugin } from "vite";
+import dotenv from "dotenv";
 import { sentryVitePlugin } from "@sentry/vite-plugin";
 import { createServer } from "./server";
+
+// Ensure env variables are loaded before any other modules access them
+dotenv.config({ path: path.resolve(process.cwd(), ".env") });
 
 function buildPlugins(mode: string) {
   const plugins: Plugin[] = [react(), expressPlugin()];
@@ -42,8 +46,26 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
+    watch: {
+      // Supabase CLI mutates `.env` frequently; ignore it to avoid
+      // endless restarts that leave the dev server in a bad state.
+      ignored: [
+        "**/.env",
+        "**/.env.*",
+        "**/supabase/**",
+        "**/server/**",
+        "**/logs/**",
+        "**/tmp/**",
+        // Sentry plugin watches dist; avoid recursive triggers.
+        "dist/**",
+      ],
+    },
     fs: {
-      allow: ["./client", "./shared"],
+      allow: [
+        path.resolve(__dirname, "./client"),
+        path.resolve(__dirname, "./shared"),
+        path.resolve(__dirname, "./"),
+      ],
       deny: [".env", ".env.*", "*.{crt,pem}", "**/.git/**", "server/**"],
     },
   },

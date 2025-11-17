@@ -24,6 +24,7 @@ import Step4Mockup from "@/components/step-mockups/Step4Mockup";
 import Step5Mockup from "@/components/step-mockups/Step5Mockup";
 import Step6Mockup from "@/components/step-mockups/Step6Mockup";
 import { useUser } from "@/contexts/SupabaseUserContext";
+import { deriveSolutionKey } from "@/utils/solutionMapping";
 
 const SolutionCard = ({
   title,
@@ -419,13 +420,24 @@ export default function UserSolutions() {
   ];
 
   // Handle solution button clicks - navigate to perspective selection for logged-in users
-  const handleSolutionButtonClick = () => {
-    navigate("/perspective-selection");
+  const handleSolutionButtonClick = (
+    index: number,
+    contractType: { title: string; description: string },
+  ) => {
+    const solutionKey = deriveSolutionKey(undefined, contractType.title);
+    navigate("/perspective-selection", {
+      state: {
+        solutionTitle: contractType.title,
+        solutionId: solutionKey,
+        solutionKey,
+        sourceIndex: index,
+      },
+    });
   };
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const location = useLocation();
 
-  const { user } = useUser();
+  const { user, logout } = useUser();
   const userName = user?.name?.split(" ")[0] || "User";
 
   // Check if user returned from completed review
@@ -518,12 +530,16 @@ export default function UserSolutions() {
                 >
                   Profile & Settings
                 </Link>
-                <Link
-                  to="/"
-                  className="block px-4 py-2 text-sm text-[#271D1D] hover:bg-[#F9F8F8] transition-colors"
+                <button
+                  type="button"
+                  onClick={() => {
+                    setUserDropdownOpen(false);
+                    void logout();
+                  }}
+                  className="block w-full text-left px-4 py-2 text-sm text-[#271D1D] hover:bg-[#F9F8F8] transition-colors"
                 >
                   Log Out
-                </Link>
+                </button>
               </div>
             )}
           </div>

@@ -1,39 +1,28 @@
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-  DropdownMenuLabel,
-} from "@/components/ui/dropdown-menu";
-import {
-  ChevronDown,
   Users,
   FileText,
   Activity,
   TrendingUp,
   TrendingDown,
   BarChart3,
-  Search,
-  Filter,
-  X,
   RefreshCw,
   Download,
-  Calendar,
   Target,
-  DollarSign,
   AlertTriangle,
   CheckCircle,
-  Clock,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useUser } from "@/contexts/SupabaseUserContext";
 import { DataService } from "@/services/dataService";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import Logo from "@/components/Logo";
 import MobileNavigation from "@/components/MobileNavigation";
 import Footer from "@/components/Footer";
+import OrgManagementPanel from "@/components/admin/OrgManagementPanel";
+import CreateUserWizard from "@/components/admin/CreateUserWizard";
+import UserManagementTable from "@/components/admin/UserManagementTable";
+import ProspectTrialLinkWizard from "@/components/admin/ProspectTrialLinkWizard";
 
 interface PlatformData {
   users: {
@@ -249,7 +238,7 @@ export default function AdminAnalytics() {
 
   // Check if user is admin
   useEffect(() => {
-    if (!isLoggedIn || !user || user.role !== 'admin') {
+    if (!isLoggedIn || !user || !user.isMaigonAdmin) {
       navigate('/dashboard');
     }
   }, [isLoggedIn, user, navigate]);
@@ -314,12 +303,12 @@ export default function AdminAnalytics() {
   };
 
   useEffect(() => {
-    if (isLoggedIn && user && user.role === 'admin') {
+    if (isLoggedIn && user?.isMaigonAdmin) {
       loadDashboardData();
     }
   }, [isLoggedIn, user]);
 
-  if (!isLoggedIn || !user || user.role !== 'admin') {
+  if (!isLoggedIn || !user || !user.isMaigonAdmin) {
     return null;
   }
 
@@ -346,11 +335,36 @@ export default function AdminAnalytics() {
     : [];
 
   return (
-    <div className="min-h-screen bg-[#F9F8F8]">
-      <MobileNavigation />
-      
-      <div className="lg:ml-64">
-        <div className="p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen bg-[#F9F8F8] flex flex-col">
+      <header className="flex items-center justify-between px-6 lg:px-16 py-6 border-b border-[#E8DDDD] bg-white">
+        <div className="flex items-center gap-6">
+          <Link
+            to="/home"
+            className="focus:outline-none focus:ring-2 focus:ring-[#9A7C7C] rounded"
+          >
+            <Logo size="xl" />
+          </Link>
+        </div>
+        <div className="md:hidden">
+          <MobileNavigation
+            isLoggedIn={isLoggedIn}
+            userName={user?.name?.split(" ")[0]}
+          />
+        </div>
+        <div className="hidden md:flex items-center gap-3">
+          <Button
+            variant="outline"
+            size="sm"
+            className="border-[#9A7C7C] text-[#9A7C7C]"
+            onClick={() => navigate("/dashboard")}
+          >
+            Go to dashboard
+          </Button>
+        </div>
+      </header>
+
+      <main className="flex-1 px-6 lg:px-16 py-10">
+        <div className="space-y-8">
           {/* Header */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
             <div>
@@ -521,8 +535,16 @@ export default function AdminAnalytics() {
               </div>
             )}
           </div>
+          {user?.isMaigonAdmin && (
+            <div className="space-y-8">
+              <ProspectTrialLinkWizard />
+              <CreateUserWizard />
+              <UserManagementTable />
+              <OrgManagementPanel />
+            </div>
+          )}
         </div>
-      </div>
+      </main>
 
       <Footer />
     </div>

@@ -1,23 +1,58 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { User, ChevronDown } from "lucide-react";
 import Logo from "@/components/Logo";
 import MobileNavigation from "@/components/MobileNavigation";
 import { useUser } from "@/contexts/SupabaseUserContext";
+import { useToast } from "@/hooks/use-toast";
 
 export default function PerspectiveSelection() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user } = useUser();
+  const { user, logout } = useUser();
+  const { toast } = useToast();
   const [selectedPerspective, setSelectedPerspective] = useState<
     "data-subject" | "organization" | null
   >("data-subject");
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
 
+  const paygOutOfCredits = Boolean(
+    user?.plan?.type === "pay_as_you_go" &&
+      (user.plan.payg?.creditsBalance ?? 0) <= 0,
+  );
+
+  useEffect(() => {
+    if (paygOutOfCredits) {
+      toast({
+        title: "No reviews remaining",
+        description: "Buy another review to keep analysing contracts.",
+        variant: "destructive",
+      });
+      navigate("/user-dashboard", { replace: true });
+    }
+  }, [navigate, toast, paygOutOfCredits]);
+
   // Get quick upload data from navigation state
-  const { solutionTitle, quickUpload, adminAccess } = location.state || {};
+  const {
+    solutionTitle,
+    solutionId,
+    solutionKey,
+    quickUpload,
+    adminAccess,
+    customSolutionId,
+  } = location.state || {};
 
   const handleContinue = () => {
+    if (paygOutOfCredits) {
+      toast({
+        title: "No reviews remaining",
+        description: "Purchase another review before uploading a contract.",
+        variant: "destructive",
+      });
+      navigate("/user-dashboard");
+      return;
+    }
+
     if (selectedPerspective) {
       // Navigate to upload page with the selected perspective and solution info
       navigate("/upload", {
@@ -25,7 +60,10 @@ export default function PerspectiveSelection() {
           perspective: selectedPerspective,
           solutionTitle,
           quickUpload,
-          adminAccess
+          adminAccess,
+          solutionId: solutionId ?? solutionKey,
+          solutionKey,
+          customSolutionId,
         }
       });
     }
@@ -100,12 +138,16 @@ export default function PerspectiveSelection() {
                 >
                   Settings
                 </Link>
-                <Link
-                  to="/"
-                  className="block px-4 py-2 text-sm text-[#271D1D] hover:bg-[#F9F8F8] transition-colors"
+                <button
+                  type="button"
+                  onClick={() => {
+                    setUserDropdownOpen(false);
+                    void logout();
+                  }}
+                  className="block w-full text-left px-4 py-2 text-sm text-[#271D1D] hover:bg-[#F9F8F8] transition-colors"
                 >
                   Log Out
-                </Link>
+                </button>
               </div>
             )}
           </div>

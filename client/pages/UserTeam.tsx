@@ -66,7 +66,7 @@ const FAQItem = ({
 export default function UserTeam() {
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const location = useLocation();
-  const { user } = useUser();
+  const { user, logout } = useUser();
   const userName = user?.name?.split(" ")[0] || "User";
 
   return (
@@ -150,12 +150,16 @@ export default function UserTeam() {
                 >
                   Profile & Settings
                 </Link>
-                <Link
-                  to="/"
-                  className="block px-4 py-2 text-sm text-[#271D1D] hover:bg-[#F9F8F8] transition-colors"
+                <button
+                  type="button"
+                  onClick={() => {
+                    setUserDropdownOpen(false);
+                    void logout();
+                  }}
+                  className="block w-full text-left px-4 py-2 text-sm text-[#271D1D] hover:bg-[#F9F8F8] transition-colors"
                 >
                   Log Out
-                </Link>
+                </button>
               </div>
             )}
           </div>

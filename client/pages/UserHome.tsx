@@ -182,9 +182,10 @@ export default function UserHome() {
                   Profile & Settings
                 </Link>
                 <button
+                  type="button"
                   onClick={() => {
-                    logout();
-                    navigate("/");
+                    setUserDropdownOpen(false);
+                    void logout();
                   }}
                   className="block w-full text-left px-4 py-2 text-sm text-[#271D1D] hover:bg-[#F9F8F8] transition-colors"
                 >

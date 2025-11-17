@@ -9,7 +9,7 @@ import { useUser } from "@/contexts/SupabaseUserContext";
 
 export default function SmarterLegalSolutions() {
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
-  const { user, isLoggedIn } = useUser();
+  const { user, isLoggedIn, logout } = useUser();
 
   return (
     <div className="min-h-screen bg-[#F9F8F8]">
@@ -75,12 +75,16 @@ export default function SmarterLegalSolutions() {
                   >
                     Settings
                   </Link>
-                  <Link
-                    to="/"
-                    className="block px-4 py-2 text-sm text-[#271D1D] hover:bg-[#F9F8F8] transition-colors"
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setUserDropdownOpen(false);
+                      void logout();
+                    }}
+                    className="block w-full text-left px-4 py-2 text-sm text-[#271D1D] hover:bg-[#F9F8F8] transition-colors"
                   >
                     Log Out
-                  </Link>
+                  </button>
                 </div>
               )}
             </div>

@@ -1,6 +1,5 @@
-import { supabase } from '@/lib/supabase';
-import type { Database } from '@/lib/supabase';
-import { isMockEnabled, mockDb } from '@/lib/mockDb';
+import { supabase } from "@/lib/supabase";
+import type { Database } from "@/lib/supabase";
 
 type UserActivity = Database['public']['Tables']['user_activities']['Row'];
 type UserActivityInsert = Database['public']['Tables']['user_activities']['Insert'];
@@ -8,12 +7,9 @@ type UserActivityInsert = Database['public']['Tables']['user_activities']['Inser
 export class UserActivitiesService {
   // Track a new activity
   static async trackActivity(activity: UserActivityInsert) {
-    if (isMockEnabled()) {
-      return mockDb.trackActivity(activity as any) as any;
-    }
     try {
       const { data, error } = await supabase
-        .from('user_activities')
+        .from("user_activities")
         .insert(activity)
         .select()
         .single();
@@ -21,7 +17,8 @@ export class UserActivitiesService {
       if (error) throw error;
       return data;
     } catch (e) {
-      return mockDb.trackActivity(activity as any) as any;
+      console.error("Supabase user activity insert failed", e);
+      throw e;
     }
   }
 
@@ -32,29 +29,28 @@ export class UserActivitiesService {
       const to = from + limit - 1;
 
       const { data, error } = await supabase
-        .from('user_activities')
-        .select('*')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false })
+        .from("user_activities")
+        .select("*")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
         .range(from, to);
 
       if (error) throw error;
       return data;
     } catch (e) {
-      // Return mock list if available
-      const all = (localStorage.getItem('mock_user_activities') ? JSON.parse(localStorage.getItem('mock_user_activities') as string) : []) as any[];
-      return all.filter(a => a.user_id === userId).slice(0, limit);
+      console.error("Supabase user activities fetch failed", e);
+      return [];
     }
   }
 
   // Get activities by type
   static async getActivitiesByType(userId: string, activityType: string) {
     const { data, error } = await supabase
-      .from('user_activities')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('activity_type', activityType)
-      .order('created_at', { ascending: false });
+      .from("user_activities")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("activity_type", activityType)
+      .order("created_at", { ascending: false });
 
     if (error) throw error;
     return data;
@@ -63,10 +59,10 @@ export class UserActivitiesService {
   // Get recent activities for dashboard
   static async getRecentActivities(userId: string, limit = 10) {
     const { data, error } = await supabase
-      .from('user_activities')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
+      .from("user_activities")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
       .limit(limit);
 
     if (error) throw error;
@@ -79,21 +75,24 @@ export class UserActivitiesService {
     startDate.setDate(startDate.getDate() - days);
 
     const { data, error } = await supabase
-      .from('user_activities')
-      .select('activity_type, created_at')
-      .eq('user_id', userId)
-      .gte('created_at', startDate.toISOString());
+      .from("user_activities")
+      .select("activity_type, created_at")
+      .eq("user_id", userId)
+      .gte("created_at", startDate.toISOString());
 
     if (error) throw error;
 
     const stats = {
       total: data.length,
       byType: {
-        contract_upload: data.filter(a => a.activity_type === 'contract_upload').length,
-        review_completed: data.filter(a => a.activity_type === 'review_completed').length,
-        export_data: data.filter(a => a.activity_type === 'export_data').length,
-        login: data.filter(a => a.activity_type === 'login').length,
-        profile_update: data.filter(a => a.activity_type === 'profile_update').length,
+        contract_upload: data.filter((a) => a.activity_type === "contract_upload")
+          .length,
+        review_completed: data.filter((a) => a.activity_type === "review_completed")
+          .length,
+        export_data: data.filter((a) => a.activity_type === "export_data").length,
+        login: data.filter((a) => a.activity_type === "login").length,
+        profile_update: data.filter((a) => a.activity_type === "profile_update")
+          .length,
       },
       dailyActivity: this.groupByDay(data),
     };
@@ -101,12 +100,11 @@ export class UserActivitiesService {
     return stats;
   }
 
-  // Helper method to group activities by day
   private static groupByDay(activities: UserActivity[]) {
-    const grouped: { [key: string]: number } = {};
-    
-    activities.forEach(activity => {
-      const date = new Date(activity.created_at).toISOString().split('T')[0];
+    const grouped: Record<string, number> = {};
+
+    activities.forEach((activity) => {
+      const date = new Date(activity.created_at).toISOString().split("T")[0];
       grouped[date] = (grouped[date] || 0) + 1;
     });
 
@@ -122,12 +120,17 @@ export class UserActivitiesService {
     });
   }
 
-  static async trackContractUpload(userId: string, contractId: string, fileName: string) {
+  static async trackContractUpload(
+    userId: string,
+    contractId: string,
+    fileName: string,
+    metadata?: Record<string, unknown>,
+  ) {
     return this.trackActivity({
       user_id: userId,
       activity_type: 'contract_upload',
       description: `Uploaded contract: ${fileName}`,
-      metadata: { contract_id: contractId, file_name: fileName },
+      metadata: { contract_id: contractId, file_name: fileName, ...(metadata || {}) },
     });
   }
 

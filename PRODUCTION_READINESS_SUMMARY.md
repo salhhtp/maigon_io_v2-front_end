@@ -118,7 +118,7 @@
 **What Was Done:**
 - Removed mock response disclaimer from AI agent
 - Verified `VITE_USE_MOCK_DB=false` in environment
-- Confirmed mockDb is only used as fallback for error cases
+- Deleted the legacy `mockDb` implementation and downstream fallbacks
 - Eliminated all hardcoded mock responses in production code paths
 
 **Production Data Flow:**
@@ -126,7 +126,7 @@
 2. Real AI API calls (OpenAI GPT-4, Anthropic Claude)
 3. Real PDF/DOCX text extraction
 4. Real classification and analysis
-5. Fallback to mockDb ONLY if Supabase connection fails (graceful degradation)
+5. Error handling now surfaces Supabase failures to the UI instead of injecting sample data
 
 ---
 
@@ -299,6 +299,9 @@ Use the sample documents in `test_documents/` folder:
 - ✅ `VITE_SUPABASE_URL` set
 - ✅ `VITE_SUPABASE_ANON_KEY` set
 - ✅ `VITE_USE_MOCK_DB=false`
+- ✅ `SUPABASE_URL` set for Express ingestion service
+- ✅ `SUPABASE_SERVICE_ROLE_KEY` available in server runtime (never commit)
+- ✅ `SUPABASE_STORAGE_INGEST_BUCKET` created (defaults to `contracts`)
 
 ### Client Application
 - ✅ Build succeeds without errors
@@ -308,6 +311,7 @@ Use the sample documents in `test_documents/` folder:
 - ✅ Logout clears all data
 - ✅ Upload flow functional
 - ✅ Results display correctly
+- ✅ `npm run ingestion:verify ./test_documents/DPA_Sample.pdf` completes (smoke test)
 
 ---
 

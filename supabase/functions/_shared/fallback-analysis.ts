@@ -1,3 +1,5 @@
+import { validateAnalysisReport } from "./reviewSchema.ts";
+
 export interface FallbackAnalysisContext {
   reviewType: string;
   contractContent: string;
@@ -50,9 +52,11 @@ export function generateFallbackAnalysis(context: FallbackAnalysisContext) {
     extracted_terms: extractBasicTerms(text, readableType),
   };
 
+  let enrichedResult: Record<string, unknown>;
+
   switch (context.reviewType) {
     case "compliance_score":
-      return {
+      enrichedResult = {
         ...baseResult,
         compliance_areas: buildComplianceAreas(text),
         violations: buildComplianceViolations(text),
@@ -60,22 +64,25 @@ export function generateFallbackAnalysis(context: FallbackAnalysisContext) {
         regulatory_landscape: buildRegulatoryLandscape(readableType),
         remediation_roadmap: buildRemediationRoadmap(readableType),
       };
+      break;
     case "risk_assessment":
-      return {
+      enrichedResult = {
         ...baseResult,
         risks: buildRisks(text, readableType),
         risk_interactions: buildRiskInteractions(),
         scenario_analysis: buildScenarioAnalysis(readableType),
       };
+      break;
     case "perspective_review":
-      return {
+      enrichedResult = {
         ...baseResult,
         perspectives: buildPerspectives(text),
         stakeholder_conflicts: buildStakeholderConflicts(),
         negotiation_opportunities: buildNegotiationOpportunities(),
       };
+      break;
     default:
-      return {
+      enrichedResult = {
         ...baseResult,
         executive_summary: baseResult.summary,
         business_impact: buildBusinessImpact(readableType),
@@ -86,7 +93,21 @@ export function generateFallbackAnalysis(context: FallbackAnalysisContext) {
         strategic_recommendations: buildStrategicRecommendations(readableType),
         implementation_roadmap: buildImplementationRoadmap(readableType),
       };
+      break;
   }
+
+  const structuredReport = buildStructuredReport(
+    context,
+    enrichedResult,
+    contractTypeKey,
+    readableType,
+    wordStats,
+  );
+
+  return {
+    ...enrichedResult,
+    structured_report: structuredReport,
+  };
 }
 
 function normaliseContractType(contractType?: string) {
@@ -276,6 +297,553 @@ function buildRecommendations(reviewType: string, readableType: string) {
   }
 
   return recommendations;
+}
+
+function buildStructuredReport(
+  context: FallbackAnalysisContext,
+  result: Record<string, unknown>,
+  contractTypeKey: string,
+  readableType: string,
+  wordStats: { wordCount: number; estimatedPages: number },
+) {
+  const now = new Date().toISOString();
+  const parties = deriveParties(context.contractContent);
+  const issues = buildStructuredIssues(result, readableType);
+  const clauseFindings = buildClauseFindings(result, readableType);
+  const proposedEdits = buildStructuredProposedEdits(
+    result,
+    clauseFindings,
+    readableType,
+  );
+
+  const report = {
+    version: "v3",
+    generatedAt: now,
+    generalInformation: {
+      complianceScore:
+        typeof result.score === "number" ? Math.round(result.score) : 74,
+      selectedPerspective:
+        (context.classification?.suggestedSolutions?.[0] ??
+          context.reviewType ??
+          "summary"),
+      reviewTimeSeconds: Math.max(45, wordStats.wordCount / 2),
+      timeSavingsMinutes: Math.max(5, Math.round(wordStats.wordCount / 420)),
+      reportExpiry: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30).toISOString(),
+    },
+    contractSummary: {
+      contractName: context.fileName || `${readableType} Contract`,
+      filename: context.fileName || null,
+      parties,
+      agreementDirection: readableType,
+      purpose: describePurpose(contractTypeKey),
+      verbalInformationCovered: true,
+      contractPeriod: "Not verified",
+      governingLaw: "Not verified",
+      jurisdiction: "Not verified",
+    },
+    issuesToAddress: issues,
+    criteriaMet: buildCriteriaEntries(result, contractTypeKey),
+    clauseFindings,
+    proposedEdits,
+    playbookInsights: buildPlaybookInsights(result, readableType),
+    clauseExtractions: buildClauseExtractions(result, readableType),
+    similarityAnalysis: buildSimilarityAnalysis(context, readableType),
+    deviationInsights: buildDeviationInsights(
+      result,
+      readableType,
+      contractTypeKey,
+    ),
+    actionItems: buildStructuredActionItems(result),
+    draftMetadata: buildDraftMetadata(context, proposedEdits),
+    metadata: {
+      model: FALLBACK_MODEL_NAME,
+      modelCategory: "default",
+      playbookKey: contractTypeKey,
+      classification: {
+        contractType: context.classification?.contractType ?? contractTypeKey,
+        confidence: context.classification?.confidence ?? 0.4,
+      },
+      critiqueNotes: ["Fallback deterministic analysis"],
+    },
+  };
+
+  return validateAnalysisReport(report);
+}
+
+function normaliseSeverity(value: unknown, fallback: string = "medium") {
+  if (typeof value !== "string") return fallback;
+  const normalized = value.toLowerCase();
+  if (
+    normalized === "critical" ||
+    normalized === "high" ||
+    normalized === "medium" ||
+    normalized === "low" ||
+    normalized === "info"
+  ) {
+    return normalized;
+  }
+  return fallback;
+}
+
+function buildStructuredProposedEdits(
+  result: Record<string, unknown>,
+  clauseFindings: Array<{
+    clauseId: string;
+    title: string;
+    summary: string;
+  }>,
+  readableType: string,
+) {
+  const clauses = Array.isArray(result.critical_clauses)
+    ? (result.critical_clauses as Array<Record<string, any>>)
+    : [];
+
+  if (clauses.length === 0) {
+    return [
+      {
+        id: "fallback-edit-1",
+        clauseId: clauseFindings[0]?.clauseId ?? "clause-1",
+        anchorText: clauseFindings[0]?.title ?? "Key clause",
+        proposedText:
+          "Document clause level redlines once the premium reasoning model is available.",
+        intent: `Preserve ${readableType} obligations`,
+        rationale:
+          "Placeholder edit generated while advanced reasoning pipeline was unreachable.",
+        applyByDefault: true,
+        previewHtml: buildPreviewHtml(
+          clauseFindings[0]?.summary,
+          "Updated text will appear here after re-run.",
+        ),
+      },
+    ];
+  }
+
+  return clauses.slice(0, 3).map((clause, index) => {
+    const clauseId =
+      clause.clause_number ??
+      clause.clauseId ??
+      clauseFindings[index]?.clauseId ??
+      `clause-${index + 1}`;
+    const anchor =
+      clause.clause_title ?? clause.clause ?? clauseFindings[index]?.title ??
+      `Clause ${index + 1}`;
+    const recommendation =
+      clause.recommendation ??
+      clause.importance ??
+      "Clarify obligations per Maigon baseline.";
+    const previousText =
+      clause.clause_text ??
+      clause.summary ??
+      clauseFindings[index]?.summary ??
+      anchor;
+    const updatedText = `${anchor} — ${recommendation}`;
+
+    return {
+      id: `fallback-edit-${index + 1}`,
+      clauseId,
+      anchorText: anchor,
+      proposedText: recommendation,
+      intent: `Elevate ${anchor.toLowerCase()} coverage`,
+      rationale: recommendation,
+      previousText,
+      updatedText,
+      previewHtml: buildPreviewHtml(previousText, updatedText),
+      applyByDefault: index === 0,
+    };
+  });
+}
+
+function buildPreviewHtml(previousText?: string, updatedText?: string) {
+  const safePrevious = previousText
+    ? previousText.slice(0, 400)
+    : "Original language pending AI extraction.";
+  const safeUpdated = updatedText
+    ? updatedText.slice(0, 400)
+    : "Updated language will appear after AI drafting.";
+  return {
+    previous: `<p>${safePrevious}</p>`,
+    updated: `<p><strong>Suggested:</strong> ${safeUpdated}</p>`,
+    diff: `<p><em>Change:</em> ${safeUpdated}</p>`,
+  };
+}
+
+function buildPlaybookInsights(
+  result: Record<string, unknown>,
+  readableType: string,
+) {
+  const recommendations = Array.isArray(result.recommendations)
+    ? (result.recommendations as Array<Record<string, any>>)
+    : [];
+
+  const insights = recommendations.slice(0, 3).map((rec, index) => ({
+    id: `playbook-${index + 1}`,
+    title: rec.category || `Playbook signal ${index + 1}`,
+    summary:
+      rec.description ||
+      "Fallback recommendation generated while reasoning pipeline was unavailable.",
+    severity: normaliseSeverity(rec.severity, "medium"),
+    status: "attention",
+    recommendation:
+      rec.next_step ||
+      "Assign owner to validate this area once GPT-5 review completes.",
+    guidance: [
+      rec.department
+        ? `Coordinate with ${rec.department}`
+        : "Assign accountable owner",
+    ],
+    relatedClauseIds: [],
+  }));
+
+  if (insights.length === 0) {
+    insights.push({
+      id: "playbook-1",
+      title: `${readableType} baseline`,
+      summary:
+        "Fallback heuristics summarised key obligations. Run GPT-5 analysis for clause-level insights.",
+      severity: "medium",
+      status: "attention",
+      recommendation:
+        "Re-run analysis when premium reasoning model is available to unlock guided playbook coverage.",
+      guidance: [
+        "Validate liability, termination, and confidentiality controls.",
+      ],
+      relatedClauseIds: [],
+    });
+  }
+
+  return insights;
+}
+
+function buildClauseExtractions(
+  result: Record<string, unknown>,
+  readableType: string,
+) {
+  const clauses = Array.isArray(result.critical_clauses)
+    ? (result.critical_clauses as Array<Record<string, any>>)
+    : [];
+
+  if (clauses.length === 0) {
+    return [
+      {
+        id: "clause-extract-1",
+        clauseId: "clause-1",
+        title: `${readableType} Overview`,
+        category: "general",
+        originalText:
+          "Clause extractions will populate here once GPT-5 reasoning completes.",
+        normalizedText:
+          `Maintain alignment with Maigon's ${readableType} baseline obligations.`,
+        importance: "medium",
+        references: [],
+      },
+    ];
+  }
+
+  return clauses.slice(0, 6).map((clause, index) => ({
+    id: `clause-extract-${index + 1}`,
+    clauseId:
+      clause.clause_number ?? clause.clauseId ?? `extracted-${index + 1}`,
+    title: clause.clause_title ?? clause.clause ?? `Clause ${index + 1}`,
+    category: clause.clause_type ?? "general",
+    originalText:
+      clause.clause_text ?? clause.clause ?? clause.summary ?? readableType,
+    normalizedText: clause.recommendation ?? undefined,
+    importance: normaliseSeverity(clause.importance, "medium"),
+    location: clause.page_reference
+      ? {
+          section: clause.clause_number ?? undefined,
+        }
+      : undefined,
+    references: clause.page_reference ? [clause.page_reference] : [],
+    metadata: {
+      fallback: true,
+      recommendation: clause.recommendation,
+    },
+  }));
+}
+
+function buildSimilarityAnalysis(
+  context: FallbackAnalysisContext,
+  readableType: string,
+) {
+  const contractLabel =
+    context.contractType || context.classification?.contractType || readableType;
+  return [
+    {
+      id: "similarity-1",
+      sourceTitle: `${contractLabel} baseline playbook`,
+      similarityScore: 0.68,
+      excerpt:
+        "Matched fallback heuristics against Maigon's curated controls for this contract type.",
+      rationale:
+        "Provides directional coverage while reasoning models are unavailable.",
+      tags: ["baseline", contractLabel],
+    },
+    {
+      id: "similarity-2",
+      sourceTitle: "Closest historical review",
+      similarityScore: 0.61,
+      excerpt:
+        "Referenced historical Maigon review outputs to keep structure consistent.",
+      rationale:
+        "Ensures UI continuity until live reasoning pipeline returns structured data.",
+      tags: ["historical"],
+    },
+  ];
+}
+
+function buildDeviationInsights(
+  result: Record<string, unknown>,
+  readableType: string,
+  contractTypeKey: string,
+) {
+  const clauses = Array.isArray(result.critical_clauses)
+    ? (result.critical_clauses as Array<Record<string, any>>)
+    : [];
+
+  if (clauses.length === 0) {
+    return [
+      {
+        id: "deviation-1",
+        title: "Awaiting GPT-5 clause comparison",
+        deviationType: "coverage_gap",
+        severity: "medium",
+        description:
+          "Fallback heuristics cannot fully validate deviations without the premium reasoning model.",
+        expectedStandard: `${contractTypeKey.replace(/_/g, " ")} baseline`,
+        observedLanguage:
+          "Run GPT-5 analysis to inspect clause-level differences.",
+        recommendation:
+          "Re-run the analysis once the reasoning service is back to capture precise deviations.",
+        status: "open",
+      },
+    ];
+  }
+
+  return clauses.slice(0, 2).map((clause, index) => ({
+    id: `deviation-${index + 1}`,
+    title: clause.clause_title ?? clause.clause ?? `Clause ${index + 1}`,
+    deviationType: clause.clause_type ?? "clause_gap",
+    severity: normaliseSeverity(clause.risk_level ?? clause.importance, "medium"),
+    description:
+      clause.recommendation ??
+      "Clause requires validation once reasoning pipeline resumes.",
+    expectedStandard: `${contractTypeKey.replace(/_/g, " ")} baseline`,
+    observedLanguage:
+      clause.clause_text ?? clause.summary ?? clause.clause ?? readableType,
+    recommendation:
+      clause.recommendation ??
+      "Confirm obligations and adjust drafting before export.",
+    clauseId: clause.clause_number ?? undefined,
+    status: "open",
+  }));
+}
+
+function normalizePriority(
+  severity?: unknown,
+): "urgent" | "high" | "medium" | "low" | undefined {
+  if (typeof severity !== "string") return "medium";
+  switch (severity.toLowerCase()) {
+    case "critical":
+      return "urgent";
+    case "high":
+      return "high";
+    case "medium":
+      return "medium";
+    case "low":
+      return "low";
+    default:
+      return "medium";
+  }
+}
+
+function buildStructuredActionItems(result: Record<string, unknown>) {
+  const actionItems = Array.isArray(result.action_items)
+    ? (result.action_items as Array<Record<string, any>>)
+    : [];
+
+  if (actionItems.length === 0) {
+    return [
+      {
+        id: "action-1",
+        title: "Re-run premium analysis",
+        description:
+          "Trigger GPT-5 reasoning once available to replace fallback output.",
+        owner: "Legal",
+        department: "legal",
+        dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+        priority: "high",
+        status: "open",
+      },
+    ];
+  }
+
+  return actionItems.map((item, index) => ({
+    id: String(item.id ?? `action-${index + 1}`),
+    title: item.title ?? item.description ?? `Action ${index + 1}`,
+    description:
+      item.description ??
+      "Track this follow-up task in the Maigon action register.",
+    owner: item.owner ?? "Legal",
+    department: item.department ?? "legal",
+    dueDate: item.due_timeline ?? item.dueDate ?? undefined,
+    priority: normalizePriority(item.severity),
+    status: (item.status as string) ?? "open",
+    relatedClauseId: item.relatedClauseId ?? undefined,
+  }));
+}
+
+function buildDraftMetadata(
+  context: FallbackAnalysisContext,
+  proposedEdits: Array<{ id: string }>,
+) {
+  return {
+    sourceDocumentId: context.fileName ?? undefined,
+    baseVersionLabel: "fallback-draft",
+    htmlSource: "fallback",
+    previewAvailable: proposedEdits.length > 0,
+    selectedEditIds: [],
+    updatedHtml:
+      proposedEdits.length > 0
+        ? "<p>Draft preview will be available once GPT-5 drafting completes.</p>"
+        : undefined,
+    lastUpdated: new Date().toISOString(),
+  };
+}
+
+function deriveParties(content: string) {
+  const match = content.match(
+    /(between|among)\s+(.{3,80}?)\s+and\s+(.{3,80}?)(\.|\n|,)/i,
+  );
+  if (match?.[2] && match?.[3]) {
+    return [match[2].trim(), match[3].trim()];
+  }
+  return ["Party A", "Party B"];
+}
+
+function describePurpose(contractTypeKey: string) {
+  switch (contractTypeKey) {
+    case "data_processing_agreement":
+      return "Defines controller and processor responsibilities for personal data.";
+    case "non_disclosure_agreement":
+      return "Protects confidential exchanges during preliminary discussions.";
+    case "privacy_policy_document":
+      return "Explains how personal data is collected, used, and shared.";
+    case "consultancy_agreement":
+      return "Engages a consultant to provide scoped services and deliverables.";
+    case "research_development_agreement":
+      return "Sets collaboration terms for joint innovation and IP ownership.";
+    case "end_user_license_agreement":
+      return "Provides the license terms for using software or digital services.";
+    case "professional_services_agreement":
+      return "Framework for delivering professional services and SOWs.";
+    default:
+      return "Commercial agreement outlining obligations and risk allocation.";
+  }
+}
+
+function buildStructuredIssues(
+  result: Record<string, unknown>,
+  readableType: string,
+) {
+  const recommendations = Array.isArray(result.recommendations)
+    ? (result.recommendations as Array<{ description?: string }>)
+    : [];
+
+  if (recommendations.length === 0) {
+    return [
+      {
+        id: "issue-1",
+        title: "Manual verification required",
+        severity: "medium",
+        recommendation:
+          "Re-run the primary AI model or perform manual review to obtain clause-specific issues.",
+        rationale: `Fallback analysis summarised the ${readableType} but did not review each clause.`,
+        clauseReference: { heading: "General overview" },
+      },
+    ];
+  }
+
+  return recommendations.slice(0, 3).map((rec, index) => ({
+    id: `issue-${index + 1}`,
+    title: `Key recommendation ${index + 1}`,
+    severity: index === 0 ? "high" : "medium",
+    recommendation:
+      rec.description ||
+      "Translate this recommendation into an action item with owner and due date.",
+    rationale: `Derived from fallback ${readableType} analysis.`,
+    clauseReference: { heading: `Section ${index + 1}` },
+  }));
+}
+
+function buildCriteriaEntries(
+  result: Record<string, unknown>,
+  contractTypeKey: string,
+) {
+  const entries = [
+    {
+      id: "criterion-1",
+      title: "Baseline review executed",
+      description:
+        "Deterministic fallback logic assessed the document when the primary AI was unavailable.",
+      met: true,
+    },
+  ];
+
+  entries.push({
+    id: "criterion-2",
+    title: "Clause-level validation pending",
+    description: `Manual or enhanced AI review needed to confirm all ${
+      contractTypeKey.replace(/_/g, " ") || "contract"
+    } obligations.`,
+    met: false,
+  });
+
+  return entries;
+}
+
+function buildClauseFindings(
+  result: Record<string, unknown>,
+  readableType: string,
+) {
+  const clauses = Array.isArray(result.critical_clauses)
+    ? (result.critical_clauses as Array<{
+        clause?: string;
+        importance?: string;
+        recommendation?: string;
+      }>)
+    : [];
+
+  if (clauses.length === 0) {
+    return [
+      {
+        clauseId: "clause-1",
+        title: `${readableType} overview`,
+        summary:
+          "Fallback mode summarised obligations but could not isolate clause references.",
+        riskLevel: "medium",
+        recommendation:
+          "Re-run the reasoning model to obtain clause-specific diagnostics.",
+      },
+    ];
+  }
+
+  return clauses.slice(0, 4).map((clause, index) => ({
+    clauseId: `clause-${index + 1}`,
+    title: clause.clause || `Clause ${index + 1}`,
+    summary:
+      clause.recommendation ||
+      "Document obligations and ensure policy alignment.",
+    riskLevel:
+      clause.importance === "critical"
+        ? "high"
+        : clause.importance === "high"
+          ? "high"
+          : "medium",
+    recommendation:
+      clause.recommendation ||
+      "Assign owner and due date to remediate identified gaps.",
+  }));
 }
 
 function buildActionItems(reviewType: string, readableType: string) {

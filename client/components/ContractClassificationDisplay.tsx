@@ -1,7 +1,11 @@
-import React from 'react';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { CheckCircle, FileText, Lightbulb, Target } from 'lucide-react';
+import React from "react";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CheckCircle, FileText, Lightbulb, Target } from "lucide-react";
+import {
+  solutionKeyToDisplayName,
+  type SolutionKey,
+} from "@shared/solutions";
 
 interface ContractClassificationResult {
   contractType: string;
@@ -10,6 +14,8 @@ interface ContractClassificationResult {
   characteristics: string[];
   reasoning: string;
   suggestedSolutions: string[];
+  recommendedSolutionKey?: SolutionKey | null;
+  recommendedSolutionTitle?: string | null;
 }
 
 interface ContractClassificationDisplayProps {
@@ -38,12 +44,6 @@ const ContractClassificationDisplay: React.FC<ContractClassificationDisplayProps
     return displayNames[contractType] || 'Commercial Agreement';
   };
 
-  const getConfidenceColor = (confidence: number): string => {
-    if (confidence >= 0.8) return 'bg-green-100 text-green-800 border-green-200';
-    if (confidence >= 0.6) return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-    return 'bg-orange-100 text-orange-800 border-orange-200';
-  };
-
   const getSolutionDisplayName = (solution: string): string => {
     const names: Record<string, string> = {
       risk_assessment: 'Risk Assessment',
@@ -64,23 +64,15 @@ const ContractClassificationDisplay: React.FC<ContractClassificationDisplayProps
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Contract Type & Confidence */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <FileText className="w-4 h-4 text-blue-600" />
-            <span className="font-medium text-gray-900">
-              {getContractTypeDisplayName(classification.contractType)}
-            </span>
-            {classification.subType && (
-              <span className="text-sm text-gray-600">({classification.subType})</span>
-            )}
-          </div>
-          <Badge 
-            variant="outline" 
-            className={getConfidenceColor(classification.confidence)}
-          >
-            {Math.round(classification.confidence * 100)}% confidence
-          </Badge>
+        {/* Contract Type */}
+        <div className="flex items-center gap-2">
+          <FileText className="w-4 h-4 text-blue-600" />
+          <span className="font-medium text-gray-900">
+            {getContractTypeDisplayName(classification.contractType)}
+          </span>
+          {classification.subType && (
+            <span className="text-sm text-gray-600">({classification.subType})</span>
+          )}
         </div>
 
         {/* Key Characteristics */}
@@ -97,6 +89,22 @@ const ContractClassificationDisplay: React.FC<ContractClassificationDisplayProps
                 </Badge>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* Recommended Solution */}
+        {classification.recommendedSolutionKey && (
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <Lightbulb className="w-4 h-4 text-blue-600" />
+              <span className="text-sm font-medium text-gray-700">
+                Auto-selected Solution:
+              </span>
+            </div>
+            <Badge variant="outline" className="text-xs border-blue-300 text-blue-800 bg-white">
+              {classification.recommendedSolutionTitle ??
+                solutionKeyToDisplayName(classification.recommendedSolutionKey)}
+            </Badge>
           </div>
         )}
 

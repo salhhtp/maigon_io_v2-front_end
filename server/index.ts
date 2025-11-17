@@ -1,8 +1,25 @@
-import "dotenv/config";
+// Ensure server loads environment from project .env even when cwd differs
+import path from "path";
+import { fileURLToPath } from "url";
+import dotenv from "dotenv";
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+dotenv.config({ path: path.resolve(__dirname, "../.env") });
 import express from "express";
 import cors from "cors";
 import * as Sentry from "@sentry/node";
 import { handleDemo } from "./routes/demo";
+import { ingestionRouter } from "./routes/ingest";
+import { classifyRouter } from "./routes/classify";
+import { profileRouter } from "./routes/profile";
+import { agentRouter } from "./routes/agent";
+import { orgRouter } from "./routes/org";
+import { adminRouter } from "./routes/admin";
+import { publicRouter } from "./routes/public";
+import { billingRouter, billingWebhookHandler } from "./routes/billing";
+import { adminDashboardRouter } from "./routes/adminDashboard";
+import { enterpriseDashboardRouter } from "./routes/enterpriseDashboard";
+import { exportRouter } from "./routes/export";
 
 let sentryInitialized = false;
 
@@ -39,8 +56,14 @@ export function createServer() {
 
   // Middleware
   app.use(cors());
-  app.use(express.json());
-  app.use(express.urlencoded({ extended: true }));
+  app.post(
+    "/api/billing/webhook",
+    express.raw({ type: "application/json" }),
+    billingWebhookHandler,
+  );
+
+  app.use(express.json({ limit: "5mb" }));
+  app.use(express.urlencoded({ extended: true, limit: "5mb" }));
 
   // Example API routes
   app.get("/api/ping", (_req, res) => {
@@ -49,6 +72,17 @@ export function createServer() {
   });
 
   app.get("/api/demo", handleDemo);
+  app.use("/api/ingest", ingestionRouter);
+  app.use("/api/classify", classifyRouter);
+  app.use("/api/profile", profileRouter);
+  app.use("/api/agent", agentRouter);
+  app.use("/api/admin/dashboard", adminDashboardRouter);
+  app.use("/api/org", orgRouter);
+  app.use("/api/enterprise/dashboard", enterpriseDashboardRouter);
+  app.use("/api/admin", adminRouter);
+  app.use("/api/public", publicRouter);
+  app.use("/api/billing", billingRouter);
+  app.use("/api/export", exportRouter);
 
   if (hasSentry && Sentry.Handlers) {
     app.use(Sentry.Handlers.errorHandler());

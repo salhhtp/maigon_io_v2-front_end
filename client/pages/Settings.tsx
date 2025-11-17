@@ -80,7 +80,7 @@ const Toggle = ({
 export default function Settings() {
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const { user, isLoggedIn, updateUser } = useUser();
+  const { user, isLoggedIn, updateUser, logout } = useUser();
   const { toast } = useToast();
 
   // Track settings page visit
@@ -284,12 +284,16 @@ export default function Settings() {
                 >
                   Settings
                 </Link>
-                <Link
-                  to="/"
-                  className="block px-4 py-2 text-sm text-[#271D1D] hover:bg-[#F9F8F8] transition-colors"
+                <button
+                  type="button"
+                  onClick={() => {
+                    setUserDropdownOpen(false);
+                    void logout();
+                  }}
+                  className="block w-full text-left px-4 py-2 text-sm text-[#271D1D] hover:bg-[#F9F8F8] transition-colors"
                 >
                   Log Out
-                </Link>
+                </button>
               </div>
             )}
           </div>

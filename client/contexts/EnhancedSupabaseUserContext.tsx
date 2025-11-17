@@ -2,11 +2,17 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import type { User as SupabaseUser, Session } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase";
-import { DataService } from "@/services/dataService";
 import { EmailService } from "@/services/emailService";
+import { DataService } from "@/services/dataService";
+import { OrganizationsService } from "@/services/organizationsService";
 import logger from "@/utils/logger";
 import { errorHandler, handleAsync, createAuthError } from "@/utils/errorHandler";
 import { performanceMonitor } from "@/utils/performance";
+import type {
+  OrganizationQuotaConfig,
+  OrganizationRole,
+  UserAccessContext,
+} from "@shared/api";
 
 type UserProfile = Database['public']['Tables']['user_profiles']['Row'];
 
@@ -16,8 +22,19 @@ export interface User {
   email: string;
   company: string;
   phone: string | null;
-  role: "user" | "admin";
+  role: "user" | "org_admin" | "admin";
   hasTemporaryPassword?: boolean;
+  isOrgAdmin: boolean;
+  isMaigonAdmin: boolean;
+  organization: {
+    id: string;
+    name: string;
+    slug: string | null;
+    billingPlan: string;
+    role: OrganizationRole | null;
+    quotas: OrganizationQuotaConfig | null;
+  } | null;
+  access: UserAccessContext | null;
   plan: {
     type: "free_trial" | "pay_as_you_go" | "monthly_10" | "monthly_15" | "professional";
     name: string;
@@ -218,26 +235,30 @@ export function SupabaseUserProvider({ children }: { children: React.ReactNode }
 
   // Enhanced sign out with error handling
   const signOut = async (): Promise<void> => {
-    await handleAsync(async () => {
-      return performanceMonitor.measureAsync('auth:signout', async () => {
-        const userId = user?.id;
-        logger.authInfo('Sign out started', { userId });
+    await errorHandler.handleAsync(
+      async () => {
+        return performanceMonitor.measureAsync('auth:signout', async () => {
+          const userId = user?.id;
+          logger.authInfo('Sign out started', { userId });
 
-        const { error } = await supabase.auth.signOut();
-        
-        if (error) {
-          logger.authError('Sign out failed', { userId, error: error.message });
-          throw error;
-        }
+          const { error } = await supabase.auth.signOut();
+          
+          if (error) {
+            logger.authError('Sign out failed', { userId, error: error.message });
+            throw error;
+          }
 
-        // Clear user state
-        setUser(null);
-        setAuthUser(null);
-        setSession(null);
+          // Clear user state
+          setUser(null);
+          setAuthUser(null);
+          setSession(null);
 
-        logger.authInfo('Sign out completed successfully', { userId });
-      });
-    }, { action: 'signout' }, { showUserError: false });
+          logger.authInfo('Sign out completed successfully', { userId });
+        });
+      },
+      { action: 'signout' },
+      { showUserError: false },
+    );
   };
 
   // Enhanced change password with error handling
@@ -314,55 +335,111 @@ export function SupabaseUserProvider({ children }: { children: React.ReactNode }
 
   // Enhanced load user profile with error handling
   const loadUserProfile = async (authUser: SupabaseUser): Promise<User | null> => {
-    const { data: userProfile, error } = await handleAsync(async () => {
-      return performanceMonitor.measureAsync('auth:load-profile', async () => {
-        logger.debug('Loading user profile', { userId: authUser.id });
+    const { data: profileAccess, error } = await errorHandler.handleAsync(
+      async () => {
+        return performanceMonitor.measureAsync("auth:load-profile", async () => {
+          logger.debug("Loading user profile", { userId: authUser.id });
 
-        const { data, error } = await supabase
-          .from('user_profiles')
-          .select('*')
-          .eq('id', authUser.id)
-          .single();
+          const result = await OrganizationsService.getProfileWithAccess(
+            authUser.id,
+          );
 
-        if (error) {
-          logger.error('Failed to load user profile', { userId: authUser.id, error: error.message });
-          throw error;
-        }
+          if (!result) {
+            logger.error("Failed to load user profile context", {
+              userId: authUser.id,
+            });
+            throw new Error("User profile not found");
+          }
 
-        logger.debug('User profile loaded successfully', { userId: authUser.id });
-        return data;
-      });
-    }, { userId: authUser.id, action: 'load-profile' }, { showUserError: false });
+          logger.debug("User profile loaded successfully", {
+            userId: authUser.id,
+            organizationId: result.access.organizationId,
+            organizationRole: result.access.organizationRole,
+          });
 
-    if (error || !userProfile) {
+          return result;
+        });
+      },
+      { userId: authUser.id, action: "load-profile" },
+      { showUserError: false },
+    );
+
+    if (error || !profileAccess) {
       return null;
     }
 
-    // Check if user has temporary password
-    const hasTemporaryPassword = authUser.user_metadata?.is_temporary_password === true;
+    const { profile: userProfile, access, organization } = profileAccess;
+    const profileFields = userProfile as Record<string, unknown>;
 
-    // Mock data - in production this would come from actual database/billing system
+    const hasTemporaryPassword =
+      authUser.user_metadata?.is_temporary_password === true;
+
+    const derivedRole = access.isMaigonAdmin
+      ? "admin"
+      : access.organizationRole === "org_admin"
+        ? "org_admin"
+        : "user";
+
+    const organizationDetails = organization
+      ? {
+          id: organization.id,
+          name: organization.name,
+          slug: organization.slug,
+          billingPlan: organization.billingPlan,
+          role: access.organizationRole,
+          quotas: access.quotas,
+        }
+      : null;
+
+    const planContractsLimit =
+      organizationDetails?.quotas?.contractsLimit ??
+      (organizationDetails ? 10 : 5);
+
+    const fullName =
+      typeof profileFields.full_name === "string" &&
+      profileFields.full_name.trim().length > 0
+        ? (profileFields.full_name as string)
+        : `${userProfile.first_name ?? ""} ${userProfile.last_name ?? ""}`
+            .trim() || authUser.email || authUser.id;
+
     const mockUser: User = {
-      id: authUser.id,
-      name: userProfile.full_name || `${userProfile.first_name} ${userProfile.last_name}`,
-      email: authUser.email!,
-      company: userProfile.company || '',
+      id: userProfile.id || authUser.id,
+      name: fullName,
+      email: authUser.email ?? "",
+      company: userProfile.company || "",
       phone: userProfile.phone,
-      role: userProfile.role === 'admin' ? 'admin' : 'user',
+      role: derivedRole,
       hasTemporaryPassword,
+      isOrgAdmin: derivedRole === "org_admin",
+      isMaigonAdmin: access.isMaigonAdmin,
+      organization: organizationDetails,
+      access,
       plan: {
-        type: "free_trial",
-        name: "Free Trial",
-        price: 0,
-        contracts_limit: 3,
+        type: organizationDetails ? "professional" : "free_trial",
+        name: organizationDetails
+          ? `${organizationDetails.billingPlan} Plan`
+          : access?.isMaigonAdmin
+            ? "Enterprise Plan"
+            : "Free Trial",
+        price: organizationDetails ? 499 : 0,
+        contracts_limit: planContractsLimit,
         contracts_used: 0,
-        billing_cycle: "trial",
-        trial_days_remaining: 14,
-        features: [
-          "3 contracts/trial",
-          "Basic AI analysis",
-          "Standard support",
-        ],
+        billing_cycle: organizationDetails ? "monthly" : "trial",
+        next_billing_date: organizationDetails ? new Date().toISOString() : undefined,
+        trial_days_remaining: organizationDetails ? undefined : 14,
+        features: organizationDetails
+          ? [
+              "Unlimited contract reviews",
+              "Dedicated account manager",
+              "Custom integrations & API access",
+              "Advanced analytics & reporting",
+            ]
+          : [
+              "Review up to 5 agreements in 14 days",
+              "Full compliance report with risk assessment",
+              "Clause extraction and recommendations",
+              "Report storage for 7 days",
+            ],
       },
       usage: {
         total_reviews: 0,
@@ -371,8 +448,8 @@ export function SupabaseUserProvider({ children }: { children: React.ReactNode }
         monthly_usage: [],
       },
       billing: {
-        current_bill: 0,
-        payment_method: "No payment method",
+        current_bill: organizationDetails ? 499 : 0,
+        payment_method: organizationDetails ? "Invoice" : "No payment method",
         billing_history: [],
       },
       recent_activity: [],

@@ -32,6 +32,11 @@ export default defineConfig({
         // External dependencies that should not be bundled
         "express",
         "cors",
+        "docx",
+        "pdfkit",
+        "cloudconvert",
+        "html-docx-js",
+        "html-pdf-node",
       ],
       output: {
         format: "es",

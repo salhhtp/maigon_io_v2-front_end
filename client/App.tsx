@@ -35,6 +35,7 @@ import Settings from "./pages/Settings";
 import Pricing from "./pages/Pricing";
 import PublicPricing from "./pages/PublicPricing";
 import DemoLogin from "./pages/DemoLogin";
+import EnterpriseDashboard from "./pages/EnterpriseDashboard";
 import PublicSmarterLegalSolutions from "./pages/public-articles/SmarterLegalSolutions";
 import PublicCodeToClause from "./pages/public-articles/CodeToClause";
 import PublicLLMsAndLawyers from "./pages/public-articles/LLMsAndLawyers";
@@ -48,7 +49,9 @@ import ResetPassword from "./pages/ResetPassword";
 import ChangePassword from "./pages/ChangePassword";
 import EmailVerification from "./pages/EmailVerification";
 import AdminAnalytics from "./pages/AdminAnalytics";
+import OrgAdminDashboard from "./pages/OrgAdminDashboard";
 import NotFound from "./pages/NotFound";
+import InvitePage from "./pages/Invite";
 
 initClientSentry();
 
@@ -176,12 +179,24 @@ const router = createBrowserRouter([
         element: <Dashboard />,
       },
       {
+        path: "enterprise-dashboard",
+        element: <EnterpriseDashboard />,
+      },
+      {
         path: "user-dashboard",
         element: <UserDashboard />,
       },
       {
         path: "admin-analytics",
         element: <AdminAnalytics />,
+      },
+      {
+        path: "invite/:token",
+        element: <InvitePage />,
+      },
+      {
+        path: "org-admin",
+        element: <OrgAdminDashboard />,
       },
       {
         path: "settings",
