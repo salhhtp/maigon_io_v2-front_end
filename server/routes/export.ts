@@ -40,6 +40,15 @@ interface ExportRequestPayload {
   text: string | null;
 }
 
+interface RedlineEntry {
+  id: string;
+  anchorText: string;
+  proposedText: string;
+  intent?: string;
+  rationale?: string;
+  clauseTitle?: string;
+}
+
 function asRecord(value: unknown): Record<string, unknown> | null {
   if (
     value &&
@@ -221,6 +230,116 @@ function buildPdfFromText(text: string): Promise<Buffer> {
   });
 }
 
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function parseRedlinePayload(body: unknown) {
+  const record = asRecord(body) ?? {};
+  const contractName =
+    typeof record.contractName === "string" && record.contractName.trim().length > 0
+      ? record.contractName.trim()
+      : "Contract";
+  const rawEdits = Array.isArray(record.proposedEdits)
+    ? record.proposedEdits
+    : Array.isArray(record.edits)
+      ? record.edits
+      : [];
+  const edits: RedlineEntry[] = rawEdits
+    .map((candidate, index) => {
+      const entry = asRecord(candidate);
+      if (!entry) return null;
+      const anchor =
+        typeof entry.anchorText === "string" ? entry.anchorText.trim() : "";
+      const proposed =
+        typeof entry.proposedText === "string"
+          ? entry.proposedText.trim()
+          : "";
+      if (!anchor && !proposed) {
+        return null;
+      }
+      return {
+        id:
+          typeof entry.id === "string" && entry.id.trim().length > 0
+            ? entry.id
+            : `edit-${index + 1}`,
+        anchorText: anchor || "Existing clause",
+        proposedText: proposed || anchor || "Updated clause",
+        intent:
+          typeof entry.intent === "string" && entry.intent.trim().length > 0
+            ? entry.intent.trim()
+            : undefined,
+        rationale:
+          typeof entry.rationale === "string" &&
+          entry.rationale.trim().length > 0
+            ? entry.rationale.trim()
+            : undefined,
+        clauseTitle:
+          typeof entry.clauseTitle === "string" &&
+          entry.clauseTitle.trim().length > 0
+            ? entry.clauseTitle.trim()
+            : typeof entry.clauseId === "string" &&
+                entry.clauseId.trim().length > 0
+              ? entry.clauseId.trim()
+              : undefined,
+      } as RedlineEntry;
+    })
+    .filter((entry): entry is RedlineEntry => Boolean(entry));
+
+  return { contractName, edits };
+}
+
+function buildSmartRedlineHtml(
+  contractName: string,
+  edits: RedlineEntry[],
+): string {
+  const styleBlock = `
+    <style>
+      .redline-header { margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid #E8DDDD; }
+      .redline-card { border: 1px solid #E8DDDD; border-radius: 8px; padding: 12px 16px; margin-bottom: 12px; background: #FEFBFB; }
+      .redline-card h4 { margin: 0 0 6px 0; font-size: 13pt; color: #271D1D; }
+      .redline-label { font-size: 10pt; text-transform: uppercase; letter-spacing: 0.05em; color: #6B4F4F; }
+      .redline-removed { text-decoration: line-through; color: #a23434; }
+      .redline-added { color: #0f6c3f; font-weight: bold; }
+      .redline-meta { font-size: 10pt; color: #5c4a4a; margin-top: 6px; }
+    </style>
+  `;
+  const blocks = edits
+    .map((edit, index) => {
+      const displayTitle =
+        edit.clauseTitle || edit.intent || `Clause ${index + 1}`;
+      return `
+        <div class="redline-card">
+          <h4>${escapeHtml(displayTitle)}</h4>
+          <p class="redline-label">Current language</p>
+          <p class="redline-removed">${escapeHtml(edit.anchorText)}</p>
+          <p class="redline-label" style="margin-top:8px;">Proposed language</p>
+          <p class="redline-added">${escapeHtml(edit.proposedText)}</p>
+          ${
+            edit.rationale
+              ? `<p class="redline-meta">Rationale: ${escapeHtml(edit.rationale)}</p>`
+              : ""
+          }
+        </div>
+      `;
+    })
+    .join("");
+  return `
+    ${styleBlock}
+    <div class="redline-header">
+      <h2>Smart Redline Draft</h2>
+      <p><strong>Contract:</strong> ${escapeHtml(contractName)}</p>
+      <p><strong>Generated:</strong> ${new Date().toLocaleString()}</p>
+    </div>
+    ${blocks || "<p>No edits were available.</p>"}
+  `;
+}
+
 exportRouter.post("/docx", jsonParser, async (req, res) => {
   const payload = parseExportRequest(req.body);
   let resolvedHtml = payload.html;
@@ -383,5 +502,42 @@ exportRouter.post("/pdf", jsonParser, async (req, res) => {
   } catch (error) {
     console.error("[export] PDF generation failed", error);
     res.status(500).json({ error: "Failed to generate PDF document." });
+  }
+});
+
+exportRouter.post("/redline", jsonParser, async (req, res) => {
+  const payload = parseRedlinePayload(req.body);
+  if (payload.edits.length === 0) {
+    res.status(400).json({
+      error: "Provide at least one proposed edit to generate a redline.",
+    });
+    return;
+  }
+
+  try {
+    const html = buildSmartRedlineHtml(payload.contractName, payload.edits);
+    const buffer = await buildDocxFromHtml(html);
+    if (!buffer) {
+      res.status(500).json({ error: "Failed to build smart redline document." });
+      return;
+    }
+
+    const safeTitle = payload.contractName
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/gi, "-")
+      .replace(/^-+|-+$/g, "") || "contract";
+
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    );
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${safeTitle}-maigon-redline.docx"`,
+    );
+    res.status(200).send(buffer);
+  } catch (error) {
+    console.error("[export] Smart redline generation failed", error);
+    res.status(500).json({ error: "Failed to generate smart redline document." });
   }
 });

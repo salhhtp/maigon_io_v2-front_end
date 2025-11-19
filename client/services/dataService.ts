@@ -10,6 +10,7 @@ import aiService, {
   type ContractAnalysisRequest,
   ensureGpt5Model,
 } from "./aiService";
+import clauseExtractionService from "./clauseExtractionService";
 import { generateFallbackAnalysis } from "./fallbackAnalysis";
 import logger from "@/utils/logger";
 import { logError, createUserFriendlyMessage } from "@/utils/errorLogger";
@@ -410,6 +411,30 @@ export class DataService {
         reviewType,
       });
       emitProgress("classification_complete", 22);
+
+      if (contractData.ingestion_id || contractData.content) {
+        emitProgress("clause_extraction", 28);
+        try {
+          const clauseResult = await clauseExtractionService.ensureClauses({
+            ingestionId: contractData.ingestion_id,
+            content: contractData.content,
+            contractType: classification?.contractType,
+            filename: contractData.file_name,
+            forceRefresh: true,
+          });
+          contractData.clause_extractions = clauseResult.clauses;
+          logger.contractAction("clause_extraction_completed", undefined, {
+            clauseCount: clauseResult.clauses.length,
+            ingestionId: contractData.ingestion_id,
+          });
+        } catch (clauseError) {
+          logError("Clause extraction failed", clauseError, {
+            ingestionId: contractData.ingestion_id,
+            reviewType,
+          });
+        }
+        emitProgress("clause_ready", 32);
+      }
 
       const classificationSolutionKey =
         this.extractSolutionKeyFromClassification(classification);

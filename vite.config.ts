@@ -1,15 +1,18 @@
-import "tsconfig-paths/register";
+import "tsconfig-paths/register.js";
 import { defineConfig, Plugin } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import dotenv from "dotenv";
 import { sentryVitePlugin } from "@sentry/vite-plugin";
-import { createServer } from "./server";
+
+console.info("[vite-config] Loading configuration...");
 
 // Ensure env variables are loaded before any other modules access them
 dotenv.config({ path: path.resolve(process.cwd(), ".env") });
+console.info("[vite-config] Environment loaded.");
 
 function buildPlugins(mode: string) {
+  console.info("[vite-config] Building plugins for mode:", mode);
   const plugins: Plugin[] = [react(), expressPlugin()];
 
   const hasSentryUpload = Boolean(
@@ -85,11 +88,25 @@ function expressPlugin(): Plugin {
   return {
     name: "express-plugin",
     apply: "serve", // Only apply during development (serve mode)
-    configureServer(server) {
+    async configureServer(server) {
+      console.info("[vite-config] Creating embedded Express server...");
+      const { createServer } = await import(
+        /* @vite-ignore */ "./server/index.ts"
+      );
       const app = createServer();
+      const isApiRequest = (url: string | undefined | null) => {
+        if (!url) return false;
+        return url === "/api" || url.startsWith("/api/") || url.startsWith("/api?");
+      };
 
       // Add Express app as middleware to Vite dev server
-      server.middlewares.use(app);
+      server.middlewares.use((req, res, next) => {
+        if (isApiRequest(req.url)) {
+          return app(req, res, next);
+        }
+        return next();
+      });
+      console.info("[vite-config] Express server attached.");
     },
   };
 }

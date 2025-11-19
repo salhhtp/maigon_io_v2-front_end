@@ -9,7 +9,9 @@ import {
   type FallbackAnalysisContext,
 } from "../_shared/fallback-analysis.ts";
 import { runReasoningAnalysis } from "../_shared/reasoningEngine.ts";
-import type { AnalysisReport } from "../_shared/reviewSchema.ts";
+import { enhanceReportWithClauses } from "../_shared/clauseExtraction.ts";
+import { extractClausesWithAI } from "../_shared/aiClauseExtractor.ts";
+import type { AnalysisReport, ClauseExtraction } from "../_shared/reviewSchema.ts";
 import {
   createClient,
   type SupabaseClient,
@@ -360,13 +362,6 @@ function getSolutionGuidance(
   return null;
 }
 
-function formatTitleCase(value: string) {
-  return value
-    .replace(/[_-]+/g, " ")
-    .replace(/\s+/g, " ")
-    .replace(/\b\w/g, (match) => match.toUpperCase());
-}
-
 function inferDocumentFormat(
   filename?: string,
   providedFormat?: string,
@@ -416,56 +411,308 @@ function detectContractType(
   return bestMatch && bestMatch.score >= 1 ? bestMatch.type : "general";
 }
 
-type ClauseSummary = {
-  title: string;
-  snippet: string;
-  importance?: "high" | "medium" | "low";
-};
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
 
-function extractClauses(
-  content: string,
+function isClauseImportance(
+  value: unknown,
+): value is ClauseExtraction["importance"] {
+  return (
+    value === "critical" ||
+    value === "high" ||
+    value === "medium" ||
+    value === "low" ||
+    value === "info"
+  );
+}
+
+function toNonEmptyString(value: unknown): string | null {
+  return typeof value === "string" && value.trim().length > 0
+    ? value.trim()
+    : null;
+}
+
+function toPositiveNumber(value: unknown): number | null {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function normalizeStoredClauseEntry(
+  entry: unknown,
+  index: number,
   contractType: string,
-): ClauseSummary[] {
-  const lines = content.split(/\r?\n/).map((line) => line.trim());
-  const clauses: ClauseSummary[] = [];
-  let currentTitle = "";
-  let buffer: string[] = [];
+): ClauseExtraction | null {
+  if (!isPlainObject(entry)) {
+    return null;
+  }
 
-  const headingRegex =
-    /^(section\s+\d+|article\s+\d+|\d+\.\d+|[A-Z][^a-z\n]{3,})/i;
+  const title =
+    toNonEmptyString(entry.title) ??
+    toNonEmptyString(entry.clause_title) ??
+    toNonEmptyString(entry.heading) ??
+    toNonEmptyString(entry.section) ??
+    "";
+  const snippet =
+    toNonEmptyString(entry.originalText) ??
+    toNonEmptyString(entry.clause_text) ??
+    toNonEmptyString(entry.excerpt) ??
+    toNonEmptyString(entry.text) ??
+    "";
 
-  for (const line of lines) {
-    if (!line) continue;
-    const isHeading = headingRegex.test(line);
-    if (isHeading) {
-      if (currentTitle && buffer.length) {
-        clauses.push({
-          title: currentTitle,
-          snippet: buffer.join(" ").slice(0, 220),
-        });
-        buffer = [];
-      }
-      currentTitle = line.replace(/[:.-\s]+$/, "").slice(0, 120);
-    } else if (currentTitle) {
-      buffer.push(line);
+  if (!title && !snippet) {
+    return null;
+  }
+
+  const normalizedText =
+    toNonEmptyString(entry.normalizedText) ?? snippet ?? title;
+  const baseSlug = title
+    ? title.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 64)
+    : null;
+  const clauseId =
+    toNonEmptyString(entry.clauseId) ??
+    toNonEmptyString(entry.clause_id) ??
+    toNonEmptyString(entry.clause_number) ??
+    baseSlug ??
+    `stored-clause-${index + 1}`;
+  const importance = isClauseImportance(entry.importance)
+    ? entry.importance
+    : "medium";
+  const references = Array.isArray(entry.references)
+    ? entry.references
+        .map((ref) => toNonEmptyString(ref))
+        .filter((ref): ref is string => Boolean(ref))
+    : [];
+  const locationSource = isPlainObject(entry.location)
+    ? (entry.location as Record<string, unknown>)
+    : undefined;
+
+  const baseMetadata = isPlainObject(entry.metadata)
+    ? { ...(entry.metadata as Record<string, unknown>) }
+    : {};
+  if (typeof baseMetadata.source !== "string") {
+    baseMetadata.source = "ingestion-cache";
+  }
+  baseMetadata.contractType = contractType;
+
+  return {
+    id: toNonEmptyString(entry.id) ?? clauseId ?? `stored-clause-${index + 1}`,
+    clauseId: clauseId ?? `stored-clause-${index + 1}`,
+    title: title || `Clause ${index + 1}`,
+    category:
+      toNonEmptyString(entry.category) ??
+      toNonEmptyString(entry.clause_type) ??
+      undefined,
+    originalText: snippet || normalizedText || title,
+    normalizedText: normalizedText || snippet || title,
+    importance,
+    location: {
+      page: toPositiveNumber(entry.page) ?? toPositiveNumber(locationSource?.page),
+      paragraph:
+        toPositiveNumber(entry.paragraph) ??
+        toPositiveNumber(locationSource?.paragraph),
+      section:
+        toNonEmptyString(entry.section) ??
+        toNonEmptyString(entry.clause_title) ??
+        toNonEmptyString(entry.heading) ??
+        toNonEmptyString(locationSource?.section) ??
+        null,
+      clauseNumber:
+        toNonEmptyString(entry.clause_number) ??
+        toNonEmptyString(entry.clauseId) ??
+        toNonEmptyString(locationSource?.clauseNumber) ??
+        null,
+    },
+    references,
+    metadata: baseMetadata,
+  };
+}
+
+function normalizeClauseCollection(
+  value: unknown,
+  contractType: string,
+): ClauseExtraction[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((entry, index) => normalizeStoredClauseEntry(entry, index, contractType))
+    .filter((clause): clause is ClauseExtraction => Boolean(clause));
+}
+
+function readStoredClauseExtractions(
+  ingestionRecord: ContractIngestionRecord | null,
+  contractType: string,
+): ClauseExtraction[] {
+  if (!ingestionRecord?.metadata) {
+    return [];
+  }
+
+  const metadata = ingestionRecord.metadata as Record<string, unknown>;
+  const candidateSets: ClauseExtraction[][] = [];
+  candidateSets.push(
+    normalizeClauseCollection(metadata["clauseExtractions"], contractType),
+    normalizeClauseCollection(metadata["clause_extractions"], contractType),
+    normalizeClauseCollection(metadata["critical_clauses"], contractType),
+  );
+
+  const analysis = metadata["analysis"];
+  if (isPlainObject(analysis)) {
+    const analysisRecord = analysis as Record<string, unknown>;
+    candidateSets.push(
+      normalizeClauseCollection(analysisRecord["clauseExtractions"], contractType),
+      normalizeClauseCollection(analysisRecord["clause_extractions"], contractType),
+      normalizeClauseCollection(analysisRecord["critical_clauses"], contractType),
+    );
+  }
+
+  for (const set of candidateSets) {
+    if (set.length > 0) {
+      return set;
     }
   }
 
-  if (currentTitle && buffer.length) {
-    clauses.push({
-      title: currentTitle,
-      snippet: buffer.join(" ").slice(0, 220),
-    });
+  return [];
+}
+
+function mergeClauseCollections(
+  ...collections: Array<ClauseExtraction[] | null | undefined>
+): ClauseExtraction[] {
+  const merged: ClauseExtraction[] = [];
+  const seen = new Set<string>();
+
+  for (const collection of collections) {
+    if (!collection?.length) continue;
+    for (const clause of collection) {
+      if (!clause) continue;
+      const key =
+        clause.clauseId ??
+        clause.id ??
+        (clause.title ? clause.title.toLowerCase() : null);
+      if (key && seen.has(key)) {
+        continue;
+      }
+      if (key) {
+        seen.add(key);
+      }
+      merged.push(clause);
+    }
   }
 
+  return merged;
+}
+
+function buildClauseDigestForPrompt(
+  clauses: ClauseExtraction[],
+) {
   if (!clauses.length) {
-    clauses.push({
-      title: `${formatTitleCase(contractType)} overview`,
-      snippet: content.slice(0, 220),
-    });
+    return null;
+  }
+  const lines: string[] = [];
+  clauses.slice(0, 12).forEach((clause, index) => {
+    const identifier =
+      clause.clauseId ||
+      clause.id ||
+      `clause-${index + 1}`;
+    const title = clause.title || identifier;
+    const excerpt = (clause.normalizedText || clause.originalText || "")
+      .replace(/\s+/g, " ")
+      .slice(0, 200);
+    const category = clause.category || "general";
+    lines.push(
+      `${index + 1}. [${identifier} | ${category}] ${title} → ${excerpt}`,
+    );
+  });
+  const categoryCounts = clauses.reduce((acc, clause) => {
+    const key = (clause.category || "general").toLowerCase();
+    acc[key] = (acc[key] ?? 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+  return {
+    summary: lines.join("\n"),
+    total: clauses.length,
+    categoryCounts,
+  };
+}
+
+function isClauseSetWeak(clauses: ClauseExtraction[]): boolean {
+  if (!clauses.length) return true;
+  let aiSourced = 0;
+  let shortExcerpts = 0;
+  const seenIds = new Set<string>();
+
+  for (const clause of clauses) {
+    if (!clause) continue;
+    const source =
+      typeof clause.metadata?.source === "string"
+        ? clause.metadata.source
+        : "";
+    if (source === "gpt-clause-extractor") {
+      aiSourced += 1;
+    }
+    if (
+      typeof clause.originalText !== "string" ||
+      clause.originalText.trim().length < 40
+    ) {
+      shortExcerpts += 1;
+    }
+    if (clause.clauseId) {
+      if (seenIds.has(clause.clauseId)) {
+        return true;
+      }
+      seenIds.add(clause.clauseId);
+    }
   }
 
-  return clauses.slice(0, 30);
+  if (aiSourced >= Math.max(3, clauses.length * 0.4)) {
+    return false;
+  }
+  if (shortExcerpts >= Math.max(2, clauses.length * 0.5)) {
+    return true;
+  }
+  const uniqueHeadings = new Set(
+    clauses
+      .map((clause) => clause.title?.toLowerCase()?.trim())
+      .filter(Boolean),
+  );
+  if (uniqueHeadings.size <= Math.ceil(clauses.length * 0.3)) {
+    return true;
+  }
+  return aiSourced === 0;
+}
+
+async function persistClauseExtractionsIfMissing(
+  ingestionRecord: ContractIngestionRecord,
+  clauses: ClauseExtraction[],
+  existingClauses: ClauseExtraction[],
+) {
+  if (!clauses.length || existingClauses.length) {
+    return;
+  }
+
+  try {
+    const supabase = getSupabaseAdminClient();
+    const nextMetadata: Record<string, unknown> = {
+      ...(ingestionRecord.metadata ?? {}),
+      clauseExtractions: clauses,
+    };
+
+    const { error } = await supabase
+      .from("contract_ingestions")
+      .update({ metadata: nextMetadata })
+      .eq("id", ingestionRecord.id);
+
+    if (error) {
+      throw error;
+    }
+
+    ingestionRecord.metadata = nextMetadata;
+  } catch (error) {
+    console.warn("⚠️ Unable to persist clause extractions", {
+      ingestionId: ingestionRecord.id,
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
 }
 
 function buildKpis(
@@ -826,6 +1073,43 @@ serve(async (req) => {
 
     const modelTier = resolveModelTier(request.model, request.reviewType);
 
+    const storedClauses = readStoredClauseExtractions(
+      ingestionRecord,
+      resolvedContractType,
+    );
+
+    let aiDerivedClauses: ClauseExtraction[] = [];
+    const needsRefresh =
+      storedClauses.length === 0 || isClauseSetWeak(storedClauses);
+    if (needsRefresh && processedContent.trim().length > 0) {
+      try {
+        const clauseJob = await extractClausesWithAI({
+          content: processedContent,
+          contractType: resolvedContractType,
+          filename,
+          maxClauses: 20,
+        });
+        aiDerivedClauses = clauseJob.clauses;
+        if (ingestionRecord && aiDerivedClauses.length) {
+          await persistClauseExtractionsIfMissing(
+            ingestionRecord,
+            aiDerivedClauses,
+            storedClauses,
+          );
+        }
+      } catch (clauseError) {
+        console.warn("⚠️ AI clause extraction unavailable:", {
+          error:
+            clauseError instanceof Error
+              ? clauseError.message
+              : String(clauseError),
+        });
+      }
+    }
+
+    const clauseSeed = mergeClauseCollections(storedClauses, aiDerivedClauses);
+    const clauseDigest = buildClauseDigestForPrompt(clauseSeed);
+
     try {
       const reasoningResult = await runReasoningAnalysis({
         content: processedContent,
@@ -837,9 +1121,32 @@ serve(async (req) => {
         ingestionWarnings: ingestionRecord?.warnings,
         ingestionId: request.ingestionId,
         modelTier,
+        clauseDigest,
       });
 
-      const responsePayload = buildLegacyResponse(reasoningResult.report, {
+      const clauseCandidates = mergeClauseCollections(
+        clauseSeed,
+        reasoningResult.report.clauseExtractions ?? [],
+      );
+
+      const enhancedReport = enhanceReportWithClauses(reasoningResult.report, {
+        clauses: clauseCandidates,
+      });
+
+      if (
+        ingestionRecord &&
+        request.ingestionId &&
+        aiDerivedClauses.length &&
+        enhancedReport.clauseExtractions?.length
+      ) {
+        await persistClauseExtractionsIfMissing(
+          ingestionRecord,
+          enhancedReport.clauseExtractions as ClauseExtraction[],
+          storedClauses,
+        );
+      }
+
+      const responsePayload = buildLegacyResponse(enhancedReport, {
         classification: request.classification,
         contractType: resolvedContractType,
         reviewType: request.reviewType,
@@ -1105,7 +1412,7 @@ async function analyzeWithAI(request: AnalysisRequest, apiKey: string) {
         },
       ],
       temperature: modelConfig.temperature || 0.1,
-      max_tokens: modelConfig.maxTokens || 4000,
+      max_completion_tokens: modelConfig.maxTokens || 4000,
       response_format: { type: "json_object" },
     }),
   };

@@ -46,6 +46,7 @@ function initializeSentry() {
 }
 
 export function createServer() {
+  console.info("[express] Initializing API server...");
   const app = express();
   const hasSentry = initializeSentry();
 
@@ -106,5 +107,6 @@ export function createServer() {
     },
   );
 
+  console.info("[express] API server ready.");
   return app;
 }

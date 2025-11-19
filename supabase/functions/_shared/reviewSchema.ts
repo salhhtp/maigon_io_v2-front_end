@@ -16,6 +16,7 @@ const clauseLocationSchema = z
   .nullable();
 
 export const clauseReferenceSchema = z.object({
+  clauseId: z.string(),
   heading: z.string().optional(),
   locationHint: clauseLocationSchema.optional().nullable(),
   excerpt: z.string().optional(),
@@ -120,6 +121,7 @@ const clauseExtractionSchema = z.object({
   references: z.array(z.string()).default([]),
   metadata: z.record(z.unknown()).optional(),
 });
+export type ClauseExtraction = z.infer<typeof clauseExtractionSchema>;
 
 const similarityMatchSchema = z.object({
   id: z.string(),

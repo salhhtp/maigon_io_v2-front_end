@@ -333,7 +333,7 @@ Analyze thoroughly and provide precise classification based on the evidence foun
         content: analysisPrompt,
       },
     ],
-    max_tokens: 1000,
+    max_completion_tokens: 1000,
     response_format: { type: "json_object" },
   };
 

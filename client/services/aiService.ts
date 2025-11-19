@@ -2,7 +2,6 @@ import { supabase } from "@/lib/supabase";
 import { generateFallbackAnalysis } from "./fallbackAnalysis";
 import logger from "@/utils/logger";
 import { errorHandler } from "@/utils/errorHandler";
-import nativeFetch from "@/lib/nativeFetch";
 import {
   logError,
   createUserFriendlyMessage,
@@ -155,11 +154,9 @@ const isFunctionsFetchError = (error: unknown): boolean => {
   if (!error || typeof error !== "object") {
     return false;
   }
-
   const err = error as { name?: unknown; message?: unknown };
   const name = typeof err.name === "string" ? err.name : "";
   const message = typeof err.message === "string" ? err.message : "";
-
   return (
     name === "FunctionsFetchError" ||
     message.includes("Failed to send a request to the Edge Function")
@@ -421,160 +418,31 @@ class AIService {
           const errorMessage = this.formatEdgeErrorMessage(error);
 
           if (isFunctionsFetchError(error)) {
-            console.warn(
-              "⚠️ Supabase Edge Function unreachable. Switching to resilient fallback analysis.",
-              serializedError,
+            logError(
+              "Supabase Edge Function unreachable",
+              error instanceof Error ? error : new Error(String(error)),
+              {
+                reviewType: request.reviewType,
+                originalError: serializedError,
+              },
             );
-          } else {
-            console.error(
-              "❌ Supabase Edge Function error object:",
-              serializedError,
-            );
-          }
-
-          if (!isFunctionsFetchError(error)) {
-            try {
-              const supabaseBaseUrl = import.meta.env.VITE_SUPABASE_URL;
-              const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-              if (!supabaseBaseUrl || !anonKey) {
-                console.warn(
-                  "⚠️ Missing Supabase configuration for direct Edge Function fallback.",
-                );
-              } else {
-                const edgeUrl = `${supabaseBaseUrl.replace(/\/$/, "")}/functions/v1/analyze-contract`;
-                const authToken = session.access_token || String(anonKey);
-
-                console.log(
-                  "🔁 Attempting direct fetch to Edge Function for more details:",
-                  edgeUrl,
-                );
-
-                const directController = new AbortController();
-                const directTimeoutId = setTimeout(
-                  () => directController.abort(),
-                  120000,
-                );
-
-                try {
-                  const directResp = await nativeFetch(edgeUrl, {
-                    method: "POST",
-                    headers: {
-                      "Content-Type": "application/json",
-                      apikey: String(anonKey),
-                      Authorization: `Bearer ${authToken}`,
-                    },
-                    body: JSON.stringify(requestBody),
-                    signal: directController.signal,
-                  });
-
-                  clearTimeout(directTimeoutId);
-
-                  const respText = await directResp.text();
-                  console.error(
-                    "🔁 Direct Edge Function response status:",
-                    directResp.status,
-                    respText,
-                  );
-
-                  if (directResp.ok) {
-                    try {
-                      const parsed = JSON.parse(respText);
-                      return parsed;
-                    } catch (parseError) {
-                      logError(
-                        "❌ Failed to parse direct fetch fallback response",
-                        parseError,
-                        {
-                          reviewType: request.reviewType,
-                          edgeBody: respText,
-                        },
-                      );
-                    }
-                  } else {
-                    // Edge Function returned an error status (400, 500, etc.)
-                    // Try to parse the error message from the response
-                    try {
-                      const errorBody = JSON.parse(respText);
-                      const userErrorMessage =
-                        errorBody.error || errorBody.message || respText;
-
-                      // Log the error details
-                      logError(
-                        "❌ Supabase Edge Function returned error",
-                        new Error(userErrorMessage),
-                        {
-                          reviewType: request.reviewType,
-                          edgeStatus: directResp.status,
-                          edgeBody: respText,
-                          originalError: serializedError,
-                        },
-                      );
-
-                      // Throw the error to propagate to user
-                      throw new Error(userErrorMessage);
-                    } catch (jsonError) {
-                      // If response isn't JSON, use the raw text
-                      const errorMsg =
-                        respText || `Edge Function error ${directResp.status}`;
-                      logError(
-                        "❌ Supabase Edge Function error",
-                        new Error(errorMsg),
-                        {
-                          reviewType: request.reviewType,
-                          edgeStatus: directResp.status,
-                          edgeBody: respText,
-                          originalError: serializedError,
-                        },
-                      );
-                      throw new Error(errorMsg);
-                    }
-                  }
-                } catch (directError) {
-                  clearTimeout(directTimeoutId);
-
-                  // If the error is from the Edge Function (with a user message), throw it
-                  if (directError instanceof Error && directError.message) {
-                    logError("❌ Supabase Edge Function error", directError, {
-                      reviewType: request.reviewType,
-                      originalError: serializedError,
-                    });
-                    // Throw the error to show user-friendly message
-                    throw directError;
-                  }
-
-                  // Otherwise, log the network/fetch error
-                  logError(
-                    "❌ Direct fetch to Edge Function failed",
-                    directError,
-                    {
-                      reviewType: request.reviewType,
-                      originalError: serializedError,
-                    },
-                  );
-                }
-              }
-            } catch (directSetupError) {
-              logError(
-                "❌ Failed to execute direct Edge Function fetch",
-                directSetupError,
-                {
-                  reviewType: request.reviewType,
-                  originalError: serializedError,
-                },
-              );
-            }
-          } else {
-            console.warn(
-              "⚠️ Supabase Edge Function unreachable (FunctionsFetchError). Skipping direct fetch retry and using fallback analysis.",
+            return buildFallbackResult(
+              "Edge Function temporarily unreachable. Generated resilient fallback analysis.",
             );
           }
 
-          const fallbackReason = isFunctionsFetchError(error)
-            ? "Edge Function temporarily unreachable. Generated resilient fallback analysis."
-            : `Edge Function error: ${errorMessage || "Unknown error"}`;
+          logError(
+            "❌ Supabase Edge Function returned error",
+            new Error(errorMessage || "Edge Function error"),
+            {
+              reviewType: request.reviewType,
+              originalError: serializedError,
+            },
+          );
 
-          return buildFallbackResult(fallbackReason);
+          throw new Error(
+            errorMessage || "Edge Function error. Please try again later.",
+          );
         }
 
         if (!data) {
@@ -647,10 +515,11 @@ class AIService {
         throw error;
       }
 
-      // Otherwise, use fallback for generic API/network errors
-      return buildFallbackResult(
-        `AI provider error: ${errorInfo.message || "Unknown error"}`,
-      );
+      // For all other errors, propagate so callers can notify the user.
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error(errorInfo.message || "AI provider error");
     }
   }
 

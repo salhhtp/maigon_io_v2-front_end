@@ -28,6 +28,7 @@ const baseReport = {
       title: "Missing sub-processor approvals",
       severity: "high",
       clauseReference: {
+        clauseId: "clause-1",
         heading: "Sub-processors",
         locationHint: { page: 8, section: "7.2" },
       },

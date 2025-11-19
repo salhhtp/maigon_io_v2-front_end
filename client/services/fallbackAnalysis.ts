@@ -773,7 +773,10 @@ function buildStructuredIssues(
         recommendation:
           "Re-run the primary AI model or perform manual review to obtain clause-specific issues.",
         rationale: `Fallback analysis summarised the ${readableType} but did not review each clause.`,
-        clauseReference: { heading: "General overview" },
+        clauseReference: {
+          clauseId: "fallback-issue-1",
+          heading: "General overview",
+        },
       },
     ];
   }
@@ -786,7 +789,10 @@ function buildStructuredIssues(
       rec.description ||
       "Translate this recommendation into an action item with owner and due date.",
     rationale: `Derived from fallback ${readableType} analysis.`,
-    clauseReference: { heading: `Section ${index + 1}` },
+    clauseReference: {
+      clauseId: `fallback-issue-${index + 1}`,
+      heading: `Section ${index + 1}`,
+    },
   }));
 }
 

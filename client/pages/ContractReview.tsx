@@ -40,6 +40,7 @@ import type {
 } from "@shared/api";
 import type {
   AnalysisReport,
+  Issue,
   ClauseFinding,
   ProposedEdit,
   PlaybookInsight,
@@ -812,6 +813,101 @@ function attachFallbackClausePreviews(
   });
 }
 
+function ClauseEvidenceBlock({
+  reference,
+}: {
+  reference?: Issue["clauseReference"] | null;
+}) {
+  if (!reference) return null;
+  const locationParts: string[] = [];
+  if (reference.locationHint?.section) {
+    locationParts.push(`Section ${reference.locationHint.section}`);
+  }
+  if (reference.locationHint?.clauseNumber) {
+    locationParts.push(`Clause ${reference.locationHint.clauseNumber}`);
+  }
+  if (reference.locationHint?.page) {
+    locationParts.push(`Page ${reference.locationHint.page}`);
+  }
+  const locationLabel = locationParts.join(" · ");
+
+  return (
+    <div className="mt-3 rounded-md border border-[#F3E9E9] bg-white px-3 py-2">
+      <p className="text-xs font-semibold uppercase tracking-wide text-[#6B4F4F]">
+        Clause evidence {reference.heading ? `· ${reference.heading}` : ""}
+      </p>
+      {locationLabel && (
+        <p className="text-[11px] text-[#9A7C7C] mb-1">{locationLabel}</p>
+      )}
+      {reference.excerpt ? (
+        <p className="text-sm text-[#271D1D] whitespace-pre-line">
+          {reference.excerpt}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+function inferClauseImportance(
+  text: string,
+): ClauseExtraction["importance"] {
+  const lowered = text.toLowerCase();
+  if (/(liability|indemn|termination|governing law|confidential)/.test(lowered)) {
+    return "high";
+  }
+  if (/(payment|fees|obligation|responsibility|audit)/.test(lowered)) {
+    return "medium";
+  }
+  return "low";
+}
+
+function deriveClauseExtractionsFromContent(
+  content?: string | null,
+  limit = 8,
+): ClauseExtraction[] {
+  if (!content) return [];
+  const normalized = content.replace(/\r\n/g, "\n");
+  const blocks = normalized
+    .split(/\n{2,}/)
+    .map((block) => block.trim())
+    .filter((block) => block.length > 80);
+
+  const clauses: ClauseExtraction[] = [];
+  for (const block of blocks) {
+    if (clauses.length >= limit) break;
+    const lines = block.split(/\n+/).map((line) => line.trim()).filter(Boolean);
+    if (!lines.length) continue;
+
+    let heading = "";
+    let bodyLines = lines;
+    const firstLine = lines[0];
+    if (/^(\d+(\.\d+)*\.?)\s+/.test(firstLine) || /^[A-Z][A-Z\s]{3,}$/.test(firstLine)) {
+      heading = firstLine;
+      bodyLines = lines.slice(1);
+    }
+
+    const body = bodyLines.join(" ").trim();
+    if (body.length < 60) continue;
+    const excerpt = body.slice(0, 420).trim();
+    const clauseNumberMatch = heading.match(/^(\d+(\.\d+)*)(?:\.)?\s*/);
+    const clauseNumber = clauseNumberMatch ? clauseNumberMatch[1] : null;
+
+    clauses.push({
+      id: `parsed-clause-${clauses.length + 1}`,
+      clauseId: clauseNumber ? `parsed-${clauseNumber}` : `parsed-${clauses.length + 1}`,
+      title: heading || `Clause ${clauses.length + 1}`,
+      category: undefined,
+      originalText: excerpt,
+      normalizedText: body.slice(0, 800),
+      importance: inferClauseImportance(excerpt),
+      location: null,
+      references: [],
+    });
+  }
+
+  return clauses;
+}
+
 function ClausePreview({
   clauseTitle,
   anchorText,
@@ -950,16 +1046,12 @@ export default function ContractReview() {
   const [isAgentOpen, setIsAgentOpen] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
-    clauses: false,
-    recommendations: false,
     actions: false,
     missing: true,
   });
   const [suggestionSelection, setSuggestionSelection] = useState<Record<string, boolean>>({});
   const [includeAcceptedAgentEdits, setIncludeAcceptedAgentEdits] = useState(true);
   const [hasManuallyToggledIncludeEdits, setHasManuallyToggledIncludeEdits] = useState(false);
-  const [activeClauseExtraction, setActiveClauseExtraction] =
-    useState<ClauseExtraction | null>(null);
   const [activeSimilarityMatch, setActiveSimilarityMatch] =
     useState<SimilarityMatch | null>(null);
   const [activeDeviationInsight, setActiveDeviationInsight] =
@@ -1038,6 +1130,14 @@ const updatedPlainText = useMemo(() => {
       [id]: value,
     }));
   }, []);
+
+  const results = reviewData.results || {};
+  const resultsRecord = results as Record<string, unknown>;
+  const resultsMetadata =
+    typeof resultsRecord.metadata === "object" &&
+    resultsRecord.metadata !== null
+      ? (resultsRecord.metadata as Record<string, unknown>)
+      : null;
 
   const classification = useMemo(() => {
     const stateValue =
@@ -1232,7 +1332,7 @@ const updatedPlainText = useMemo(() => {
           source: classificationSourceDisplay,
         },
       },
-      clauses: criticalClauses,
+      clauses: resolvedClauseExtractions,
       recommendations: normalizedRecommendations,
       action_items: normalizedActionItems,
       agent_edits: acceptedAgentEdits.map((edit) => ({
@@ -1341,26 +1441,6 @@ const updatedPlainText = useMemo(() => {
           ? `<h3>Missing or Unconfirmed Information</h3><ul>${payload.summary.missing_information
               .map((item: string) => `<li>${item}</li>`)
               .join("")}</ul>`
-          : ""
-      }
-      ${
-        payload.clauses.length
-          ? `<h2>Clause Evidence</h2>${payload.clauses
-              .map(
-                (clause: any) =>
-                  `<div><h4>${clause.clause_title || clause.clause || "Clause"}${
-                    clause.clause_number ? ` (${clause.clause_number})` : ""
-                  }</h4><p>${clause.clause_text || ""}</p>${
-                    clause.page_reference
-                      ? `<p><em>Location:</em> ${clause.page_reference}</p>`
-                      : ""
-                  }${
-                    clause.recommendation
-                      ? `<p><strong>Recommendation:</strong> ${clause.recommendation}</p>`
-                      : ""
-                  }</div>`,
-              )
-              .join("")}`
           : ""
       }
       ${
@@ -1515,14 +1595,6 @@ Next step: ${
     );
   }
 
-  const results = reviewData.results || {};
-  const resultsRecord = results as Record<string, unknown>;
-  const resultsMetadata =
-    typeof resultsRecord.metadata === "object" &&
-    resultsRecord.metadata !== null
-      ? (resultsRecord.metadata as Record<string, unknown>)
-      : null;
-
   const structuredReport = useMemo<AnalysisReport | null>(() => {
     if (!results || typeof results !== "object") {
       return null;
@@ -1545,6 +1617,15 @@ Next step: ${
   const structuredDeviationInsights =
     structuredReport?.deviationInsights ?? [];
   const structuredReportActionItems = structuredReport?.actionItems ?? [];
+  const playbookCoverage = structuredReport?.metadata?.playbookCoverage ?? null;
+  const coveragePercent =
+    typeof playbookCoverage?.coverageScore === "number"
+      ? Math.round(playbookCoverage.coverageScore * 100)
+      : null;
+  const uncoveredCriticalClauses =
+    playbookCoverage?.criticalClauses?.filter((clause) => !clause.met) ?? [];
+  const uncoveredAnchors =
+    playbookCoverage?.anchorCoverage?.filter((anchor) => !anchor.met) ?? [];
   const locationTimings =
     locationState.timings ??
     storedPayload?.timings ??
@@ -1614,22 +1695,28 @@ Next step: ${
     return map;
   }, [structuredReport]);
 
+  const parsedClauseExtractions = useMemo(
+    () => deriveClauseExtractionsFromContent(contractData?.content ?? null),
+    [contractData?.content],
+  );
   const resolvedClauseExtractions = structuredClauseExtractions.length
     ? structuredClauseExtractions
-    : (structuredReport?.clauseFindings ?? []).map((clause, index) => ({
-        id: clause.clauseId ?? `clause-fallback-${index + 1}`,
-        clauseId: clause.clauseId ?? null,
-        title: clause.title,
-        category: clause.riskLevel ?? "clause",
-        originalText:
-          clause.summary || clause.recommendation || "Clause summary unavailable",
-        importance: clause.riskLevel as ClauseExtraction["importance"],
-        location: null,
-        references:
-          typeof (clause as Record<string, unknown>)?.page_reference === "string"
-            ? [(clause as Record<string, string>).page_reference]
-            : [],
-      }));
+    : parsedClauseExtractions.length
+      ? parsedClauseExtractions
+      : (structuredReport?.clauseFindings ?? []).map((clause, index) => ({
+          id: clause.clauseId ?? `clause-fallback-${index + 1}`,
+          clauseId: clause.clauseId ?? null,
+          title: clause.title,
+          category: clause.riskLevel ?? "clause",
+          originalText:
+            clause.summary || clause.recommendation || "Clause summary unavailable",
+          importance: clause.riskLevel as ClauseExtraction["importance"],
+          location: null,
+          references:
+            typeof (clause as Record<string, unknown>)?.page_reference === "string"
+              ? [(clause as Record<string, string>).page_reference]
+              : [],
+        }));
   const resolvedPlaybookInsights: PlaybookInsight[] =
     structuredPlaybookInsights.length
       ? structuredPlaybookInsights
@@ -1696,6 +1783,51 @@ Next step: ${
       .filter((edit): edit is ProposedEdit => Boolean(edit));
   }, [structuredReport, results]);
 
+  const severityBuckets = useMemo<Record<string, Issue[]>>(() => {
+    const buckets: Record<string, Issue[]> = {
+      critical: [],
+      high: [],
+      medium: [],
+      low: [],
+      default: [],
+    };
+    structuredIssues.forEach((issue) => {
+      const key =
+        issue.severity && buckets[issue.severity]
+          ? issue.severity
+          : "default";
+      buckets[key].push(issue);
+    });
+    return buckets;
+  }, [structuredIssues]);
+
+  const [expandedSeverities, setExpandedSeverities] = useState<
+    Record<string, boolean>
+  >({
+    critical: true,
+    high: true,
+    medium: false,
+    low: false,
+    default: false,
+  });
+
+  useEffect(() => {
+    setExpandedSeverities({
+      critical: true,
+      high: true,
+      medium: structuredIssues.length <= 5,
+      low: false,
+      default: false,
+    });
+  }, [reviewData?.id, structuredIssues.length]);
+
+  const toggleSeveritySection = useCallback((severity: string) => {
+    setExpandedSeverities((prev) => ({
+      ...prev,
+      [severity]: !prev[severity],
+    }));
+  }, []);
+
   const structuredActionItems = useMemo<NormalizedDecision[]>(() => {
     if (!structuredProposedEdits.length) {
       return [];
@@ -1707,22 +1839,27 @@ Next step: ${
       ),
     );
   }, [structuredProposedEdits, clauseTitleMap]);
+  const proposedEditLookup = useMemo(() => {
+    const lookup = new Map<string, ProposedEdit>();
+    structuredProposedEdits.forEach((edit) => {
+      if (typeof edit.id === "string" && edit.id.trim().length > 0) {
+        lookup.set(edit.id.toLowerCase(), edit);
+      }
+      if (typeof edit.clauseId === "string" && edit.clauseId.trim().length > 0) {
+        lookup.set(edit.clauseId.toLowerCase(), edit);
+      }
+      if (typeof edit.anchorText === "string" && edit.anchorText.trim().length > 0) {
+        lookup.set(edit.anchorText.toLowerCase(), edit);
+      }
+    });
+    return lookup;
+  }, [structuredProposedEdits]);
   const score =
     (typeof reviewData.score === "number"
       ? reviewData.score
       : typeof results.score === "number"
         ? results.score
         : 0) || 0;
-  const calibration = results.calibration as
-    | {
-        confidenceBand: "low" | "medium" | "high";
-        fallbackUsed: boolean;
-        scoreSource: string;
-        confidenceSource: string;
-        solutionKey?: string | null;
-        scoringEmphasis?: string;
-      }
-    | undefined;
   const contractMetadataRecord = contractData?.metadata
     ? (contractData.metadata as Record<string, unknown>)
     : null;
@@ -1732,25 +1869,7 @@ Next step: ${
 
   const solutionAlignment =
     results.solution_alignment || results.solutionAlignment || null;
-  const solutionAlignmentGaps = Array.isArray(solutionAlignment?.gaps)
-    ? (solutionAlignment?.gaps as string[]).filter(
-        (gap) =>
-          typeof gap === "string" && !shouldHideFallbackMessage(gap),
-      )
-    : [];
   const selectedSolution = results.selected_solution || null;
-  const criticalClauses: Array<{
-    clause?: string;
-    clause_title?: string;
-    clause_number?: string;
-    clause_text?: string;
-    evidence_excerpt?: string;
-    page_reference?: string;
-    recommendation?: string;
-    importance?: string;
-  }> = Array.isArray(results.critical_clauses || results.criticalClauses)
-    ? (results.critical_clauses || results.criticalClauses)
-    : [];
 
   const rawRecommendations = [
     ...(Array.isArray(results.recommendations)
@@ -1790,7 +1909,6 @@ const actionItemEntries = useMemo(
     ),
   [normalizedActionItems, resolvedClauseExtractions],
 );
-const topNextSteps = actionItemEntries.slice(0, 3);
   const missingInformation: string[] = Array.isArray(results.missing_information)
     ? (results.missing_information as string[])
     : Array.isArray(results.missing_clauses)
@@ -1813,6 +1931,7 @@ const topNextSteps = actionItemEntries.slice(0, 3);
     () => [...recommendationEntries, ...actionItemEntries],
     [recommendationEntries, actionItemEntries],
   );
+  const topNextSteps = combinedDecisions.slice(0, 3);
 
   const severitySummary = useMemo(() => {
     const base: Record<string, number> = {
@@ -1953,7 +2072,6 @@ const topNextSteps = actionItemEntries.slice(0, 3);
         count,
       })),
       missingInformation: displayMissingInformation.slice(0, 6),
-      clauseEvidence: criticalClauses.slice(0, 5),
       recommendations: recommendationEntries.slice(0, 6).map((item) => ({
         id: item.id,
         description: item.description,
@@ -1962,7 +2080,7 @@ const topNextSteps = actionItemEntries.slice(0, 3);
         owner: item.owner,
         dueTimeline: item.dueTimeline,
       })),
-      actionItems: actionItemEntries.slice(0, 6).map((item) => ({
+      actionItems: combinedDecisions.slice(0, 6).map((item) => ({
         id: item.id,
         description: item.description,
         severity: item.severity,
@@ -1979,9 +2097,8 @@ const topNextSteps = actionItemEntries.slice(0, 3);
       severitySnapshot,
       topDepartments,
       displayMissingInformation,
-      criticalClauses,
       recommendationEntries,
-      actionItemEntries,
+      combinedDecisions,
     ],
   );
 
@@ -2294,6 +2411,28 @@ const topNextSteps = actionItemEntries.slice(0, 3);
     }
   }, [updatedPlainText, toast]);
 
+  const handleCopyProposedEdit = useCallback(
+    async (edit: ProposedEdit) => {
+      try {
+        await navigator.clipboard.writeText(edit.proposedText);
+        toast({
+          title: "Proposed language copied",
+          description: "Paste directly into your contract or redline.",
+        });
+      } catch (error) {
+        toast({
+          title: "Copy failed",
+          description:
+            error instanceof Error
+              ? error.message
+              : "Your browser blocked clipboard access.",
+          variant: "destructive",
+        });
+      }
+    },
+    [toast],
+  );
+
   const handleDownloadTxt = useCallback(() => {
     if (!updatedPlainText) return;
     const safeTitle = contractData?.file_name
@@ -2439,6 +2578,67 @@ const topNextSteps = actionItemEntries.slice(0, 3);
     }
   }, [getExportPayload, contractData?.file_name, toast]);
 
+  const handleDownloadRedlines = useCallback(async () => {
+    if (!structuredProposedEdits.length) {
+      toast({
+        title: "No smart edits available",
+        description: "Generate a report with proposed edits before exporting redlines.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/export/redline", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          contractName: summaryContractName,
+          proposedEdits: structuredProposedEdits,
+        }),
+      });
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(
+          typeof payload.error === "string"
+            ? payload.error
+            : `Redline export failed (${response.status})`,
+        );
+      }
+
+      const blob = await response.blob();
+      const safeTitle = contractData?.file_name
+        ? contractData.file_name.replace(/\.[^.]+$/, "")
+        : "contract";
+      const fileName = `${safeTitle}-maigon-redline.docx`;
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      toast({
+        title: "Redline export failed",
+        description:
+          error instanceof Error
+            ? error.message
+            : "We couldn't generate the smart redline document.",
+        variant: "destructive",
+      });
+    }
+  }, [
+    structuredProposedEdits,
+    summaryContractName,
+    contractData?.file_name,
+    toast,
+  ]);
+
   const draftDiffChunks = useMemo(() => {
     if (!originalPlainText && !updatedPlainText) {
       return [] as DiffChunk[];
@@ -2472,7 +2672,6 @@ const heroFileName =
 const heroNavItems = [
   { id: "issues-section", label: "Issues" },
   { id: "playbook-section", label: "Playbook" },
-  { id: "clauses-section", label: "Clauses" },
   { id: "similarity-section", label: "Similarity" },
   { id: "deviation-section", label: "Deviations" },
 ];
@@ -2593,11 +2792,8 @@ const heroNavItems = [
                         {structuredIssues.length === 1 ? "" : "s"} flagged
                       </li>
                       <li>
-                        • {actionItemEntries.length} action item
-                        {actionItemEntries.length === 1 ? "" : "s"}
-                      </li>
-                      <li>
-                        • {resolvedClauseExtractions.length} clauses extracted
+                        • {combinedDecisions.length} action item
+                        {combinedDecisions.length === 1 ? "" : "s"} ready
                       </li>
                     </ul>
                   </div>
@@ -2786,6 +2982,62 @@ const heroNavItems = [
                   </div>
                 </div>
               </div>
+              {playbookCoverage && (
+                <div className="bg-white border border-[#E8DDDD] rounded-lg p-6 shadow-sm mb-6">
+                  <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wide text-[#6B4F4F]">
+                        Playbook coverage
+                      </p>
+                      <p className="text-3xl font-semibold text-[#271D1D]">
+                        {coveragePercent ?? "--"}%
+                      </p>
+                      <p className="text-sm text-[#271D1D]/70">
+                        {uncoveredCriticalClauses.length || uncoveredAnchors.length
+                          ? "Review missing anchors below."
+                          : "All required anchors satisfied."}
+                      </p>
+                    </div>
+                    <div className="w-full md:w-48 h-2 bg-[#F3E9E9] rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-[#9A7C7C] transition-all"
+                        style={{
+                          width: `${Math.min(
+                            100,
+                            Math.max(0, coveragePercent ?? 0),
+                          )}%`,
+                        }}
+                      />
+                    </div>
+                  </div>
+                  {(uncoveredCriticalClauses.length > 0 ||
+                    uncoveredAnchors.length > 0) && (
+                    <div className="mt-4 grid gap-2">
+                      {uncoveredCriticalClauses.slice(0, 3).map((clause) => (
+                        <div
+                          key={clause.title}
+                          className="rounded-md bg-[#FEFBFB] border border-[#F3E9E9] px-3 py-2 text-sm text-[#271D1D]/80"
+                        >
+                          <p className="font-semibold">{clause.title}</p>
+                          {clause.missingMustInclude.length > 0 && (
+                            <p className="text-xs text-[#6B4F4F]">
+                              Missing: {clause.missingMustInclude.join(", ")}
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                      {uncoveredAnchors.slice(0, 2).map((anchor) => (
+                        <div
+                          key={anchor.anchor}
+                          className="rounded-md bg-[#FFF8F1] border border-[#F3E9E9] px-3 py-2 text-sm text-[#6B4F4F]"
+                        >
+                          Anchor not satisfied: {anchor.anchor}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
               {structuredIssues.length > 0 && (
                 <div id="issues-section">
                   <div className="flex items-center justify-between mb-3">
@@ -2796,41 +3048,97 @@ const heroNavItems = [
                       {structuredIssues.length} findings
                     </p>
                   </div>
-                  <div className="space-y-3">
-                    {structuredIssues.slice(0, 5).map((issue) => {
+                  <div className="space-y-4">
+                    {SEVERITY_DISPLAY_ORDER.map((severity) => {
+                      const bucket = severityBuckets[severity];
+                      if (!bucket || bucket.length === 0) {
+                        return null;
+                      }
                       const style =
-                        SEVERITY_STYLES[issue.severity] ||
-                        SEVERITY_STYLES.default;
+                        SEVERITY_STYLES[severity] ?? SEVERITY_STYLES.default;
+                      const expanded = expandedSeverities[severity];
                       return (
                         <div
-                          key={issue.id}
-                          className="border border-[#E8DDDD] rounded-lg p-4 bg-white shadow-sm"
+                          key={severity}
+                          className="border border-[#E8DDDD] rounded-lg bg-white shadow-sm"
                         >
-                          <div className="flex items-center justify-between mb-2">
-                            <p className="text-sm font-semibold text-[#271D1D]">
-                              {issue.title}
-                            </p>
-                            <span
-                              className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${style.badge}`}
-                            >
-                              {style.label}
-                            </span>
-                          </div>
-                          <p className="text-sm text-gray-700 mb-2">
-                            {issue.recommendation}
-                          </p>
-                          {issue.legalBasis && issue.legalBasis.length > 0 && (
-                            <p className="text-xs text-gray-500">
-                              References:{" "}
-                              {issue.legalBasis
-                                .map((basis) => basis.authority)
-                                .join(", ")}
-                            </p>
-                          )}
-                          {issue.clauseReference?.heading && (
-                            <p className="text-xs text-gray-500 mt-1">
-                              Clause: {issue.clauseReference.heading}
-                            </p>
+                          <button
+                            type="button"
+                            onClick={() => toggleSeveritySection(severity)}
+                            className="w-full flex items-center justify-between px-4 py-3"
+                          >
+                            <div className="flex items-center gap-2">
+                              <span
+                                className={`h-2.5 w-2.5 rounded-full ${style.dot}`}
+                              />
+                              <p className="text-sm font-semibold text-[#271D1D]">
+                                {style.label}
+                              </p>
+                              <Badge
+                                className={style.badge}
+                              >{`${bucket.length} issue${bucket.length === 1 ? "" : "s"}`}</Badge>
+                            </div>
+                            <ChevronDown
+                              className={`h-4 w-4 text-[#6B4F4F] transition-transform ${
+                                expanded ? "rotate-180" : ""
+                              }`}
+                            />
+                          </button>
+                          {expanded && (
+                            <div className="px-4 pb-4 space-y-3">
+                              {bucket.map((issue) => {
+                                const clauseKey =
+                                  issue.clauseReference?.heading?.toLowerCase() ??
+                                  issue.id?.toLowerCase() ??
+                                  null;
+                                const excerptKey =
+                                  issue.clauseReference?.excerpt?.toLowerCase() ??
+                                  null;
+                                const matchingEdit =
+                                  (clauseKey &&
+                                    proposedEditLookup.get(clauseKey)) ||
+                                  (excerptKey &&
+                                    proposedEditLookup.get(excerptKey)) ||
+                                  (issue.id &&
+                                    proposedEditLookup.get(
+                                      issue.id.toLowerCase(),
+                                    )) ||
+                                  null;
+                                return (
+                                  <div
+                                    key={issue.id}
+                                    className="border border-[#F3E9E9] rounded-lg p-4 bg-[#FEFBFB]"
+                                  >
+                                    <div className="flex flex-col gap-2">
+                                      <div className="flex items-center justify-between gap-4">
+                                        <p className="text-sm font-semibold text-[#271D1D]">
+                                          {issue.title}
+                                        </p>
+                                        <span
+                                          className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${style.badge}`}
+                                        >
+                                          {style.label}
+                                        </span>
+                                      </div>
+                                      <p className="text-sm text-gray-700">
+                                        {issue.recommendation}
+                                      </p>
+                                      <ClauseEvidenceBlock
+                                        reference={issue.clauseReference}
+                                      />
+                                      {issue.legalBasis?.length ? (
+                                        <p className="text-xs text-gray-500">
+                                          References:{" "}
+                                          {issue.legalBasis
+                                            .map((basis) => basis.authority)
+                                            .join(", ")}
+                                        </p>
+                                      ) : null}
+                                  </div>
+                                </div>
+                              );
+                              })}
+                            </div>
                           )}
                         </div>
                       );
@@ -2861,6 +3169,16 @@ const heroNavItems = [
                           <p className="text-gray-600">
                             {criterion.description}
                           </p>
+                          {criterion.evidence && (
+                            <div className="mt-2 rounded-md border border-[#E8DDDD] bg-[#FEFBFB] px-3 py-2 text-xs text-[#6B4F4F]">
+                              <p className="font-semibold uppercase tracking-wide">
+                                Clause evidence
+                              </p>
+                              <p className="text-sm text-[#271D1D]">
+                                {criterion.evidence}
+                              </p>
+                            </div>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -2942,63 +3260,6 @@ const heroNavItems = [
                       No playbook deviations were detected for this contract.
                     </p>
                   )}
-                </div>
-              )}
-              {resolvedClauseExtractions.length > 0 && (
-                <div
-                  id="clauses-section"
-                  className="rounded-2xl border border-[#271D1D]/30 bg-[#1B1616] p-6 text-white shadow-md"
-                >
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-sm font-semibold uppercase tracking-wide text-white">
-                      Extracted clauses
-                    </h3>
-                    <p className="text-xs text-white/70">
-                      {resolvedClauseExtractions.length} clause
-                      {resolvedClauseExtractions.length === 1 ? "" : "s"}
-                    </p>
-                  </div>
-                  <div className="space-y-4">
-                    {resolvedClauseExtractions
-                      .slice(0, 4)
-                      .map((clause) => (
-                        <div
-                          key={clause.id}
-                          className="rounded-xl border border-white/10 bg-white/5 p-4"
-                        >
-                          <div className="flex flex-wrap items-start justify-between gap-3">
-                            <div>
-                              <p className="text-base font-semibold text-white">
-                                {clause.title}
-                              </p>
-                              <p className="text-xs uppercase tracking-wide text-white/70">
-                                {clause.category || "Clause insight"}
-                              </p>
-                            </div>
-                            <span
-                              className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${getImportanceBadge(
-                                clause.importance,
-                              )}`}
-                            >
-                              {formatLabel(clause.importance || "general")}
-                            </span>
-                          </div>
-                          <p className="mt-3 text-sm text-white/80">
-                            {clause.originalText}
-                          </p>
-                          <div className="mt-4">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="border-white/30 text-white hover:bg-white/10"
-                              onClick={() => setActiveClauseExtraction(clause)}
-                            >
-                              View extracted clauses
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
-                  </div>
                 </div>
               )}
               {structuredReport && (
@@ -3305,221 +3566,11 @@ const heroNavItems = [
               </div>
             )}
 
-            {/* Overall Score - Prominent Display */}
-            <div
-              className={`bg-white rounded-lg border-2 p-6 mb-6 print:border print:p-4 ${getScoreBgColor(score)}`}
-            >
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-medium text-[#271D1D]">
-                  Overall {getReviewTypeDisplay(reviewData.review_type)} Score
-                </h3>
-                <span
-                  className={`text-4xl font-bold print:text-3xl ${getScoreColor(score)}`}
-                >
-                  {formatScore(score)}%
-                </span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-4 mb-4 print:h-3">
-                <div
-                  className={`h-4 rounded-full transition-all duration-1000 print:h-3 ${
-                    score >= 80
-                      ? "bg-green-500"
-                      : score >= 60
-                        ? "bg-yellow-500"
-                        : "bg-red-500"
-                  }`}
-                  style={{ width: `${score}%` }}
-                ></div>
-              </div>
-              <p className="text-gray-700">
-                {score >= 80 && <strong>Excellent performance</strong>}
-                {score >= 60 && score < 80 && <strong>Good performance</strong>}
-                {score < 60 && <strong>Needs improvement</strong>}{" "}
-                {results.summary ||
-                  `Your contract has been analyzed with a ${reviewData.review_type.replace("_", " ")} focus.`}
-              </p>
-              <div className="mt-4 flex flex-wrap items-center gap-3 text-sm text-gray-600">
-                <span>
-                  Generated on{" "}
-                  {reviewData?.created_at
-                    ? new Date(reviewData.created_at).toLocaleString()
-                    : "recent run"}
-                </span>
-                <span className="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
-                  Powered by Maigon AI
-                </span>
-              </div>
-            </div>
-
-            {solutionAlignment && (
-              <div className="bg-white rounded-lg border p-6 mb-6">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <h3 className="text-lg font-medium text-[#271D1D]">
-                    Solution Focus
-                  </h3>
-                  {selectedSolution?.title && (
-                    <span className="inline-flex items-center rounded-full bg-[#9A7C7C]/15 px-3 py-1 text-xs font-medium text-[#9A7C7C]">
-                      {selectedSolution.title}
-                    </span>
-                  )}
-                </div>
-                {calibration?.scoringEmphasis && (
-                  <p className="mt-2 text-sm text-gray-600">
-                    Emphasis: {calibration.scoringEmphasis}.
-                  </p>
-                )}
-                <div className="mt-4 grid gap-4 md:grid-cols-3">
-                  <div>
-                    <h4 className="mb-2 text-sm font-semibold text-gray-700">
-                      Top Priorities
-                    </h4>
-                    <ul className="space-y-1 text-sm text-gray-600">
-                      {(solutionAlignment.priorities || []).slice(0, 4).map((item: string, index: number) => (
-                        <li key={`priority-${index}`}>
-                          • {item}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                  <div>
-                    <h4 className="mb-2 text-sm font-semibold text-gray-700">
-                      Recommended Controls
-                    </h4>
-                    <ul className="space-y-1 text-sm text-gray-600">
-                      {(solutionAlignment.recommended_controls || solutionAlignment.recommendedControls || []).slice(0, 4).map((item: string, index: number) => (
-                        <li key={`control-${index}`}>
-                          • {item}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                  <div>
-                    <h4 className="mb-2 text-sm font-semibold text-gray-700">
-                      Watchouts
-                    </h4>
-                    <ul className="space-y-1 text-sm text-gray-600">
-                      {solutionAlignmentGaps.slice(0, 4).map((item: string, index: number) => (
-                        <li key={`gap-${index}`}>
-                          • {item}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-                {Array.isArray(solutionAlignment.notes) && solutionAlignment.notes.length > 0 && (
-                  <div className="mt-4 rounded-md bg-gray-50 p-3 text-xs text-gray-600">
-                    {solutionAlignment.notes[0]}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {criticalClauses.length > 0 && (
-              <div className="mb-8">
-                <div className="mb-4 flex items-center justify-between">
-                  <h3 className="text-lg font-medium text-[#271D1D]">
-                    Clause Evidence Traceability
-                  </h3>
-                  {criticalClauses.length > 3 && (
-                    <button
-                      type="button"
-                      className="text-sm text-[#9A7C7C] underline"
-                      onClick={() => toggleSection("clauses")}
-                    >
-                      {expandedSections.clauses
-                        ? "Show fewer"
-                        : `Show ${criticalClauses.length - 3} more`}
-                    </button>
-                  )}
-                </div>
-                <div className="space-y-4">
-                  {(expandedSections.clauses
-                    ? criticalClauses
-                    : criticalClauses.slice(0, 3)
-                  ).map((clause, idx) => {
-                    const title = clause.clause_title || clause.clause || "Clause";
-                    const number = clause.clause_number ? ` (${clause.clause_number})` : "";
-                    return (
-                      <div
-                        key={`clause-${idx}`}
-                        className="rounded-lg border bg-white p-4 shadow-sm"
-                      >
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <div className="text-base font-semibold text-[#271D1D]">
-                            {title}
-                            {number}
-                          </div>
-                          {clause.page_reference && (
-                            <span className="text-xs font-medium text-[#9A7C7C] bg-[#9A7C7C]/10 px-2 py-1 rounded-full">
-                              {clause.page_reference}
-                            </span>
-                          )}
-                        </div>
-                        {clause.clause_text && (
-                          <p className="mt-2 text-sm text-gray-700">
-                            {clause.clause_text}
-                          </p>
-                        )}
-                        {clause.evidence_excerpt && clause.evidence_excerpt !== clause.clause_text && (
-                          <p className="mt-2 text-xs text-gray-600">
-                            Evidence: {clause.evidence_excerpt}
-                          </p>
-                        )}
-                        {clause.recommendation && (
-                          <p className="mt-3 text-sm text-gray-700">
-                            <span className="font-medium text-[#271D1D]">Recommendation:</span>{" "}
-                            {clause.recommendation}
-                          </p>
-                        )}
-                        {clause.importance && (
-                          <p className="mt-3 text-xs uppercase tracking-wide text-gray-500">
-                            Importance: {clause.importance}
-                          </p>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
             {/* Key Metrics Grid */}
-            {results.key_points && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 print:gap-3">
-                {results.key_points
-                  .slice(0, 4)
-                  .map((point: string, index: number) => (
-                    <div
-                      key={index}
-                      className="bg-blue-50 rounded-lg p-4 border border-blue-200 print:p-3"
-                    >
-                      <div className="text-sm text-blue-700 font-medium">
-                        {point}
-                      </div>
-                    </div>
-                  ))}
-              </div>
+            {false && results.key_points && (
+              <div />
             )}
 
-            {/* Processing Details */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 print:gap-3">
-              <div className="bg-gray-50 rounded-lg p-4 text-center border border-gray-200 print:p-3">
-                <div className="text-2xl font-bold text-gray-600 mb-1 print:text-xl">
-                  {results.pages || 1}
-                </div>
-                <div className="text-sm text-gray-700 font-medium">
-                  Pages Analyzed
-                </div>
-              </div>
-              <div className="bg-gray-50 rounded-lg p-4 text-center border border-gray-200 print:p-3">
-                <div className="text-2xl font-bold text-gray-600 mb-1 print:text-xl">
-                  {(results.processing_time || 0).toFixed(1)}s
-                </div>
-                <div className="text-sm text-gray-700 font-medium">
-                  Processing Time
-                </div>
-              </div>
-            </div>
             {displayMissingInformation.length > 0 && (
               <div className="mb-8 rounded-lg border border-red-200 bg-red-50 p-6 print:mb-6">
                 <div className="flex items-center justify-between">
@@ -3594,7 +3645,6 @@ const heroNavItems = [
             </div>
           )}
 
-          {/* Recommendations */}
           {(combinedDecisions.length > 0 || acceptedAgentEdits.length > 0) && (
             <div className="mb-8 print:hidden">
               <div className="rounded-2xl border border-[#E8DDDD] bg-white shadow-sm p-6">
@@ -3674,152 +3724,14 @@ const heroNavItems = [
             </div>
           )}
 
-          {/* Recommendations */}
-          {recommendationEntries.length > 0 && (
-            <div className="mb-8 print:mb-6">
-              <div className="mb-4 flex items-center justify-between">
-                <h2 className="text-xl font-medium text-[#271D1D] print:text-lg">
-                  Recommendations
-                </h2>
-                {recommendationEntries.length > 3 && (
-                  <button
-                    type="button"
-                    className="text-sm text-[#9A7C7C] underline"
-                    onClick={() => toggleSection("recommendations")}
-                  >
-                    {expandedSections.recommendations
-                      ? "Show fewer"
-                      : `Show ${recommendationEntries.length - 3} more`}
-                  </button>
-                )}
-              </div>
-              <div className="space-y-3">
-                {(expandedSections.recommendations
-                  ? recommendationEntries
-                  : recommendationEntries.slice(0, 3)
-                ).map((recommendation) => {
-                  const severityStyle = getSeverityStyle(recommendation.severity);
-                  const departmentStyle = getDepartmentStyle(
-                    recommendation.department,
-                  );
-                  const checked = suggestionSelection[recommendation.id] !== false;
-                  const recommendationPreviewAnchor =
-                    recommendation.proposedEdit?.previousText ??
-                    recommendation.proposedEdit?.anchorText ??
-                    "Current clause text";
-                  const recommendationPreviewUpdated =
-                    recommendation.proposedEdit?.updatedText ??
-                    recommendation.proposedEdit?.proposedText ??
-                    recommendationPreviewAnchor;
-                  return (
-                    <div
-                      key={recommendation.id}
-                      className="rounded-lg border border-blue-100 bg-blue-50 p-4"
-                    >
-                      <div className="flex flex-wrap items-start justify-between gap-2">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span
-                            className={`inline-flex items-center gap-2 rounded-full px-2.5 py-0.5 text-xs font-medium ${severityStyle.badge}`}
-                          >
-                            <span
-                              className={`h-2 w-2 rounded-full ${severityStyle.dot}`}
-                            ></span>
-                            {severityStyle.label}
-                          </span>
-                          <span
-                            className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${departmentStyle.badge}`}
-                          >
-                            {departmentStyle.label}
-                          </span>
-                          {recommendation.category && (
-                            <span className="inline-flex items-center rounded-full bg-white px-2.5 py-0.5 text-xs font-medium text-blue-700">
-                              {formatLabel(recommendation.category)}
-                            </span>
-                          )}
-                        </div>
-                        <label
-                          htmlFor={`suggestion-${recommendation.id}`}
-                          className="flex items-center gap-2 text-xs text-[#725A5A]"
-                        >
-                          <Checkbox
-                            id={`suggestion-${recommendation.id}`}
-                            checked={checked}
-                            onCheckedChange={(value) =>
-                              handleSuggestionSelection(
-                                recommendation.id,
-                                value === true,
-                              )
-                            }
-                          />
-                          Include in draft
-                        </label>
-                      </div>
-                      <div className="mt-3 flex items-start gap-3">
-                        <CheckCircle className="mt-1 h-5 w-5 flex-shrink-0 text-blue-600" />
-                        <p className="text-sm text-gray-700">
-                          {recommendation.description}
-                        </p>
-                      </div>
-                      <div className="mt-3 flex flex-wrap gap-4 text-xs text-gray-600">
-                        <span>
-                          Owner: <span className="font-medium">{formatLabel(recommendation.owner)}</span>
-                        </span>
-                        {recommendation.dueTimeline && recommendation.dueTimeline !== "TBD" && (
-                          <span>
-                            Due: <span className="font-medium">{recommendation.dueTimeline}</span>
-                          </span>
-                        )}
-                        {recommendation.nextStep && (
-                          <span>
-                            Next step: <span className="font-medium">{recommendation.nextStep}</span>
-                          </span>
-                        )}
-                      </div>
-                      {recommendation.proposedEdit ? (
-                        <div className="mt-3 space-y-2">
-                          <ClausePreview
-                            clauseTitle={recommendation.proposedEdit.clauseTitle}
-                            anchorText={recommendationPreviewAnchor}
-                            proposedText={recommendationPreviewUpdated}
-                            previousText={
-                              recommendation.proposedEdit.previousText ??
-                              recommendation.proposedEdit.anchorText ??
-                              null
-                            }
-                            updatedText={
-                              recommendation.proposedEdit.updatedText ??
-                              recommendation.proposedEdit.proposedText ??
-                              null
-                            }
-                            previewHtml={recommendation.proposedEdit.previewHtml ?? null}
-                            isActive={checked}
-                          />
-                          {!checked && (
-                            <p className="text-xs text-[#9A7C7C]">
-                              Enable “Include in draft” to apply this clause update.
-                            </p>
-                          )}
-                        </div>
-                      ) : (
-                        <p className="mt-3 text-xs text-[#9A7C7C]">
-                          This recommendation changes strategy or workflow, so no clause-level preview is available.
-                        </p>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
           {/* Action Items */}
-          {actionItemEntries.length > 0 && (
+          {combinedDecisions.length > 0 && (
             <div className="mb-8 print:mb-6">
               <div className="mb-4 flex items-center justify-between">
                 <h2 className="text-xl font-medium text-[#271D1D] print:text-lg">
                   Action Items
                 </h2>
-                {actionItemEntries.length > 3 && (
+                {combinedDecisions.length > 3 && (
                   <button
                     type="button"
                     className="text-sm text-[#9A7C7C] underline"
@@ -3827,14 +3739,14 @@ const heroNavItems = [
                   >
                     {expandedSections.actions
                       ? "Show fewer"
-                      : `Show ${actionItemEntries.length - 3} more`}
+                      : `Show ${combinedDecisions.length - 3} more`}
                   </button>
                 )}
               </div>
               <div className="space-y-3">
                 {(expandedSections.actions
-                  ? actionItemEntries
-                  : actionItemEntries.slice(0, 3)
+                  ? combinedDecisions
+                  : combinedDecisions.slice(0, 3)
                 ).map((item) => {
                   const severityStyle = getSeverityStyle(item.severity);
                   const departmentStyle = getDepartmentStyle(item.department);
@@ -3953,51 +3865,6 @@ const heroNavItems = [
           </div>
       </div>
     </div>
-
-      <Dialog
-        open={Boolean(activeClauseExtraction)}
-        onOpenChange={(open) => {
-          if (!open) setActiveClauseExtraction(null);
-        }}
-      >
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>
-              {activeClauseExtraction?.title || "Extracted clause"}
-            </DialogTitle>
-            {activeClauseExtraction?.category && (
-              <DialogDescription>
-                Category: {formatLabel(activeClauseExtraction.category)}
-              </DialogDescription>
-            )}
-          </DialogHeader>
-          {activeClauseExtraction?.originalText && (
-            <div>
-              <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#A07F7F]">
-                Original text
-              </h4>
-              <pre className="rounded border border-[#F1E6E6] bg-red-50/70 p-3 text-sm text-[#321414] whitespace-pre-wrap">
-                {activeClauseExtraction.originalText}
-              </pre>
-            </div>
-          )}
-          {activeClauseExtraction?.normalizedText && (
-            <div>
-              <h4 className="mt-4 mb-2 text-xs font-semibold uppercase tracking-wide text-[#2C5C4F]">
-                Normalized summary
-              </h4>
-              <pre className="rounded border border-emerald-100 bg-emerald-50/70 p-3 text-sm text-[#0E3B2E] whitespace-pre-wrap">
-                {activeClauseExtraction.normalizedText}
-              </pre>
-            </div>
-          )}
-          {activeClauseExtraction?.references?.length ? (
-            <div className="mt-4 text-xs text-gray-600">
-              References: {activeClauseExtraction.references.join(", ")}
-            </div>
-          ) : null}
-        </DialogContent>
-      </Dialog>
 
       <Dialog
         open={Boolean(activeSimilarityMatch)}
@@ -4254,6 +4121,9 @@ const heroNavItems = [
               </Button>
               <Button variant="outline" onClick={handleDownloadPdf}>
                 <Download className="w-4 h-4 mr-2" /> Download (.pdf)
+              </Button>
+              <Button variant="outline" onClick={handleDownloadRedlines}>
+                <Download className="w-4 h-4 mr-2" /> Smart redline (.docx)
               </Button>
             </div>
             <Button onClick={() => setShowDraftDialog(false)}>Close</Button>

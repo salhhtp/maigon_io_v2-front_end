@@ -95,6 +95,7 @@
         "npm:express@^4.18.2",
         "npm:file-type@21",
         "npm:framer-motion@^12.6.2",
+        "npm:function-bind@^1.1.2",
         "npm:globals@^15.9.0",
         "npm:html-docx-js@~0.3.1",
         "npm:html-pdf-node@^1.0.8",

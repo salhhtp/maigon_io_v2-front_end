@@ -702,7 +702,7 @@ async function callOpenAI(
       model: OPENAI_AGENT_MODEL,
       temperature: 0.2,
       response_format: { type: "json_object" },
-      max_tokens: 4096,
+      max_completion_tokens: 4096,
       messages: [
         { role: "system", content: systemPrompt },
         ...messages,
@@ -777,7 +777,7 @@ async function callAnthropic(
     },
     body: JSON.stringify({
       model: ANTHROPIC_AGENT_MODEL,
-      max_tokens: 2048,
+      max_completion_tokens: 2048,
       system: systemPrompt,
       messages: anthropicMessages,
     }),
