@@ -1,6 +1,4 @@
 import express from "express";
-import { Document, Packer, Paragraph } from "docx";
-import PDFDocument from "pdfkit";
 import { createRequire } from "node:module";
 import { generatePdfFromHtml } from "../services/adobePdfService";
 import { convertDocument } from "../services/cloudConvertService";
@@ -10,15 +8,54 @@ import { downloadStorageObject } from "../services/storageService";
 import { htmlToPlainText } from "../utils/htmlTransforms";
 
 const require = createRequire(import.meta.url);
-const htmlDocx: {
+
+type HtmlDocxModule = {
   asBlob: (html: string, options?: Record<string, unknown>) => Blob | Buffer;
-} = require("html-docx-js");
-const htmlPdf: {
+};
+
+type HtmlPdfModule = {
   generatePdf: (
     file: { content: string },
     options: Record<string, unknown>,
   ) => Promise<Buffer>;
-} = require("html-pdf-node");
+};
+
+let htmlDocxModule: HtmlDocxModule | null = null;
+function loadHtmlDocx(): HtmlDocxModule {
+  if (!htmlDocxModule) {
+    htmlDocxModule = require("html-docx-js") as HtmlDocxModule;
+  }
+  return htmlDocxModule;
+}
+
+let htmlPdfModulePromise: Promise<HtmlPdfModule> | null = null;
+async function loadHtmlPdf(): Promise<HtmlPdfModule> {
+  if (!htmlPdfModulePromise) {
+    htmlPdfModulePromise = Promise.resolve(
+      require("html-pdf-node") as HtmlPdfModule,
+    );
+  }
+  return htmlPdfModulePromise;
+}
+
+let docxModulePromise: Promise<typeof import("docx")> | null = null;
+async function loadDocx() {
+  if (!docxModulePromise) {
+    docxModulePromise = import("docx");
+  }
+  return docxModulePromise;
+}
+
+type PdfKitModule = typeof import("pdfkit");
+let pdfKitModulePromise: Promise<any> | null = null;
+async function loadPdfKit(): Promise<any> {
+  if (!pdfKitModulePromise) {
+    pdfKitModulePromise = import("pdfkit").then(
+      (mod) => (mod as { default?: PdfKitModule }).default ?? mod,
+    );
+  }
+  return pdfKitModulePromise;
+}
 
 export const exportRouter = express.Router();
 
@@ -169,6 +206,7 @@ async function buildDocxFromHtml(html: string): Promise<Buffer | null> {
   }
 
   try {
+    const htmlDocx = loadHtmlDocx();
     const blob = htmlDocx.asBlob(wrapped, {
       orientation: "portrait",
       margins: {
@@ -188,7 +226,8 @@ async function buildDocxFromHtml(html: string): Promise<Buffer | null> {
   return null;
 }
 
-function buildDocxFromText(text: string) {
+async function buildDocxFromText(text: string) {
+  const { Document, Packer, Paragraph } = await loadDocx();
   const paragraphs = text
     .split(/\r?\n/)
     .map((line) => new Paragraph(line || " "));
@@ -204,7 +243,8 @@ function buildDocxFromText(text: string) {
   );
 }
 
-function buildPdfFromText(text: string): Promise<Buffer> {
+async function buildPdfFromText(text: string): Promise<Buffer> {
+  const PDFDocument = await loadPdfKit();
   return new Promise((resolve, reject) => {
     try {
       const pdf = new PDFDocument({ margin: 48 });
@@ -462,6 +502,7 @@ exportRouter.post("/pdf", jsonParser, async (req, res) => {
       }
 
       try {
+        const htmlPdf = await loadHtmlPdf();
         const buffer = await htmlPdf.generatePdf(
           { content: effectiveHtml },
           {

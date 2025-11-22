@@ -47,7 +47,8 @@ function buildPlugins(mode: string) {
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
   server: {
-    host: "::",
+    // Prefer IPv4 binding to avoid browsers hanging on IPv6-only localhost resolution
+    host: "0.0.0.0",
     port: 8080,
     watch: {
       // Supabase CLI mutates `.env` frequently; ignore it to avoid

@@ -163,6 +163,16 @@ const isFunctionsFetchError = (error: unknown): boolean => {
   );
 };
 
+const supabaseFunctionsUrl =
+  typeof import.meta !== "undefined" &&
+  typeof (import.meta as any)?.env?.VITE_SUPABASE_URL === "string"
+    ? ((import.meta as any).env.VITE_SUPABASE_URL as string)
+    : undefined;
+
+async function wait(ms: number) {
+  await new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 class AIService {
   private static instance: AIService;
 
@@ -391,64 +401,44 @@ class AIService {
         new Date(session.expires_at! * 1000).toISOString(),
       );
 
-      // Call Supabase Edge Function for AI processing with timeout
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minute timeout
+      const { data, error } = await this.invokeEdgeFunctionWithRetry(
+        requestBody,
+        request.reviewType,
+        session.access_token ?? null,
+      );
 
-      try {
-        const { data, error } = await supabase.functions.invoke(
-          "analyze-contract",
+      console.log("📥 Edge Function response:", {
+        hasData: !!data,
+        hasError: !!error,
+        dataType: typeof data,
+        errorType: typeof error,
+      });
+
+      if (error) {
+        const serializedError = safeStringify(error);
+        const errorMessage = this.formatEdgeErrorMessage(error);
+
+        logError(
+          isFunctionsFetchError(error)
+            ? "Supabase Edge Function unreachable after retries"
+            : "❌ Supabase Edge Function returned error",
+          error instanceof Error ? error : new Error(String(error)),
           {
-            body: requestBody,
-            signal: controller.signal,
+            reviewType: request.reviewType,
+            originalError: serializedError,
           },
         );
 
-        console.log("📥 Edge Function response:", {
-          hasData: !!data,
-          hasError: !!error,
-          dataType: typeof data,
-          errorType: typeof error,
-        });
+        throw new Error(
+          errorMessage ||
+            "Edge Function error. The request was retried but still failed.",
+        );
+      }
 
-        clearTimeout(timeoutId);
-
-        if (error) {
-          const serializedError = safeStringify(error);
-          const errorMessage = this.formatEdgeErrorMessage(error);
-
-          if (isFunctionsFetchError(error)) {
-            logError(
-              "Supabase Edge Function unreachable",
-              error instanceof Error ? error : new Error(String(error)),
-              {
-                reviewType: request.reviewType,
-                originalError: serializedError,
-              },
-            );
-            return buildFallbackResult(
-              "Edge Function temporarily unreachable. Generated resilient fallback analysis.",
-            );
-          }
-
-          logError(
-            "❌ Supabase Edge Function returned error",
-            new Error(errorMessage || "Edge Function error"),
-            {
-              reviewType: request.reviewType,
-              originalError: serializedError,
-            },
-          );
-
-          throw new Error(
-            errorMessage || "Edge Function error. Please try again later.",
-          );
-        }
-
-        if (!data) {
-          const errorMsg = "No data returned from Edge Function";
-          console.error("❌", errorMsg);
-          throw new Error("No data returned from AI service");
+      if (!data) {
+        const errorMsg = "No data returned from Edge Function";
+        console.error("❌", errorMsg);
+        throw new Error("No data returned from AI service");
         }
 
         // Validate the response structure
@@ -476,15 +466,6 @@ class AIService {
         });
 
         return data;
-      } catch (timeoutError) {
-        clearTimeout(timeoutId);
-        if (timeoutError.name === "AbortError") {
-          throw new Error(
-            "AI analysis timed out - please try again with a smaller document",
-          );
-        }
-        throw timeoutError;
-      }
     } catch (error) {
       const errorInfo = extractErrorDetails(error, {
         model,
@@ -571,6 +552,119 @@ class AIService {
     }
 
     return String(error);
+  }
+
+  /**
+   * Invoke the Supabase Edge Function with retries for transient network failures.
+   * Falls back to a direct HTTP call if the Supabase client cannot reach the function.
+   */
+  private async invokeEdgeFunctionWithRetry(
+    requestBody: any,
+    reviewType: string,
+    accessToken: string | null,
+  ) {
+    const maxAttempts = 3;
+    const timeoutMs = 120000; // 2 minutes per attempt
+    const baseBackoffMs = 1500;
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+      try {
+        const response = await supabase.functions.invoke("analyze-contract", {
+          body: requestBody,
+          signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
+        return response;
+      } catch (error) {
+        clearTimeout(timeoutId);
+
+        const isAbort = (error as any)?.name === "AbortError";
+        const transient = isAbort || isFunctionsFetchError(error);
+        const attemptInfo = { attempt, maxAttempts, reviewType };
+
+        logError(
+          transient
+            ? "Transient Edge Function invocation failure"
+            : "Edge Function invocation failed",
+          error instanceof Error ? error : new Error(String(error)),
+          attemptInfo,
+        );
+
+        const isLastAttempt = attempt === maxAttempts;
+
+        if (transient && isLastAttempt && supabaseFunctionsUrl) {
+          try {
+            return await this.manualInvokeEdgeFunction(
+              requestBody,
+              accessToken,
+              timeoutMs,
+            );
+          } catch (manualError) {
+            logError(
+              "Direct Edge Function call failed after client retries",
+              manualError instanceof Error
+                ? manualError
+                : new Error(String(manualError)),
+              attemptInfo,
+            );
+            throw manualError;
+          }
+        }
+
+        if (!transient || isLastAttempt) {
+          throw error;
+        }
+
+        const waitMs = baseBackoffMs * attempt;
+        console.warn(
+          `Edge Function fetch failed (attempt ${attempt}/${maxAttempts}). Retrying in ${waitMs}ms...`,
+        );
+        await wait(waitMs);
+      }
+    }
+
+    throw new Error("Edge Function invocation exhausted retries");
+  }
+
+  private async manualInvokeEdgeFunction(
+    requestBody: any,
+    accessToken: string | null,
+    timeoutMs: number,
+  ) {
+    if (!supabaseFunctionsUrl) {
+      throw new Error("Supabase URL unavailable for direct function call");
+    }
+
+    const endpoint = `${supabaseFunctionsUrl}/functions/v1/analyze-contract`;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        },
+        body: JSON.stringify(requestBody),
+        signal: controller.signal,
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(
+          `Edge function HTTP ${response.status}: ${errorText.slice(0, 400)}`,
+        );
+      }
+
+      const data = await response.json();
+      return { data, error: null as any };
+    } finally {
+      clearTimeout(timeoutId);
+    }
   }
 
   // Get default solution for review type

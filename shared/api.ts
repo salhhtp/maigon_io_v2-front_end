@@ -463,6 +463,13 @@ export interface AgentDraftSuggestion {
     clauseTitle?: string | null;
     anchorText: string;
     proposedText: string;
+    previousText?: string | null;
+    updatedText?: string | null;
+    previewHtml?: {
+      previous?: string;
+      updated?: string;
+      diff?: string;
+    };
   };
 }
 

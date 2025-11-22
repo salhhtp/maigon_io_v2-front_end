@@ -46,7 +46,18 @@ export async function buildPatchedHtmlDraft(
     return null;
   }
 
-  const zip = await JSZip.loadAsync(downloaded.buffer);
+  let zip: JSZip;
+  try {
+    zip = await JSZip.loadAsync(downloaded.buffer);
+  } catch (error) {
+    console.warn("[htmlDraft] Failed to parse HTML package as ZIP", {
+      error: error instanceof Error ? error.message : String(error),
+      bucket: options.htmlPackage.bucket,
+      path: options.htmlPackage.path,
+    });
+    return null;
+  }
+
   const entry = selectPrimaryHtmlEntry(zip);
   if (!entry) {
     return null;
@@ -96,6 +107,44 @@ export async function buildPatchedHtmlDraft(
     assetRef,
     matchedEdits: patched.matchedEdits,
     unmatchedEdits: patched.unmatchedEdits,
+  };
+}
+
+export function buildPatchedHtmlFromString(
+  html: string,
+  edits: AgentDraftEdit[],
+  updatedPlainText?: string | null,
+): HtmlDraftBuildResult | null {
+  if (!html.trim()) {
+    return null;
+  }
+
+  if (!edits.length && !updatedPlainText) {
+    return null;
+  }
+
+  let patched = applyEditsToHtml(html, edits);
+
+  if ((!patched || patched.matchedEdits.length === 0) && updatedPlainText) {
+    const blockPatched = applyBlockDiffToHtml(html, updatedPlainText);
+    if (blockPatched) {
+      patched = blockPatched;
+    }
+  }
+
+  if (!patched) {
+    return null;
+  }
+
+  const sanitizedHtml = stripDangerousHtml(patched.html) ?? patched.html;
+  const plainText = htmlToPlainText(sanitizedHtml) ?? null;
+
+  return {
+    html: sanitizedHtml,
+    plainText,
+    assetRef: null,
+    matchedEdits: patched.matchedEdits ?? [],
+    unmatchedEdits: patched.unmatchedEdits ?? [],
   };
 }
 

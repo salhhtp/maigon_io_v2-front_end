@@ -2,7 +2,10 @@ import crypto from "node:crypto";
 import express from "express";
 import fetch from "node-fetch";
 import { getSupabaseAdminClient } from "../lib/supabaseAdmin";
-import { buildPatchedHtmlDraft } from "../services/htmlDraftService";
+import {
+  buildPatchedHtmlDraft,
+  buildPatchedHtmlFromString,
+} from "../services/htmlDraftService";
 import {
   getDraftSnapshotByKey,
   upsertDraftSnapshot,
@@ -608,6 +611,31 @@ function normalizeDraftResponse(
   }
 }
 
+function applyEditsToPlainText(
+  original: string,
+  edits: AgentDraftEdit[],
+): string {
+  let output = original;
+
+  for (const edit of edits) {
+    const suggestion = (edit.suggestedText || "").trim();
+    const originalText = (edit.originalText || "").trim();
+    if (!suggestion || !originalText) {
+      continue;
+    }
+
+    const escaped = originalText.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const flexibleWhitespace = escaped.replace(/\s+/g, "\\s+");
+    const pattern = new RegExp(flexibleWhitespace, "i");
+
+    if (pattern.test(output)) {
+      output = output.replace(pattern, suggestion);
+    }
+  }
+
+  return output;
+}
+
 function summarizeHeuristicResponse(
   context: AgentContextPayload,
   latestUserMessage: string | undefined,
@@ -700,7 +728,8 @@ async function callOpenAI(
     },
     body: JSON.stringify({
       model: OPENAI_AGENT_MODEL,
-      temperature: 0.2,
+      // Use provider default temperature to avoid unsupported overrides on newer models
+      // temperature omitted,
       response_format: { type: "json_object" },
       max_completion_tokens: 4096,
       messages: [
@@ -1031,6 +1060,35 @@ agentRouter.post("/compose", async (req, res) => {
       )
     : [];
 
+  const suggestionEdits: AgentDraftEdit[] = suggestions
+    .map((item) => {
+      const proposed = item.proposedEdit;
+      if (!proposed) return null;
+      const suggestedText =
+        proposed.updatedText ??
+        proposed.proposedText ??
+        proposed.anchorText ??
+        "";
+      if (!suggestedText.trim()) {
+        return null;
+      }
+      return {
+        id: item.id,
+        clauseReference:
+          proposed.clauseTitle ??
+          proposed.clauseId ??
+          proposed.anchorText ??
+          null,
+        changeType: "modify",
+        originalText: proposed.previousText ?? proposed.anchorText ?? null,
+        suggestedText,
+        rationale: item.description,
+      } satisfies AgentDraftEdit;
+    })
+    .filter((edit): edit is AgentDraftEdit => Boolean(edit));
+
+  const combinedEdits = [...agentEdits, ...suggestionEdits];
+
   const supabase = getSupabaseAdminClient();
 
   try {
@@ -1081,7 +1139,17 @@ agentRouter.post("/compose", async (req, res) => {
       body.contractId,
       draftKey,
     );
-    if (cachedDraft) {
+    const cachedMatchCount = Array.isArray(
+      cachedDraft?.metadata?.matchedEdits,
+    )
+      ? cachedDraft?.metadata?.matchedEdits.length
+      : 0;
+    const shouldBypassCache =
+      !!cachedDraft &&
+      combinedEdits.length > 0 &&
+      cachedMatchCount === 0;
+
+    if (cachedDraft && !shouldBypassCache) {
       const cachedResponse = buildResponseFromSnapshot(cachedDraft, {
         contractContent,
         contractHtml: contractHtml ?? undefined,
@@ -1137,10 +1205,18 @@ ${trimmedContract}
               parts.push(`Clause ID: ${item.proposedEdit.clauseId}`);
             }
             const originalClause = sanitizeTripleQuotes(
-              truncateInput(item.proposedEdit.anchorText, 2_000),
+              truncateInput(
+                item.proposedEdit.previousText ??
+                  item.proposedEdit.anchorText,
+                2_000,
+              ),
             );
             const updatedClause = sanitizeTripleQuotes(
-              truncateInput(item.proposedEdit.proposedText, 2_000),
+              truncateInput(
+                item.proposedEdit.updatedText ??
+                  item.proposedEdit.proposedText,
+                2_000,
+              ),
             );
             parts.push(`Original clause snippet:\n"""${originalClause}"""`);
             parts.push(`Updated clause text:\n"""${updatedClause}"""`);
@@ -1227,6 +1303,17 @@ ${trimmedContract}
         contractContent,
       );
 
+      const syntheticPlainText =
+        normalized.updatedContract &&
+        normalized.updatedContract.trim().length > 0
+          ? normalized.updatedContract
+          : contractContent;
+
+      const updatedPlainText =
+        syntheticPlainText === contractContent && combinedEdits.length > 0
+          ? applyEditsToPlainText(contractContent, combinedEdits)
+          : syntheticPlainText;
+
       let htmlSource: AgentDraftResponse["htmlSource"] | undefined =
         normalized.updatedHtml
           ? "llm"
@@ -1237,14 +1324,17 @@ ${trimmedContract}
         ReturnType<typeof buildPatchedHtmlDraft>
       > | null = null;
 
-      if (htmlPackageRef && (agentEdits.length > 0 || normalized.updatedContract)) {
+      if (
+        htmlPackageRef &&
+        (combinedEdits.length > 0 || updatedPlainText)
+      ) {
         try {
           patchedResult = await buildPatchedHtmlDraft({
             contractId: body.contractId,
             draftKey,
             htmlPackage: htmlPackageRef,
-            agentEdits,
-            updatedPlainText: normalized.updatedContract,
+            agentEdits: combinedEdits,
+            updatedPlainText,
           });
           if (patchedResult?.html) {
             htmlSource = "patched";
@@ -1255,8 +1345,26 @@ ${trimmedContract}
             error:
               patchError instanceof Error
                 ? patchError.message
-                : String(patchError),
+              : String(patchError),
           });
+        }
+      }
+
+      if (
+        !patchedResult &&
+        baseHtml &&
+        (combinedEdits.length > 0 || updatedPlainText)
+      ) {
+        const inMemoryPatch = buildPatchedHtmlFromString(
+          baseHtml,
+          combinedEdits,
+          updatedPlainText,
+        );
+        if (inMemoryPatch) {
+          patchedResult = inMemoryPatch;
+          if (inMemoryPatch.matchedEdits.length > 0) {
+            htmlSource = "patched";
+          }
         }
       }
 
@@ -1267,7 +1375,7 @@ ${trimmedContract}
         undefined;
       const updatedContractText =
         patchedResult?.plainText ??
-        normalized.updatedContract ??
+        updatedPlainText ??
         contractContent;
 
       const snapshot = await upsertDraftSnapshot({

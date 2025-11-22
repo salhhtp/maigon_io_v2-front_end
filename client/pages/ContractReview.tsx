@@ -534,21 +534,30 @@ function normalizeDecisionEntries(
 }
 
 function dedupeDecisions(entries: NormalizedDecision[]): NormalizedDecision[] {
-  const seenSignatures = new Set<string>();
-  return entries
-    .filter((entry) => {
-      if (entry.duplicateOf) return false;
-      const signature = `${entry.description}|${entry.owner}`.toLowerCase();
-      if (seenSignatures.has(signature)) return false;
-      seenSignatures.add(signature);
-      return true;
-    })
-    .sort((a, b) => {
-      const orderA = SEVERITY_ORDER[a.severity] ?? SEVERITY_ORDER.default;
-      const orderB = SEVERITY_ORDER[b.severity] ?? SEVERITY_ORDER.default;
-      if (orderA !== orderB) return orderA - orderB;
-      return a.description.localeCompare(b.description);
-    });
+  const bySignature = new Map<string, NormalizedDecision>();
+
+  entries.forEach((entry) => {
+    if (entry.duplicateOf) return;
+    const signature = `${entry.description}|${entry.owner}`.toLowerCase();
+    const existing = bySignature.get(signature);
+    if (!existing) {
+      bySignature.set(signature, entry);
+      return;
+    }
+    // Prefer entries that have a concrete proposedEdit (rewritten clause)
+    const existingHasEdit = Boolean(existing.proposedEdit);
+    const currentHasEdit = Boolean(entry.proposedEdit);
+    if (!existingHasEdit && currentHasEdit) {
+      bySignature.set(signature, entry);
+    }
+  });
+
+  return Array.from(bySignature.values()).sort((a, b) => {
+    const orderA = SEVERITY_ORDER[a.severity] ?? SEVERITY_ORDER.default;
+    const orderB = SEVERITY_ORDER[b.severity] ?? SEVERITY_ORDER.default;
+    if (orderA !== orderB) return orderA - orderB;
+    return a.description.localeCompare(b.description);
+  });
 }
 
 function getSeverityStyle(severity: string) {
@@ -704,6 +713,42 @@ function convertProposedEditToDecision(
   edit: ProposedEdit,
   clauseTitle?: string | null,
 ): NormalizedDecision {
+  const normalizeField = (value: unknown): string | null => {
+    if (typeof value !== "string") return null;
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : null;
+  };
+
+  const previewPreviousRaw =
+    typeof edit.previewHtml?.previous === "string"
+      ? edit.previewHtml.previous
+      : null;
+  const previewUpdatedRaw =
+    typeof edit.previewHtml?.updated === "string"
+      ? edit.previewHtml.updated
+      : null;
+
+  const previewPrevious = normalizeField(
+    previewPreviousRaw ? htmlStringToPlainText(previewPreviousRaw) : null,
+  );
+  const previewUpdated = normalizeField(
+    previewUpdatedRaw ? htmlStringToPlainText(previewUpdatedRaw) : null,
+  );
+
+  const normalizedPrevious = normalizeField(edit.previousText);
+  const normalizedUpdated = normalizeField(edit.updatedText);
+  const normalizedProposed = normalizeField(edit.proposedText);
+  const normalizedAnchor =
+    normalizeField(edit.anchorText) ?? "Original text not provided.";
+
+  const chosenPrevious =
+    normalizedPrevious ?? previewPrevious ?? normalizedAnchor;
+  const chosenUpdated =
+    normalizedUpdated ??
+    normalizedProposed ??
+    previewUpdated ??
+    normalizedAnchor;
+
   const applyFlag = Boolean(edit.applyByDefault);
   const baseDescription =
     edit.intent?.trim() ||
@@ -724,13 +769,26 @@ function convertProposedEditToDecision(
       id: edit.id,
       clauseId: edit.clauseId ?? null,
       clauseTitle: clauseTitle ?? null,
-      anchorText: edit.anchorText,
-      proposedText: edit.proposedText,
+      anchorText: normalizedAnchor,
+      proposedText: chosenUpdated ?? normalizedAnchor,
       intent: edit.intent,
       applyByDefault: applyFlag,
-      previousText: edit.previousText ?? edit.anchorText ?? null,
-      updatedText: edit.updatedText ?? edit.proposedText ?? null,
-      previewHtml: edit.previewHtml ?? null,
+      previousText: chosenPrevious,
+      updatedText: chosenUpdated,
+      // Prefer API-provided previewHtml (can include full updated clause) and only
+      // generate a simple preview if missing.
+      previewHtml:
+        (previewPreviousRaw || previewUpdatedRaw
+          ? {
+              previous: previewPreviousRaw ?? undefined,
+              updated: previewUpdatedRaw ?? undefined,
+              diff: edit.previewHtml?.diff,
+            }
+          : undefined) ??
+        buildPreviewHtmlFromText(
+          chosenPrevious ?? undefined,
+          chosenUpdated ?? undefined,
+        ),
     },
   };
 }
@@ -1883,16 +1941,45 @@ Next step: ${
     normalizeDecisionEntries(rawRecommendations, "rec", "medium"),
   );
 
-  const rawActionItems: unknown[] = [
-    ...(Array.isArray(results.action_items)
-      ? (results.action_items as unknown[])
-      : []),
-    ...structuredReportActionItems,
-  ];
-const normalizedActionItems = dedupeDecisions([
-  ...normalizeDecisionEntries(rawActionItems, "act", "high"),
-  ...structuredActionItems,
-]);
+  const rawActionItems: unknown[] =
+    structuredProposedEdits.length > 0
+      ? // If we have proposed edits, ignore legacy/freeform action items and rely solely on the structured edits.
+        []
+      : [
+          ...(Array.isArray(results.action_items)
+            ? (results.action_items as unknown[])
+            : []),
+          ...structuredReportActionItems,
+        ];
+
+  const normalizedActionItems = dedupeDecisions([
+    ...normalizeDecisionEntries(rawActionItems, "act", "high"),
+    ...structuredActionItems,
+  ]).map((entry) => {
+    // Ensure the action items derived from proposed edits always carry the rewritten clause
+    if (entry.proposedEdit) {
+      const previousText =
+        entry.proposedEdit.previousText ??
+        entry.proposedEdit.anchorText ??
+        null;
+      const updatedText =
+        entry.proposedEdit.updatedText ??
+        entry.proposedEdit.proposedText ??
+        entry.proposedEdit.anchorText ??
+        null;
+      return {
+        ...entry,
+        proposedEdit: {
+          ...entry.proposedEdit,
+          previousText,
+          updatedText,
+          proposedText: updatedText ?? entry.proposedEdit.proposedText,
+          previewHtml: buildPreviewHtmlFromText(previousText ?? undefined, updatedText ?? undefined),
+        },
+      };
+    }
+    return entry;
+  });
 const recommendationEntries = useMemo(
   () =>
     attachFallbackClausePreviews(
@@ -1927,10 +2014,14 @@ const actionItemEntries = useMemo(
     return !shouldHideFallbackMessage(normalized);
   });
 
-  const combinedDecisions = useMemo(
-    () => [...recommendationEntries, ...actionItemEntries],
-    [recommendationEntries, actionItemEntries],
-  );
+  const combinedDecisions = useMemo(() => {
+    // When we have structured proposed edits, prefer those action items
+    // so the UI shows rewritten clauses rather than high-level recommendations.
+    if (structuredProposedEdits.length > 0) {
+      return actionItemEntries;
+    }
+    return [...recommendationEntries, ...actionItemEntries];
+  }, [recommendationEntries, actionItemEntries, structuredProposedEdits.length]);
   const topNextSteps = combinedDecisions.slice(0, 3);
 
   const severitySummary = useMemo(() => {
@@ -2315,7 +2406,10 @@ const actionItemEntries = useMemo(
               clauseId: item.proposedEdit.clauseId ?? null,
               clauseTitle: item.proposedEdit.clauseTitle ?? null,
               anchorText: item.proposedEdit.anchorText,
-              proposedText: item.proposedEdit.proposedText,
+              proposedText: item.proposedEdit.updatedText ?? item.proposedEdit.proposedText,
+              previousText: item.proposedEdit.previousText ?? item.proposedEdit.anchorText ?? null,
+              updatedText: item.proposedEdit.updatedText ?? item.proposedEdit.proposedText ?? null,
+              previewHtml: item.proposedEdit.previewHtml,
             }
           : undefined,
       }),
