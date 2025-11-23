@@ -1,6 +1,7 @@
 import { createReadStream } from "node:fs";
 import { promises as fs } from "node:fs";
 import path from "node:path";
+import os from "node:os";
 import { getSupabaseAdminClient } from "../lib/supabaseAdmin";
 import type { StorageObjectRef } from "../../shared/api";
 
@@ -150,7 +151,8 @@ export async function downloadIngestionFile(options: {
     throw error;
   }
 
-  const tmpDir = path.join(process.cwd(), "tmp", "ingestion-cache", ingestionId);
+  // Use OS temp dir for serverless compatibility
+  const tmpDir = path.join(os.tmpdir(), "ingestion-cache", ingestionId);
   await fs.mkdir(tmpDir, { recursive: true });
 
   const localPath = path.join(tmpDir, fileName);
