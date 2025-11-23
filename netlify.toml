@@ -5,7 +5,7 @@
 
 [build.environment]
   # Allow known public values to appear in build output without failing secrets scan
-  SECRETS_SCAN_OMIT_KEYS = "VITE_SUPABASE_URL,VITE_SUPABASE_ANON_KEY,SUPABASE_STORAGE_INGEST_BUCKET"
+  SECRETS_SCAN_OMIT_KEYS = "VITE_SUPABASE_URL,VITE_SUPABASE_ANON_KEY,SUPABASE_STORAGE_INGEST_BUCKET,SUPABASE_URL"
 
 
 [functions]
