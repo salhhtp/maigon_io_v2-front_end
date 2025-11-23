@@ -2,7 +2,12 @@
 import path from "path";
 import { fileURLToPath } from "url";
 import dotenv from "dotenv";
-const __filename = fileURLToPath(import.meta.url);
+
+// Netlify bundles the function as CJS; import.meta.url can be undefined. Fallback to cwd.
+const __filename =
+  typeof import.meta?.url === "string"
+    ? fileURLToPath(import.meta.url)
+    : path.join(process.cwd(), "server/index.js");
 const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.resolve(__dirname, "../.env") });
 import express from "express";
