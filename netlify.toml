@@ -9,7 +9,7 @@
 
 
 [functions]
-  external_node_modules = ["express"]
+  external_node_modules = ["express", "pdf-parse"]
   node_bundler = "esbuild"
 
 [functions.api]
