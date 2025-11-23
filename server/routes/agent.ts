@@ -125,6 +125,7 @@ const FORCE_OPENAI_ONLY =
 const ALLOW_ANTHROPIC =
   !FORCE_OPENAI_ONLY &&
   (process.env.AGENT_ALLOW_ANTHROPIC ?? "").toLowerCase() === "true";
+const AI_TIMEOUT_MS = Number(process.env.AI_PROVIDER_TIMEOUT_MS ?? "25000");
 
 const MAX_PROPOSED_EDITS = 5;
 const CONTEXT_SNIPPET_RADIUS = 350;
@@ -706,7 +707,7 @@ ${quickSuggestions.map((item) => `• ${item}`).join("\n")}`,
 function fetchWithTimeout(
   url: string,
   options: RequestInit,
-  ms: number,
+  ms = AI_TIMEOUT_MS,
 ) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), ms);
@@ -747,14 +748,13 @@ async function callOpenAI(
           // Use provider default temperature to avoid unsupported overrides on newer models
           // temperature omitted,
           response_format: { type: "json_object" },
-          max_completion_tokens: 4096,
+          max_completion_tokens: 2048,
           messages: [
             { role: "system", content: systemPrompt },
             ...messages,
           ],
         }),
       },
-      12000,
     );
   } catch (error) {
     if ((error as any)?.name === "AbortError") {
@@ -839,7 +839,6 @@ async function callAnthropic(
           messages: anthropicMessages,
         }),
       },
-      12000,
     );
   } catch (error) {
     if ((error as any)?.name === "AbortError") {
@@ -890,6 +889,7 @@ function shouldFallbackToAnthropic(error: unknown): boolean {
   }
   if (!(error instanceof ProviderError)) return false;
   if (error.provider !== "openai") return false;
+  if (error.status === 504) return true;
   if (error.status === 429) return true;
   if (error.code === "insufficient_quota" || error.code === "rate_limit_exceeded")
     return true;
