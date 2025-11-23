@@ -703,6 +703,18 @@ ${quickSuggestions.map((item) => `• ${item}`).join("\n")}`,
   };
 }
 
+function fetchWithTimeout(
+  url: string,
+  options: RequestInit,
+  ms: number,
+) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), ms);
+  return fetch(url, { ...options, signal: controller.signal }).finally(() =>
+    clearTimeout(timer)
+  );
+}
+
 async function callOpenAI(
   systemPrompt: string,
   messages: { role: "user" | "assistant"; content: string }[],
@@ -720,24 +732,36 @@ async function callOpenAI(
     );
   }
 
-  const response = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${OPENAI_API_KEY}`,
-    },
-    body: JSON.stringify({
-      model: OPENAI_AGENT_MODEL,
-      // Use provider default temperature to avoid unsupported overrides on newer models
-      // temperature omitted,
-      response_format: { type: "json_object" },
-      max_completion_tokens: 4096,
-      messages: [
-        { role: "system", content: systemPrompt },
-        ...messages,
-      ],
-    }),
-  });
+  let response: Response;
+  try {
+    response = await fetchWithTimeout(
+      "https://api.openai.com/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${OPENAI_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: OPENAI_AGENT_MODEL,
+          // Use provider default temperature to avoid unsupported overrides on newer models
+          // temperature omitted,
+          response_format: { type: "json_object" },
+          max_completion_tokens: 4096,
+          messages: [
+            { role: "system", content: systemPrompt },
+            ...messages,
+          ],
+        }),
+      },
+      12000,
+    );
+  } catch (error) {
+    if ((error as any)?.name === "AbortError") {
+      throw new ProviderError("openai", "OpenAI request timed out", 504);
+    }
+    throw error;
+  }
 
   const body = (await response.json()) as any;
 
@@ -797,20 +821,32 @@ async function callAnthropic(
     content: [{ type: "text", text: message.content }],
   }));
 
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": ANTHROPIC_API_KEY,
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify({
-      model: ANTHROPIC_AGENT_MODEL,
-      max_completion_tokens: 2048,
-      system: systemPrompt,
-      messages: anthropicMessages,
-    }),
-  });
+  let response: Response;
+  try {
+    response = await fetchWithTimeout(
+      "https://api.anthropic.com/v1/messages",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": ANTHROPIC_API_KEY,
+          "anthropic-version": "2023-06-01",
+        },
+        body: JSON.stringify({
+          model: ANTHROPIC_AGENT_MODEL,
+          max_completion_tokens: 2048,
+          system: systemPrompt,
+          messages: anthropicMessages,
+        }),
+      },
+      12000,
+    );
+  } catch (error) {
+    if ((error as any)?.name === "AbortError") {
+      throw new ProviderError("anthropic", "Anthropic request timed out", 504);
+    }
+    throw error;
+  }
 
   const body = (await response.json()) as any;
 
