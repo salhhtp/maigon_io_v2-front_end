@@ -13,7 +13,16 @@ console.info("[vite-config] Environment loaded.");
 
 function buildPlugins(mode: string) {
   console.info("[vite-config] Building plugins for mode:", mode);
-  const plugins: Plugin[] = [react(), expressPlugin()];
+  const plugins: Plugin[] = [react()];
+
+  const embedApi = process.env.SKIP_EMBEDDED_API !== "1";
+  if (embedApi) {
+    plugins.push(expressPlugin());
+  } else {
+    console.info(
+      "[vite-config] SKIP_EMBEDDED_API=1 detected. Skipping embedded Express server for faster frontend-only dev.",
+    );
+  }
 
   const hasSentryUpload = Boolean(
     process.env.SENTRY_AUTH_TOKEN &&

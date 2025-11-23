@@ -83,6 +83,11 @@ const shortText = (maxLength = 220) => ({
   maxLength,
 });
 
+const clauseText = (maxLength = 2000) => ({
+  type: "string",
+  maxLength,
+});
+
 const stringArraySchema = {
   type: "array",
   items: { type: "string" },
@@ -530,11 +535,11 @@ const jsonSchemaFormat = {
             id: { type: "string" },
             clauseId: { type: "string" },
             anchorText: shortText(160),
-            proposedText: shortText(220),
+            proposedText: clauseText(),
             intent: shortText(200),
             rationale: shortText(200),
-            previousText: shortText(180),
-            updatedText: shortText(180),
+            previousText: clauseText(),
+            updatedText: clauseText(),
             previewHtml: previewHtmlSchema,
             applyByDefault: { type: "boolean" },
           },
