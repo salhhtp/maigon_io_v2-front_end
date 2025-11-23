@@ -735,6 +735,7 @@ async function callOpenAI(
 
   let response: Response;
   try {
+    const start = Date.now();
     response = await fetchWithTimeout(
       "https://api.openai.com/v1/chat/completions",
       {
@@ -756,6 +757,10 @@ async function callOpenAI(
         }),
       },
     );
+    console.info("[agent] openai response", {
+      status: response.status,
+      durationMs: Date.now() - start,
+    });
   } catch (error) {
     if ((error as any)?.name === "AbortError") {
       throw new ProviderError("openai", "OpenAI request timed out", 504);
@@ -1128,6 +1133,12 @@ agentRouter.post("/compose", async (req, res) => {
   const supabase = getSupabaseAdminClient();
 
   try {
+    console.info("[agent] compose request", {
+      contractId: body.contractId,
+      suggestions: suggestions.length,
+      agentEdits: agentEdits.length,
+    });
+
     const { data, error } = await supabase
       .from("contracts")
       .select("content, content_html, title, metadata, updated_at")
@@ -1308,6 +1319,11 @@ ${trimmedContract}
       .join("\n\n");
 
     const messages = [{ role: "user" as const, content: userPrompt }];
+    console.info("[agent] compose prompt sizes", {
+      promptChars: userPrompt.length,
+      contractTextChars: trimmedContract?.length ?? 0,
+      contractHtmlChars: trimmedHtml?.length ?? 0,
+    });
 
     try {
       let provider: AgentDraftResponse["provider"] = "openai";
