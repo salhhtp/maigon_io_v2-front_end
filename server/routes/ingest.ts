@@ -4,6 +4,7 @@ import multer from "multer";
 import crypto from "node:crypto";
 import path from "node:path";
 import fs from "node:fs";
+import os from "node:os";
 import {
   uploadToStorage,
   removeLocalFile,
@@ -17,7 +18,8 @@ import {
 } from "../services/ingestionRepository";
 import { getSupabaseAdminClient } from "../lib/supabaseAdmin";
 
-const uploadDirectory = path.join(process.cwd(), "tmp", "ingestion-uploads");
+// Use OS temp dir so serverless runtimes (Netlify) can write
+const uploadDirectory = path.join(os.tmpdir(), "ingestion-uploads");
 fs.mkdirSync(uploadDirectory, { recursive: true });
 
 const storage = multer.diskStorage({
