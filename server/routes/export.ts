@@ -7,7 +7,11 @@ import { getDraftSnapshotById } from "../services/draftSnapshotsRepository";
 import { downloadStorageObject } from "../services/storageService";
 import { htmlToPlainText } from "../utils/htmlTransforms";
 
-const require = createRequire(import.meta.url);
+// Guard for runtimes where import.meta.url is missing after bundling
+const require =
+  typeof import.meta?.url === "string"
+    ? createRequire(import.meta.url)
+    : createRequire(process.cwd() + "/");
 
 type HtmlDocxModule = {
   asBlob: (html: string, options?: Record<string, unknown>) => Blob | Buffer;

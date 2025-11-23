@@ -13,7 +13,11 @@ import {
 import type { StorageObjectRef, ExtractionAssets } from "../../shared/api";
 import { convertDocument } from "./cloudConvertService";
 
-const require = createRequire(import.meta.url);
+// Guard for runtimes where import.meta.url is missing after bundling
+const require =
+  typeof import.meta?.url === "string"
+    ? createRequire(import.meta.url)
+    : createRequire(process.cwd() + "/");
 const pdfParseModule = require("pdf-parse");
 const pdfParse: typeof import("pdf-parse") =
   typeof pdfParseModule === "function"

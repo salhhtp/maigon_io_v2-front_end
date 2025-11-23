@@ -4,7 +4,11 @@ import os from "node:os";
 import { randomUUID } from "node:crypto";
 import { createRequire } from "node:module";
 
-const require = createRequire(import.meta.url);
+// Avoid crashes when import.meta.url is undefined in certain bundles (e.g., Netlify funcs CJS)
+const require =
+  typeof import.meta?.url === "string"
+    ? createRequire(import.meta.url)
+    : createRequire(process.cwd() + "/");
 
 type AdobeSdk = any;
 
