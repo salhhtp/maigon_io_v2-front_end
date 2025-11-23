@@ -11,6 +11,7 @@
 [functions]
   external_node_modules = ["express"]
   node_bundler = "esbuild"
+  node_module_format = "esm"
 
 [[redirects]]
   from = "/api/*"
