@@ -12,9 +12,19 @@
  * Usage: node test-edge-function.js
  */
 
-const SUPABASE_URL = "https://cqvufndxjakdbmbjhwlx.supabase.co";
-const SUPABASE_ANON_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNxdnVmbmR4amFrZGJtYmpod2x4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ2MDAwNzMsImV4cCI6MjA3MDE3NjA3M30.pGmQIWmrTODu1r2cWuOzr9W0hre7eHblU2q9OWPZXPk";
+import dotenv from "dotenv";
+
+dotenv.config();
+
+const SUPABASE_URL = process.env.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY;
+
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  console.error(
+    "Missing Supabase env vars. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in your .env before running this script.",
+  );
+  process.exit(1);
+}
 const EDGE_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/analyze-contract`;
 
 // Test contract content

@@ -3,6 +3,10 @@
   functions = "netlify/functions"
   publish = "dist/spa"
 
+[build.environment]
+  # Allow known public values to appear in build output without failing secrets scan
+  SECRETS_SCAN_OMIT_KEYS = "VITE_SUPABASE_URL,VITE_SUPABASE_ANON_KEY,SUPABASE_STORAGE_INGEST_BUCKET"
+
 
 [functions]
   external_node_modules = ["express"]

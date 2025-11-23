@@ -20,18 +20,27 @@ import { config } from "dotenv";
 // Load environment variables from .env file
 config();
 
-// Configuration
-const SUPABASE_URL =
-  process.env.VITE_SUPABASE_URL || "https://cqvufndxjakdbmbjhwlx.supabase.co";
-const ADMIN_KEY = process.env.ADMIN_MANAGEMENT_KEY || "admin_key_2024";
+// Configuration (must be provided via env)
+const SUPABASE_URL = process.env.VITE_SUPABASE_URL;
+const ADMIN_KEY = process.env.ADMIN_MANAGEMENT_KEY;
+
+if (!SUPABASE_URL || !ADMIN_KEY || !process.env.VITE_SUPABASE_ANON_KEY) {
+  console.error(
+    "Missing required environment variables. Please set VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, and ADMIN_MANAGEMENT_KEY.",
+  );
+  process.exit(1);
+}
 
 // Debug environment variables (only show if explicitly requested)
-if (process.argv.includes('--debug')) {
-  console.log('🔍 Environment Debug:');
-  console.log('   SUPABASE_URL:', SUPABASE_URL);
-  console.log('   ADMIN_KEY:', ADMIN_KEY ? 'Set' : 'Missing');
-  console.log('   SUPABASE_ANON_KEY:', process.env.VITE_SUPABASE_ANON_KEY ? 'Set' : 'Missing');
-  console.log('');
+if (process.argv.includes("--debug")) {
+  console.log("🔍 Environment Debug:");
+  console.log("   SUPABASE_URL:", SUPABASE_URL ? "Set" : "Missing");
+  console.log("   ADMIN_KEY:", ADMIN_KEY ? "Set" : "Missing");
+  console.log(
+    "   SUPABASE_ANON_KEY:",
+    process.env.VITE_SUPABASE_ANON_KEY ? "Set" : "Missing",
+  );
+  console.log("");
 }
 
 const rl = readline.createInterface({
@@ -338,7 +347,7 @@ function showHelp() {
   console.log("  npm run admin:delete");
   console.log("\nEnvironment Variables:");
   console.log(
-    "  ADMIN_MANAGEMENT_KEY  Admin management key (default: admin_key_2024)",
+    "  ADMIN_MANAGEMENT_KEY  Admin management key (required)",
   );
   console.log("  VITE_SUPABASE_URL     Supabase URL");
   console.log("  VITE_SUPABASE_ANON_KEY Supabase anonymous key");

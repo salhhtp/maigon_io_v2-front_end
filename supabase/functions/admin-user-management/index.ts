@@ -18,8 +18,7 @@ interface CreateAdminRequest {
 }
 
 // Admin management key - change this to something secure
-const ADMIN_MANAGEMENT_KEY =
-  Deno.env.get("ADMIN_MANAGEMENT_KEY") || "admin_key_2024";
+const ADMIN_MANAGEMENT_KEY = Deno.env.get("ADMIN_MANAGEMENT_KEY");
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -28,6 +27,16 @@ serve(async (req) => {
 
   try {
     const request: CreateAdminRequest = await req.json();
+
+    if (!ADMIN_MANAGEMENT_KEY) {
+      return new Response(
+        JSON.stringify({ error: "Admin management key not configured" }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
+    }
 
     // Validate admin key
     if (request.adminKey !== ADMIN_MANAGEMENT_KEY) {
