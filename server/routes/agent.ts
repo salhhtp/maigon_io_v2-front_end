@@ -155,7 +155,12 @@ const FORCE_OPENAI_ONLY =
 const ALLOW_ANTHROPIC =
   !FORCE_OPENAI_ONLY &&
   (process.env.AGENT_ALLOW_ANTHROPIC ?? "").toLowerCase() === "true";
-const AI_TIMEOUT_MS = Number(process.env.AI_PROVIDER_TIMEOUT_MS );
+const AI_TIMEOUT_MS = (() => {
+  const value = Number(process.env.AI_PROVIDER_TIMEOUT_MS);
+  if (Number.isFinite(value) && value > 0) return value;
+  // Default to a generous timeout so background functions can finish
+  return 120_000;
+})();
 const BACKGROUND_FUNCTION_NAME = "draft-compose-background";
 const DEFAULT_FUNCTION_BASE =
   process.env.DEPLOY_URL ??
@@ -746,8 +751,10 @@ function fetchWithTimeout(
   options: RequestInit,
   ms = AI_TIMEOUT_MS,
 ) {
+  const resolvedTimeout =
+    Number.isFinite(ms) && (ms as number) > 0 ? (ms as number) : AI_TIMEOUT_MS;
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), ms);
+  const timer = setTimeout(() => controller.abort(), resolvedTimeout);
   return fetch(url, { ...options, signal: controller.signal }).finally(() =>
     clearTimeout(timer)
   );
