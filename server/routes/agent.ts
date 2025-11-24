@@ -155,7 +155,7 @@ const FORCE_OPENAI_ONLY =
 const ALLOW_ANTHROPIC =
   !FORCE_OPENAI_ONLY &&
   (process.env.AGENT_ALLOW_ANTHROPIC ?? "").toLowerCase() === "true";
-const AI_TIMEOUT_MS = Number(process.env.AI_PROVIDER_TIMEOUT_MS ?? "25000");
+const AI_TIMEOUT_MS = Number(process.env.AI_PROVIDER_TIMEOUT_MS );
 const BACKGROUND_FUNCTION_NAME = "draft-compose-background";
 const DEFAULT_FUNCTION_BASE =
   process.env.DEPLOY_URL ??
