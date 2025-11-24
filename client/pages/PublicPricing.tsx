@@ -37,7 +37,9 @@ const PricingCard = ({
   popular?: boolean;
 }) => (
   <Card
-    className={`relative ${popular ? "ring-2 ring-[#9A7C7C] scale-105" : ""}`}
+    className={`relative flex flex-col h-full ${
+      popular ? "ring-2 ring-[#9A7C7C] scale-105" : ""
+    }`}
   >
     {popular && (
       <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 scale-95 z-10">
@@ -58,8 +60,8 @@ const PricingCard = ({
         <span className="text-[#271D1D]/70 ml-1">{period}</span>
       </div>
     </CardHeader>
-    <CardContent>
-      <ul className="space-y-3 mb-6">
+    <CardContent className="flex flex-col h-full">
+      <ul className="space-y-3 mb-6 flex-1">
         {features.map((feature, index) => (
           <li key={index} className="flex items-center gap-2 text-sm">
             <Check className="w-4 h-4 text-green-500 flex-shrink-0" />

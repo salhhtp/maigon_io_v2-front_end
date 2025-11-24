@@ -54,7 +54,7 @@ const PricingCard = ({
   loading?: boolean;
 }) => (
   <div
-    className={`relative bg-white rounded-lg p-6 border transition-all duration-200 ${
+    className={`relative bg-white rounded-lg p-6 border transition-all duration-200 flex flex-col h-full ${
       highlighted
         ? "border-[#9A7C7C] shadow-lg scale-105"
         : "border-[#271D1D]/10 hover:border-[#9A7C7C]/50"
@@ -89,7 +89,7 @@ const PricingCard = ({
       <p className="text-sm text-[#271D1D]/70">{description}</p>
     </div>
 
-    <div className="mb-6">
+    <div className="mb-6 flex-1">
       <ul className="space-y-3">
         {features.map((feature, index) => (
           <li key={index} className="flex items-start gap-3">
