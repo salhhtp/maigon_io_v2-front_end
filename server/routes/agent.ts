@@ -719,6 +719,7 @@ function fetchWithTimeout(
 async function callOpenAI(
   systemPrompt: string,
   messages: { role: "user" | "assistant"; content: string }[],
+  context?: { requestId?: string; route?: string; contractId?: string; draftKey?: string },
 ): Promise<{
   output: string;
   model: string;
@@ -735,6 +736,18 @@ async function callOpenAI(
 
   let response: Response;
   try {
+    const logCtx = {
+      requestId: context?.requestId,
+      route: context?.route,
+      contractId: context?.contractId,
+      draftKey: context?.draftKey,
+    };
+    console.info("[agent] openai start", {
+      ...logCtx,
+      model: OPENAI_AGENT_MODEL,
+      timeoutMs: AI_TIMEOUT_MS,
+      messages: messages.length,
+    });
     const start = Date.now();
     response = await fetchWithTimeout(
       "https://api.openai.com/v1/chat/completions",
@@ -758,6 +771,7 @@ async function callOpenAI(
       },
     );
     console.info("[agent] openai response", {
+      ...logCtx,
       status: response.status,
       durationMs: Date.now() - start,
     });
@@ -765,6 +779,13 @@ async function callOpenAI(
     if ((error as any)?.name === "AbortError") {
       throw new ProviderError("openai", "OpenAI request timed out", 504);
     }
+    console.error("[agent] openai error", {
+      requestId: context?.requestId,
+      route: context?.route,
+      contractId: context?.contractId,
+      draftKey: context?.draftKey,
+      message: error instanceof Error ? error.message : String(error),
+    });
     throw error;
   }
 
@@ -807,6 +828,7 @@ async function callOpenAI(
 async function callAnthropic(
   systemPrompt: string,
   messages: { role: "user" | "assistant"; content: string }[],
+  context?: { requestId?: string; route?: string; contractId?: string; draftKey?: string },
 ): Promise<{
   output: string;
   model: string;
@@ -828,6 +850,19 @@ async function callAnthropic(
 
   let response: Response;
   try {
+    const logCtx = {
+      requestId: context?.requestId,
+      route: context?.route,
+      contractId: context?.contractId,
+      draftKey: context?.draftKey,
+    };
+    console.info("[agent] anthropic start", {
+      ...logCtx,
+      model: ANTHROPIC_AGENT_MODEL,
+      timeoutMs: AI_TIMEOUT_MS,
+      messages: messages.length,
+    });
+    const start = Date.now();
     response = await fetchWithTimeout(
       "https://api.anthropic.com/v1/messages",
       {
@@ -846,10 +881,22 @@ async function callAnthropic(
         }),
       },
     );
+    console.info("[agent] anthropic response", {
+      ...logCtx,
+      status: response.status,
+      durationMs: Date.now() - start,
+    });
   } catch (error) {
     if ((error as any)?.name === "AbortError") {
       throw new ProviderError("anthropic", "Anthropic request timed out", 504);
     }
+    console.error("[agent] anthropic error", {
+      requestId: context?.requestId,
+      route: context?.route,
+      contractId: context?.contractId,
+      draftKey: context?.draftKey,
+      message: error instanceof Error ? error.message : String(error),
+    });
     throw error;
   }
 
@@ -1327,22 +1374,36 @@ ${trimmedContract}
     });
 
     try {
+      const requestId = crypto.randomUUID();
+      const logCtx = {
+        requestId,
+        contractId: body.contractId,
+        draftKey,
+      };
+      const allowAnthropic = ALLOW_ANTHROPIC && !!ANTHROPIC_API_KEY;
+      console.info("[agent] compose provider selection", {
+        ...logCtx,
+        forceOpenAI: FORCE_OPENAI_ONLY,
+        allowAnthropic,
+      });
       let provider: AgentDraftResponse["provider"] = "openai";
       let model = OPENAI_AGENT_MODEL;
       let output: string;
 
       try {
-        const result = await callOpenAI(systemPrompt, messages);
+        const result = await callOpenAI(systemPrompt, messages, {
+          ...logCtx,
+          route: "compose",
+        });
         output = result.output;
         model = result.model;
       } catch (error) {
-        if (
-          ALLOW_ANTHROPIC &&
-          !!ANTHROPIC_API_KEY &&
-          shouldFallbackToAnthropic(error)
-        ) {
+        if (allowAnthropic && shouldFallbackToAnthropic(error)) {
           provider = "anthropic";
-          const result = await callAnthropic(systemPrompt, messages);
+          const result = await callAnthropic(systemPrompt, messages, {
+            ...logCtx,
+            route: "compose",
+          });
           output = result.output;
           model = result.model;
         } else {
