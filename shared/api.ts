@@ -503,6 +503,25 @@ export interface AgentDraftResponse {
   cacheStatus?: "hit" | "miss";
 }
 
+export type AgentDraftJobStatus = "pending" | "running" | "succeeded" | "failed";
+
+export interface AgentDraftJobStartResponse {
+  jobId: string;
+  status: AgentDraftJobStatus;
+  draftKey?: string | null;
+  contractId?: string;
+}
+
+export interface AgentDraftJobStatusResponse {
+  jobId: string;
+  status: AgentDraftJobStatus;
+  draftKey?: string | null;
+  contractId?: string;
+  result?: AgentDraftResponse | null;
+  error?: string | null;
+  updatedAt?: string | null;
+}
+
 export interface CreateCheckoutSessionRequest {
   planKey: PlanKey;
   userId: string;

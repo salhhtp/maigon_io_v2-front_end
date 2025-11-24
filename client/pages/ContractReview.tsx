@@ -37,6 +37,9 @@ import type {
   AgentDraftResponse,
   AgentDraftSuggestion,
   AgentDraftEdit,
+  AgentDraftJobStatus,
+  AgentDraftJobStartResponse,
+  AgentDraftJobStatusResponse,
 } from "@shared/api";
 import type {
   AnalysisReport,
@@ -1115,11 +1118,14 @@ export default function ContractReview() {
   const [activeDeviationInsight, setActiveDeviationInsight] =
     useState<DeviationInsight | null>(null);
   const [isGeneratingDraft, setIsGeneratingDraft] = useState(false);
+  const [draftJobId, setDraftJobId] = useState<string | null>(null);
+  const [draftJobStatus, setDraftJobStatus] =
+    useState<AgentDraftJobStatus | null>(null);
   const [draftResult, setDraftResult] = useState<AgentDraftResponse | null>(null);
   const [showDraftDialog, setShowDraftDialog] = useState(false);
-const [draftViewMode, setDraftViewMode] = useState<"preview" | "diff">(
-  "preview",
-);
+  const [draftViewMode, setDraftViewMode] = useState<"preview" | "diff">(
+    "preview",
+  );
 
   const originalHtml = useMemo(() => {
     if (draftResult?.originalHtml) {
@@ -2438,8 +2444,10 @@ const actionItemEntries = useMemo(
     try {
       setIsGeneratingDraft(true);
       setDraftResult(null);
+      setDraftJobId(null);
+      setDraftJobStatus(null);
 
-      const response = await fetch("/api/agent/compose", {
+      const startResponse = await fetch("/api/agent/compose/start", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -2451,17 +2459,57 @@ const actionItemEntries = useMemo(
         }),
       });
 
-      if (!response.ok) {
-        const payload = await response.json().catch(() => ({}));
+      if (!startResponse.ok) {
+        const payload = await startResponse.json().catch(() => ({}));
         throw new Error(
           typeof payload.error === "string"
             ? payload.error
-            : `Draft generation failed (${response.status})`,
+            : `Draft generation failed (${startResponse.status})`,
         );
       }
 
-      const data = (await response.json()) as AgentDraftResponse;
-      setDraftResult(data);
+      const startData = (await startResponse.json()) as AgentDraftJobStartResponse;
+      setDraftJobId(startData.jobId);
+      setDraftJobStatus(startData.status);
+
+      const pollJob = async (jobId: string): Promise<AgentDraftResponse> => {
+        const maxAttempts = 120; // ~6 minutes at 3s interval
+        const delayMs = 3000;
+
+        for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+          const statusResponse = await fetch(`/api/agent/compose/status/${jobId}`);
+          if (!statusResponse.ok) {
+            const payload = await statusResponse.json().catch(() => ({}));
+            throw new Error(
+              typeof payload.error === "string"
+                ? payload.error
+                : `Status check failed (${statusResponse.status})`,
+            );
+          }
+
+          const status = (await statusResponse.json()) as AgentDraftJobStatusResponse;
+          setDraftJobStatus(status.status);
+
+          if (status.status === "succeeded") {
+            if (!status.result) {
+              throw new Error("Draft completed but no result was returned.");
+            }
+            return status.result;
+          }
+
+          if (status.status === "failed") {
+            throw new Error(status.error ?? "Draft generation failed.");
+          }
+
+          await new Promise((resolve) => setTimeout(resolve, delayMs));
+        }
+
+        throw new Error("Draft generation is taking longer than expected. Please try again.");
+      };
+
+      const result = await pollJob(startData.jobId);
+
+      setDraftResult(result);
       setDraftViewMode("preview");
       setShowDraftDialog(true);
       toast({
@@ -2478,6 +2526,8 @@ const actionItemEntries = useMemo(
       });
     } finally {
       setIsGeneratingDraft(false);
+      setDraftJobId(null);
+      setDraftJobStatus(null);
     }
   }, [
     contractData?.id,

@@ -21,8 +21,17 @@ import type {
   AgentDraftResponse,
   AgentDraftSuggestion,
   AgentDraftEdit,
+  AgentDraftJobStartResponse,
+  AgentDraftJobStatusResponse,
   StorageObjectRef,
 } from "../../shared/api";
+import {
+  createDraftJob,
+  getDraftJobById,
+  markDraftJobFailed,
+  markDraftJobRunning,
+  markDraftJobSucceeded,
+} from "../services/draftJobsRepository";
 
 interface ClientChatMessage {
   role: "user" | "assistant";
@@ -112,6 +121,27 @@ class ProviderError extends Error {
   }
 }
 
+class ComposeDraftError extends Error {
+  constructor(message: string, public status?: number) {
+    super(message);
+  }
+}
+
+interface ComposeDraftOptions {
+  requestId?: string;
+  draftKeyOverride?: string | null;
+  jobId?: string | null;
+  allowCache?: boolean;
+}
+
+interface ComposeDraftResult {
+  response: AgentDraftResponse;
+  draftKey: string | null;
+  snapshotId: string | null;
+  provider: string | null;
+  model: string | null;
+}
+
 export const agentRouter = express.Router();
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
@@ -126,6 +156,13 @@ const ALLOW_ANTHROPIC =
   !FORCE_OPENAI_ONLY &&
   (process.env.AGENT_ALLOW_ANTHROPIC ?? "").toLowerCase() === "true";
 const AI_TIMEOUT_MS = Number(process.env.AI_PROVIDER_TIMEOUT_MS ?? "25000");
+const BACKGROUND_FUNCTION_NAME = "draft-compose-background";
+const DEFAULT_FUNCTION_BASE =
+  process.env.DEPLOY_URL ??
+  process.env.URL ??
+  process.env.SITE_URL ??
+  process.env.PUBLIC_BASE_URL ??
+  null;
 
 const MAX_PROPOSED_EDITS = 5;
 const CONTEXT_SNIPPET_RADIUS = 350;
@@ -949,6 +986,39 @@ function shouldFallbackToAnthropic(error: unknown): boolean {
   return false;
 }
 
+function resolveFunctionBaseUrl(): string | null {
+  if (DEFAULT_FUNCTION_BASE) {
+    return DEFAULT_FUNCTION_BASE.replace(/\/$/, "");
+  }
+  if (process.env.NETLIFY_LOCAL === "true") {
+    return "http://localhost:8888";
+  }
+  return null;
+}
+
+async function triggerBackgroundCompose(jobId: string): Promise<void> {
+  const baseUrl = resolveFunctionBaseUrl();
+  if (!baseUrl) {
+    console.warn("[agent] Background compose trigger skipped (no base URL)", {
+      jobId,
+    });
+    return;
+  }
+  const url = `${baseUrl}/.netlify/functions/${BACKGROUND_FUNCTION_NAME}`;
+  try {
+    await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ jobId }),
+    });
+  } catch (error) {
+    console.warn("[agent] Failed to trigger background compose", {
+      jobId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+}
+
 agentRouter.post("/chat", async (req, res) => {
   const body = req.body as AgentChatRequest;
   const messages = Array.isArray(body?.messages) ? body.messages : [];
@@ -1128,11 +1198,12 @@ Contract title: ${contractTitle ?? context.contract?.title ?? "Unknown"}.`;
   }
 });
 
-agentRouter.post("/compose", async (req, res) => {
-  const body = req.body as AgentDraftRequest;
+async function composeDraft(
+  body: AgentDraftRequest,
+  options: ComposeDraftOptions = {},
+): Promise<ComposeDraftResult> {
   if (!body?.contractId) {
-    res.status(400).json({ error: "contractId is required" });
-    return;
+    throw new ComposeDraftError("contractId is required", 400);
   }
 
   const suggestions = Array.isArray(body.suggestions)
@@ -1177,118 +1248,107 @@ agentRouter.post("/compose", async (req, res) => {
     .filter((edit): edit is AgentDraftEdit => Boolean(edit));
 
   const combinedEdits = [...agentEdits, ...suggestionEdits];
-
   const supabase = getSupabaseAdminClient();
 
-  try {
-    console.info("[agent] compose request", {
-      contractId: body.contractId,
-      suggestions: suggestions.length,
-      agentEdits: agentEdits.length,
+  console.info("[agent] compose request", {
+    contractId: body.contractId,
+    suggestions: suggestions.length,
+    agentEdits: agentEdits.length,
+    jobId: options.jobId,
+  });
+
+  const { data, error } = await supabase
+    .from("contracts")
+    .select("content, content_html, title, metadata, updated_at")
+    .eq("id", body.contractId)
+    .single();
+
+  if (error) {
+    throw new ComposeDraftError("Contract not found", 404);
+  }
+
+  const contractContent =
+    typeof data?.content === "string" ? data.content : null;
+  if (!contractContent) {
+    throw new ComposeDraftError("Contract content unavailable", 404);
+  }
+
+  const contractHtmlRaw =
+    typeof data?.content_html === "string" ? data.content_html : null;
+  const contractHtml = stripDangerousHtml(contractHtmlRaw);
+  const contractTitle = data?.title ?? null;
+  const metadataRecord = toRecord(data?.metadata);
+  const ingestionAssets = metadataRecord
+    ? toRecord(
+        metadataRecord.ingestionAssets ??
+          (metadataRecord as Record<string, unknown>).ingestion_assets,
+      )
+    : null;
+  const htmlPackageRef = ingestionAssets
+    ? parseStorageObjectRef(
+        ingestionAssets.htmlPackage ?? ingestionAssets.html_package,
+      )
+    : null;
+  const contractUpdatedAt =
+    typeof data?.updated_at === "string" ? data.updated_at : null;
+  const draftKey =
+    options.draftKeyOverride ??
+    computeDraftKey(body.contractId, contractUpdatedAt, suggestions, agentEdits);
+
+  const cachedDraft =
+    options.allowCache === false
+      ? null
+      : await getDraftSnapshotByKey(body.contractId, draftKey);
+  const cachedMatchCount = Array.isArray(cachedDraft?.metadata?.matchedEdits)
+    ? cachedDraft?.metadata?.matchedEdits.length
+    : 0;
+  const shouldBypassCache =
+    !!cachedDraft && combinedEdits.length > 0 && cachedMatchCount === 0;
+
+  if (cachedDraft && !shouldBypassCache) {
+    const cachedResponse = buildResponseFromSnapshot(cachedDraft, {
+      contractContent,
+      contractHtml: contractHtml ?? undefined,
     });
-
-    const { data, error } = await supabase
-      .from("contracts")
-      .select("content, content_html, title, metadata, updated_at")
-      .eq("id", body.contractId)
-      .single();
-
-    if (error) {
-      res.status(404).json({ error: "Contract not found" });
-      return;
-    }
-
-    const contractContent =
-      typeof data?.content === "string" ? data.content : null;
-    const contractHtmlRaw =
-      typeof data?.content_html === "string" ? data.content_html : null;
-    const contractHtml = stripDangerousHtml(contractHtmlRaw);
-    const contractTitle = data?.title ?? null;
-    const metadataRecord = toRecord(data?.metadata);
-    const ingestionAssets = metadataRecord
-      ? toRecord(
-          metadataRecord.ingestionAssets ??
-            (metadataRecord as Record<string, unknown>).ingestion_assets,
-        )
-      : null;
-    const htmlPackageRef = ingestionAssets
-      ? parseStorageObjectRef(
-          ingestionAssets.htmlPackage ?? ingestionAssets.html_package,
-        )
-      : null;
-    const contractUpdatedAt =
-      typeof data?.updated_at === "string" ? data.updated_at : null;
-    const draftKey = computeDraftKey(
-      body.contractId,
-      contractUpdatedAt,
-      suggestions,
-      agentEdits,
-    );
-
-    if (!contractContent) {
-      res.status(404).json({ error: "Contract content unavailable" });
-      return;
-    }
-
-    const cachedDraft = await getDraftSnapshotByKey(
-      body.contractId,
+    return {
+      response: cachedResponse,
       draftKey,
-    );
-    const cachedMatchCount = Array.isArray(
-      cachedDraft?.metadata?.matchedEdits,
-    )
-      ? cachedDraft?.metadata?.matchedEdits.length
-      : 0;
-    const shouldBypassCache =
-      !!cachedDraft &&
-      combinedEdits.length > 0 &&
-      cachedMatchCount === 0;
+      snapshotId: cachedDraft.id,
+      provider: cachedResponse.provider ?? null,
+      model: cachedResponse.model ?? null,
+    };
+  }
 
-    if (cachedDraft && !shouldBypassCache) {
-      const cachedResponse = buildResponseFromSnapshot(cachedDraft, {
-        contractContent,
-        contractHtml: contractHtml ?? undefined,
-      });
-      res.json(cachedResponse);
-      return;
-    }
+  const trimmedContract =
+    contractContent.length > MAX_CONTRACT_TEXT_LENGTH
+      ? contractContent.slice(0, MAX_CONTRACT_TEXT_LENGTH)
+      : contractContent;
+  const baseHtml = contractHtml ?? textToHtml(contractContent);
+  const trimmedHtml = baseHtml
+    ? truncateInput(baseHtml, MAX_CONTRACT_HTML_LENGTH)
+    : null;
 
-    const trimmedContract =
-      contractContent.length > MAX_CONTRACT_TEXT_LENGTH
-        ? contractContent.slice(0, MAX_CONTRACT_TEXT_LENGTH)
-        : contractContent;
-    const baseHtml = contractHtml ?? textToHtml(contractContent);
-    const trimmedHtml = baseHtml
-      ? truncateInput(baseHtml, MAX_CONTRACT_HTML_LENGTH)
-      : null;
+  const htmlContext = trimmedHtml
+    ? `Base contract HTML template (modify this markup directly; preserve all structure, numbering, and styling):\n<contract_html>\n${trimmedHtml}\n</contract_html>`
+    : "";
 
-    const htmlContext = trimmedHtml
-      ? `Base contract HTML template (modify this markup directly; preserve all structure, numbering, and styling):
-<contract_html>
-${trimmedHtml}
-</contract_html>`
-      : "";
-
-    const textContext = trimmedContract
-      ? `Plain text reference for clause lookup (do not reformat this; it is only for context):
-<contract_text>
-${trimmedContract}
-</contract_text>`
-      : "";
+  const textContext = trimmedContract
+    ? `Plain text reference for clause lookup (do not reformat this; it is only for context):\n<contract_text>\n${trimmedContract}\n</contract_text>`
+    : "";
 
   const suggestionBlock = suggestions.length
     ? suggestions
         .map((item, index) => {
           const parts: string[] = [`${index + 1}. ${item.description}`];
           if (item.severity) {
-              parts.push(`Severity: ${item.severity}`);
-            }
-            if (item.department) {
-              parts.push(`Department: ${item.department}`);
-            }
-            if (item.owner) {
-              parts.push(`Owner: ${item.owner}`);
-            }
+            parts.push(`Severity: ${item.severity}`);
+          }
+          if (item.department) {
+            parts.push(`Department: ${item.department}`);
+          }
+          if (item.owner) {
+            parts.push(`Owner: ${item.owner}`);
+          }
           if (item.dueTimeline && item.dueTimeline !== "TBD") {
             parts.push(`Timeline: ${item.dueTimeline}`);
           }
@@ -1319,245 +1379,356 @@ ${trimmedContract}
           return parts.join(" | ");
         })
         .join("\n")
-      : "None selected. Focus on the explicit clause edits.";
+    : "None selected. Focus on the explicit clause edits.";
 
-    const editsBlock = agentEdits.length
-      ? agentEdits
-          .map((edit, index) => {
-            const lines = [
-              `${index + 1}. Clause reference: ${edit.clauseReference ?? "Unspecified"}`,
-              `Change type: ${edit.changeType ?? "modify"}`,
-              edit.originalText
-                ? `Original text: ${edit.originalText}`
-                : "Original text not provided.",
-              `Replacement text: ${edit.suggestedText}`,
-            ];
-            if (edit.rationale) {
-              lines.push(`Rationale: ${edit.rationale}`);
-            }
-            return lines.join("\n");
-          })
-          .join("\n\n")
-      : "No direct agent edits provided.";
+  const editsBlock = agentEdits.length
+    ? agentEdits
+        .map((edit, index) => {
+          const lines = [
+            `${index + 1}. Clause reference: ${edit.clauseReference ?? "Unspecified"}`,
+            `Change type: ${edit.changeType ?? "modify"}`,
+            edit.originalText
+              ? `Original text: ${edit.originalText}`
+              : "Original text not provided.",
+            `Replacement text: ${edit.suggestedText}`,
+          ];
+          if (edit.rationale) {
+            lines.push(`Rationale: ${edit.rationale}`);
+          }
+          return lines.join("\n");
+        })
+        .join("\n\n")
+    : "No direct agent edits provided.";
 
-    const systemPrompt =
-      `You are Maigon's contract rewriting assistant. Integrate the provided review directives into the base contract while preserving every numbering sequence, heading, table, and styling cue.` +
-      ` Use the supplied HTML template as the source of truth—edit only the clauses that require changes and reuse all existing markup for unchanged sections.` +
-      ` Only introduce new clauses when explicitly required by a suggestion. Always return valid JSON matching the provided schema.`;
+  const systemPrompt =
+    `You are Maigon's contract rewriting assistant. Integrate the provided review directives into the base contract while preserving every numbering sequence, heading, table, and styling cue.` +
+    ` Use the supplied HTML template as the source of truth—edit only the clauses that require changes and reuse all existing markup for unchanged sections.` +
+    ` Only introduce new clauses when explicitly required by a suggestion. Always return valid JSON matching the provided schema.`;
 
-    const promptSections = [
-      `Document title: "${contractTitle ?? "Contract"}"`,
-      htmlContext,
-      textContext,
-      "Apply these review suggestions:",
-      suggestionBlock,
-      "Explicit agent edits to merge verbatim:",
-      editsBlock,
-      `Return ONLY JSON using this schema:
+  const promptSections = [
+    `Document title: "${contractTitle ?? "Contract"}"`,
+    htmlContext,
+    textContext,
+    "Apply these review suggestions:",
+    suggestionBlock,
+    "Explicit agent edits to merge verbatim:",
+    editsBlock,
+    `Return ONLY JSON using this schema:
 {
   "updatedHtml": "full updated contract HTML template matching the original structure",
   "updatedContract": "same contract content rendered as plain text (no HTML tags)",
   "summary": "3-4 sentence overview of the applied changes",
   "appliedChanges": ["bullet items summarising each change"]
 }`,
-    ];
+  ];
 
-    const userPrompt = promptSections
-      .filter((section) => typeof section === "string" && section.trim().length > 0)
-      .join("\n\n");
+  const userPrompt = promptSections
+    .filter((section) => typeof section === "string" && section.trim().length > 0)
+    .join("\n\n");
 
-    const messages = [{ role: "user" as const, content: userPrompt }];
-    console.info("[agent] compose prompt sizes", {
-      promptChars: userPrompt.length,
-      contractTextChars: trimmedContract?.length ?? 0,
-      contractHtmlChars: trimmedHtml?.length ?? 0,
+  const messages = [{ role: "user" as const, content: userPrompt }];
+  console.info("[agent] compose prompt sizes", {
+    promptChars: userPrompt.length,
+    contractTextChars: trimmedContract?.length ?? 0,
+    contractHtmlChars: trimmedHtml?.length ?? 0,
+  });
+
+  const requestId = options.requestId ?? crypto.randomUUID();
+  const logCtx = {
+    requestId,
+    contractId: body.contractId,
+    draftKey,
+    jobId: options.jobId,
+  };
+  const allowAnthropic = ALLOW_ANTHROPIC && !!ANTHROPIC_API_KEY;
+  console.info("[agent] compose provider selection", {
+    ...logCtx,
+    forceOpenAI: FORCE_OPENAI_ONLY,
+    allowAnthropic,
+  });
+
+  let provider: AgentDraftResponse["provider"] = "openai";
+  let model = OPENAI_AGENT_MODEL;
+  let output: string;
+
+  try {
+    const result = await callOpenAI(systemPrompt, messages, {
+      ...logCtx,
+      route: "compose",
     });
-
-    try {
-      const requestId = crypto.randomUUID();
-      const logCtx = {
-        requestId,
-        contractId: body.contractId,
-        draftKey,
-      };
-      const allowAnthropic = ALLOW_ANTHROPIC && !!ANTHROPIC_API_KEY;
-      console.info("[agent] compose provider selection", {
+    output = result.output;
+    model = result.model;
+  } catch (error) {
+    if (allowAnthropic && shouldFallbackToAnthropic(error)) {
+      provider = "anthropic";
+      const result = await callAnthropic(systemPrompt, messages, {
         ...logCtx,
-        forceOpenAI: FORCE_OPENAI_ONLY,
-        allowAnthropic,
+        route: "compose",
       });
-      let provider: AgentDraftResponse["provider"] = "openai";
-      let model = OPENAI_AGENT_MODEL;
-      let output: string;
+      output = result.output;
+      model = result.model;
+    } else {
+      throw error;
+    }
+  }
 
-      try {
-        const result = await callOpenAI(systemPrompt, messages, {
-          ...logCtx,
-          route: "compose",
-        });
-        output = result.output;
-        model = result.model;
-      } catch (error) {
-        if (allowAnthropic && shouldFallbackToAnthropic(error)) {
-          provider = "anthropic";
-          const result = await callAnthropic(systemPrompt, messages, {
-            ...logCtx,
-            route: "compose",
-          });
-          output = result.output;
-          model = result.model;
-        } else {
-          throw error;
-        }
-      }
+  const normalized = normalizeDraftResponse(
+    output,
+    baseHtml ?? undefined,
+    contractContent,
+  );
 
-      const normalized = normalizeDraftResponse(
-        output,
-        baseHtml ?? undefined,
-        contractContent,
-      );
+  const syntheticPlainText =
+    normalized.updatedContract && normalized.updatedContract.trim().length > 0
+      ? normalized.updatedContract
+      : contractContent;
 
-      const syntheticPlainText =
-        normalized.updatedContract &&
-        normalized.updatedContract.trim().length > 0
-          ? normalized.updatedContract
-          : contractContent;
+  const updatedPlainText =
+    syntheticPlainText === contractContent && combinedEdits.length > 0
+      ? applyEditsToPlainText(contractContent, combinedEdits)
+      : syntheticPlainText;
 
-      const updatedPlainText =
-        syntheticPlainText === contractContent && combinedEdits.length > 0
-          ? applyEditsToPlainText(contractContent, combinedEdits)
-          : syntheticPlainText;
+  let htmlSource: AgentDraftResponse["htmlSource"] | undefined =
+    normalized.updatedHtml
+      ? "llm"
+      : baseHtml
+        ? "original"
+        : undefined;
+  let patchedResult: Awaited<ReturnType<typeof buildPatchedHtmlDraft>> | null =
+    null;
 
-      let htmlSource: AgentDraftResponse["htmlSource"] | undefined =
-        normalized.updatedHtml
-          ? "llm"
-          : baseHtml
-            ? "original"
-            : undefined;
-      let patchedResult: Awaited<
-        ReturnType<typeof buildPatchedHtmlDraft>
-      > | null = null;
-
-      if (
-        htmlPackageRef &&
-        (combinedEdits.length > 0 || updatedPlainText)
-      ) {
-        try {
-          patchedResult = await buildPatchedHtmlDraft({
-            contractId: body.contractId,
-            draftKey,
-            htmlPackage: htmlPackageRef,
-            agentEdits: combinedEdits,
-            updatedPlainText,
-          });
-          if (patchedResult?.html) {
-            htmlSource = "patched";
-          }
-        } catch (patchError) {
-          console.warn("[agent] Failed to patch HTML package", {
-            contractId: body.contractId,
-            error:
-              patchError instanceof Error
-                ? patchError.message
-              : String(patchError),
-          });
-        }
-      }
-
-      if (
-        !patchedResult &&
-        baseHtml &&
-        (combinedEdits.length > 0 || updatedPlainText)
-      ) {
-        const inMemoryPatch = buildPatchedHtmlFromString(
-          baseHtml,
-          combinedEdits,
-          updatedPlainText,
-        );
-        if (inMemoryPatch) {
-          patchedResult = inMemoryPatch;
-          if (inMemoryPatch.matchedEdits.length > 0) {
-            htmlSource = "patched";
-          }
-        }
-      }
-
-      const updatedHtml =
-        patchedResult?.html ??
-        normalized.updatedHtml ??
-        baseHtml ??
-        undefined;
-      const updatedContractText =
-        patchedResult?.plainText ??
-        updatedPlainText ??
-        contractContent;
-
-      const snapshot = await upsertDraftSnapshot({
+  if (htmlPackageRef && (combinedEdits.length > 0 || updatedPlainText)) {
+    try {
+      patchedResult = await buildPatchedHtmlDraft({
         contractId: body.contractId,
         draftKey,
-        html: updatedHtml ?? null,
-        plainText: updatedContractText ?? null,
-        summary: normalized.summary ?? null,
-        appliedChanges: normalized.appliedChanges ?? [],
-        assetRef: patchedResult?.assetRef ?? null,
-        provider,
-        model,
-        metadata: {
-          suggestionIds: suggestions.map((item) => item.id),
-          cacheSource: htmlSource ?? "fallback",
-          matchedEdits: patchedResult?.matchedEdits ?? [],
-          unmatchedEdits: patchedResult?.unmatchedEdits ?? [],
-        },
+        htmlPackage: htmlPackageRef,
+        agentEdits: combinedEdits,
+        updatedPlainText,
       });
-
-      const response: AgentDraftResponse = {
-        updatedContract: updatedContractText ?? contractContent,
-        updatedHtml: updatedHtml ?? undefined,
-        summary: normalized.summary,
-        appliedChanges:
-          normalized.appliedChanges && normalized.appliedChanges.length > 0
-            ? normalized.appliedChanges
-            : undefined,
-        provider,
-        model,
-        originalContract: contractContent,
-        originalHtml: baseHtml ?? undefined,
-        draftId: snapshot?.id ?? null,
-        assetRef: snapshot?.assetRef ?? patchedResult?.assetRef ?? null,
-        htmlSource,
-        cacheStatus: "miss",
-      };
-
-      res.json(response);
-    } catch (error) {
-      console.error("[agent] Draft generation failed", error);
-      const fallbackChanges = [
-        ...suggestions.map((item) => item.description),
-        ...agentEdits.map((edit) =>
-          edit.clauseReference
-            ? `Clause ${edit.clauseReference}: ${edit.suggestedText}`
-            : edit.suggestedText,
-        ),
-      ];
-      const fallback: AgentDraftResponse = {
-        updatedContract: contractContent,
-        updatedHtml: baseHtml ?? undefined,
-        summary:
-          "We couldn't automatically generate a revised draft. Review the suggestions manually and apply them to the original contract.",
-        appliedChanges: fallbackChanges.length ? fallbackChanges : undefined,
-        provider: "heuristic",
-        model: "compose-fallback",
-        originalContract: contractContent,
-        originalHtml: baseHtml ?? undefined,
-        draftId: null,
-        assetRef: null,
-        htmlSource: baseHtml ? "original" : undefined,
-        cacheStatus: "miss",
-      };
-      res.json(fallback);
+      if (patchedResult?.html) {
+        htmlSource = "patched";
+      }
+    } catch (patchError) {
+      console.warn("[agent] Failed to patch HTML package", {
+        contractId: body.contractId,
+        error:
+          patchError instanceof Error ? patchError.message : String(patchError),
+      });
     }
+  }
+
+  if (
+    !patchedResult &&
+    baseHtml &&
+    (combinedEdits.length > 0 || updatedPlainText)
+  ) {
+    const inMemoryPatch = buildPatchedHtmlFromString(
+      baseHtml,
+      combinedEdits,
+      updatedPlainText,
+    );
+    if (inMemoryPatch) {
+      patchedResult = inMemoryPatch;
+      if (inMemoryPatch.matchedEdits.length > 0) {
+        htmlSource = "patched";
+      }
+    }
+  }
+
+  const updatedHtml =
+    patchedResult?.html ??
+    normalized.updatedHtml ??
+    baseHtml ??
+    undefined;
+  const updatedContractText =
+    patchedResult?.plainText ??
+    updatedPlainText ??
+    contractContent;
+
+  const snapshot = await upsertDraftSnapshot({
+    contractId: body.contractId,
+    draftKey,
+    html: updatedHtml ?? null,
+    plainText: updatedContractText ?? null,
+    summary: normalized.summary ?? null,
+    appliedChanges: normalized.appliedChanges ?? [],
+    assetRef: patchedResult?.assetRef ?? null,
+    provider,
+    model,
+    metadata: {
+      suggestionIds: suggestions.map((item) => item.id),
+      cacheSource: htmlSource ?? "fallback",
+      matchedEdits: patchedResult?.matchedEdits ?? [],
+      unmatchedEdits: patchedResult?.unmatchedEdits ?? [],
+    },
+  });
+
+  const response: AgentDraftResponse = {
+    updatedContract: updatedContractText ?? contractContent,
+    updatedHtml: updatedHtml ?? undefined,
+    summary: normalized.summary,
+    appliedChanges:
+      normalized.appliedChanges && normalized.appliedChanges.length > 0
+        ? normalized.appliedChanges
+        : undefined,
+    provider,
+    model,
+    originalContract: contractContent,
+    originalHtml: baseHtml ?? undefined,
+    draftId: snapshot?.id ?? null,
+    assetRef: snapshot?.assetRef ?? patchedResult?.assetRef ?? null,
+    htmlSource,
+    cacheStatus: "miss",
+  };
+
+  return {
+    response,
+    draftKey,
+    snapshotId: snapshot?.id ?? null,
+    provider,
+    model,
+  };
+}
+
+agentRouter.post("/compose", async (req, res) => {
+  const body = req.body as AgentDraftRequest;
+  try {
+    const result = await composeDraft(body, { requestId: crypto.randomUUID() });
+    res.json(result.response);
   } catch (error) {
     console.error("[agent] Compose endpoint error", error);
-    res.status(500).json({ error: "Failed to prepare contract draft" });
+    res.status(
+      error instanceof ComposeDraftError && error.status ? error.status : 500,
+    ).json({
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to prepare contract draft",
+    });
   }
 });
+
+agentRouter.post("/compose/start", async (req, res) => {
+  const body = req.body as AgentDraftRequest;
+  if (!body?.contractId) {
+    res.status(400).json({ error: "contractId is required" });
+    return;
+  }
+
+  try {
+    const job = await createDraftJob({
+      contractId: body.contractId,
+      payload: body,
+      metadata: {
+        suggestionCount: Array.isArray(body.suggestions)
+          ? body.suggestions.length
+          : 0,
+        agentEditCount: Array.isArray(body.agentEdits)
+          ? body.agentEdits.length
+          : 0,
+      },
+    });
+
+    const hasBackgroundBase = resolveFunctionBaseUrl();
+    if (hasBackgroundBase) {
+      triggerBackgroundCompose(job.id).catch(() => {
+        // Fire-and-forget; errors are logged inside triggerBackgroundCompose
+      });
+    } else {
+      processDraftJob(job.id).catch((error) => {
+        console.error("[agent] Inline compose job failed", {
+          jobId: job.id,
+          message: error instanceof Error ? error.message : String(error),
+        });
+      });
+    }
+
+    const response: AgentDraftJobStartResponse = {
+      jobId: job.id,
+      status: job.status,
+      draftKey: job.draftKey,
+      contractId: job.contractId,
+    };
+
+    res.status(202).json(response);
+  } catch (error) {
+    console.error("[agent] Failed to start compose job", error);
+    res.status(500).json({ error: "Failed to queue draft generation" });
+  }
+});
+
+agentRouter.get("/compose/status/:jobId", async (req, res) => {
+  const jobId = req.params.jobId;
+  if (!jobId) {
+    res.status(400).json({ error: "jobId is required" });
+    return;
+  }
+
+  try {
+    const job = await getDraftJobById(jobId);
+    if (!job) {
+      res.status(404).json({ error: "Draft job not found" });
+      return;
+    }
+
+    const payload: AgentDraftJobStatusResponse = {
+      jobId: job.id,
+      status: job.status,
+      draftKey: job.draftKey,
+      contractId: job.contractId,
+      result: job.result ?? undefined,
+      updatedAt: job.updatedAt,
+    };
+
+    if (job.status === "failed") {
+      payload.error = job.error ?? "Draft generation failed";
+    }
+
+    res.json(payload);
+  } catch (error) {
+    console.error("[agent] Failed to fetch compose job status", error);
+    res.status(500).json({ error: "Unable to fetch job status" });
+  }
+});
+
+export async function processDraftJob(jobId: string): Promise<void> {
+  const job = await getDraftJobById(jobId);
+  if (!job) {
+    throw new Error("Draft job not found");
+  }
+
+  if (job.status === "running") {
+    return;
+  }
+
+  if (job.status === "succeeded" || job.status === "failed") {
+    return;
+  }
+
+  if (!job.payload) {
+    await markDraftJobFailed(job.id, "Job payload missing");
+    throw new Error("Draft job payload missing");
+  }
+
+  await markDraftJobRunning(job.id);
+
+  try {
+    const result = await composeDraft(job.payload, {
+      requestId: job.id,
+      draftKeyOverride: job.draftKey,
+      jobId: job.id,
+    });
+
+    await markDraftJobSucceeded({
+      id: job.id,
+      draftKey: result.draftKey,
+      resultSnapshotId: result.snapshotId,
+      result: result.response,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    await markDraftJobFailed(job.id, message);
+    throw error;
+  }
+}
