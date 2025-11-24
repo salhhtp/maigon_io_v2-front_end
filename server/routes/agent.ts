@@ -839,6 +839,7 @@ async function callAnthropic(
         },
         body: JSON.stringify({
           model: ANTHROPIC_AGENT_MODEL,
+          max_tokens: 2048,
           max_completion_tokens: 2048,
           system: systemPrompt,
           messages: anthropicMessages,
