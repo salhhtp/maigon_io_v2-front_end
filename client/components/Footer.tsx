@@ -14,7 +14,7 @@ const Footer: React.FC = () => {
             </div>
             <div className="text-sm text-[#271D1D] leading-relaxed">
               <p>Maigon AB</p>
-              <p>c/o Synch Advokat AB</p>
+              <p>c/o Synch Law</p>
               <p>Box 3631</p>
               <p>103 59 Stockholm, Sweden</p>
             </div>

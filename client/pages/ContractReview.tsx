@@ -4254,20 +4254,11 @@ const heroNavItems = [
           </div>
           <DialogFooter className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex flex-wrap gap-2">
-              <Button variant="outline" onClick={handleCopyDraft}>
-                <Copy className="w-4 h-4 mr-2" /> Copy draft
-              </Button>
-              <Button variant="outline" onClick={handleDownloadTxt}>
-                <Download className="w-4 h-4 mr-2" /> Download (.txt)
-              </Button>
               <Button variant="outline" onClick={handleDownloadDocx}>
                 <Download className="w-4 h-4 mr-2" /> Download (.docx)
               </Button>
               <Button variant="outline" onClick={handleDownloadPdf}>
                 <Download className="w-4 h-4 mr-2" /> Download (.pdf)
-              </Button>
-              <Button variant="outline" onClick={handleDownloadRedlines}>
-                <Download className="w-4 h-4 mr-2" /> Smart redline (.docx)
               </Button>
             </div>
             <Button onClick={() => setShowDraftDialog(false)}>Close</Button>
