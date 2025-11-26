@@ -478,6 +478,8 @@ export default function Upload() {
           selected_solution_key: solutionKey,
           assets: extraction.assets ?? undefined,
           organization_id: organizationId,
+          perspective,
+          perspective_label: perspectiveLabel,
         },
         reviewType,
         metadata: {
@@ -487,6 +489,7 @@ export default function Upload() {
           solutionId,
           solutionKey,
           perspective,
+          perspectiveLabel,
           ingestionWarnings: extraction.warnings ?? [],
           userProfileId,
           customSolutionId,

@@ -1347,6 +1347,15 @@ const updatedPlainText = useMemo(() => {
       ai: "AI Integration",
       "data-subject": "Data Subject",
       organization: "Organization",
+      "data-controller": "Data Controller",
+      "data-processor": "Data Processor",
+      "disclosing-party": "Disclosing Party",
+      "receiving-party": "Receiving Party",
+      supplier: "Supplier",
+      client: "Client",
+      customer: "Customer",
+      contractor: "Contractor",
+      "end-user": "End User",
     };
     return perspectives[perspectiveValue] || perspectiveValue;
   };

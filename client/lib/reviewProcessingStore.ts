@@ -29,6 +29,7 @@ export interface PendingReviewMetadata {
   fileSize?: number;
   solutionTitle?: string;
   perspective?: string;
+  perspectiveLabel?: string;
   ingestionWarnings?: string[];
   userProfileId?: string;
   solutionId?: string;

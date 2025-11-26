@@ -1254,6 +1254,8 @@ export class DataService {
         content: contractData.content,
         reviewType,
         contractType: contractData.contract_type || "general",
+        perspective: contractData.perspective ?? undefined,
+        perspectiveLabel: contractData.perspective_label ?? undefined,
         customSolution: customSolution ?? undefined,
         model: normalizedModel as ContractAnalysisRequest["model"],
         userId: authUserId,

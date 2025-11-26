@@ -56,6 +56,8 @@ interface AnalysisRequest {
   ingestionId?: string;
   reviewType: string;
   model: string;
+  perspective?: string;
+  perspectiveLabel?: string;
   customSolution?: any;
   contractType?: string;
   fileType?: string;
@@ -145,6 +147,239 @@ const CONTRACT_PATTERNS: Record<string, RegExp[]> = {
     /service levels?/i,
   ],
 };
+
+function buildPerspectiveContext(request: AnalysisRequest): string {
+  const perspective = (request.perspective || "").toLowerCase().trim();
+  const perspectiveLabel = request.perspectiveLabel || request.perspective;
+  if (!perspective && !perspectiveLabel) return "";
+
+  const solutionKey =
+    (request.selectedSolution?.key ||
+      request.contractType ||
+      request.selectedSolution?.title ||
+      "")!
+      .toString()
+      .toLowerCase();
+
+  const mapping: Record<
+    string,
+    Record<
+      string,
+      { primary: string; counterpart: string; guidance?: string }
+    >
+  > = {
+    ppc: {
+      "data-subject": {
+        primary: "Data Subject",
+        counterpart: "Organization",
+        guidance:
+          "Focus on individual privacy rights, transparency, and lawful basis.",
+      },
+      organization: {
+        primary: "Organization",
+        counterpart: "Data Subjects",
+        guidance:
+          "Emphasize compliance obligations, disclosures, and risk/liability posture.",
+      },
+    },
+    privacy_policy_document: {
+      "data-subject": {
+        primary: "Data Subject",
+        counterpart: "Organization",
+        guidance:
+          "Focus on individual privacy rights, transparency, and lawful basis.",
+      },
+      organization: {
+        primary: "Organization",
+        counterpart: "Data Subjects",
+        guidance:
+          "Emphasize compliance obligations, disclosures, and risk/liability posture.",
+      },
+    },
+    dpa: {
+      "data-controller": {
+        primary: "Data Controller",
+        counterpart: "Data Processor",
+        guidance:
+          "Ensure processor commitments, sub-processor controls, and data subject support meet controller standards.",
+      },
+      "data-processor": {
+        primary: "Data Processor",
+        counterpart: "Data Controller",
+        guidance:
+          "Assess scope of instructions, liability, audit exposure, and operational feasibility for the processor.",
+      },
+    },
+    data_processing_agreement: {
+      "data-controller": {
+        primary: "Data Controller",
+        counterpart: "Data Processor",
+        guidance:
+          "Ensure processor commitments, sub-processor controls, and data subject support meet controller standards.",
+      },
+      "data-processor": {
+        primary: "Data Processor",
+        counterpart: "Data Controller",
+        guidance:
+          "Assess scope of instructions, liability, audit exposure, and operational feasibility for the processor.",
+      },
+    },
+    nda: {
+      "disclosing-party": {
+        primary: "Disclosing Party",
+        counterpart: "Receiving Party",
+        guidance:
+          "Protect confidential information, limit use, and secure remedies.",
+      },
+      "receiving-party": {
+        primary: "Receiving Party",
+        counterpart: "Disclosing Party",
+        guidance:
+          "Ensure obligations are feasible, exclusions reasonable, and liability proportionate.",
+      },
+    },
+    non_disclosure_agreement: {
+      "disclosing-party": {
+        primary: "Disclosing Party",
+        counterpart: "Receiving Party",
+        guidance:
+          "Protect confidential information, limit use, and secure remedies.",
+      },
+      "receiving-party": {
+        primary: "Receiving Party",
+        counterpart: "Disclosing Party",
+        guidance:
+          "Ensure obligations are feasible, exclusions reasonable, and liability proportionate.",
+      },
+    },
+    ca: {
+      supplier: {
+        primary: "Supplier",
+        counterpart: "Client",
+        guidance:
+          "Check scope clarity, payment triggers, IP ownership, and liability caps.",
+      },
+      client: {
+        primary: "Client",
+        counterpart: "Supplier",
+        guidance:
+          "Validate deliverable quality, acceptance rights, and remedies for delays/defects.",
+      },
+    },
+    consultancy_agreement: {
+      supplier: {
+        primary: "Supplier",
+        counterpart: "Client",
+        guidance:
+          "Check scope clarity, payment triggers, IP ownership, and liability caps.",
+      },
+      client: {
+        primary: "Client",
+        counterpart: "Supplier",
+        guidance:
+          "Validate deliverable quality, acceptance rights, and remedies for delays/defects.",
+      },
+    },
+    psa: {
+      supplier: {
+        primary: "Supplier",
+        counterpart: "Customer",
+        guidance:
+          "Assess supply commitments, forecasts, warranties, and liability limits.",
+      },
+      customer: {
+        primary: "Customer",
+        counterpart: "Supplier",
+        guidance:
+          "Check reliability, quality protections, and commercial remedies for non-conformance.",
+      },
+    },
+    product_supply_agreement: {
+      supplier: {
+        primary: "Supplier",
+        counterpart: "Customer",
+        guidance:
+          "Assess supply commitments, forecasts, warranties, and liability limits.",
+      },
+      customer: {
+        primary: "Customer",
+        counterpart: "Supplier",
+        guidance:
+          "Check reliability, quality protections, and commercial remedies for non-conformance.",
+      },
+    },
+    rda: {
+      contractor: {
+        primary: "Contractor",
+        counterpart: "Customer",
+        guidance:
+          "Clarify research scope, IP ownership, and risk allocation for delivery.",
+      },
+      customer: {
+        primary: "Customer",
+        counterpart: "Contractor",
+        guidance:
+          "Protect investment with clear milestones, ownership, and remedies.",
+      },
+    },
+    research_development_agreement: {
+      contractor: {
+        primary: "Contractor",
+        counterpart: "Customer",
+        guidance:
+          "Clarify research scope, IP ownership, and risk allocation for delivery.",
+      },
+      customer: {
+        primary: "Customer",
+        counterpart: "Contractor",
+        guidance:
+          "Protect investment with clear milestones, ownership, and remedies.",
+      },
+    },
+    eula: {
+      supplier: {
+        primary: "Supplier",
+        counterpart: "End User",
+        guidance:
+          "Review licensing scope, restrictions, and liability to protect the publisher.",
+      },
+      "end-user": {
+        primary: "End User",
+        counterpart: "Supplier",
+        guidance:
+          "Validate license rights, acceptable use, and available remedies.",
+      },
+    },
+    end_user_license_agreement: {
+      supplier: {
+        primary: "Supplier",
+        counterpart: "End User",
+        guidance:
+          "Review licensing scope, restrictions, and liability to protect the publisher.",
+      },
+      "end-user": {
+        primary: "End User",
+        counterpart: "Supplier",
+        guidance:
+          "Validate license rights, acceptable use, and available remedies.",
+      },
+    },
+  };
+
+  const roles = mapping[solutionKey]?.[perspective];
+  const primary = roles?.primary || perspectiveLabel || "Selected party";
+  const counterpart = roles?.counterpart || "Counterparty";
+  const extraGuidance = roles?.guidance
+    ? `Guidance: ${roles.guidance}`
+    : "";
+
+  return `
+
+USER-SELECTED PERSPECTIVE:
+- Primary party: ${primary}
+- Counterparty: ${counterpart}
+- Instruction: Align "buyer" perspective to ${primary} and "seller" to ${counterpart}. Avoid generic or "mutual" framing; tailor all findings, scores, and recommendations to ${primary}'s interests. ${extraGuidance}`;
+}
 
 const SOLUTION_ANALYSIS_GUIDANCE: Record<
   string,
@@ -1441,6 +1676,7 @@ async function analyzeWithAI(request: AnalysisRequest, apiKey: string) {
 function buildAnalysisPrompt(request: AnalysisRequest) {
   const customSolution = request.customSolution;
   const classification = request.classification;
+  const perspectiveContext = buildPerspectiveContext(request);
 
   const solutionGuidance = getSolutionGuidance(
     request.selectedSolution,
@@ -1709,7 +1945,7 @@ Return JSON in this exact format:
 }`,
     },
     perspective_review: {
-      systemPrompt: `You are a senior contract strategist with expertise in multi-stakeholder analysis, commercial negotiations, and stakeholder management. You have extensive experience representing different parties in complex commercial transactions and understand the nuanced interests, priorities, and concerns of various stakeholders. You excel at identifying hidden motivations, power dynamics, and strategic implications from each perspective. Always respond in valid JSON format.${classificationContext}`,
+      systemPrompt: `You are a senior contract strategist with expertise in multi-stakeholder analysis, commercial negotiations, and stakeholder management. You have extensive experience representing different parties in complex commercial transactions and understand the nuanced interests, priorities, and concerns of various stakeholders. You excel at identifying hidden motivations, power dynamics, and strategic implications from each perspective. Always respond in valid JSON format.${classificationContext}${perspectiveContext}`,
       analysisPrompt: `Conduct a sophisticated multi-stakeholder analysis using this advanced framework:
 
 1. **Stakeholder Mapping**: Identify all relevant parties and their interests

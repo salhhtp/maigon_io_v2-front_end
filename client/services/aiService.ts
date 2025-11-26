@@ -52,6 +52,8 @@ export interface ContractAnalysisRequest {
   content: string;
   reviewType: string;
   contractType?: string;
+  perspective?: string;
+  perspectiveLabel?: string;
   customSolution?: CustomSolution;
   model?: AIModel;
   userId: string;
@@ -348,6 +350,8 @@ class AIService {
         model,
         customSolution,
         contractType: request.contractType,
+        perspective: request.perspective,
+        perspectiveLabel: request.perspectiveLabel,
         fileType: (request as any).fileType,
         fileName: (request as any).fileName,
         filename: request.filename,
