@@ -6,14 +6,236 @@ import MobileNavigation from "@/components/MobileNavigation";
 import { useUser } from "@/contexts/SupabaseUserContext";
 import { useToast } from "@/hooks/use-toast";
 
+type PerspectiveOption = {
+  value: string;
+  title: string;
+  description: string;
+  focusAreas: string[];
+  tone: "blue" | "green" | "rose" | "amber";
+};
+
+const PERSPECTIVE_OPTIONS: Record<string, PerspectiveOption[]> = {
+  ppc: [
+    {
+      value: "data-subject",
+      title: "Data Subject",
+      description:
+        "Review from the individual’s viewpoint with emphasis on privacy rights, consent, and transparency.",
+      focusAreas: [
+        "Individual privacy rights and data access",
+        "Consent mechanisms and withdrawal options",
+        "Data retention and deletion rights",
+        "Data portability and transparency requirements",
+      ],
+      tone: "blue",
+    },
+    {
+      value: "organization",
+      title: "Organization",
+      description:
+        "Assess obligations and liabilities for the business publishing the privacy notice.",
+      focusAreas: [
+        "Organizational compliance obligations",
+        "Business risk assessment and mitigation",
+        "Legal liability and financial exposure",
+        "Operational and procedural requirements",
+      ],
+      tone: "green",
+    },
+  ],
+  dpa: [
+    {
+      value: "data-controller",
+      title: "Data Controller",
+      description:
+        "Ensure processor commitments, safeguards, and data subject protections meet controller obligations.",
+      focusAreas: [
+        "Processor obligations and sub-processor controls",
+        "Data breach notification and cooperation",
+        "Security safeguards and audit rights",
+        "Data subject rights support and deletion/return",
+      ],
+      tone: "blue",
+    },
+    {
+      value: "data-processor",
+      title: "Data Processor",
+      description:
+        "Evaluate controller requirements, liability exposure, and operational feasibility for the processor.",
+      focusAreas: [
+        "Scope of processing and documented instructions",
+        "Limitation of liability and indemnities",
+        "Security, certifications, and audit scope",
+        "Return/deletion timelines and assistance duties",
+      ],
+      tone: "green",
+    },
+  ],
+  nda: [
+    {
+      value: "disclosing-party",
+      title: "Disclosing Party",
+      description:
+        "Protect confidential information, limit use, and secure remedies for unauthorized disclosure.",
+      focusAreas: [
+        "Definition and scope of Confidential Information",
+        "Use restrictions and purpose limitations",
+        "Return/destruction obligations",
+        "Remedies, injunctive relief, and liability caps",
+      ],
+      tone: "blue",
+    },
+    {
+      value: "receiving-party",
+      title: "Receiving Party",
+      description:
+        "Ensure obligations are feasible, exclusions are reasonable, and liability is proportionate.",
+      focusAreas: [
+        "Exclusions (public domain, independently developed)",
+        "Duration of confidentiality and survival",
+        "Information handling and security requirements",
+        "Liability exposure and indemnities",
+      ],
+      tone: "green",
+    },
+  ],
+  ca: [
+    {
+      value: "supplier",
+      title: "Supplier",
+      description:
+        "Check scope clarity, payment triggers, IP ownership, and limits on liability for delivering services.",
+      focusAreas: [
+        "Scope of work and change control",
+        "Fees, milestones, and payment terms",
+        "IP ownership and license back",
+        "Liability caps and exclusions",
+      ],
+      tone: "blue",
+    },
+    {
+      value: "client",
+      title: "Client",
+      description:
+        "Validate deliverable quality, acceptance rights, IP ownership, and protections for delays or defects.",
+      focusAreas: [
+        "Acceptance criteria and remedies",
+        "Service levels and delivery timelines",
+        "IP transfer/use rights",
+        "Indemnities and liability coverage",
+      ],
+      tone: "green",
+    },
+  ],
+  psa: [
+    {
+      value: "supplier",
+      title: "Supplier",
+      description:
+        "Assess supply commitments, forecasts, warranties, and limits on liability for providing goods.",
+      focusAreas: [
+        "Order commitments and forecast flexibility",
+        "Delivery terms, risk transfer, and delays",
+        "Product warranties and remedy scope",
+        "Liability caps and exclusions",
+      ],
+      tone: "blue",
+    },
+    {
+      value: "customer",
+      title: "Customer",
+      description:
+        "Check supply reliability, quality protections, and commercial remedies for non-conforming goods.",
+      focusAreas: [
+        "Quantity/forecast protections and minimums",
+        "Delivery obligations and penalties",
+        "Quality standards, inspections, and returns",
+        "Indemnities and limitation of liability",
+      ],
+      tone: "green",
+    },
+  ],
+  rda: [
+    {
+      value: "contractor",
+      title: "Contractor",
+      description:
+        "Clarify research scope, IP ownership, and risk allocation while delivering development work.",
+      focusAreas: [
+        "Scope, milestones, and change control",
+        "Foreground/background IP and licensing",
+        "Confidential data handling",
+        "Liability caps and indemnities",
+      ],
+      tone: "blue",
+    },
+    {
+      value: "customer",
+      title: "Customer",
+      description:
+        "Protect investment with clear deliverables, ownership rights, and remedies for delays or defects.",
+      focusAreas: [
+        "Milestones, acceptance, and performance criteria",
+        "Ownership of results and license rights",
+        "Data security and confidentiality",
+        "Warranties, indemnities, and liability",
+      ],
+      tone: "green",
+    },
+  ],
+  eula: [
+    {
+      value: "supplier",
+      title: "Supplier",
+      description:
+        "Review licensing scope, restrictions, and liability to protect the software publisher.",
+      focusAreas: [
+        "License scope, restrictions, and revocation",
+        "Warranty disclaimers and limitation of liability",
+        "IP protection and enforcement",
+        "Support/maintenance obligations",
+      ],
+      tone: "blue",
+    },
+    {
+      value: "end-user",
+      title: "End User",
+      description:
+        "Validate license rights, acceptable use, and available remedies for the software user.",
+      focusAreas: [
+        "Permitted uses and restrictions",
+        "Data usage/telemetry and privacy",
+        "Support, updates, and uptime expectations",
+        "Liability caps and available remedies",
+      ],
+      tone: "green",
+    },
+  ],
+};
+
 export default function PerspectiveSelection() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout } = useUser();
   const { toast } = useToast();
-  const [selectedPerspective, setSelectedPerspective] = useState<
-    "data-subject" | "organization" | null
-  >("data-subject");
+  const {
+    solutionTitle,
+    solutionId,
+    solutionKey,
+    quickUpload,
+    adminAccess,
+    customSolutionId,
+  } = location.state || {};
+
+  const normalizedKey = (solutionKey ?? solutionId ?? "")
+    ?.toString()
+    .toLowerCase();
+  const perspectiveOptions =
+    PERSPECTIVE_OPTIONS[normalizedKey] ?? PERSPECTIVE_OPTIONS.ppc;
+
+  const [selectedPerspective, setSelectedPerspective] = useState<string>(
+    perspectiveOptions[0]?.value ?? "data-subject",
+  );
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
 
   const paygOutOfCredits = Boolean(
@@ -32,16 +254,6 @@ export default function PerspectiveSelection() {
     }
   }, [navigate, toast, paygOutOfCredits]);
 
-  // Get quick upload data from navigation state
-  const {
-    solutionTitle,
-    solutionId,
-    solutionKey,
-    quickUpload,
-    adminAccess,
-    customSolutionId,
-  } = location.state || {};
-
   const handleContinue = () => {
     if (paygOutOfCredits) {
       toast({
@@ -58,6 +270,9 @@ export default function PerspectiveSelection() {
       navigate("/upload", {
         state: {
           perspective: selectedPerspective,
+          perspectiveLabel:
+            perspectiveOptions.find((opt) => opt.value === selectedPerspective)
+              ?.title ?? selectedPerspective,
           solutionTitle,
           quickUpload,
           adminAccess,
@@ -70,7 +285,6 @@ export default function PerspectiveSelection() {
   };
 
   const handleBack = () => {
-    // If this is a quick upload, go back to dashboard, otherwise to solutions
     navigate(quickUpload ? "/dashboard" : "/user-solutions");
   };
 
@@ -194,178 +408,103 @@ export default function PerspectiveSelection() {
 
           {/* Perspective Options */}
           <div className="space-y-6 mb-8">
-            {/* Data Subject Perspective */}
-            <div
-              className={`bg-white rounded-lg border-2 p-6 shadow-sm cursor-pointer transition-all hover:shadow-md ${
-                selectedPerspective === "data-subject"
-                  ? "border-[#9A7C7C] bg-[#9A7C7C]/5"
-                  : "border-gray-200 hover:border-gray-300"
-              }`}
-              onClick={() => setSelectedPerspective("data-subject")}
-            >
-              <div className="flex items-start gap-6">
-                <div className="w-16 h-16 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <svg
-                    className="w-8 h-8 text-blue-600"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                  >
-                    <path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" />
-                  </svg>
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-3">
-                    <h3 className="text-xl font-medium text-[#271D1D]">
-                      Data Subject
-                    </h3>
-                    <div
-                      className={`w-5 h-5 border-2 rounded-full flex items-center justify-center ${
-                        selectedPerspective === "data-subject"
-                          ? "border-[#9A7C7C] bg-[#9A7C7C]"
-                          : "border-gray-300"
-                      }`}
-                    >
-                      {selectedPerspective === "data-subject" && (
-                        <div className="w-2.5 h-2.5 bg-white rounded-full"></div>
-                      )}
-                    </div>
-                  </div>
-                  <p className="text-gray-600 mb-4 leading-relaxed">
-                    Analyze the contract from the individual's perspective,
-                    focusing on personal data rights, privacy protections, and
-                    data subject obligations under GDPR and other privacy
-                    regulations.
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    <span className="px-3 py-1 bg-blue-100 text-blue-700 text-sm rounded-full">
-                      Privacy Rights
-                    </span>
-                    <span className="px-3 py-1 bg-blue-100 text-blue-700 text-sm rounded-full">
-                      Data Protection
-                    </span>
-                    <span className="px-3 py-1 bg-blue-100 text-blue-700 text-sm rounded-full">
-                      GDPR Compliance
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
+            {perspectiveOptions.map((option) => {
+              const isSelected = selectedPerspective === option.value;
+              const accentBg =
+                option.tone === "blue"
+                  ? "bg-blue-100 text-blue-700"
+                  : option.tone === "green"
+                    ? "bg-green-100 text-green-700"
+                    : option.tone === "rose"
+                      ? "bg-rose-100 text-rose-700"
+                      : "bg-amber-100 text-amber-700";
+              const focusDot =
+                option.tone === "blue"
+                  ? "bg-blue-500"
+                  : option.tone === "green"
+                    ? "bg-green-500"
+                    : option.tone === "rose"
+                      ? "bg-rose-500"
+                      : "bg-amber-500";
 
-            {/* Organization Perspective */}
-            <div
-              className={`bg-white rounded-lg border-2 p-6 shadow-sm cursor-pointer transition-all hover:shadow-md ${
-                selectedPerspective === "organization"
-                  ? "border-[#9A7C7C] bg-[#9A7C7C]/5"
-                  : "border-gray-200 hover:border-gray-300"
-              }`}
-              onClick={() => setSelectedPerspective("organization")}
-            >
-              <div className="flex items-start gap-6">
-                <div className="w-16 h-16 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <svg
-                    className="w-8 h-8 text-green-600"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                  >
-                    <path d="M4 3a2 2 0 100 4h12a2 2 0 100-4H4z" />
-                    <path
-                      fillRule="evenodd"
-                      d="M3 8h14v7a2 2 0 01-2 2H5a2 2 0 01-2-2V8zm5 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-3">
-                    <h3 className="text-xl font-medium text-[#271D1D]">
-                      Organization
-                    </h3>
+              return (
+                <div
+                  key={option.value}
+                  className={`bg-white rounded-lg border-2 p-6 shadow-sm cursor-pointer transition-all hover:shadow-md ${
+                    isSelected
+                      ? "border-[#9A7C7C] bg-[#9A7C7C]/5"
+                      : "border-gray-200 hover:border-gray-300"
+                  }`}
+                  onClick={() => setSelectedPerspective(option.value)}
+                >
+                  <div className="flex items-start gap-6">
                     <div
-                      className={`w-5 h-5 border-2 rounded-full flex items-center justify-center ${
-                        selectedPerspective === "organization"
-                          ? "border-[#9A7C7C] bg-[#9A7C7C]"
-                          : "border-gray-300"
+                      className={`w-16 h-16 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                        option.tone === "blue"
+                          ? "bg-blue-50 text-blue-600"
+                          : option.tone === "green"
+                            ? "bg-green-50 text-green-600"
+                            : option.tone === "rose"
+                              ? "bg-rose-50 text-rose-600"
+                              : "bg-amber-50 text-amber-600"
                       }`}
                     >
-                      {selectedPerspective === "organization" && (
-                        <div className="w-2.5 h-2.5 bg-white rounded-full"></div>
-                      )}
+                      <User className="w-8 h-8" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-3">
+                        <h3 className="text-xl font-medium text-[#271D1D]">
+                          {option.title}
+                        </h3>
+                        <div
+                          className={`w-5 h-5 border-2 rounded-full flex items-center justify-center ${
+                            isSelected
+                              ? "border-[#9A7C7C] bg-[#9A7C7C]"
+                              : "border-gray-300"
+                          }`}
+                        >
+                          {isSelected && (
+                            <div className="w-2.5 h-2.5 bg-white rounded-full"></div>
+                          )}
+                        </div>
+                      </div>
+                      <p className="text-gray-600 mb-4 leading-relaxed">
+                        {option.description}
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {option.focusAreas.slice(0, 3).map((tag) => (
+                          <span
+                            key={tag}
+                            className={`px-3 py-1 text-sm rounded-full ${accentBg}`}
+                          >
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
                     </div>
                   </div>
-                  <p className="text-gray-600 mb-4 leading-relaxed">
-                    Review from the company's perspective, emphasizing business
-                    obligations, compliance requirements, organizational
-                    responsibilities, and legal liability.
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    <span className="px-3 py-1 bg-green-100 text-green-700 text-sm rounded-full">
-                      Business Risk
-                    </span>
-                    <span className="px-3 py-1 bg-green-100 text-green-700 text-sm rounded-full">
-                      Legal Compliance
-                    </span>
-                    <span className="px-3 py-1 bg-green-100 text-green-700 text-sm rounded-full">
-                      Liability Assessment
-                    </span>
-                  </div>
                 </div>
-              </div>
-            </div>
+              );
+            })}
           </div>
 
           {/* Analysis Preview */}
-          <div
-            className={`rounded-lg p-6 mb-8 transition-all ${
-              selectedPerspective === "data-subject"
-                ? "bg-blue-50 border border-blue-200"
-                : selectedPerspective === "organization"
-                  ? "bg-green-50 border border-green-200"
-                  : "bg-gray-50 border border-gray-200"
-            }`}
-          >
+          <div className="rounded-lg p-6 mb-8 transition-all bg-white border border-gray-200">
             <h4 className="font-medium text-[#271D1D] mb-4">
               Analysis will focus on:
             </h4>
             <div className="space-y-2">
-              {selectedPerspective === "data-subject" ? (
-                <>
-                  <div className="flex items-center text-gray-700">
-                    <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
-                    Individual privacy rights and data access
+              {perspectiveOptions
+                .find((opt) => opt.value === selectedPerspective)
+                ?.focusAreas.map((area) => (
+                  <div
+                    key={area}
+                    className="flex items-center text-gray-700"
+                  >
+                    <div className="w-2 h-2 bg-[#9A7C7C] rounded-full mr-3"></div>
+                    {area}
                   </div>
-                  <div className="flex items-center text-gray-700">
-                    <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
-                    Consent mechanisms and withdrawal options
-                  </div>
-                  <div className="flex items-center text-gray-700">
-                    <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
-                    Data retention and deletion rights
-                  </div>
-                  <div className="flex items-center text-gray-700">
-                    <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
-                    Data portability and transparency requirements
-                  </div>
-                </>
-              ) : selectedPerspective === "organization" ? (
-                <>
-                  <div className="flex items-center text-gray-700">
-                    <div className="w-2 h-2 bg-green-500 rounded-full mr-3"></div>
-                    Organizational compliance obligations
-                  </div>
-                  <div className="flex items-center text-gray-700">
-                    <div className="w-2 h-2 bg-green-500 rounded-full mr-3"></div>
-                    Business risk assessment and mitigation
-                  </div>
-                  <div className="flex items-center text-gray-700">
-                    <div className="w-2 h-2 bg-green-500 rounded-full mr-3"></div>
-                    Legal liability and financial exposure
-                  </div>
-                  <div className="flex items-center text-gray-700">
-                    <div className="w-2 h-2 bg-green-500 rounded-full mr-3"></div>
-                    Operational and procedural requirements
-                  </div>
-                </>
-              ) : (
+                )) ?? (
                 <div className="flex items-center text-gray-500">
                   <div className="w-2 h-2 bg-gray-400 rounded-full mr-3"></div>
                   Select a perspective to see analysis focus areas

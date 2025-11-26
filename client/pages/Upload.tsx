@@ -38,6 +38,7 @@ export default function Upload() {
     solutionTitle,
     solutionKey: stateSolutionKey,
     perspective,
+    perspectiveLabel: statePerspectiveLabel,
     quickUpload,
     adminAccess,
     customSolutionId: stateCustomSolutionId,
@@ -66,6 +67,7 @@ export default function Upload() {
           fileName: fileLabel,
           solutionTitle,
           perspective,
+          perspectiveLabel: statePerspectiveLabel,
           customSolutionId,
         },
         replace: false,
@@ -81,6 +83,11 @@ export default function Upload() {
   );
   const fileInputRef = useRef<HTMLInputElement>(null);
   const organizationId = user?.organization?.id ?? null;
+  const perspectiveLabel =
+    statePerspectiveLabel ??
+    (typeof perspective === "string"
+      ? perspective.replace(/-/g, " ")
+      : null);
 
   const paygOutOfCredits = Boolean(
     user?.plan?.type === "pay_as_you_go" &&
@@ -711,9 +718,7 @@ function getReviewTypeFromPerspective(perspective: string): string {
               <div className="mt-4 inline-flex items-center px-3 py-1 bg-[#9A7C7C]/10 border border-[#9A7C7C]/20 rounded-full">
                 <span className="text-[#9A7C7C] text-sm font-medium">
                   Analysis Perspective:{" "}
-                  {perspective === "data-subject"
-                    ? "Data Subject"
-                    : "Organization"}
+                  {perspectiveLabel ?? perspective.replace(/-/g, " ")}
                 </span>
               </div>
             )}
