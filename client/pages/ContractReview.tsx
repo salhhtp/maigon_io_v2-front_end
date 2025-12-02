@@ -1673,16 +1673,25 @@ Next step: ${
     );
   }
 
-  const structuredReport = useMemo<AnalysisReport | null>(() => {
-    if (!results || typeof results !== "object") {
-      return null;
-    }
-    const raw = (results as Record<string, unknown>).structured_report;
-    if (raw && typeof raw === "object") {
-      return raw as AnalysisReport;
-    }
+const structuredReport = useMemo<AnalysisReport | null>(() => {
+  if (!results || typeof results !== "object") {
     return null;
-  }, [results]);
+  }
+  const candidate =
+    (results as Record<string, unknown>).structured_report || results;
+  if (candidate && typeof candidate === "object") {
+    const hasIssues = Array.isArray(
+      (candidate as Record<string, unknown>).issuesToAddress,
+    );
+    const hasSummary =
+      (candidate as Record<string, unknown>).generalInformation ||
+      (candidate as Record<string, unknown>).contractSummary;
+    if (hasIssues || hasSummary) {
+      return candidate as AnalysisReport;
+    }
+  }
+  return null;
+}, [results]);
 
   const generalInformation = structuredReport?.generalInformation;
   const contractSummaryReport = structuredReport?.contractSummary;
