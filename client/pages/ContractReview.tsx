@@ -887,21 +887,26 @@ function ClauseEvidenceBlock({
   if (reference.locationHint?.clauseNumber) {
     locationParts.push(`Clause ${reference.locationHint.clauseNumber}`);
   }
+  if (reference.locationHint?.paragraph) {
+    locationParts.push(`Line ${reference.locationHint.paragraph}`);
+  }
   if (reference.locationHint?.page) {
     locationParts.push(`Page ${reference.locationHint.page}`);
   }
   const locationLabel = locationParts.join(" · ");
 
   return (
-    <div className="mt-3 rounded-md border border-[#F3E9E9] bg-white px-3 py-2">
-      <p className="text-xs font-semibold uppercase tracking-wide text-[#6B4F4F]">
-        Clause evidence {reference.heading ? `· ${reference.heading}` : ""}
-      </p>
-      {locationLabel && (
-        <p className="text-[11px] text-[#9A7C7C] mb-1">{locationLabel}</p>
-      )}
+    <div className="mt-3 rounded-lg border border-[#E0D6D6] bg-[#F9F5F5] px-3 py-2 shadow-inner">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-xs font-semibold uppercase tracking-wide text-[#6B4F4F]">
+          Clause evidence {reference.heading ? `· ${reference.heading}` : ""}
+        </p>
+        {locationLabel && (
+          <span className="text-[11px] text-[#9A7C7C]">{locationLabel}</span>
+        )}
+      </div>
       {reference.excerpt ? (
-        <p className="text-sm text-[#271D1D] whitespace-pre-line">
+        <p className="mt-1 text-sm text-[#271D1D] whitespace-pre-line leading-snug">
           {reference.excerpt}
         </p>
       ) : null}
@@ -2824,9 +2829,6 @@ const heroFileName =
   "Contract";
 const heroNavItems = [
   { id: "issues-section", label: "Issues" },
-  { id: "playbook-section", label: "Playbook" },
-  { id: "similarity-section", label: "Similarity" },
-  { id: "deviation-section", label: "Deviations" },
 ];
 
   return (
@@ -2917,7 +2919,7 @@ const heroNavItems = [
 
         {/* Report Content */}
         <div className="max-w-5xl mx-auto px-6 py-8 print:px-8 print:py-6">
-          {structuredReport && (
+              {false && structuredReport && (
             <section className="mb-10 rounded-3xl bg-gradient-to-br from-[#0B1223] via-[#161F35] to-[#0A0E19] px-6 py-8 text-white shadow-2xl print:hidden">
               <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
                 <div className="space-y-5">
@@ -3043,7 +3045,7 @@ const heroNavItems = [
             </div>
           </div>
 
-          {structuredReport && (
+              {false && structuredReport && (
             <div className="mb-6 space-y-6">
               <div className="grid gap-4 lg:grid-cols-2">
                 <div className="bg-white border border-[#E8DDDD] rounded-lg p-6 shadow-sm">
@@ -3051,10 +3053,28 @@ const heroNavItems = [
                     General Information
                   </h3>
                   <dl className="grid grid-cols-2 gap-4 text-sm text-gray-700">
-                    <div>
-                      <dt className="text-xs uppercase text-gray-500">Score</dt>
-                      <dd className="text-2xl font-semibold text-[#271D1D]">
-                        {generalInformation?.complianceScore ?? "–"}
+                    <div className="col-span-2">
+                      <dt className="text-xs uppercase text-gray-500">
+                        Compliance Score (out of 100)
+                      </dt>
+                      <dd className="mt-1">
+                        <div className="flex items-center justify-between text-sm font-medium text-[#271D1D]">
+                          <span className="text-2xl font-semibold">
+                            {generalInformation?.complianceScore ?? "–"}
+                          </span>
+                          <span className="text-xs text-gray-500">/ 100</span>
+                        </div>
+                        <div className="mt-2 h-2 w-full rounded-full bg-[#F3E9E9] overflow-hidden">
+                          <div
+                            className="h-full bg-[#9A7C7C] transition-all"
+                            style={{
+                              width: `${Math.min(
+                                100,
+                                Math.max(0, generalInformation?.complianceScore ?? 0),
+                              )}%`,
+                            }}
+                          />
+                        </div>
                       </dd>
                     </div>
                     <div>
@@ -3135,7 +3155,7 @@ const heroNavItems = [
                   </div>
                 </div>
               </div>
-              {playbookCoverage && (
+              {false && playbookCoverage && (
                 <div className="bg-white border border-[#E8DDDD] rounded-lg p-6 shadow-sm mb-6">
                   <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                     <div>
@@ -3279,14 +3299,6 @@ const heroNavItems = [
                                       <ClauseEvidenceBlock
                                         reference={issue.clauseReference}
                                       />
-                                      {issue.legalBasis?.length ? (
-                                        <p className="text-xs text-gray-500">
-                                          References:{" "}
-                                          {issue.legalBasis
-                                            .map((basis) => basis.authority)
-                                            .join(", ")}
-                                        </p>
-                                      ) : null}
                                   </div>
                                 </div>
                               );
@@ -3338,7 +3350,7 @@ const heroNavItems = [
                   </div>
                 </div>
               )}
-              {structuredReport && (
+              {false && structuredReport && (
                 <div
                   id="playbook-section"
                   className="bg-white border border-[#E8DDDD] rounded-lg p-6 shadow-sm"
@@ -3415,7 +3427,7 @@ const heroNavItems = [
                   )}
                 </div>
               )}
-              {structuredReport && (
+              {false && structuredReport && (
                 <div
                   id="similarity-section"
                   className="bg-white border border-[#E8DDDD] rounded-lg p-6 shadow-sm"
@@ -3480,7 +3492,7 @@ const heroNavItems = [
                   )}
                 </div>
               )}
-              {structuredReport && (
+              {false && structuredReport && (
                 <div
                   id="deviation-section"
                   className="bg-white border border-[#E8DDDD] rounded-lg p-6 shadow-sm"
@@ -3549,7 +3561,7 @@ const heroNavItems = [
           )}
 
           {/* Priority Snapshot */}
-          {totalPriorityItems > 0 && hasSeverityBreakdown ? (
+          {false && totalPriorityItems > 0 && hasSeverityBreakdown ? (
               <div className="mb-6">
                 <h3 className="text-sm font-semibold text-[#271D1D] uppercase tracking-wide mb-3">
                   Priority Snapshot
