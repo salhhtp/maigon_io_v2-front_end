@@ -893,15 +893,15 @@ function ClauseEvidenceBlock({
   const locationLabel = locationParts.join(" · ");
 
   return (
-    <div className="mt-3 rounded-md border border-[#F3E9E9] bg-white px-3 py-2">
-      <p className="text-xs font-semibold uppercase tracking-wide text-[#6B4F4F]">
+    <div className="mt-3 rounded-md border border-[#DAD7FF] bg-[#F6F5FF] px-3 py-2">
+      <p className="text-xs font-semibold uppercase tracking-wide text-[#4B3F9A]">
         Clause evidence {reference.heading ? `· ${reference.heading}` : ""}
       </p>
       {locationLabel && (
-        <p className="text-[11px] text-[#9A7C7C] mb-1">{locationLabel}</p>
+        <p className="text-[11px] text-[#6B5FB8] mb-1">{locationLabel}</p>
       )}
       {reference.excerpt ? (
-        <p className="text-sm text-[#271D1D] whitespace-pre-line">
+        <p className="text-sm text-[#241B5B] whitespace-pre-line">
           {reference.excerpt}
         </p>
       ) : null}
@@ -3029,6 +3029,29 @@ const heroNavItems: { id: string; label: string }[] = [
               Executive Summary
             </h2>
 
+            {/* Score bar */}
+            <div className="mb-4 rounded-lg border border-[#E8DDDD] bg-white p-4 shadow-sm">
+              <div className="flex items-center justify-between text-sm text-[#6B4F4F]">
+                <span className="font-semibold uppercase tracking-wide">
+                  Score
+                </span>
+                <span className="font-semibold text-[#271D1D]">
+                  {generalInformation?.complianceScore ?? "–"}/100
+                </span>
+              </div>
+              <div className="mt-3 h-3 rounded-full bg-[#F3E9E9] overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-[#9A7C7C] via-[#C19C7C] to-[#E0B77C] transition-all"
+                  style={{
+                    width: `${Math.min(
+                      100,
+                      Math.max(0, generalInformation?.complianceScore ?? 0),
+                    )}%`,
+                  }}
+                />
+              </div>
+            </div>
+
             {/* Classification Overview */}
             <div className="bg-[#FDFBFB] border border-[#E8DDDD] rounded-lg p-6 mb-6 print:p-4">
               <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -3269,39 +3292,31 @@ const heroNavItems: { id: string; label: string }[] = [
                                     )) ||
                                   null;
                                 return (
-                                  <div
-                                    key={issue.id}
-                                    className="border border-[#F3E9E9] rounded-lg p-4 bg-[#FEFBFB]"
-                                  >
-                                    <div className="flex flex-col gap-2">
-                                      <div className="flex items-center justify-between gap-4">
-                                        <p className="text-sm font-semibold text-[#271D1D]">
-                                          {issue.title}
-                                        </p>
+                  <div
+                    key={issue.id}
+                    className="border border-[#F5D1C5] rounded-lg p-5 bg-[#FFF8F4] shadow-sm"
+                  >
+                    <div className="flex flex-col gap-2">
+                      <div className="flex items-center justify-between gap-4">
+                        <p className="text-sm font-semibold text-[#271D1D]">
+                          {issue.title}
+                        </p>
                                         <span
                                           className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${style.badge}`}
                                         >
                                           {style.label}
-                                        </span>
-                                      </div>
-                                      <p className="text-sm text-gray-700">
-                                        {issue.recommendation}
-                                      </p>
-                                      <ClauseEvidenceBlock
-                                        reference={issue.clauseReference}
-                                      />
-                                      {issue.legalBasis?.length ? (
-                                        <p className="text-xs text-gray-500">
-                                          References:{" "}
-                                          {issue.legalBasis
-                                            .map((basis) => basis.authority)
-                                            .join(", ")}
-                                        </p>
-                                      ) : null}
-                                  </div>
-                                </div>
-                              );
-                              })}
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-700">
+                        {issue.recommendation}
+                      </p>
+                      <ClauseEvidenceBlock
+                        reference={issue.clauseReference}
+                      />
+                  </div>
+                </div>
+              );
+            })}
                             </div>
                           )}
                         </div>
@@ -3313,7 +3328,7 @@ const heroNavItems: { id: string; label: string }[] = [
               {structuredCriteria.length > 0 && (
                 <div
                   id="criteria-section"
-                  className="bg-white border border-[#E8DDDD] rounded-lg p-6 shadow-sm"
+                  className="bg-[#F6FCF8] border border-[#CDE9D8] rounded-lg p-6 shadow-sm"
                 >
                   <h3 className="text-sm font-semibold text-[#271D1D] uppercase tracking-wide mb-4">
                     Criteria Met
@@ -3322,7 +3337,7 @@ const heroNavItems: { id: string; label: string }[] = [
                     {structuredCriteria.map((criterion) => (
                       <div
                         key={criterion.id}
-                        className="flex items-start gap-3 text-sm text-gray-700"
+                        className="flex items-start gap-3 text-sm text-gray-800 bg-white/70 border border-[#D9F0E4] rounded-md p-3"
                       >
                         {criterion.met ? (
                           <CheckCircle className="h-4 w-4 text-emerald-500 mt-0.5" />
@@ -3917,7 +3932,6 @@ const heroNavItems: { id: string; label: string }[] = [
                   : combinedDecisions.slice(0, 3)
                 ).map((item) => {
                   const severityStyle = getSeverityStyle(item.severity);
-                  const departmentStyle = getDepartmentStyle(item.department);
                   const checked = suggestionSelection[item.id] !== false;
                   const actionPreviewAnchor =
                     item.proposedEdit?.previousText ??
@@ -3942,11 +3956,6 @@ const heroNavItems: { id: string; label: string }[] = [
                             ></span>
                             {severityStyle.label}
                           </span>
-                          <span
-                            className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${departmentStyle.badge}`}
-                          >
-                            {departmentStyle.label}
-                          </span>
                           {item.category && (
                             <span className="inline-flex items-center rounded-full bg-white px-2.5 py-0.5 text-xs font-medium text-orange-700">
                               {formatLabel(item.category)}
@@ -3969,22 +3978,15 @@ const heroNavItems: { id: string; label: string }[] = [
                       </div>
                       <div className="mt-3 flex items-start gap-3">
                         <AlertTriangle className="mt-1 h-5 w-5 flex-shrink-0 text-orange-600" />
-                        <p className="text-sm text-gray-700">{item.description}</p>
-                      </div>
-                      <div className="mt-3 flex flex-wrap gap-4 text-xs text-gray-600">
-                        <span>
-                          Owner: <span className="font-medium">{formatLabel(item.owner)}</span>
-                        </span>
-                        {item.dueTimeline && item.dueTimeline !== "TBD" && (
-                          <span>
-                            Due: <span className="font-medium">{item.dueTimeline}</span>
-                          </span>
-                        )}
-                        {item.nextStep && (
-                          <span>
-                            Next step: <span className="font-medium">{item.nextStep}</span>
-                          </span>
-                        )}
+                        <div className="space-y-1">
+                          <p className="text-sm font-semibold text-[#271D1D]">
+                            {item.proposedEdit?.clauseTitle ||
+                              item.proposedEdit?.anchorText ||
+                              item.title ||
+                              "Action item"}
+                          </p>
+                          <p className="text-sm text-gray-700">{item.description}</p>
+                        </div>
                       </div>
                       {item.proposedEdit ? (
                         <div className="mt-3 space-y-2">
