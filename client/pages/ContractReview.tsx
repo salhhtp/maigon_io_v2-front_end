@@ -1673,12 +1673,12 @@ Next step: ${
     );
   }
 
-const structuredReport = useMemo<AnalysisReport | null>(() => {
-  if (!results || typeof results !== "object") {
-    return null;
-  }
-  const candidate =
-    (results as Record<string, unknown>).structured_report || results;
+  const structuredReport = useMemo<AnalysisReport | null>(() => {
+    if (!results || typeof results !== "object") {
+      return null;
+    }
+    const candidate =
+      (results as Record<string, unknown>).structured_report || results;
   if (candidate && typeof candidate === "object") {
     const hasIssues = Array.isArray(
       (candidate as Record<string, unknown>).issuesToAddress,
@@ -1691,11 +1691,29 @@ const structuredReport = useMemo<AnalysisReport | null>(() => {
     }
   }
   return null;
-}, [results]);
+  }, [results]);
 
   const generalInformation = structuredReport?.generalInformation;
   const contractSummaryReport = structuredReport?.contractSummary;
-  const structuredIssues = structuredReport?.issuesToAddress ?? [];
+  const structuredIssues = useMemo<Issue[]>(() => {
+    const direct = structuredReport?.issuesToAddress;
+    const legacy =
+      (results as any)?.issuesToAddress ||
+      (results as any)?.issues_to_address ||
+      (results as any)?.issues;
+    const source = Array.isArray(direct)
+      ? direct
+      : Array.isArray(legacy)
+        ? legacy
+        : [];
+    return source.filter(
+      (item): item is Issue =>
+        item &&
+        typeof item === "object" &&
+        typeof (item as any).id === "string" &&
+        typeof (item as any).title === "string",
+    );
+  }, [results, structuredReport?.issuesToAddress]);
   const structuredCriteria = structuredReport?.criteriaMet ?? [];
   const structuredPlaybookInsights = structuredReport?.playbookInsights ?? [];
   const structuredClauseExtractions = structuredReport?.clauseExtractions ?? [];
@@ -3570,64 +3588,7 @@ const heroNavItems = [
           )}
 
           {/* Priority Snapshot */}
-          {false && totalPriorityItems > 0 && hasSeverityBreakdown ? (
-              <div className="mb-6">
-                <h3 className="text-sm font-semibold text-[#271D1D] uppercase tracking-wide mb-3">
-                  Priority Snapshot
-                </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 print:gap-2">
-                  {SEVERITY_DISPLAY_ORDER.filter(
-                    (level) =>
-                      level !== "default" &&
-                      (severitySummary as Record<string, number>)[level] > 0,
-                  ).map((level) => {
-                    const style = SEVERITY_CARD_STYLES[level] ?? SEVERITY_CARD_STYLES.default;
-                    const count =
-                      (severitySummary as Record<string, number>)[level] ?? 0;
-                    return (
-                      <div
-                        key={level}
-                        className={`rounded-lg border px-4 py-3 flex items-center justify-between ${style.container} print:px-3 print:py-2`}
-                      >
-                        <div>
-                          <p className="text-xs uppercase tracking-wide opacity-70">
-                            {formatLabel(level)}
-                          </p>
-                          <p className="text-xl font-semibold">{count}</p>
-                        </div>
-                        <span className={`h-3 w-3 rounded-full ${style.accent}`}></span>
-                      </div>
-                    );
-                  })}
-                </div>
-                {topDepartments.length > 0 && (
-                  <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-gray-600">
-                    <span className="font-medium text-[#271D1D]">
-                      Concentrated in:
-                    </span>
-                    {topDepartments.map(([dept, count]) => {
-                      const style = getDepartmentStyle(dept);
-                      return (
-                        <span
-                          key={dept}
-                          className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${style.badge}`}
-                        >
-                          {style.label} · {count}
-                        </span>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            ) : totalPriorityItems > 0 ? (
-              <div className="mb-6 text-sm text-gray-600">
-                No severity-ranked issues were highlighted; review general observations for context.
-              </div>
-            ) : (
-              <div className="mb-6 text-sm text-gray-600">
-                No critical or high-priority items were flagged in this review.
-              </div>
-            )}
+            {/* Priority snapshot and placeholder messages hidden */}
 
             {agentEdits.length > 0 && (
               <div className="mb-8 print:mb-6">
