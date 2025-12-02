@@ -750,7 +750,7 @@ function buildUserPrompt(
             .join(", ")}`
         : null;
       return [
-        `Clause digest (${context.clauseDigest.total} segments; truncated to top entries):`,
+        `Clause digest (${context.clauseDigest.total} segments):`,
         context.clauseDigest.summary,
         categoryLine,
       ]
@@ -764,15 +764,15 @@ function buildUserPrompt(
 }
 
 function buildJsonSchemaDescription() {
-  return `Return JSON with ONLY the following sections. Optional sections may be omitted entirely if token budget is tight and Maigon will synthesize them:
+  return `Return JSON with the following sections. Include every item you find; do not cap array lengths:
 - version: "v3"
 - generatedAt: ISO timestamp
 - generalInformation: { complianceScore (0-100), selectedPerspective, reviewTimeSeconds, timeSavingsMinutes, reportExpiry }
 - contractSummary: { contractName, filename, parties[], agreementDirection, purpose, verbalInformationCovered, contractPeriod, governingLaw, jurisdiction }
-- issuesToAddress: All the issues each with id, title, severity, recommendation, rationale, and clauseReference { clauseId, heading, excerpt, locationHint }. The excerpt must quote or paraphrase the clause digest entry. If a clause is missing, state "Not present" in excerpt and location.
-- clauseFindings: All the clause summaries with clauseId, title, summary, riskLevel, recommendation. Map each finding to a clause digest identifier so the user understands where it lives.
-- proposedEdits: All the proposed edits for the uploaded contract, each with id, clauseId, anchorText, proposedText, intent, rationale. Anchor text = original problematic excerpt. Proposed text = fully rewritten clause or paragraph ready to paste into the contract—not a recommendation. Intent must be one of insert|replace|remove.
-- optional fields you MAY include when concise: criteriaMet, metadata, playbookInsights, clauseExtractions, similarityAnalysis, deviationInsights, actionItems, draftMetadata (set to [] if omitted)
+- issuesToAddress: Every issue with id, title, severity, recommendation, rationale, and clauseReference { clauseId, heading, excerpt, locationHint }. The excerpt must quote or paraphrase the clause digest entry. If a clause is missing, state "Not present" in excerpt and location.
+- clauseFindings: All clause summaries with clauseId, title, summary, riskLevel, recommendation. Map each finding to a clause digest identifier so the user understands where it lives.
+- proposedEdits: All proposed edits for the uploaded contract, each with id, clauseId, anchorText, proposedText, intent, rationale. Anchor text = original problematic excerpt. Proposed text = fully rewritten clause or paragraph ready to paste into the contract—not a recommendation. Intent must be one of insert|replace|remove.
+- optional fields you MAY include: criteriaMet, metadata, playbookInsights, clauseExtractions, similarityAnalysis, deviationInsights, actionItems, draftMetadata (set to [] if omitted)
 - Always evaluate the document against the standard compliance checklist in the clause digest/playbook and explicitly call out missing clauses before generic risks.
 - If a value is unknown, set it to a descriptive default like "Not specified", 0, false, or [] but never emit null unless specified.`;
 }
@@ -1295,7 +1295,7 @@ function buildEnhancementPrompt(
       : "Clause findings: none provided.",
     "Contract content (full):",
     contractContent,
-    "Return JSON with keys: playbookInsights, clauseExtractions, similarityAnalysis, deviationInsights, actionItems, draftMetadata. Each array must contain at most 2 entries. For any section lacking strong evidence, return an empty array. Keep every narrative string under 140 characters.",
+    "Return JSON with keys: playbookInsights, clauseExtractions, similarityAnalysis, deviationInsights, actionItems, draftMetadata. Include every relevant entry you can support with evidence. For any section lacking strong evidence, return an empty array. Keep every narrative string under 140 characters.",
   ].join("\n\n");
 }
 
@@ -1776,17 +1776,11 @@ export async function runReasoningAnalysis(
 
   type AttemptConfig = {
     limit: number | null;
-    compact: boolean;
   };
   const attemptConfigs: AttemptConfig[] = [];
   const baseLimit = MAX_OUTPUT_TOKENS ?? null;
   attemptConfigs.push({
     limit: baseLimit,
-    compact: false,
-  });
-  attemptConfigs.push({
-    limit: baseLimit,
-    compact: true,
   });
 
   let lastError: unknown = null;
@@ -1794,14 +1788,9 @@ export async function runReasoningAnalysis(
   let coreReport: AnalysisReport | null = null;
 
   for (let attemptIndex = 0; attemptIndex < attemptConfigs.length; attemptIndex += 1) {
-    const { limit, compact } = attemptConfigs[attemptIndex];
+    const { limit } = attemptConfigs[attemptIndex];
     const isLastAttempt = attemptIndex === attemptConfigs.length - 1;
-    const baselineHint =
-      "\n\nOUTPUT BUDGET: Keep every narrative string under 150 characters. Arrays must respect the specified maximum counts and default to [] when signal is weak.";
-    const compressionHint = compact
-      ? "\n\nTOKEN BUDGET MODE: Return only the single most critical entry per array (issues, criteria, clauseFindings, proposedEdits, playbookInsights, clauseExtractions, similarityAnalysis, deviationInsights, actionItems). Omit optional metadata."
-      : "";
-    const attemptPrompt = `${userPrompt}${baselineHint}${compressionHint}`;
+    const attemptPrompt = userPrompt;
     const requestPayload = buildRequestPayload(limit, attemptPrompt);
 
     const response = await fetch(OPENAI_RESPONSES_API_BASE, {

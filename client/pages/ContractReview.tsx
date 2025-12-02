@@ -1107,7 +1107,7 @@ export default function ContractReview() {
   const [isAgentOpen, setIsAgentOpen] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
-    actions: false,
+    actions: true,
     missing: true,
   });
   const [suggestionSelection, setSuggestionSelection] = useState<Record<string, boolean>>({});
@@ -1793,7 +1793,7 @@ Next step: ${
   const resolvedPlaybookInsights: PlaybookInsight[] =
     structuredPlaybookInsights.length
       ? structuredPlaybookInsights
-      : structuredIssues.slice(0, 2).map((issue, index) => ({
+      : structuredIssues.map((issue, index) => ({
           id: issue.id ?? `playbook-${index + 1}`,
           title: issue.title,
           summary: issue.rationale,
@@ -1801,7 +1801,7 @@ Next step: ${
           status: issue.severity === "low" ? "met" : "attention",
           recommendation: issue.recommendation,
           guidance:
-            issue.legalBasis?.map((basis) => basis.summary).slice(0, 3) ?? [],
+            issue.legalBasis?.map((basis) => basis.summary) ?? [],
           relatedClauseIds: issue.clauseReference?.heading
             ? [issue.clauseReference.heading]
             : [],
@@ -1809,7 +1809,7 @@ Next step: ${
   const resolvedDeviationInsights: DeviationInsight[] =
     structuredDeviationInsights.length
       ? structuredDeviationInsights
-      : structuredIssues.slice(0, 2).map((issue, index) => ({
+      : structuredIssues.map((issue, index) => ({
           id: issue.id ?? `deviation-${index + 1}`,
           title: issue.title,
           deviationType: issue.category ?? "clause",
@@ -1827,7 +1827,7 @@ Next step: ${
   const resolvedSimilarityAnalysis: SimilarityMatch[] =
     structuredSimilarityAnalysis.length
       ? structuredSimilarityAnalysis
-      : resolvedClauseExtractions.slice(0, 2).map((clause, index) => {
+      : resolvedClauseExtractions.map((clause, index) => {
           const fallbackScore = Math.max(0.35, 0.75 - index * 0.1);
           return {
             id: clause.id ?? `similarity-${index + 1}`,
@@ -1836,10 +1836,10 @@ Next step: ${
             similarityScore: Number(fallbackScore.toFixed(2)),
             excerpt:
               typeof clause.originalText === "string"
-                ? clause.originalText.slice(0, 200)
+                ? clause.originalText
                 : "",
             rationale: `Compared with Maigon's ${classificationLabel} standard clauses.`,
-            tags: clause.references?.slice(0, 3) ?? [],
+            tags: clause.references ?? [],
           };
         });
 
@@ -2037,7 +2037,7 @@ const actionItemEntries = useMemo(
     }
     return [...recommendationEntries, ...actionItemEntries];
   }, [recommendationEntries, actionItemEntries, structuredProposedEdits.length]);
-  const topNextSteps = combinedDecisions.slice(0, 3);
+  const topNextSteps = combinedDecisions;
 
   const severitySummary = useMemo(() => {
     const base: Record<string, number> = {
@@ -2119,9 +2119,7 @@ const actionItemEntries = useMemo(
       const dept = item.department || "general";
       counts.set(dept, (counts.get(dept) ?? 0) + 1);
     });
-    return Array.from(counts.entries())
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 3);
+    return Array.from(counts.entries()).sort((a, b) => b[1] - a[1]);
   }, [combinedDecisions]);
 
   const hasSeverityBreakdown = useMemo(
@@ -2177,8 +2175,8 @@ const actionItemEntries = useMemo(
         label: getDepartmentStyle(key).label,
         count,
       })),
-      missingInformation: displayMissingInformation.slice(0, 6),
-      recommendations: recommendationEntries.slice(0, 6).map((item) => ({
+      missingInformation: displayMissingInformation,
+      recommendations: recommendationEntries.map((item) => ({
         id: item.id,
         description: item.description,
         severity: item.severity,
@@ -2186,7 +2184,7 @@ const actionItemEntries = useMemo(
         owner: item.owner,
         dueTimeline: item.dueTimeline,
       })),
-      actionItems: combinedDecisions.slice(0, 6).map((item) => ({
+      actionItems: combinedDecisions.map((item) => ({
         id: item.id,
         description: item.description,
         severity: item.severity,
@@ -3179,7 +3177,7 @@ const heroNavItems: { id: string; label: string }[] = [
                   {(uncoveredCriticalClauses.length > 0 ||
                     uncoveredAnchors.length > 0) && (
                     <div className="mt-4 grid gap-2">
-                      {uncoveredCriticalClauses.slice(0, 3).map((clause) => (
+                      {uncoveredCriticalClauses.map((clause) => (
                         <div
                           key={clause.title}
                           className="rounded-md bg-[#FEFBFB] border border-[#F3E9E9] px-3 py-2 text-sm text-[#271D1D]/80"
@@ -3192,7 +3190,7 @@ const heroNavItems: { id: string; label: string }[] = [
                           )}
                         </div>
                       ))}
-                      {uncoveredAnchors.slice(0, 2).map((anchor) => (
+                      {uncoveredAnchors.map((anchor) => (
                         <div
                           key={anchor.anchor}
                           className="rounded-md bg-[#FFF8F1] border border-[#F3E9E9] px-3 py-2 text-sm text-[#6B4F4F]"
@@ -3451,7 +3449,7 @@ const heroNavItems: { id: string; label: string }[] = [
                   </div>
                   {resolvedSimilarityAnalysis.length > 0 ? (
                     <div className="space-y-3">
-                      {resolvedSimilarityAnalysis.slice(0, 3).map((match) => (
+                      {resolvedSimilarityAnalysis.map((match) => (
                         <div
                           key={match.id}
                           className="rounded-lg border border-[#EDE1E1] p-4 bg-white"
@@ -3513,7 +3511,7 @@ const heroNavItems: { id: string; label: string }[] = [
                   </div>
                   {resolvedDeviationInsights.length > 0 ? (
                     <div className="space-y-3">
-                      {resolvedDeviationInsights.slice(0, 4).map((deviation) => {
+                      {resolvedDeviationInsights.map((deviation) => {
                         const severityStyle = getSeverityStyle(
                           deviation.severity,
                         );
