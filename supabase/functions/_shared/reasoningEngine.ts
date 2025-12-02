@@ -769,13 +769,11 @@ function buildJsonSchemaDescription() {
 - generatedAt: ISO timestamp
 - generalInformation: { complianceScore (0-100), selectedPerspective, reviewTimeSeconds, timeSavingsMinutes, reportExpiry }
 - contractSummary: { contractName, filename, parties[], agreementDirection, purpose, verbalInformationCovered, contractPeriod, governingLaw, jurisdiction }
-- issuesToAddress: 1-3 issues each with id, title, severity, recommendation, rationale, and clauseReference { clauseId, heading, excerpt, locationHint }. The excerpt must quote or paraphrase the clause digest entry. If a clause is missing, state "Not present" in excerpt and location.
-- clauseFindings: 1-3 clause summaries with clauseId, title, summary, riskLevel, recommendation. Map each finding to a clause digest identifier so the user understands where it lives.
-- proposedEdits: ≤2 edits, each with id, clauseId, anchorText, proposedText, intent, rationale. Anchor text = original problematic excerpt (≤200 chars). Proposed text = fully rewritten clause or paragraph (≥2 sentences) ready to paste into the contract—not a recommendation. Intent must be one of insert|replace|remove.
+- issuesToAddress: All the issues each with id, title, severity, recommendation, rationale, and clauseReference { clauseId, heading, excerpt, locationHint }. The excerpt must quote or paraphrase the clause digest entry. If a clause is missing, state "Not present" in excerpt and location.
+- clauseFindings: All the clause summaries with clauseId, title, summary, riskLevel, recommendation. Map each finding to a clause digest identifier so the user understands where it lives.
+- proposedEdits: All the proposed edits for the uploaded contract, each with id, clauseId, anchorText, proposedText, intent, rationale. Anchor text = original problematic excerpt. Proposed text = fully rewritten clause or paragraph ready to paste into the contract—not a recommendation. Intent must be one of insert|replace|remove.
 - optional fields you MAY include when concise: criteriaMet, metadata, playbookInsights, clauseExtractions, similarityAnalysis, deviationInsights, actionItems, draftMetadata (set to [] if omitted)
 - Always evaluate the document against the standard compliance checklist in the clause digest/playbook and explicitly call out missing clauses before generic risks.
-- Keep every narrative string under 150 characters—focus on signal, omit fluff, prefer sentence fragments.
-- Limit arrays to the highest priority content (issues ≤3, clauseFindings ≤3, optional arrays ≤2 items, proposedEdits ≤2).
 - If a value is unknown, set it to a descriptive default like "Not specified", 0, false, or [] but never emit null unless specified.`;
 }
 
@@ -1316,7 +1314,7 @@ async function generateEnhancementSections(
     body: JSON.stringify({
       model,
       input: buildResponsesInput(
-        "You are Maigon Counsel enhancements engine. Produce concise supplemental sections for a contract review.",
+        "You are Maigon Counsel enhancements engine. Produce concise supplemental legal sections for a legal compliance review for legal contracts.",
         prompt,
       ),
       text: {
