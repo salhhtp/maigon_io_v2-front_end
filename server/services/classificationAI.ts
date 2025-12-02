@@ -70,18 +70,12 @@ function buildUserPrompt(
   fileName?: string,
   solutionHint?: string | null,
 ): string {
-  const trimmedContent = content.slice(0, 10_000);
-  const truncatedNotice =
-    content.length > trimmedContent.length
-      ? `\n[Note: content truncated to ${trimmedContent.length} characters of ${content.length}]`
-      : "";
-
   const fileLine = fileName ? `File name: ${fileName}\n` : "";
   const hintLine = solutionHint
     ? `Declared solution hint: ${solutionHint}\n`
     : "";
 
-  return `${fileLine}${hintLine}Contract excerpt:\n${trimmedContent}${truncatedNotice}`;
+  return `${fileLine}${hintLine}Contract content (full):\n${content}`;
 }
 
 export async function classifyContractWithAI(

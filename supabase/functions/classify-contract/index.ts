@@ -312,10 +312,8 @@ Return JSON in this EXACT structure (valid JSON required):
   }
 }
 
-**CONTRACT CONTENT TO ANALYZE**:
-${request.content.substring(0, 8000)}
-
-${request.content.length > 8000 ? `\n[Note: Content truncated at 8000 characters for analysis. Full length: ${request.content.length} characters]` : ""}
+**CONTRACT CONTENT TO ANALYZE (FULL)**:
+${request.content}
 
 **FILE NAME**: ${request.fileName || "Not provided"}
 

@@ -699,16 +699,6 @@ function normaliseSolutionKey(
   }
 }
 
-function truncateContent(content: string, maxTokens = 3000) {
-  if (content.length <= maxTokens) {
-    return content;
-  }
-
-  const head = content.slice(0, Math.floor(maxTokens * 0.7));
-  const tail = content.slice(-Math.floor(maxTokens * 0.2));
-  return `${head}\n\n--- CONTRACT CONTENT TRUNCATED ---\n\n${tail}`;
-}
-
 function buildSystemPrompt(playbookTitle: string, reviewType: string) {
   return [
     `You are Maigon Counsel, a senior technology contracts attorney tasked with generating a ${reviewType} review.`,
@@ -770,7 +760,7 @@ function buildUserPrompt(
     return "Clause digest unavailable. Derive anchors directly from the contract excerpt.";
   })();
 
-  return `${metadataSections}\n\n${playbookSection}\n\n${clauseDigestSection}\n\nContract excerpt:\n${truncateContent(context.content)}`;
+  return `${metadataSections}\n\n${playbookSection}\n\n${clauseDigestSection}\n\nContract content (full):\n${context.content}`;
 }
 
 function buildJsonSchemaDescription() {
@@ -1295,7 +1285,7 @@ function buildEnhancementPrompt(
     `${index + 1}. ${clause.title} | Risk: ${clause.riskLevel} | Summary: ${clause.summary}`,
   );
 
-  const truncatedContract = truncateContent(context.content, 1200);
+  const contractContent = context.content;
 
   return [
     summaryLines.join("\n"),
@@ -1305,8 +1295,8 @@ function buildEnhancementPrompt(
     clauseLines.length
       ? `Clause findings:\n${clauseLines.join("\n")}`
       : "Clause findings: none provided.",
-    "Contract snippet:",
-    truncatedContract,
+    "Contract content (full):",
+    contractContent,
     "Return JSON with keys: playbookInsights, clauseExtractions, similarityAnalysis, deviationInsights, actionItems, draftMetadata. Each array must contain at most 2 entries. For any section lacking strong evidence, return an empty array. Keep every narrative string under 140 characters.",
   ].join("\n\n");
 }
