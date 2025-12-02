@@ -887,26 +887,21 @@ function ClauseEvidenceBlock({
   if (reference.locationHint?.clauseNumber) {
     locationParts.push(`Clause ${reference.locationHint.clauseNumber}`);
   }
-  if (reference.locationHint?.paragraph) {
-    locationParts.push(`Line ${reference.locationHint.paragraph}`);
-  }
   if (reference.locationHint?.page) {
     locationParts.push(`Page ${reference.locationHint.page}`);
   }
   const locationLabel = locationParts.join(" · ");
 
   return (
-    <div className="mt-3 rounded-lg border border-[#E0D6D6] bg-[#F9F5F5] px-3 py-2 shadow-inner">
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-[#6B4F4F]">
-          Clause evidence {reference.heading ? `· ${reference.heading}` : ""}
-        </p>
-        {locationLabel && (
-          <span className="text-[11px] text-[#9A7C7C]">{locationLabel}</span>
-        )}
-      </div>
+    <div className="mt-3 rounded-md border border-[#F3E9E9] bg-white px-3 py-2">
+      <p className="text-xs font-semibold uppercase tracking-wide text-[#6B4F4F]">
+        Clause evidence {reference.heading ? `· ${reference.heading}` : ""}
+      </p>
+      {locationLabel && (
+        <p className="text-[11px] text-[#9A7C7C] mb-1">{locationLabel}</p>
+      )}
       {reference.excerpt ? (
-        <p className="mt-1 text-sm text-[#271D1D] whitespace-pre-line leading-snug">
+        <p className="text-sm text-[#271D1D] whitespace-pre-line">
           {reference.excerpt}
         </p>
       ) : null}
@@ -1673,70 +1668,20 @@ Next step: ${
     );
   }
 
-  const parsedResults = useMemo(() => {
-    if (typeof results === "string") {
-      try {
-        return JSON.parse(results) as Record<string, unknown>;
-      } catch {
-        return results;
-      }
-    }
-    return results as Record<string, unknown>;
-  }, [results]);
-
   const structuredReport = useMemo<AnalysisReport | null>(() => {
-    if (!parsedResults || typeof parsedResults !== "object") {
+    if (!results || typeof results !== "object") {
       return null;
     }
-    const rawStructured =
-      (parsedResults as Record<string, unknown>).structured_report;
-    const structured =
-      typeof rawStructured === "string"
-        ? (() => {
-            try {
-              return JSON.parse(rawStructured) as Record<string, unknown>;
-            } catch {
-              return null;
-            }
-          })()
-        : rawStructured;
-    const candidate =
-      structured && typeof structured === "object" ? structured : parsedResults;
-    if (candidate && typeof candidate === "object") {
-      const hasIssues = Array.isArray(
-        (candidate as Record<string, unknown>).issuesToAddress,
-      );
-      const hasSummary =
-      (candidate as Record<string, unknown>).generalInformation ||
-      (candidate as Record<string, unknown>).contractSummary;
-    if (hasIssues || hasSummary) {
-      return candidate as AnalysisReport;
+    const raw = (results as Record<string, unknown>).structured_report;
+    if (raw && typeof raw === "object") {
+      return raw as AnalysisReport;
     }
-  }
-  return null;
-  }, [parsedResults]);
+    return null;
+  }, [results]);
 
   const generalInformation = structuredReport?.generalInformation;
   const contractSummaryReport = structuredReport?.contractSummary;
-  const structuredIssues = useMemo<Issue[]>(() => {
-    const direct = structuredReport?.issuesToAddress;
-    const legacy =
-      (parsedResults as any)?.issuesToAddress ||
-      (parsedResults as any)?.issues_to_address ||
-      (parsedResults as any)?.issues;
-    const source = Array.isArray(direct)
-      ? direct
-      : Array.isArray(legacy)
-        ? legacy
-        : [];
-    return source.filter(
-      (item): item is Issue =>
-        item &&
-        typeof item === "object" &&
-        typeof (item as any).id === "string" &&
-        typeof (item as any).title === "string",
-    );
-  }, [parsedResults, structuredReport?.issuesToAddress]);
+  const structuredIssues = structuredReport?.issuesToAddress ?? [];
   const structuredCriteria = structuredReport?.criteriaMet ?? [];
   const structuredPlaybookInsights = structuredReport?.playbookInsights ?? [];
   const structuredClauseExtractions = structuredReport?.clauseExtractions ?? [];
@@ -2879,6 +2824,9 @@ const heroFileName =
   "Contract";
 const heroNavItems = [
   { id: "issues-section", label: "Issues" },
+  { id: "playbook-section", label: "Playbook" },
+  { id: "similarity-section", label: "Similarity" },
+  { id: "deviation-section", label: "Deviations" },
 ];
 
   return (
@@ -2969,7 +2917,7 @@ const heroNavItems = [
 
         {/* Report Content */}
         <div className="max-w-5xl mx-auto px-6 py-8 print:px-8 print:py-6">
-              {false && structuredReport && (
+          {structuredReport && (
             <section className="mb-10 rounded-3xl bg-gradient-to-br from-[#0B1223] via-[#161F35] to-[#0A0E19] px-6 py-8 text-white shadow-2xl print:hidden">
               <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
                 <div className="space-y-5">
@@ -3095,7 +3043,7 @@ const heroNavItems = [
             </div>
           </div>
 
-              {false && structuredReport && (
+          {structuredReport && (
             <div className="mb-6 space-y-6">
               <div className="grid gap-4 lg:grid-cols-2">
                 <div className="bg-white border border-[#E8DDDD] rounded-lg p-6 shadow-sm">
@@ -3103,28 +3051,10 @@ const heroNavItems = [
                     General Information
                   </h3>
                   <dl className="grid grid-cols-2 gap-4 text-sm text-gray-700">
-                    <div className="col-span-2">
-                      <dt className="text-xs uppercase text-gray-500">
-                        Compliance Score (out of 100)
-                      </dt>
-                      <dd className="mt-1">
-                        <div className="flex items-center justify-between text-sm font-medium text-[#271D1D]">
-                          <span className="text-2xl font-semibold">
-                            {generalInformation?.complianceScore ?? "–"}
-                          </span>
-                          <span className="text-xs text-gray-500">/ 100</span>
-                        </div>
-                        <div className="mt-2 h-2 w-full rounded-full bg-[#F3E9E9] overflow-hidden">
-                          <div
-                            className="h-full bg-[#9A7C7C] transition-all"
-                            style={{
-                              width: `${Math.min(
-                                100,
-                                Math.max(0, generalInformation?.complianceScore ?? 0),
-                              )}%`,
-                            }}
-                          />
-                        </div>
+                    <div>
+                      <dt className="text-xs uppercase text-gray-500">Score</dt>
+                      <dd className="text-2xl font-semibold text-[#271D1D]">
+                        {generalInformation?.complianceScore ?? "–"}
                       </dd>
                     </div>
                     <div>
@@ -3205,7 +3135,7 @@ const heroNavItems = [
                   </div>
                 </div>
               </div>
-              {false && playbookCoverage && (
+              {playbookCoverage && (
                 <div className="bg-white border border-[#E8DDDD] rounded-lg p-6 shadow-sm mb-6">
                   <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                     <div>
@@ -3349,6 +3279,14 @@ const heroNavItems = [
                                       <ClauseEvidenceBlock
                                         reference={issue.clauseReference}
                                       />
+                                      {issue.legalBasis?.length ? (
+                                        <p className="text-xs text-gray-500">
+                                          References:{" "}
+                                          {issue.legalBasis
+                                            .map((basis) => basis.authority)
+                                            .join(", ")}
+                                        </p>
+                                      ) : null}
                                   </div>
                                 </div>
                               );
@@ -3400,7 +3338,7 @@ const heroNavItems = [
                   </div>
                 </div>
               )}
-              {false && structuredReport && (
+              {structuredReport && (
                 <div
                   id="playbook-section"
                   className="bg-white border border-[#E8DDDD] rounded-lg p-6 shadow-sm"
@@ -3477,7 +3415,7 @@ const heroNavItems = [
                   )}
                 </div>
               )}
-              {false && structuredReport && (
+              {structuredReport && (
                 <div
                   id="similarity-section"
                   className="bg-white border border-[#E8DDDD] rounded-lg p-6 shadow-sm"
@@ -3542,7 +3480,7 @@ const heroNavItems = [
                   )}
                 </div>
               )}
-              {false && structuredReport && (
+              {structuredReport && (
                 <div
                   id="deviation-section"
                   className="bg-white border border-[#E8DDDD] rounded-lg p-6 shadow-sm"
@@ -3611,7 +3549,64 @@ const heroNavItems = [
           )}
 
           {/* Priority Snapshot */}
-            {/* Priority snapshot and placeholder messages hidden */}
+          {totalPriorityItems > 0 && hasSeverityBreakdown ? (
+              <div className="mb-6">
+                <h3 className="text-sm font-semibold text-[#271D1D] uppercase tracking-wide mb-3">
+                  Priority Snapshot
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 print:gap-2">
+                  {SEVERITY_DISPLAY_ORDER.filter(
+                    (level) =>
+                      level !== "default" &&
+                      (severitySummary as Record<string, number>)[level] > 0,
+                  ).map((level) => {
+                    const style = SEVERITY_CARD_STYLES[level] ?? SEVERITY_CARD_STYLES.default;
+                    const count =
+                      (severitySummary as Record<string, number>)[level] ?? 0;
+                    return (
+                      <div
+                        key={level}
+                        className={`rounded-lg border px-4 py-3 flex items-center justify-between ${style.container} print:px-3 print:py-2`}
+                      >
+                        <div>
+                          <p className="text-xs uppercase tracking-wide opacity-70">
+                            {formatLabel(level)}
+                          </p>
+                          <p className="text-xl font-semibold">{count}</p>
+                        </div>
+                        <span className={`h-3 w-3 rounded-full ${style.accent}`}></span>
+                      </div>
+                    );
+                  })}
+                </div>
+                {topDepartments.length > 0 && (
+                  <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-gray-600">
+                    <span className="font-medium text-[#271D1D]">
+                      Concentrated in:
+                    </span>
+                    {topDepartments.map(([dept, count]) => {
+                      const style = getDepartmentStyle(dept);
+                      return (
+                        <span
+                          key={dept}
+                          className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${style.badge}`}
+                        >
+                          {style.label} · {count}
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            ) : totalPriorityItems > 0 ? (
+              <div className="mb-6 text-sm text-gray-600">
+                No severity-ranked issues were highlighted; review general observations for context.
+              </div>
+            ) : (
+              <div className="mb-6 text-sm text-gray-600">
+                No critical or high-priority items were flagged in this review.
+              </div>
+            )}
 
             {agentEdits.length > 0 && (
               <div className="mb-8 print:mb-6">

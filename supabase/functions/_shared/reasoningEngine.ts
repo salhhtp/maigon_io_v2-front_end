@@ -689,9 +689,8 @@ function normaliseSolutionKey(
     case "end_user_license_agreement":
       return "end_user_license_agreement";
     case "psa":
-    case "product_supply_agreement":
-      return "product_supply_agreement";
     case "professional_services_agreement":
+    case "product_supply_agreement":
       return "professional_services_agreement";
     default:
       return (
@@ -700,16 +699,20 @@ function normaliseSolutionKey(
   }
 }
 
-function truncateContent(content: string, _maxTokens = 0) {
-  // Return full content to avoid truncation in downstream analysis.
-  return content;
+function truncateContent(content: string, maxTokens = 3000) {
+  if (content.length <= maxTokens) {
+    return content;
+  }
+
+  const head = content.slice(0, Math.floor(maxTokens * 0.7));
+  const tail = content.slice(-Math.floor(maxTokens * 0.2));
+  return `${head}\n\n--- CONTRACT CONTENT TRUNCATED ---\n\n${tail}`;
 }
 
 function buildSystemPrompt(playbookTitle: string, reviewType: string) {
   return [
     `You are Maigon Counsel, a senior technology contracts attorney tasked with generating a ${reviewType} review.`,
-    "Emulate a professional legal memo: be objective, concise, and grounded in industry-standard compliance criteria, using precise legal language.",
-    "Include both critical and \"nice to have\" observations; capture secondary improvements that strengthen enforceability and clarity.",
+    "Emulate a professional legal memo: be objective, concise, and grounded in industry-standard compliance criteria.",
     "Think through each clause carefully before producing structured output.",
     "Use legal reasoning, cite regulatory frameworks, and flag negotiation levers.",
     "Anchor every observation in the clause digest supplied by Maigon's parser; if a clause is missing, treat it as a drafting gap and propose language.",
@@ -776,12 +779,13 @@ function buildJsonSchemaDescription() {
 - generatedAt: ISO timestamp
 - generalInformation: { complianceScore (0-100), selectedPerspective, reviewTimeSeconds, timeSavingsMinutes, reportExpiry }
 - contractSummary: { contractName, filename, parties[], agreementDirection, purpose, verbalInformationCovered, contractPeriod, governingLaw, jurisdiction }
-- issuesToAddress: 3-6 issues (include both critical and secondary “nice to have” items) each with id, title, severity, recommendation, rationale, and clauseReference { clauseId, heading, excerpt, locationHint }. The excerpt must quote or paraphrase the clause digest entry. If a clause is missing, state "Not present" in excerpt and location.
-- clauseFindings: 3-6 clause summaries with clauseId, title, summary, riskLevel, recommendation. Map each finding to a clause digest identifier so the user understands where it lives.
-- proposedEdits: ≤3 edits, each with id, clauseId, anchorText, proposedText, intent, rationale. Anchor text = original problematic excerpt (≤200 chars). Proposed text = fully rewritten clause or paragraph (≥2 sentences) ready to paste into the contract—not a recommendation. Intent must be one of insert|replace|remove.
+- issuesToAddress: 1-3 issues each with id, title, severity, recommendation, rationale, and clauseReference { clauseId, heading, excerpt, locationHint }. The excerpt must quote or paraphrase the clause digest entry. If a clause is missing, state "Not present" in excerpt and location.
+- clauseFindings: 1-3 clause summaries with clauseId, title, summary, riskLevel, recommendation. Map each finding to a clause digest identifier so the user understands where it lives.
+- proposedEdits: ≤2 edits, each with id, clauseId, anchorText, proposedText, intent, rationale. Anchor text = original problematic excerpt (≤200 chars). Proposed text = fully rewritten clause or paragraph (≥2 sentences) ready to paste into the contract—not a recommendation. Intent must be one of insert|replace|remove.
 - optional fields you MAY include when concise: criteriaMet, metadata, playbookInsights, clauseExtractions, similarityAnalysis, deviationInsights, actionItems, draftMetadata (set to [] if omitted)
 - Always evaluate the document against the standard compliance checklist in the clause digest/playbook and explicitly call out missing clauses before generic risks.
-- Keep narrative strings clear and professional; include necessary legal nuance (no hard length cap).
+- Keep every narrative string under 150 characters—focus on signal, omit fluff, prefer sentence fragments.
+- Limit arrays to the highest priority content (issues ≤3, clauseFindings ≤3, optional arrays ≤2 items, proposedEdits ≤2).
 - If a value is unknown, set it to a descriptive default like "Not specified", 0, false, or [] but never emit null unless specified.`;
 }
 
