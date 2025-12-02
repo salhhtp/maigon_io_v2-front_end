@@ -700,14 +700,9 @@ function normaliseSolutionKey(
   }
 }
 
-function truncateContent(content: string, maxTokens = 12000) {
-  if (content.length <= maxTokens) {
-    return content;
-  }
-
-  const head = content.slice(0, Math.floor(maxTokens * 0.85));
-  const tail = content.slice(-Math.floor(maxTokens * 0.1));
-  return `${head}\n\n--- CONTRACT CONTENT TRUNCATED (showing leading and trailing sections) ---\n\n${tail}`;
+function truncateContent(content: string, _maxTokens = 0) {
+  // Return full content to avoid truncation in downstream analysis.
+  return content;
 }
 
 function buildSystemPrompt(playbookTitle: string, reviewType: string) {
@@ -786,7 +781,7 @@ function buildJsonSchemaDescription() {
 - proposedEdits: ≤3 edits, each with id, clauseId, anchorText, proposedText, intent, rationale. Anchor text = original problematic excerpt (≤200 chars). Proposed text = fully rewritten clause or paragraph (≥2 sentences) ready to paste into the contract—not a recommendation. Intent must be one of insert|replace|remove.
 - optional fields you MAY include when concise: criteriaMet, metadata, playbookInsights, clauseExtractions, similarityAnalysis, deviationInsights, actionItems, draftMetadata (set to [] if omitted)
 - Always evaluate the document against the standard compliance checklist in the clause digest/playbook and explicitly call out missing clauses before generic risks.
-- Keep narrative strings clear and professional; brevity is good but do not omit key legal nuance.
+- Keep narrative strings clear and professional; include necessary legal nuance (no hard length cap).
 - If a value is unknown, set it to a descriptive default like "Not specified", 0, false, or [] but never emit null unless specified.`;
 }
 
