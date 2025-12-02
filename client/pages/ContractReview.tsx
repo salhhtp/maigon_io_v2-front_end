@@ -2815,6 +2815,11 @@ const scrollToSection = useCallback((sectionId: string) => {
   }
 }, []);
 
+const showPlaybookSections = false;
+const showSimilaritySection = false;
+const showDeviationSection = false;
+const showPrioritySnapshot = false;
+
 const heroFileName =
   contractSummaryReport?.contractName ??
   contractData?.title ??
@@ -2822,11 +2827,19 @@ const heroFileName =
   (locationState.metadata?.fileName as string | undefined) ??
   storedPayload?.metadata?.fileName ??
   "Contract";
-const heroNavItems = [
+const heroNavItems: { id: string; label: string }[] = [
   { id: "issues-section", label: "Issues" },
-  { id: "playbook-section", label: "Playbook" },
-  { id: "similarity-section", label: "Similarity" },
-  { id: "deviation-section", label: "Deviations" },
+  { id: "criteria-section", label: "Criteria Met" },
+  { id: "draft-section", label: "Draft Generation" },
+  ...(showPlaybookSections
+    ? [{ id: "playbook-section", label: "Playbook" }]
+    : []),
+  ...(showSimilaritySection
+    ? [{ id: "similarity-section", label: "Similarity" }]
+    : []),
+  ...(showDeviationSection
+    ? [{ id: "deviation-section", label: "Deviations" }]
+    : []),
 ];
 
   return (
@@ -3135,7 +3148,7 @@ const heroNavItems = [
                   </div>
                 </div>
               </div>
-              {playbookCoverage && (
+              {showPlaybookSections && playbookCoverage && (
                 <div className="bg-white border border-[#E8DDDD] rounded-lg p-6 shadow-sm mb-6">
                   <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                     <div>
@@ -3300,7 +3313,10 @@ const heroNavItems = [
                 </div>
               )}
               {structuredCriteria.length > 0 && (
-                <div className="bg-white border border-[#E8DDDD] rounded-lg p-6 shadow-sm">
+                <div
+                  id="criteria-section"
+                  className="bg-white border border-[#E8DDDD] rounded-lg p-6 shadow-sm"
+                >
                   <h3 className="text-sm font-semibold text-[#271D1D] uppercase tracking-wide mb-4">
                     Criteria Met
                   </h3>
@@ -3338,7 +3354,7 @@ const heroNavItems = [
                   </div>
                 </div>
               )}
-              {structuredReport && (
+              {showPlaybookSections && structuredReport && (
                 <div
                   id="playbook-section"
                   className="bg-white border border-[#E8DDDD] rounded-lg p-6 shadow-sm"
@@ -3415,7 +3431,7 @@ const heroNavItems = [
                   )}
                 </div>
               )}
-              {structuredReport && (
+              {showSimilaritySection && structuredReport && (
                 <div
                   id="similarity-section"
                   className="bg-white border border-[#E8DDDD] rounded-lg p-6 shadow-sm"
@@ -3480,7 +3496,7 @@ const heroNavItems = [
                   )}
                 </div>
               )}
-              {structuredReport && (
+              {showDeviationSection && structuredReport && (
                 <div
                   id="deviation-section"
                   className="bg-white border border-[#E8DDDD] rounded-lg p-6 shadow-sm"
@@ -3549,7 +3565,8 @@ const heroNavItems = [
           )}
 
           {/* Priority Snapshot */}
-          {totalPriorityItems > 0 && hasSeverityBreakdown ? (
+          {showPrioritySnapshot &&
+            (totalPriorityItems > 0 && hasSeverityBreakdown ? (
               <div className="mb-6">
                 <h3 className="text-sm font-semibold text-[#271D1D] uppercase tracking-wide mb-3">
                   Priority Snapshot
@@ -3606,7 +3623,7 @@ const heroNavItems = [
               <div className="mb-6 text-sm text-gray-600">
                 No critical or high-priority items were flagged in this review.
               </div>
-            )}
+            ))}
 
             {agentEdits.length > 0 && (
               <div className="mb-8 print:mb-6">
@@ -3799,7 +3816,7 @@ const heroNavItems = [
           )}
 
           {(combinedDecisions.length > 0 || acceptedAgentEdits.length > 0) && (
-            <div className="mb-8 print:hidden">
+            <div id="draft-section" className="mb-8 print:hidden">
               <div className="rounded-2xl border border-[#E8DDDD] bg-white shadow-sm p-6">
                 <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                   <div className="space-y-1">
@@ -4019,97 +4036,101 @@ const heroNavItems = [
       </div>
     </div>
 
-      <Dialog
-        open={Boolean(activeSimilarityMatch)}
-        onOpenChange={(open) => {
-          if (!open) setActiveSimilarityMatch(null);
-        }}
-      >
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>
-              {activeSimilarityMatch?.sourceTitle || "Similarity insight"}
-            </DialogTitle>
-            {typeof activeSimilarityMatch?.similarityScore === "number" && (
-              <DialogDescription>
-                Similarity score:{" "}
-                {Math.round(activeSimilarityMatch.similarityScore * 100)}%
-              </DialogDescription>
+      {showSimilaritySection && (
+        <Dialog
+          open={Boolean(activeSimilarityMatch)}
+          onOpenChange={(open) => {
+            if (!open) setActiveSimilarityMatch(null);
+          }}
+        >
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>
+                {activeSimilarityMatch?.sourceTitle || "Similarity insight"}
+              </DialogTitle>
+              {typeof activeSimilarityMatch?.similarityScore === "number" && (
+                <DialogDescription>
+                  Similarity score:{" "}
+                  {Math.round(activeSimilarityMatch.similarityScore * 100)}%
+                </DialogDescription>
+              )}
+            </DialogHeader>
+            {activeSimilarityMatch?.excerpt && (
+              <blockquote className="rounded border border-[#E8DDDD] bg-[#FDF8F8] p-4 text-sm italic text-[#271D1D]">
+                “{activeSimilarityMatch.excerpt}”
+              </blockquote>
             )}
-          </DialogHeader>
-          {activeSimilarityMatch?.excerpt && (
-            <blockquote className="rounded border border-[#E8DDDD] bg-[#FDF8F8] p-4 text-sm italic text-[#271D1D]">
-              “{activeSimilarityMatch.excerpt}”
-            </blockquote>
-          )}
-          {activeSimilarityMatch?.rationale && (
-            <p className="mt-3 text-sm text-gray-700">
-              {activeSimilarityMatch.rationale}
-            </p>
-          )}
-          {activeSimilarityMatch?.tags?.length ? (
-            <div className="mt-3 flex flex-wrap gap-2 text-xs text-[#725A5A]">
-              {activeSimilarityMatch.tags.map((tag) => (
-                <span
-                  key={tag}
-                  className="rounded-full bg-[#F6ECEC] px-2.5 py-0.5"
-                >
-                  {tag}
-                </span>
-              ))}
-            </div>
-          ) : null}
-        </DialogContent>
-      </Dialog>
+            {activeSimilarityMatch?.rationale && (
+              <p className="mt-3 text-sm text-gray-700">
+                {activeSimilarityMatch.rationale}
+              </p>
+            )}
+            {activeSimilarityMatch?.tags?.length ? (
+              <div className="mt-3 flex flex-wrap gap-2 text-xs text-[#725A5A]">
+                {activeSimilarityMatch.tags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="rounded-full bg-[#F6ECEC] px-2.5 py-0.5"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            ) : null}
+          </DialogContent>
+        </Dialog>
+      )}
 
-      <Dialog
-        open={Boolean(activeDeviationInsight)}
-        onOpenChange={(open) => {
-          if (!open) setActiveDeviationInsight(null);
-        }}
-      >
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>
-              {activeDeviationInsight?.title || "Deviation detail"}
-            </DialogTitle>
-            {activeDeviationInsight?.deviationType && (
-              <DialogDescription>
-                {formatLabel(activeDeviationInsight.deviationType)}
-              </DialogDescription>
+      {showDeviationSection && (
+        <Dialog
+          open={Boolean(activeDeviationInsight)}
+          onOpenChange={(open) => {
+            if (!open) setActiveDeviationInsight(null);
+          }}
+        >
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>
+                {activeDeviationInsight?.title || "Deviation detail"}
+              </DialogTitle>
+              {activeDeviationInsight?.deviationType && (
+                <DialogDescription>
+                  {formatLabel(activeDeviationInsight.deviationType)}
+                </DialogDescription>
+              )}
+            </DialogHeader>
+            {activeDeviationInsight && (
+              <div className="space-y-3 text-sm text-gray-700">
+                <p>{activeDeviationInsight.description}</p>
+                {activeDeviationInsight.expectedStandard && (
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-[#271D1D]/70">
+                      Expected standard
+                    </p>
+                    <p>{activeDeviationInsight.expectedStandard}</p>
+                  </div>
+                )}
+                {activeDeviationInsight.observedLanguage && (
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-[#271D1D]/70">
+                      Observed language
+                    </p>
+                    <p>{activeDeviationInsight.observedLanguage}</p>
+                  </div>
+                )}
+                {activeDeviationInsight.recommendation && (
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-[#271D1D]/70">
+                      Recommendation
+                    </p>
+                    <p>{activeDeviationInsight.recommendation}</p>
+                  </div>
+                )}
+              </div>
             )}
-          </DialogHeader>
-          {activeDeviationInsight && (
-            <div className="space-y-3 text-sm text-gray-700">
-              <p>{activeDeviationInsight.description}</p>
-              {activeDeviationInsight.expectedStandard && (
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-[#271D1D]/70">
-                    Expected standard
-                  </p>
-                  <p>{activeDeviationInsight.expectedStandard}</p>
-                </div>
-              )}
-              {activeDeviationInsight.observedLanguage && (
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-[#271D1D]/70">
-                    Observed language
-                  </p>
-                  <p>{activeDeviationInsight.observedLanguage}</p>
-                </div>
-              )}
-              {activeDeviationInsight.recommendation && (
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-[#271D1D]/70">
-                    Recommendation
-                  </p>
-                  <p>{activeDeviationInsight.recommendation}</p>
-                </div>
-              )}
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+          </DialogContent>
+        </Dialog>
+      )}
 
       <Dialog open={showDraftDialog && !!draftResult} onOpenChange={setShowDraftDialog}>
         <DialogContent className="max-w-4xl">
