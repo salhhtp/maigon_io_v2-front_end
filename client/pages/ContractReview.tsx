@@ -1673,16 +1673,27 @@ Next step: ${
     );
   }
 
+  const parsedResults = useMemo(() => {
+    if (typeof results === "string") {
+      try {
+        return JSON.parse(results) as Record<string, unknown>;
+      } catch {
+        return results;
+      }
+    }
+    return results as Record<string, unknown>;
+  }, [results]);
+
   const structuredReport = useMemo<AnalysisReport | null>(() => {
-    if (!results || typeof results !== "object") {
+    if (!parsedResults || typeof parsedResults !== "object") {
       return null;
     }
     const candidate =
-      (results as Record<string, unknown>).structured_report || results;
-  if (candidate && typeof candidate === "object") {
-    const hasIssues = Array.isArray(
-      (candidate as Record<string, unknown>).issuesToAddress,
-    );
+      (parsedResults as Record<string, unknown>).structured_report || parsedResults;
+    if (candidate && typeof candidate === "object") {
+      const hasIssues = Array.isArray(
+        (candidate as Record<string, unknown>).issuesToAddress,
+      );
     const hasSummary =
       (candidate as Record<string, unknown>).generalInformation ||
       (candidate as Record<string, unknown>).contractSummary;
@@ -1691,16 +1702,16 @@ Next step: ${
     }
   }
   return null;
-  }, [results]);
+  }, [parsedResults]);
 
   const generalInformation = structuredReport?.generalInformation;
   const contractSummaryReport = structuredReport?.contractSummary;
   const structuredIssues = useMemo<Issue[]>(() => {
     const direct = structuredReport?.issuesToAddress;
     const legacy =
-      (results as any)?.issuesToAddress ||
-      (results as any)?.issues_to_address ||
-      (results as any)?.issues;
+      (parsedResults as any)?.issuesToAddress ||
+      (parsedResults as any)?.issues_to_address ||
+      (parsedResults as any)?.issues;
     const source = Array.isArray(direct)
       ? direct
       : Array.isArray(legacy)
@@ -1713,7 +1724,7 @@ Next step: ${
         typeof (item as any).id === "string" &&
         typeof (item as any).title === "string",
     );
-  }, [results, structuredReport?.issuesToAddress]);
+  }, [parsedResults, structuredReport?.issuesToAddress]);
   const structuredCriteria = structuredReport?.criteriaMet ?? [];
   const structuredPlaybookInsights = structuredReport?.playbookInsights ?? [];
   const structuredClauseExtractions = structuredReport?.clauseExtractions ?? [];
