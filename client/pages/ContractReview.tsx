@@ -1688,13 +1688,25 @@ Next step: ${
     if (!parsedResults || typeof parsedResults !== "object") {
       return null;
     }
+    const rawStructured =
+      (parsedResults as Record<string, unknown>).structured_report;
+    const structured =
+      typeof rawStructured === "string"
+        ? (() => {
+            try {
+              return JSON.parse(rawStructured) as Record<string, unknown>;
+            } catch {
+              return null;
+            }
+          })()
+        : rawStructured;
     const candidate =
-      (parsedResults as Record<string, unknown>).structured_report || parsedResults;
+      structured && typeof structured === "object" ? structured : parsedResults;
     if (candidate && typeof candidate === "object") {
       const hasIssues = Array.isArray(
         (candidate as Record<string, unknown>).issuesToAddress,
       );
-    const hasSummary =
+      const hasSummary =
       (candidate as Record<string, unknown>).generalInformation ||
       (candidate as Record<string, unknown>).contractSummary;
     if (hasIssues || hasSummary) {
