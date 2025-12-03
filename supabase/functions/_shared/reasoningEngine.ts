@@ -596,6 +596,12 @@ const MAX_OUTPUT_TOKENS =
   Number.isFinite(parsedMaxOutput) && parsedMaxOutput > 0
     ? parsedMaxOutput
     : null;
+const REASONING_REQUEST_TIMEOUT_MS = (() => {
+  const value = Number(Deno.env.get("REASONING_REQUEST_TIMEOUT_MS"));
+  if (Number.isFinite(value) && value > 0) return value;
+  // Keep comfortably below the Supabase Edge limit to avoid 546 timeouts.
+  return 55_000;
+})();
 
 interface ReasoningContext {
   content: string;
@@ -1761,7 +1767,6 @@ export async function runReasoningAnalysis(
   }
 
   const buildRequestPayload = (
-    limit: number | null,
     promptText: string,
   ) => ({
     model,
@@ -1772,36 +1777,33 @@ export async function runReasoningAnalysis(
     text: {
       format: jsonSchemaFormat,
     },
-    ...(limit ? { max_output_tokens: limit } : {}),
-  });
-
-  type AttemptConfig = {
-    limit: number | null;
-  };
-  const attemptConfigs: AttemptConfig[] = [];
-  const baseLimit = MAX_OUTPUT_TOKENS ?? null;
-  attemptConfigs.push({
-    limit: baseLimit,
   });
 
   let lastError: unknown = null;
   let corePayload: unknown = null;
   let coreReport: AnalysisReport | null = null;
 
-  for (let attemptIndex = 0; attemptIndex < attemptConfigs.length; attemptIndex += 1) {
-    const { limit } = attemptConfigs[attemptIndex];
-    const isLastAttempt = attemptIndex === attemptConfigs.length - 1;
+  for (let attemptIndex = 0; attemptIndex < 1; attemptIndex += 1) {
+    const isLastAttempt = true;
     const attemptPrompt = userPrompt;
-    const requestPayload = buildRequestPayload(limit, attemptPrompt);
+    const requestPayload = buildRequestPayload(attemptPrompt);
 
-    const response = await fetch(OPENAI_RESPONSES_API_BASE, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${OPENAI_API_KEY}`,
-      },
-      body: JSON.stringify(requestPayload),
-    });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), REASONING_REQUEST_TIMEOUT_MS);
+    let response: Response;
+    try {
+      response = await fetch(OPENAI_RESPONSES_API_BASE, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${OPENAI_API_KEY}`,
+        },
+        body: JSON.stringify(requestPayload),
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timeout);
+    }
 
     if (!response.ok) {
       const errorBody = await response.text();
