@@ -596,12 +596,6 @@ const MAX_OUTPUT_TOKENS =
   Number.isFinite(parsedMaxOutput) && parsedMaxOutput > 0
     ? parsedMaxOutput
     : null;
-const REASONING_REQUEST_TIMEOUT_MS = (() => {
-  const value = Number(Deno.env.get("REASONING_REQUEST_TIMEOUT_MS"));
-  if (Number.isFinite(value) && value > 0) return value;
-  // Keep comfortably below the Supabase Edge limit to avoid 546 timeouts.
-  return 55_000;
-})();
 
 interface ReasoningContext {
   content: string;
@@ -1788,22 +1782,14 @@ export async function runReasoningAnalysis(
     const attemptPrompt = userPrompt;
     const requestPayload = buildRequestPayload(attemptPrompt);
 
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), REASONING_REQUEST_TIMEOUT_MS);
-    let response: Response;
-    try {
-      response = await fetch(OPENAI_RESPONSES_API_BASE, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${OPENAI_API_KEY}`,
-        },
-        body: JSON.stringify(requestPayload),
-        signal: controller.signal,
-      });
-    } finally {
-      clearTimeout(timeout);
-    }
+    const response = await fetch(OPENAI_RESPONSES_API_BASE, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${OPENAI_API_KEY}`,
+      },
+      body: JSON.stringify(requestPayload),
+    });
 
     if (!response.ok) {
       const errorBody = await response.text();
