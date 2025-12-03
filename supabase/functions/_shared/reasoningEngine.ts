@@ -704,6 +704,7 @@ function buildSystemPrompt(playbookTitle: string, reviewType: string) {
     `You are Maigon Counsel, a senior technology contracts attorney tasked with generating a ${reviewType} review.`,
     "Emulate a professional legal memo: be objective, concise, and grounded in industry-standard compliance criteria.",
     "Think through each clause carefully before producing structured output.",
+    "Enumerate every issue across all severities (critical, high, medium, low, info); do not prune minor gaps.",
     "Use legal reasoning, cite regulatory frameworks, and flag negotiation levers.",
     "Anchor every observation in the clause digest supplied by Maigon's parser; if a clause is missing, treat it as a drafting gap and propose language.",
     `Apply the playbook for ${playbookTitle}.`,
@@ -764,12 +765,12 @@ function buildUserPrompt(
 }
 
 function buildJsonSchemaDescription() {
-  return `Return JSON with the following sections. Include every item you find; do not cap array lengths:
+  return `Return JSON with the following sections. Include every item you find; do not cap array lengths, and include lower-severity observations when present:
 - version: "v3"
 - generatedAt: ISO timestamp
 - generalInformation: { complianceScore (0-100), selectedPerspective, reviewTimeSeconds, timeSavingsMinutes, reportExpiry }
 - contractSummary: { contractName, filename, parties[], agreementDirection, purpose, verbalInformationCovered, contractPeriod, governingLaw, jurisdiction }
-- issuesToAddress: Every issue with id, title, severity, recommendation, rationale, and clauseReference { clauseId, heading, excerpt, locationHint }. The excerpt must quote or paraphrase the clause digest entry. If a clause is missing, state "Not present" in excerpt and location.
+- issuesToAddress: Every issue (include critical, high, medium, low, info) with id, title, severity, recommendation, rationale, and clauseReference { clauseId, heading, excerpt, locationHint }. The excerpt must quote or paraphrase the clause digest entry. If a clause is missing, state "Not present" in excerpt and location.
 - clauseFindings: All clause summaries with clauseId, title, summary, riskLevel, recommendation. Map each finding to a clause digest identifier so the user understands where it lives.
 - proposedEdits: All proposed edits for the uploaded contract, each with id, clauseId, anchorText, proposedText, intent, rationale. Anchor text = original problematic excerpt. Proposed text = fully rewritten clause or paragraph ready to paste into the contract—not a recommendation. Intent must be one of insert|replace|remove.
 - optional fields you MAY include: criteriaMet, metadata, playbookInsights, clauseExtractions, similarityAnalysis, deviationInsights, actionItems, draftMetadata (set to [] if omitted)

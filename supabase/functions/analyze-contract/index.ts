@@ -844,7 +844,7 @@ function buildClauseDigestForPrompt(
     return null;
   }
   const lines: string[] = [];
-  clauses.slice(0, 12).forEach((clause, index) => {
+  clauses.slice(0, 120).forEach((clause, index) => {
     const identifier =
       clause.clauseId ||
       clause.id ||
