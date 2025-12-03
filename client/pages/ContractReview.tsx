@@ -1723,9 +1723,9 @@ Next step: ${
     | Record<string, unknown>
     | null;
   const summaryContractName =
-    contractSummaryReport?.contractName ||
-    contractData?.title ||
     contractData?.file_name ||
+    contractData?.title ||
+    contractSummaryReport?.contractName ||
     "n/a";
   const summaryParties =
     contractSummaryReport?.parties?.length
@@ -3041,7 +3041,7 @@ const heroNavItems: { id: string; label: string }[] = [
               </div>
               <div className="mt-3 h-3 rounded-full bg-[#F3E9E9] overflow-hidden">
                 <div
-                  className="h-full rounded-full bg-gradient-to-r from-[#9A7C7C] via-[#C19C7C] to-[#E0B77C] transition-all"
+                  className="h-full rounded-full bg-gradient-to-r from-[#9A7C7C] via-[#BBAAAA] to-[#D6CECE] transition-all"
                   style={{
                     width: `${Math.min(
                       100,
@@ -3051,31 +3051,6 @@ const heroNavItems: { id: string; label: string }[] = [
                 />
               </div>
             </div>
-
-            {/* Classification Overview */}
-            <div className="bg-[#FDFBFB] border border-[#E8DDDD] rounded-lg p-6 mb-6 print:p-4">
-              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-[#9A7C7C]">
-                    Classification
-                  </p>
-                  <div className="text-lg font-semibold text-[#271D1D]">
-                    {classificationLabel}
-                    {classificationSubType && (
-                      <span className="ml-2 text-sm font-normal text-gray-600">
-                        {classificationSubType}
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-sm text-gray-600 mt-1">
-                    Automatically classified by {classificationSourceDisplay}
-                  </p>
-                </div>
-                <span className="inline-flex items-center rounded-full bg-[#9A7C7C]/15 px-3 py-1 text-xs font-medium text-[#9A7C7C]">
-                  {classificationLabel}
-                </span>
-            </div>
-          </div>
 
           {structuredReport && (
             <div className="mb-6 space-y-6">
