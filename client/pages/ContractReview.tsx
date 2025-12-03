@@ -4167,89 +4167,45 @@ const heroNavItems: { id: string; label: string }[] = [
                 </ul>
               </div>
             )}
-            {draftViewMode === "preview" ? (
-              <div className="rounded-lg border border-[#E8DDDD] bg-white">
-                {previewUpdatedHtml ? (
-                  <div
-                    className="contract-preview p-4 text-sm text-[#271D1D] leading-relaxed space-y-4"
-                    dangerouslySetInnerHTML={{ __html: previewUpdatedHtml }}
-                  />
-                ) : (
-                  <pre className="whitespace-pre-wrap break-words p-4 font-mono text-sm text-[#271D1D]">
-                    {updatedPlainText}
-                  </pre>
-                )}
+            <div className="rounded-lg border border-[#E8DDDD] bg-white">
+              <div className="border-b border-[#F1E6E6] bg-[#F9F8F8] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-[#725A5A]">
+                Tracked changes
               </div>
-            ) : (
-              <div className="rounded-lg border border-[#E8DDDD] bg-white">
-                <div className="grid grid-cols-2 gap-2 border-b border-[#F1E6E6] bg-[#F9F8F8] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-[#725A5A]">
-                  <span>Previous text</span>
-                  <span>Updated text</span>
+              {draftDiffChunks.length > 0 ? (
+                <div className="p-4 text-base leading-relaxed text-[#271D1D]">
+                  {draftDiffChunks.map((chunk, chunkIndex) => {
+                    const chunkClass =
+                      chunk.type === "added"
+                        ? "bg-emerald-50 text-emerald-800 underline decoration-emerald-600 decoration-2 rounded px-1"
+                        : chunk.type === "removed"
+                          ? "bg-red-50 text-red-700 line-through decoration-red-600 decoration-2 rounded px-1"
+                          : "";
+                    return chunk.lines.flatMap((line, lineIndex) => [
+                      <span
+                        key={`track-${chunkIndex}-${lineIndex}`}
+                        className={`whitespace-pre-wrap ${chunkClass}`}
+                      >
+                        {line || "\u00A0"}
+                      </span>,
+                      lineIndex < chunk.lines.length - 1 ? (
+                        <br key={`br-${chunkIndex}-${lineIndex}`} />
+                      ) : (
+                        " "
+                      ),
+                    ]);
+                  })}
                 </div>
-                {draftDiffChunks.length === 0 ? (
-                  (originalPlainText || updatedPlainText) ? (
-                    <p className="p-4 text-sm text-[#725A5A]">
-                      No textual differences detected between the original and updated contract.
-                    </p>
-                  ) : (
-                    <p className="p-4 text-sm text-[#725A5A]">
-                      Original contract content is unavailable for comparison.
-                    </p>
-                  )
-                ) : (
-                  <div className="divide-y divide-[#F1E6E6]">
-                    {draftDiffChunks.flatMap((chunk, chunkIndex) => {
-                      const chunkKey = `chunk-${chunkIndex}`;
-                      if (chunk.type === "equal") {
-                        return chunk.lines.map((line, lineIndex) => (
-                          <div
-                            key={`${chunkKey}-line-${lineIndex}`}
-                            className="grid grid-cols-2 gap-2 px-4 py-2 text-sm font-mono text-[#271D1D]"
-                          >
-                            <div className="whitespace-pre-wrap break-words rounded border border-transparent bg-white px-3 py-1">
-                              {line || " "}
-                            </div>
-                            <div className="whitespace-pre-wrap break-words rounded border border-transparent bg-white px-3 py-1">
-                              {line || " "}
-                            </div>
-                          </div>
-                        ));
-                      }
-
-                      if (chunk.type === "removed") {
-                        return chunk.lines.map((line, lineIndex) => (
-                          <div
-                            key={`${chunkKey}-removed-${lineIndex}`}
-                            className="grid grid-cols-2 gap-2 px-4 py-2 text-sm font-mono"
-                          >
-                            <div className="whitespace-pre-wrap break-words rounded border border-red-100 bg-red-50 px-3 py-1 text-red-700">
-                              − {line || " "}
-                            </div>
-                            <div className="whitespace-pre-wrap break-words rounded border border-transparent bg-white px-3 py-1 text-gray-400">
-                              —
-                            </div>
-                          </div>
-                        ));
-                      }
-
-                      return chunk.lines.map((line, lineIndex) => (
-                        <div
-                          key={`${chunkKey}-added-${lineIndex}`}
-                          className="grid grid-cols-2 gap-2 px-4 py-2 text-sm font-mono"
-                        >
-                          <div className="whitespace-pre-wrap break-words rounded border border-transparent bg-white px-3 py-1 text-gray-400">
-                            —
-                          </div>
-                          <div className="whitespace-pre-wrap break-words rounded border border-emerald-100 bg-emerald-50 px-3 py-1 text-emerald-700">
-                            + {line || " "}
-                          </div>
-                        </div>
-                      ));
-                    })}
-                  </div>
-                )}
-              </div>
-            )}
+              ) : previewUpdatedHtml ? (
+                <div
+                  className="contract-preview p-4 text-sm text-[#271D1D] leading-relaxed space-y-4"
+                  dangerouslySetInnerHTML={{ __html: previewUpdatedHtml }}
+                />
+              ) : (
+                <pre className="whitespace-pre-wrap break-words p-4 font-mono text-sm text-[#271D1D]">
+                  {updatedPlainText || "No draft content available yet."}
+                </pre>
+              )}
+            </div>
             {draftResult?.provider && (
               <p className="text-xs text-[#725A5A]">
                 Generated via {draftResult.provider}
