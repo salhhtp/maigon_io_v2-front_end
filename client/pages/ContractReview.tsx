@@ -1356,6 +1356,7 @@ const updatedPlainText = useMemo(() => {
       customer: "Customer",
       contractor: "Contractor",
       "end-user": "End User",
+      mutual: "Mutual",
     };
     return perspectives[perspectiveValue] || perspectiveValue;
   };

@@ -98,6 +98,19 @@ const PERSPECTIVE_OPTIONS: Record<string, PerspectiveOption[]> = {
       ],
       tone: "green",
     },
+    {
+      value: "mutual",
+      title: "Mutual",
+      description:
+        "Balance obligations for both parties when each shares confidential information.",
+      focusAreas: [
+        "Reciprocal confidentiality duties and exclusions",
+        "Residual knowledge and purpose limits",
+        "Return/destruction and survival periods",
+        "Remedies and enforcement symmetry",
+      ],
+      tone: "amber",
+    },
   ],
   ca: [
     {
