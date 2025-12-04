@@ -15,6 +15,8 @@ const Logo: React.FC<LogoProps> = ({ className = '', size = 'lg', align = 'cente
   };
 
   const alignClasses = {
+    start: 'justify-start',
+    center: 'justify-center',
     end: 'justify-end'
   };
 
@@ -23,7 +25,7 @@ const Logo: React.FC<LogoProps> = ({ className = '', size = 'lg', align = 'cente
       <img
         src="/maigon-logo_2.png"
         alt="MAIGON"
-        className={'${sizeClasses[size]} w-auto  object-contain'}
+        className={`${sizeClasses[size]} w-auto object-contain`}
       />
     </div>
   );
