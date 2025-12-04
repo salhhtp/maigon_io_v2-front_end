@@ -20,15 +20,12 @@ const Logo: React.FC<LogoProps> = ({ className = '', size = 'lg', align = 'cente
     end: 'justify-end'
   };
 
-  const [src, setSrc] = React.useState("/maigon-logo_2-vector.svg");
-
   return (
     <div className={`flex ${alignClasses[align]} items-center ${className}`}>
       <img
-        src={src}
+        src="/maigon-logo_2.png"
         alt="MAIGON"
         className={`${sizeClasses[size]} w-auto object-contain`}
-        onError={() => setSrc("/maigon-logo_2.png")}
       />
     </div>
   );
