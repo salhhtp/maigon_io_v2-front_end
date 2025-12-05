@@ -340,27 +340,22 @@ const enhancementsJsonSchema = {
     properties: {
       playbookInsights: {
         type: "array",
-        maxItems: 2,
         items: playbookInsightItemSchema,
       },
       clauseExtractions: {
         type: "array",
-        maxItems: 2,
         items: clauseExtractionItemSchema,
       },
       similarityAnalysis: {
         type: "array",
-        maxItems: 2,
         items: similarityItemSchema,
       },
       deviationInsights: {
         type: "array",
-        maxItems: 2,
         items: deviationInsightItemSchema,
       },
       actionItems: {
         type: "array",
-        maxItems: 2,
         items: actionItemSchema,
       },
       draftMetadata: draftMetadataSchema,
@@ -440,7 +435,6 @@ const jsonSchemaFormat = {
       },
       issuesToAddress: {
         type: "array",
-        maxItems: 3,
         items: {
           type: "object",
           additionalProperties: false,
@@ -475,7 +469,6 @@ const jsonSchemaFormat = {
       },
       criteriaMet: {
         type: "array",
-        maxItems: 3,
         items: {
           type: "object",
           additionalProperties: false,
@@ -491,7 +484,6 @@ const jsonSchemaFormat = {
       },
       clauseFindings: {
         type: "array",
-        maxItems: 3,
         items: {
           type: "object",
           additionalProperties: false,
@@ -515,7 +507,6 @@ const jsonSchemaFormat = {
       },
       proposedEdits: {
         type: "array",
-        maxItems: 2,
         items: {
           type: "object",
           additionalProperties: false,
@@ -706,7 +697,8 @@ function buildSystemPrompt(playbookTitle: string, reviewType: string) {
     "Think through each clause carefully before producing structured output.",
     "Enumerate every issue across all severities (critical, high, medium, low, info); do not prune minor gaps.",
     "Use legal reasoning, cite regulatory frameworks, and flag negotiation levers.",
-    "Anchor every observation in the clause digest supplied by Maigon's parser; if a clause is missing, treat it as a drafting gap and propose language.",
+    "Anchor observations to the clause digest when available; if the full contract text contains content not captured in the digest, still use it. If a clause is missing in both, mark it as a drafting gap and propose language.",
+    "For each checklist/anchor item in the playbook, emit a finding (met/missing/attention) and include an issue for anything missing or ambiguous.",
     `Apply the playbook for ${playbookTitle}.`,
     "Always respond with JSON that matches the requested schema.",
   ].join(" ");
@@ -903,6 +895,15 @@ function runHeuristicCritique(
     if (coverage.coverageScore < 0.85) {
       notes.push(
         `Playbook coverage at ${Math.round(coverage.coverageScore * 100)}%. Reinforce missing anchors.`,
+      );
+    }
+    const expectedMinimumIssues = Math.min(
+      Math.max(5, (playbook.clauseAnchors?.length ?? 0) / 2),
+      20,
+    );
+    if (report.issuesToAddress.length < expectedMinimumIssues) {
+      notes.push(
+        `Issue count (${report.issuesToAddress.length}) below expected for ${playbook.displayName}; ensure each checklist item is evaluated.`,
       );
     }
   } else {
@@ -1668,7 +1669,7 @@ function normaliseEnhancementSections(payload: unknown): EnhancementSections {
 function coerceArray<T>(
   value: unknown,
   mapper: (value: unknown, index: number) => T | null,
-  limit = 2,
+  limit = 50,
 ): T[] {
   if (!Array.isArray(value)) return [];
   const results: T[] = [];
