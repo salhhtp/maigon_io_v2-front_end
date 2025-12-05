@@ -577,7 +577,6 @@ const FORCED_MODEL_TIER = parseTierFromEnv("OPENAI_REASONING_FORCE_TIER");
 const DEFAULT_MODEL_TIER =
   FORCED_MODEL_TIER ?? parseTierFromEnv("OPENAI_REASONING_DEFAULT_TIER") ?? "premium";
 const DEFAULT_MAX_OUTPUT_TOKENS = 10000;
-const MAX_ENHANCEMENT_OUTPUT_TOKENS = 10000;
 const MAX_OUTPUT_TOKENS_ENV = Deno.env.get("OPENAI_REASONING_MAX_OUTPUT_TOKENS");
 const parsedMaxOutput =
   MAX_OUTPUT_TOKENS_ENV === undefined
@@ -587,6 +586,22 @@ const MAX_OUTPUT_TOKENS =
   Number.isFinite(parsedMaxOutput) && parsedMaxOutput > 0
     ? parsedMaxOutput
     : null;
+
+const MAX_ENHANCEMENT_OUTPUT_TOKENS_ENV = Deno.env.get(
+  "OPENAI_REASONING_MAX_ENHANCEMENT_TOKENS",
+);
+const parsedMaxEnhancementOutput =
+  MAX_ENHANCEMENT_OUTPUT_TOKENS_ENV === undefined
+    ? DEFAULT_MAX_OUTPUT_TOKENS
+    : Number(MAX_ENHANCEMENT_OUTPUT_TOKENS_ENV);
+const MAX_ENHANCEMENT_OUTPUT_TOKENS =
+  Number.isFinite(parsedMaxEnhancementOutput) && parsedMaxEnhancementOutput > 0
+    ? parsedMaxEnhancementOutput
+    : DEFAULT_MAX_OUTPUT_TOKENS;
+
+const SKIP_ENHANCEMENTS =
+  (Deno.env.get("OPENAI_REASONING_SKIP_ENHANCEMENTS") ?? "").toLowerCase() ===
+  "1";
 
 interface ReasoningContext {
   content: string;
@@ -1886,6 +1901,23 @@ export async function runReasoningAnalysis(
   }
 
   const baseReport = coreReport;
+  if (SKIP_ENHANCEMENTS) {
+    const clauseAlignedReport = enhanceReportWithClauses(baseReport, {
+      content: context.content,
+      contractType:
+        context.classification?.contractType ?? playbookKey ?? "general_contract",
+    });
+    return {
+      report: clauseAlignedReport,
+      raw: {
+        stageOne: corePayload,
+        stageTwo: null,
+      },
+      model,
+      tier,
+    };
+  }
+
   let enhancementSections: EnhancementSections | null = null;
   let enhancementRaw: unknown = null;
   let enhancementSource: "ai" | "fallback" = "fallback";
