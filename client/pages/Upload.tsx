@@ -13,6 +13,7 @@ import {
   uploadDocument,
   extractDocument,
 } from "@/services/documentIngestionService";
+import { supabase } from "@/lib/supabase";
 import { deriveSolutionKey } from "@/utils/solutionMapping";
 
 export default function Upload() {
@@ -448,6 +449,22 @@ export default function Upload() {
         throw new Error(
           "No readable text was extracted from the document. Please convert it to a text-based PDF or DOCX and try again.",
         );
+      }
+
+      // Warm up ingestion cache (text + clause digest) to speed up later analysis
+      try {
+        setWorkflowStage("preparing");
+        const { error: ingestError } = await supabase.functions.invoke(
+          "ingest-contract",
+          {
+            body: { ingestionId: uploadResponse.ingestionId },
+          },
+        );
+        if (ingestError) {
+          console.warn("⚠️ Ingestion warmup failed", ingestError);
+        }
+      } catch (err) {
+        console.warn("⚠️ Ingestion warmup threw", err);
       }
 
       const reviewType = getReviewTypeFromPerspective(perspective);

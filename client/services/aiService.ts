@@ -206,6 +206,11 @@ class AIService {
           attempt,
         });
 
+        // Ensure ingestion artifacts are ready (text/digest) when an ingestionId is provided
+        if (request.ingestionId) {
+          await this.ensureIngestionReady(request.ingestionId);
+        }
+
         // Get or create custom solution if provided
         let customSolution = request.customSolution;
         if (!customSolution && request.reviewType !== "ai_integration") {
@@ -567,8 +572,8 @@ class AIService {
     reviewType: string,
     accessToken: string | null,
   ) {
-    const maxAttempts = 3;
-    const timeoutMs = 120000; // 2 minutes per attempt
+    const maxAttempts = 1; // avoid overlapping long-running calls
+    const timeoutMs = 90000; // 90s per attempt to avoid edge timeouts/retries
     const baseBackoffMs = 1500;
 
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
@@ -668,6 +673,32 @@ class AIService {
       return { data, error: null as any };
     } finally {
       clearTimeout(timeoutId);
+    }
+  }
+
+  // Ensure ingestion is precomputed (text + digest/clauses) before analysis
+  private async ensureIngestionReady(ingestionId: string) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s guard
+      const { error } = await supabase.functions.invoke("ingest-contract", {
+        body: { ingestionId },
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+      if (error) {
+        logError(
+          "Ingestion warmup failed",
+          error instanceof Error ? error : new Error(String(error)),
+          { ingestionId },
+        );
+      }
+    } catch (error) {
+      logError(
+        "Ingestion warmup threw",
+        error instanceof Error ? error : new Error(String(error)),
+        { ingestionId },
+      );
     }
   }
 

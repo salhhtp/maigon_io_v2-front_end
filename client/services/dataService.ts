@@ -1251,7 +1251,7 @@ export class DataService {
       );
 
       const analysisRequest = {
-        content: contractData.content,
+        content: contractData.ingestion_id ? "" : contractData.content,
         reviewType,
         contractType: contractData.contract_type || "general",
         perspective: contractData.perspective ?? undefined,
