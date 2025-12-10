@@ -8,7 +8,7 @@ import AdminDashboardService from "./adminDashboardService";
 import EnterpriseDashboardService from "./enterpriseDashboardService";
 import aiService, {
   type ContractAnalysisRequest,
-  ensureGpt5Model,
+  AIModel,
 } from "./aiService";
 import clauseExtractionService from "./clauseExtractionService";
 import { generateFallbackAnalysis } from "./fallbackAnalysis";
