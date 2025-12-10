@@ -941,6 +941,7 @@ function applyOptionalSectionDefaults(payload: Record<string, unknown>) {
   ensureArray("actionItems");
   enforceClauseReferenceSeeds(payload);
   enforceProposedEditClauseBindings(payload);
+  normaliseProposedEditContent(payload);
 
   if (!payload.metadata || typeof payload.metadata !== "object") {
     payload.metadata = {};
@@ -1117,6 +1118,45 @@ function enforceProposedEditClauseBindings(payload: Record<string, unknown>) {
     ).toString();
     editRecord.clauseId = findClauseIdForText(anchor, fallbackId);
     return editRecord;
+  });
+}
+
+function normaliseProposedEditContent(payload: Record<string, unknown>) {
+  if (!Array.isArray(payload.proposedEdits)) return;
+  payload.proposedEdits = payload.proposedEdits.map((entry) => {
+    if (!entry || typeof entry !== "object") return entry;
+    const record = entry as Record<string, unknown>;
+    const proposedText =
+      typeof record.proposedText === "string" ? record.proposedText : "";
+    const previousText =
+      typeof record.previousText === "string" ? record.previousText : "";
+
+    if (
+      typeof record.updatedText !== "string" ||
+      record.updatedText.trim().length === 0 ||
+      /as in proposed text/i.test(record.updatedText)
+    ) {
+      record.updatedText = proposedText;
+    }
+
+    if (record.previewHtml && typeof record.previewHtml === "object") {
+      const preview = record.previewHtml as Record<string, unknown>;
+      if (
+        typeof preview.updated !== "string" ||
+        preview.updated.trim().length === 0 ||
+        /as in proposed text/i.test(preview.updated ?? "")
+      ) {
+        preview.updated = proposedText;
+      }
+      if (
+        (typeof preview.previous !== "string" ||
+          preview.previous.trim().length === 0) &&
+        previousText
+      ) {
+        preview.previous = previousText;
+      }
+    }
+    return record;
   });
 }
 

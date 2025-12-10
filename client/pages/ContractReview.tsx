@@ -1845,16 +1845,30 @@ Next step: ${
         });
 
   const structuredProposedEdits = useMemo<ProposedEdit[]>(() => {
-    if (structuredReport?.proposedEdits?.length) {
-      return structuredReport.proposedEdits;
+    const merged = new Map<string, ProposedEdit>();
+    const push = (edit: ProposedEdit | null | undefined) => {
+      if (!edit || typeof edit.id !== "string" || !edit.id.trim()) return;
+      merged.set(edit.id.toLowerCase(), edit);
+    };
+
+    if (Array.isArray(structuredReport?.proposedEdits)) {
+      structuredReport!.proposedEdits.forEach(push);
     }
+
     const legacy = (results as Record<string, unknown>).proposed_edits;
-    if (!Array.isArray(legacy)) {
-      return [];
+    if (Array.isArray(legacy)) {
+      legacy
+        .map((item) => normalizeLegacyProposedEdit(item))
+        .filter((edit): edit is ProposedEdit => Boolean(edit))
+        .forEach((edit) => {
+          // If legacy has more edits than structured, prefer the longer list
+          if (!merged.has(edit.id.toLowerCase())) {
+            push(edit);
+          }
+        });
     }
-    return legacy
-      .map((item) => normalizeLegacyProposedEdit(item))
-      .filter((edit): edit is ProposedEdit => Boolean(edit));
+
+    return Array.from(merged.values());
   }, [structuredReport, results]);
 
   const severityBuckets = useMemo<Record<string, Issue[]>>(() => {
