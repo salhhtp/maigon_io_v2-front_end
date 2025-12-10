@@ -104,6 +104,17 @@ interface ContractIngestionRecord {
   metadata?: Record<string, unknown> | null;
 }
 
+type ClauseDigestSummary = {
+  summary: string;
+  total: number;
+  categoryCounts?: Record<string, number>;
+};
+
+type AnalysisSeedMetadata = {
+  contentHash: string;
+  clauseDigest?: ClauseDigestSummary;
+};
+
 let supabaseAdmin: SupabaseClient | null = null;
 
 function getSupabaseAdminClient(): SupabaseClient {
@@ -124,6 +135,67 @@ function getSupabaseAdminClient(): SupabaseClient {
   });
 
   return supabaseAdmin;
+}
+
+async function hashText(value: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(value);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(hashBuffer))
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+function readCachedClauseDigest(
+  ingestionRecord: ContractIngestionRecord | null,
+  contentHash: string,
+): ClauseDigestSummary | null {
+  const metadata = ingestionRecord?.metadata;
+  if (!metadata || typeof metadata !== "object") return null;
+  const seed = (metadata as Record<string, unknown>).analysisSeed;
+  if (!seed || typeof seed !== "object") return null;
+  const record = seed as AnalysisSeedMetadata;
+  if (!record.contentHash || record.contentHash !== contentHash) return null;
+  if (
+    record.clauseDigest &&
+    typeof record.clauseDigest.summary === "string" &&
+    typeof record.clauseDigest.total === "number"
+  ) {
+    return record.clauseDigest;
+  }
+  return null;
+}
+
+async function persistClauseDigestIfMissing(
+  ingestionRecord: ContractIngestionRecord,
+  clauseDigest: ClauseDigestSummary,
+  contentHash: string,
+) {
+  const existing = readCachedClauseDigest(ingestionRecord, contentHash);
+  if (existing) return;
+  try {
+    const supabase = getSupabaseAdminClient();
+    const currentMetadata = ingestionRecord.metadata ?? {};
+    const nextMetadata = {
+      ...currentMetadata,
+      analysisSeed: {
+        ...(currentMetadata as Record<string, unknown>).analysisSeed,
+        contentHash,
+        clauseDigest,
+      },
+    };
+    const { error } = await supabase
+      .from("contract_ingestions")
+      .update({ metadata: nextMetadata })
+      .eq("id", ingestionRecord.id);
+    if (error) throw error;
+    ingestionRecord.metadata = nextMetadata;
+  } catch (error) {
+    console.warn("⚠️ Unable to persist clause digest", {
+      ingestionId: ingestionRecord.id,
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
 }
 
 const CONTRACT_PATTERNS: Record<string, RegExp[]> = {
@@ -1276,6 +1348,7 @@ serve(async (req) => {
       request.fileName ||
       request.filename ||
       ingestionRecord?.original_name;
+    const contentHash = await hashText(processedContent);
     const resolvedContractType =
       request.contractType ||
       request.classification?.contractType ||
@@ -1343,7 +1416,17 @@ serve(async (req) => {
     }
 
     const clauseSeed = mergeClauseCollections(storedClauses, aiDerivedClauses);
-    const clauseDigest = buildClauseDigestForPrompt(clauseSeed);
+    const cachedDigest = readCachedClauseDigest(ingestionRecord, contentHash);
+    const clauseDigest =
+      cachedDigest ?? buildClauseDigestForPrompt(clauseSeed);
+
+    if (ingestionRecord && !cachedDigest) {
+      await persistClauseDigestIfMissing(
+        ingestionRecord,
+        clauseDigest,
+        contentHash,
+      );
+    }
 
     try {
       const reasoningResult = await runReasoningAnalysis({
