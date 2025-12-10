@@ -587,6 +587,13 @@ const MAX_OUTPUT_TOKENS =
   Number.isFinite(parsedMaxOutput) && parsedMaxOutput > 0
     ? parsedMaxOutput
     : null;
+const SKIP_ENHANCEMENTS = (() => {
+  const raw = (Deno.env.get("OPENAI_REASONING_SKIP_ENHANCEMENTS") ?? "1")
+    .toLowerCase()
+    .trim();
+  if (raw === "0" || raw === "false" || raw === "no") return false;
+  return true;
+})();
 
 interface ReasoningContext {
   content: string;
@@ -1932,14 +1939,19 @@ export async function runReasoningAnalysis(
   let enhancementReason: string | undefined;
 
   try {
-    const enhancementResult = await generateEnhancementSections(
-      context,
-      baseReport,
-      baseReport.metadata?.model ?? model,
-    );
-    enhancementSections = enhancementResult.sections;
-    enhancementRaw = enhancementResult.raw;
-    enhancementSource = "ai";
+    if (SKIP_ENHANCEMENTS) {
+      enhancementSections = buildEnhancementFallback(baseReport);
+      enhancementSource = "fallback";
+    } else {
+      const enhancementResult = await generateEnhancementSections(
+        context,
+        baseReport,
+        baseReport.metadata?.model ?? model,
+      );
+      enhancementSections = enhancementResult.sections;
+      enhancementRaw = enhancementResult.raw;
+      enhancementSource = "ai";
+    }
   } catch (error) {
     enhancementReason =
       error instanceof Error ? error.message : String(error);
