@@ -575,7 +575,7 @@ class AIService {
     accessToken: string | null,
   ) {
     const maxAttempts = 1; // avoid overlapping long-running calls
-    const timeoutMs = 90000; // 90s per attempt to avoid edge timeouts/retries
+    const timeoutMs = 150000; // allow up to edge limit to avoid client aborts
     const baseBackoffMs = 1500;
 
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {

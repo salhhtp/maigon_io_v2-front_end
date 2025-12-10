@@ -1243,15 +1243,12 @@ export class DataService {
             }
           : undefined;
 
-      const preferredModel =
-        customSolution?.modelSettings?.reasoningModel ??
-        customSolution?.aiModel;
-      const normalizedModel = ensureGpt5Model(
-        typeof preferredModel === "string" ? preferredModel : undefined,
-      );
+      // Force fast model for analysis
+      const normalizedModel = AIModel.OPENAI_GPT5_MINI;
 
       const analysisRequest = {
-        content: contractData.ingestion_id ? "" : contractData.content,
+        // Keep content to avoid empty payload; server will prefer ingestionId if provided
+        content: contractData.content,
         reviewType,
         contractType: contractData.contract_type || "general",
         perspective: contractData.perspective ?? undefined,
