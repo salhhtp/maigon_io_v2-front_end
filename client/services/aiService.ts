@@ -321,8 +321,10 @@ class AIService {
       AIModel.OPENAI_GPT5_PRO;
     const model = ensureGpt5Model(requestedModel, { defaultTier: "pro" });
 
-    // Validate request before sending
-    if (!request.content || request.content.trim().length === 0) {
+    // Validate request before sending: allow empty content if ingestionId is provided
+    const hasContent =
+      typeof request.content === "string" && request.content.trim().length > 0;
+    if (!hasContent && !request.ingestionId) {
       throw new Error("Cannot analyze empty contract content");
     }
 
