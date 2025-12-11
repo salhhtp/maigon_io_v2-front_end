@@ -1386,9 +1386,11 @@ serve(async (req) => {
       resolvedContractType,
     );
 
+    const cachedDigest = readCachedClauseDigest(ingestionRecord, contentHash);
     let aiDerivedClauses: ClauseExtraction[] = [];
     const needsRefresh =
-      storedClauses.length === 0 || isClauseSetWeak(storedClauses);
+      !cachedDigest && (storedClauses.length === 0 || isClauseSetWeak(storedClauses));
+
     if (needsRefresh && processedContent.trim().length > 0) {
       try {
         const clauseJob = await extractClausesWithAI({
@@ -1416,7 +1418,6 @@ serve(async (req) => {
     }
 
     const clauseSeed = mergeClauseCollections(storedClauses, aiDerivedClauses);
-    const cachedDigest = readCachedClauseDigest(ingestionRecord, contentHash);
     const clauseDigest =
       cachedDigest ?? buildClauseDigestForPrompt(clauseSeed);
 

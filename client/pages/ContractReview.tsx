@@ -541,7 +541,9 @@ function dedupeDecisions(entries: NormalizedDecision[]): NormalizedDecision[] {
 
   entries.forEach((entry) => {
     if (entry.duplicateOf) return;
-    const signature = `${entry.description}|${entry.owner}`.toLowerCase();
+    const signature = entry.proposedEdit?.id
+      ? `edit-${entry.proposedEdit.id.toLowerCase()}`
+      : `${entry.description}|${entry.owner}`.toLowerCase();
     const existing = bySignature.get(signature);
     if (!existing) {
       bySignature.set(signature, entry);
