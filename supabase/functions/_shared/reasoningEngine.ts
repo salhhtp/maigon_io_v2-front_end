@@ -576,8 +576,8 @@ type EnhancementSections = Pick<
 const FORCED_MODEL_TIER = parseTierFromEnv("OPENAI_REASONING_FORCE_TIER");
 const DEFAULT_MODEL_TIER =
   FORCED_MODEL_TIER ?? parseTierFromEnv("OPENAI_REASONING_DEFAULT_TIER") ?? "premium";
-const DEFAULT_MAX_OUTPUT_TOKENS = 10000;
-const MAX_ENHANCEMENT_OUTPUT_TOKENS = 10000;
+const DEFAULT_MAX_OUTPUT_TOKENS = 4000;
+const MAX_ENHANCEMENT_OUTPUT_TOKENS = 2000;
 const MAX_OUTPUT_TOKENS_ENV = Deno.env.get("OPENAI_REASONING_MAX_OUTPUT_TOKENS");
 const parsedMaxOutput =
   MAX_OUTPUT_TOKENS_ENV === undefined
@@ -586,7 +586,7 @@ const parsedMaxOutput =
 const MAX_OUTPUT_TOKENS =
   Number.isFinite(parsedMaxOutput) && parsedMaxOutput > 0
     ? parsedMaxOutput
-    : null;
+    : DEFAULT_MAX_OUTPUT_TOKENS;
 const SKIP_ENHANCEMENTS = (() => {
   const raw = (Deno.env.get("OPENAI_REASONING_SKIP_ENHANCEMENTS") ?? "1")
     .toLowerCase()
@@ -1819,6 +1819,7 @@ export async function runReasoningAnalysis(
     text: {
       format: jsonSchemaFormat,
     },
+    max_output_tokens: MAX_OUTPUT_TOKENS,
   });
 
   let lastError: unknown = null;
