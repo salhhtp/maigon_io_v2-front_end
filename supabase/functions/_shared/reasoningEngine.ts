@@ -1138,21 +1138,19 @@ function normaliseProposedEditContent(payload: Record<string, unknown>) {
     const previousText =
       typeof record.previousText === "string" ? record.previousText : "";
 
-    if (
-      typeof record.updatedText !== "string" ||
-      record.updatedText.trim().length === 0 ||
-      /as in proposed text/i.test(record.updatedText)
-    ) {
+    const needsRewrite = (value: unknown) =>
+      typeof value !== "string" ||
+      value.trim().length === 0 ||
+      /as in proposed text/i.test(value) ||
+      /see proposedtext/i.test(value);
+
+    if (needsRewrite(record.updatedText)) {
       record.updatedText = proposedText;
     }
 
     if (record.previewHtml && typeof record.previewHtml === "object") {
       const preview = record.previewHtml as Record<string, unknown>;
-      if (
-        typeof preview.updated !== "string" ||
-        preview.updated.trim().length === 0 ||
-        /as in proposed text/i.test(preview.updated ?? "")
-      ) {
+      if (needsRewrite(preview.updated)) {
         preview.updated = proposedText;
       }
       if (

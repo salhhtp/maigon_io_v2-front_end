@@ -4142,28 +4142,9 @@ const heroNavItems: { id: string; label: string }[] = [
           </DialogHeader>
           <div className="mb-4 flex items-center justify-between gap-2">
             <div className="inline-flex items-center gap-1 rounded-full border border-[#E8DDDD] bg-[#FDFBFB] p-1 text-xs text-[#725A5A]">
-              <button
-                type="button"
-                onClick={() => setDraftViewMode("preview")}
-                className={`rounded-full px-3 py-1 transition ${
-                  draftViewMode === "preview"
-                    ? "bg-[#271D1D] text-white"
-                    : "hover:bg-white"
-                }`}
-              >
+              <span className="rounded-full px-3 py-1 bg-[#271D1D] text-white">
                 Preview
-              </button>
-              <button
-                type="button"
-                onClick={() => setDraftViewMode("diff")}
-                className={`rounded-full px-3 py-1 transition ${
-                  draftViewMode === "diff"
-                    ? "bg-[#271D1D] text-white"
-                    : "hover:bg-white"
-                }`}
-              >
-                Compare changes
-              </button>
+              </span>
             </div>
             {draftResult?.originalContract && (
               <span className="text-xs text-[#725A5A]">
