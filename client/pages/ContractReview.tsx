@@ -1684,6 +1684,19 @@ Next step: ${
 
   const generalInformation = structuredReport?.generalInformation;
   const contractSummaryReport = structuredReport?.contractSummary;
+  const resolvedPerspectiveLabel = useMemo(() => {
+    if (contractSummaryReport?.agreementDirection) {
+      return contractSummaryReport.agreementDirection;
+    }
+    if (generalInformation?.selectedPerspective) {
+      return generalInformation.selectedPerspective;
+    }
+    return getPerspectiveDisplay(perspectiveKey || "general");
+  }, [
+    contractSummaryReport?.agreementDirection,
+    generalInformation?.selectedPerspective,
+    perspectiveKey,
+  ]);
   const structuredIssues = structuredReport?.issuesToAddress ?? [];
   const structuredCriteria = structuredReport?.criteriaMet ?? [];
   const structuredPlaybookInsights = structuredReport?.playbookInsights ?? [];
@@ -3018,7 +3031,7 @@ const heroNavItems: { id: string; label: string }[] = [
                   </div>
                   <div>
                     <span className="font-medium">Perspective:</span>{" "}
-                    {getPerspectiveDisplay(perspectiveKey || "general")}
+                    {resolvedPerspectiveLabel}
                   </div>
                   <div>
                     <span className="font-medium">Generated:</span>{" "}
@@ -3088,7 +3101,7 @@ const heroNavItems: { id: string; label: string }[] = [
                         Perspective
                       </dt>
                       <dd className="font-medium">
-                        {generalInformation?.selectedPerspective ?? "n/a"}
+                        {resolvedPerspectiveLabel ?? "n/a"}
                       </dd>
                     </div>
                     <div>
