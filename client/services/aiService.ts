@@ -191,7 +191,7 @@ class AIService {
   ): Promise<AnalysisResult> {
     const startTime = performance.now();
     let lastError: Error | null = null;
-    const maxRetries = 3;
+    const maxRetries = 1; // avoid multiple long-running attempts
     const enforcedModel = ensureGpt5Model(request.model, {
       defaultTier: "pro",
     });
