@@ -78,6 +78,7 @@ const AI_MODEL_OPTIONS: Array<{ label: string; value: AIModel }> = [
   { label: "OpenAI GPT-5 Pro (Reasoning)", value: AIModel.OPENAI_GPT5_PRO },
   { label: "OpenAI GPT-5 (Balanced)", value: AIModel.OPENAI_GPT5 },
   { label: "OpenAI GPT-5 Mini", value: AIModel.OPENAI_GPT5_MINI },
+  { label: "OpenAI GPT-5 Nano", value: AIModel.OPENAI_GPT5_NANO },
   { label: "OpenAI GPT-4o", value: AIModel.OPENAI_GPT4O },
   { label: "OpenAI GPT-4", value: AIModel.OPENAI_GPT4 },
   { label: "OpenAI GPT-3.5 Turbo", value: AIModel.OPENAI_GPT35 },

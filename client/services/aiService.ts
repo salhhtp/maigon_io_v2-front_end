@@ -27,7 +27,7 @@ export enum AIModel {
 
 export const ensureGpt5Model = (
   model?: string | null,
-  options: { defaultTier?: "mini" | "standard" | "pro" } = {},
+  options: { defaultTier?: "mini" | "standard" | "pro" | "nano" } = {},
 ): AIModel => {
   const normalized = typeof model === "string" ? model.toLowerCase() : "";
   if (normalized.includes("gpt-5") && normalized.includes("mini")) {
@@ -35,6 +35,9 @@ export const ensureGpt5Model = (
   }
   if (normalized.includes("gpt-5") && normalized.includes("pro")) {
     return AIModel.OPENAI_GPT5_PRO;
+  }
+  if (normalized.includes("gpt-5") && normalized.includes("nano")) {
+    return AIModel.OPENAI_GPT5_NANO;
   }
   if (normalized.includes("gpt-5")) {
     return AIModel.OPENAI_GPT5;
@@ -44,6 +47,8 @@ export const ensureGpt5Model = (
       return AIModel.OPENAI_GPT5_MINI;
     case "pro":
       return AIModel.OPENAI_GPT5_PRO;
+    case "nano":
+      return AIModel.OPENAI_GPT5_NANO;
     default:
       return AIModel.OPENAI_GPT5;
   }
