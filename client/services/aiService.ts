@@ -19,6 +19,7 @@ export enum AIModel {
   OPENAI_GPT5_PRO = "openai-gpt-5-pro",
   OPENAI_GPT5 = "openai-gpt-5",
   OPENAI_GPT5_MINI = "openai-gpt-5-mini",
+  OPENAI_GPT5_NANO = "openai-gpt-5-nano",
   ANTHROPIC_CLAUDE = "anthropic-claude-3",
   ANTHROPIC_CLAUDE_OPUS = "anthropic-claude-3-opus",
   GOOGLE_GEMINI = "google-gemini-pro",
