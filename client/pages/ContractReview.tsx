@@ -1773,6 +1773,15 @@ Next step: ${
     contractSummaryReport?.jurisdiction ||
     readString(contractMetadata, "jurisdiction", "jurisdiction_clause") ||
     "Not specified";
+  const summaryContractPeriod =
+    contractSummaryReport?.contractPeriod || "Not specified";
+  const summaryVerbalInfo =
+    contractSummaryReport?.verbalInformationCovered === undefined ||
+    contractSummaryReport?.verbalInformationCovered === null
+      ? "Not specified"
+      : contractSummaryReport.verbalInformationCovered
+        ? "Yes"
+        : "No";
 
   const clauseTitleMap = useMemo(() => {
     const map = new Map<string, string>();
@@ -3158,6 +3167,18 @@ const heroNavItems: { id: string; label: string }[] = [
                         Purpose:
                       </span>{" "}
                       {summaryPurpose}
+                    </p>
+                    <p>
+                      <span className="font-semibold text-[#271D1D]">
+                        Contract period:
+                      </span>{" "}
+                      {summaryContractPeriod}
+                    </p>
+                    <p>
+                      <span className="font-semibold text-[#271D1D]">
+                        Verbal information covered:
+                      </span>{" "}
+                      {summaryVerbalInfo}
                     </p>
                     <p>
                       <span className="font-semibold text-[#271D1D]">
