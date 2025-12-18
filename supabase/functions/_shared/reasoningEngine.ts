@@ -692,6 +692,14 @@ function buildUserPrompt(
   context: ReasoningContext,
   playbook: ReturnType<typeof resolvePlaybook>,
 ) {
+  const buildContentExcerpt = (content: string, maxChars = 6000) => {
+    if (!content) return "";
+    if (content.length <= maxChars) return content;
+    const head = content.slice(0, Math.floor(maxChars / 2));
+    const tail = content.slice(-Math.floor(maxChars / 2));
+    return `${head}\n\n[...content truncated for brevity...]\n\n${tail}`;
+  };
+
   const metadataSections = [
     context.filename ? `Filename: ${context.filename}` : null,
     context.documentFormat
@@ -724,7 +732,7 @@ function buildUserPrompt(
       const categoryLine = categoryCounts
         ? `Category coverage: ${Object.entries(categoryCounts)
             .map(([key, count]) => `${key}:${count}`)
-            .join(", ")}`
+        .join(", ")}`
         : null;
       return [
         `Clause digest (${context.clauseDigest.total} segments):`,
@@ -737,7 +745,9 @@ function buildUserPrompt(
     return "Clause digest unavailable. Derive anchors directly from the contract excerpt.";
   })();
 
-  return `${metadataSections}\n\n${playbookSection}\n\n${clauseDigestSection}\n\nContract content (full):\n${context.content}`;
+  const contentExcerpt = buildContentExcerpt(context.content);
+
+  return `${metadataSections}\n\n${playbookSection}\n\n${clauseDigestSection}\n\nContract content (excerpt):\n${contentExcerpt}`;
 }
 
 function buildJsonSchemaDescription() {
