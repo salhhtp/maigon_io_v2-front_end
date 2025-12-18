@@ -178,7 +178,7 @@ const baseReportSchema = z.object({
   contractSummary: contractSummarySchema,
   issuesToAddress: z.array(issueSchema).default([]),
   criteriaMet: z.array(criteriaSchema).default([]),
-  clauseFindings: z.array(clauseFindingSchema).default([]),
+  clauseFindings: z.array(clauseFindingSchema).default([]).optional(),
   proposedEdits: z.array(proposedEditSchema).default([]),
   metadata: z
     .object({

@@ -444,7 +444,6 @@ const jsonSchemaFormat = {
             "category",
             "tags",
             "clauseReference",
-            "legalBasis",
             "recommendation",
             "rationale",
           ],
@@ -478,29 +477,6 @@ const jsonSchemaFormat = {
             description: shortText(220),
             met: { type: "boolean" },
             evidence: shortText(200),
-          },
-        },
-      },
-      clauseFindings: {
-        type: "array",
-        items: {
-          type: "object",
-          additionalProperties: false,
-          required: [
-            "clauseId",
-            "title",
-            "summary",
-            "excerpt",
-            "riskLevel",
-            "recommendation",
-          ],
-          properties: {
-            clauseId: { type: "string" },
-            title: shortText(160),
-            summary: shortText(220),
-            excerpt: shortText(200),
-            riskLevel: { type: "string", enum: severityEnum },
-            recommendation: shortText(220),
           },
         },
       },
@@ -919,9 +895,6 @@ function runHeuristicCritique(
   if (report.issuesToAddress.length === 0) {
     notes.push("No issues returned; ensure clauses were evaluated.");
   }
-  if (report.clauseFindings.length < 2) {
-    notes.push("Clause findings sparse; add at least two clause-level insights.");
-  }
   if (
     playbookKey === "data_processing_agreement" &&
     !report.issuesToAddress.some((issue) =>
@@ -940,6 +913,7 @@ function applyOptionalSectionDefaults(payload: Record<string, unknown>) {
       payload[key] = [];
     }
   };
+  ensureArray("clauseFindings");
   ensureArray("playbookInsights");
   ensureArray("clauseExtractions");
   ensureArray("similarityAnalysis");
