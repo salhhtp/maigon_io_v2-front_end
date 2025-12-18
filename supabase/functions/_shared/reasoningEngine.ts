@@ -574,6 +574,7 @@ const SKIP_ENHANCEMENTS = (() => {
 interface ReasoningContext {
   content: string;
   reviewType: string;
+  anchorSummary?: string | null;
   classification?: {
     contractType?: string;
     confidence?: number;
@@ -747,7 +748,13 @@ function buildUserPrompt(
 
   const contentExcerpt = buildContentExcerpt(context.content);
 
-  return `${metadataSections}\n\n${playbookSection}\n\n${clauseDigestSection}\n\nContract content (excerpt):\n${contentExcerpt}`;
+  const anchorBlock = context.anchorSummary?.trim();
+  const contentBlockLabel = anchorBlock
+    ? "Contract summary (cached)"
+    : "Contract content (excerpt)";
+  const contentBlockText = anchorBlock ?? contentExcerpt;
+
+  return `${metadataSections}\n\n${playbookSection}\n\n${clauseDigestSection}\n\n${contentBlockLabel}:\n${contentBlockText}`;
 }
 
 function buildJsonSchemaDescription() {
