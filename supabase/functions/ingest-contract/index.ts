@@ -39,8 +39,6 @@ type ClauseDigestSummary = {
   categoryCounts?: Record<string, number>;
 };
 
-type AnchorSummary = string;
-
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -144,11 +142,6 @@ serve(async (req) => {
     });
 
     const clauseDigest = buildClauseDigestForPrompt(clausesJob.clauses ?? []);
-    const anchorSummary = buildAnchorSummary({
-      extractedText,
-      clauseDigest,
-      wordCount: wordCount(extractedText),
-    });
 
     // Persist into ingestion record if available
     if (ingestionRecord) {
@@ -159,7 +152,6 @@ serve(async (req) => {
         analysisSeed: {
           contentHash,
           clauseDigest,
-          anchorSummary,
         },
       };
 
@@ -196,7 +188,6 @@ serve(async (req) => {
       characterCount: extractedText.length,
       clauseDigest,
       clauses: clausesJob.clauses ?? [],
-      anchorSummary,
       contentHash,
     });
   } catch (error) {
@@ -283,34 +274,6 @@ function buildClauseDigestForPrompt(clauses: ClauseExtraction[]): ClauseDigestSu
     total: clauses.length,
     categoryCounts,
   };
-}
-
-function buildAnchorSummary({
-  extractedText,
-  clauseDigest,
-  wordCount,
-}: {
-  extractedText: string;
-  clauseDigest: ClauseDigestSummary;
-  wordCount: number;
-}): AnchorSummary {
-  const parts: string[] = [];
-  if (clauseDigest?.total) {
-    parts.push(
-      `Clause digest (${clauseDigest.total} segments): ${clauseDigest.summary}`,
-    );
-  }
-  parts.push(
-    `Document stats: words ${wordCount}, chars ${extractedText.length}`,
-  );
-  const cleaned = extractedText.replace(/\s+/g, " ").trim();
-  if (cleaned) {
-    parts.push(
-      `Intro excerpt: ${cleaned.slice(0, 900)}`,
-    );
-  }
-  const summary = parts.join("\n\n");
-  return summary.length > 2000 ? summary.slice(0, 2000) : summary;
 }
 
 function jsonResponse(payload: unknown, status = 200) {

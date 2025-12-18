@@ -111,7 +111,6 @@ type ClauseDigestSummary = {
 type AnalysisSeedMetadata = {
   contentHash: string;
   clauseDigest?: ClauseDigestSummary;
-  anchorSummary?: string;
 };
 
 let supabaseAdmin: SupabaseClient | null = null;
@@ -145,10 +144,6 @@ async function hashText(value: string): Promise<string> {
     .join("");
 }
 
-function wordCount(text: string): number {
-  return text.trim().split(/\s+/).filter(Boolean).length;
-}
-
 function readCachedClauseDigest(
   ingestionRecord: ContractIngestionRecord | null,
   contentHash: string,
@@ -165,22 +160,6 @@ function readCachedClauseDigest(
     typeof record.clauseDigest.total === "number"
   ) {
     return record.clauseDigest;
-  }
-  return null;
-}
-
-function readCachedAnchorSummary(
-  ingestionRecord: ContractIngestionRecord | null,
-  contentHash: string,
-): string | null {
-  const metadata = ingestionRecord?.metadata;
-  if (!metadata || typeof metadata !== "object") return null;
-  const seed = (metadata as Record<string, unknown>).analysisSeed;
-  if (!seed || typeof seed !== "object") return null;
-  const record = seed as AnalysisSeedMetadata;
-  if (!record.contentHash || record.contentHash !== contentHash) return null;
-  if (record.anchorSummary && typeof record.anchorSummary === "string") {
-    return record.anchorSummary;
   }
   return null;
 }
@@ -215,62 +194,6 @@ async function persistClauseDigestIfMissing(
       error: error instanceof Error ? error.message : String(error),
     });
   }
-}
-
-async function persistAnchorSummaryIfMissing(
-  ingestionRecord: ContractIngestionRecord,
-  anchorSummary: string,
-  contentHash: string,
-) {
-  const existing = readCachedAnchorSummary(ingestionRecord, contentHash);
-  if (existing) return;
-  try {
-    const supabase = getSupabaseAdminClient();
-    const currentMetadata = ingestionRecord.metadata ?? {};
-    const nextMetadata = {
-      ...currentMetadata,
-      analysisSeed: {
-        ...(currentMetadata as Record<string, unknown>).analysisSeed,
-        contentHash,
-        anchorSummary,
-      },
-    };
-    const { error } = await supabase
-      .from("contract_ingestions")
-      .update({ metadata: nextMetadata })
-      .eq("id", ingestionRecord.id);
-    if (error) throw error;
-    ingestionRecord.metadata = nextMetadata;
-  } catch (error) {
-    console.warn("⚠️ Unable to persist anchor summary", {
-      ingestionId: ingestionRecord.id,
-      error: error instanceof Error ? error.message : String(error),
-    });
-  }
-}
-
-function buildAnchorSummary({
-  extractedText,
-  clauseDigest,
-  wordCount,
-}: {
-  extractedText: string;
-  clauseDigest?: ClauseDigestSummary | null;
-  wordCount: number;
-}): string {
-  const parts: string[] = [];
-  if (clauseDigest?.total) {
-    parts.push(
-      `Clause digest (${clauseDigest.total} segments): ${clauseDigest.summary}`,
-    );
-  }
-  parts.push(`Document stats: words ${wordCount}, chars ${extractedText.length}`);
-  const cleaned = extractedText.replace(/\s+/g, " ").trim();
-  if (cleaned) {
-    parts.push(`Intro excerpt: ${cleaned.slice(0, 900)}`);
-  }
-  const summary = parts.join("\n\n");
-  return summary.length > 2000 ? summary.slice(0, 2000) : summary;
 }
 
 const CONTRACT_PATTERNS: Record<string, RegExp[]> = {
@@ -1462,31 +1385,13 @@ serve(async (req) => {
     );
 
     const cachedDigest = readCachedClauseDigest(ingestionRecord, contentHash);
-    const cachedAnchorSummary = readCachedAnchorSummary(
-      ingestionRecord,
-      contentHash,
-    );
     const clauseSeed = mergeClauseCollections(storedClauses);
     const clauseDigest = cachedDigest ?? buildClauseDigestForPrompt(clauseSeed);
-    const anchorSummary =
-      cachedAnchorSummary ??
-      buildAnchorSummary({
-        extractedText: processedContent,
-        clauseDigest,
-        wordCount: ingestionRecord?.word_count ?? wordCount(processedContent),
-      });
 
     if (ingestionRecord && !cachedDigest && clauseDigest) {
       await persistClauseDigestIfMissing(
         ingestionRecord,
         clauseDigest,
-        contentHash,
-      );
-    }
-    if (ingestionRecord && !cachedAnchorSummary && anchorSummary) {
-      await persistAnchorSummaryIfMissing(
-        ingestionRecord,
-        anchorSummary,
         contentHash,
       );
     }
@@ -1503,7 +1408,6 @@ serve(async (req) => {
         ingestionId: request.ingestionId,
         modelTier,
         clauseDigest,
-        anchorSummary,
       });
 
       const responsePayload = buildLegacyResponse(reasoningResult.report, {
