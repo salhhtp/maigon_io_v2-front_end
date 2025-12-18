@@ -9,8 +9,6 @@ import {
   type FallbackAnalysisContext,
 } from "../_shared/fallback-analysis.ts";
 import { runReasoningAnalysis } from "../_shared/reasoningEngine.ts";
-import { enhanceReportWithClauses } from "../_shared/clauseExtraction.ts";
-import { extractClausesWithAI } from "../_shared/aiClauseExtractor.ts";
 import type { AnalysisReport, ClauseExtraction } from "../_shared/reviewSchema.ts";
 import {
   createClient,
@@ -1387,41 +1385,10 @@ serve(async (req) => {
     );
 
     const cachedDigest = readCachedClauseDigest(ingestionRecord, contentHash);
-    let aiDerivedClauses: ClauseExtraction[] = [];
-    const needsRefresh =
-      !cachedDigest && (storedClauses.length === 0 || isClauseSetWeak(storedClauses));
+    const clauseSeed = mergeClauseCollections(storedClauses);
+    const clauseDigest = cachedDigest ?? buildClauseDigestForPrompt(clauseSeed);
 
-    if (needsRefresh && processedContent.trim().length > 0) {
-      try {
-        const clauseJob = await extractClausesWithAI({
-          content: processedContent,
-          contractType: resolvedContractType,
-          filename,
-          maxClauses: 20,
-        });
-        aiDerivedClauses = clauseJob.clauses;
-        if (ingestionRecord && aiDerivedClauses.length) {
-          await persistClauseExtractionsIfMissing(
-            ingestionRecord,
-            aiDerivedClauses,
-            storedClauses,
-          );
-        }
-      } catch (clauseError) {
-        console.warn("⚠️ AI clause extraction unavailable:", {
-          error:
-            clauseError instanceof Error
-              ? clauseError.message
-              : String(clauseError),
-        });
-      }
-    }
-
-    const clauseSeed = mergeClauseCollections(storedClauses, aiDerivedClauses);
-    const clauseDigest =
-      cachedDigest ?? buildClauseDigestForPrompt(clauseSeed);
-
-    if (ingestionRecord && !cachedDigest) {
+    if (ingestionRecord && !cachedDigest && clauseDigest) {
       await persistClauseDigestIfMissing(
         ingestionRecord,
         clauseDigest,
@@ -1443,29 +1410,7 @@ serve(async (req) => {
         clauseDigest,
       });
 
-      const clauseCandidates = mergeClauseCollections(
-        clauseSeed,
-        reasoningResult.report.clauseExtractions ?? [],
-      );
-
-      const enhancedReport = enhanceReportWithClauses(reasoningResult.report, {
-        clauses: clauseCandidates,
-      });
-
-      if (
-        ingestionRecord &&
-        request.ingestionId &&
-        aiDerivedClauses.length &&
-        enhancedReport.clauseExtractions?.length
-      ) {
-        await persistClauseExtractionsIfMissing(
-          ingestionRecord,
-          enhancedReport.clauseExtractions as ClauseExtraction[],
-          storedClauses,
-        );
-      }
-
-      const responsePayload = buildLegacyResponse(enhancedReport, {
+      const responsePayload = buildLegacyResponse(reasoningResult.report, {
         classification: request.classification,
         contractType: resolvedContractType,
         reviewType: request.reviewType,

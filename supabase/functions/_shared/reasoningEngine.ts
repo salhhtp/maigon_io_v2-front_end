@@ -378,7 +378,6 @@ const jsonSchemaFormat = {
       "contractSummary",
       "issuesToAddress",
       "criteriaMet",
-      "clauseFindings",
       "proposedEdits",
       "metadata",
     ],
@@ -701,6 +700,7 @@ function buildSystemPrompt(playbookTitle: string, reviewType: string) {
   return [
     `You are Maigon Counsel, a senior technology contracts attorney tasked with generating a ${reviewType} review.`,
     "Emulate a professional legal memo: be objective, concise, and grounded in industry-standard compliance criteria.",
+    "Use precise legal verbs (shall/must/may/is entitled to/shall not); avoid hedging.",
     "Think through each clause carefully before producing structured output.",
     "Enumerate every issue across all severities (critical, high, medium, low, info); do not prune minor gaps.",
     "Use legal reasoning, cite regulatory frameworks, and flag negotiation levers.",
@@ -764,15 +764,14 @@ function buildUserPrompt(
 }
 
 function buildJsonSchemaDescription() {
-  return `Return JSON with the following sections. Include every item you find; do not cap array lengths, and include lower-severity observations when present:
+  return `Return JSON with the following sections. Include every item you find; do not cap array lengths, and include lower-severity observations when present. Write issues as negotiation-ready actions (risk + requested change + why it matters/market norm), include negotiation levers (what is standard vs. an ask), and provide a concrete clauseReference (heading/section/number). Proposed edits must be paste-ready clauses (full text, definitions/cross-references as needed); set updatedText equal to proposedText (no placeholders like "see proposedText above"). You may offer labeled variants (e.g., "Option A: court" / "Option B: arbitration") where appropriate. Tailor perspective to the primary party and adjust asks accordingly.
 - version: "v3"
 - generatedAt: ISO timestamp
 - generalInformation: { complianceScore (0-100), selectedPerspective, reviewTimeSeconds, timeSavingsMinutes, reportExpiry }
 - contractSummary: { contractName, filename, parties[], agreementDirection, purpose, verbalInformationCovered, contractPeriod, governingLaw, jurisdiction }
 - issuesToAddress: Every issue (include critical, high, medium, low, info) with id, title, severity, recommendation, rationale, and clauseReference { clauseId, heading, excerpt, locationHint }. The excerpt must quote or paraphrase the clause digest entry. If a clause is missing, state "Not present" in excerpt and location.
-- clauseFindings: All clause summaries with clauseId, title, summary, riskLevel, recommendation. Map each finding to a clause digest identifier so the user understands where it lives.
 - proposedEdits: All proposed edits for the uploaded contract, each with id, clauseId, anchorText, proposedText, intent, rationale. Anchor text = original problematic excerpt. Proposed text = fully rewritten clause or paragraph ready to paste into the contract—not a recommendation. Intent must be one of insert|replace|remove.
-- optional fields you MAY include: criteriaMet, metadata, playbookInsights, clauseExtractions, similarityAnalysis, deviationInsights, actionItems, draftMetadata (set to [] if omitted)
+- optional fields you MAY include: criteriaMet, metadata, playbookInsights, clauseExtractions, similarityAnalysis, deviationInsights, actionItems, draftMetadata (set to [] if omitted). Omit clauseFindings and legalBasis unless explicitly requested.
 - Always evaluate the document against the standard compliance checklist in the clause digest/playbook and explicitly call out missing clauses before generic risks.
 - If a value is unknown, set it to a descriptive default like "Not specified", 0, false, or [] but never emit null unless specified.`;
 }
@@ -1043,6 +1042,7 @@ function enforceClauseReferenceSeeds(payload: Record<string, unknown>) {
       `clause-finding-${index + 1}`,
     );
   });
+  payload.clauseFindings = clauseFindings;
 
   const clauseExtractions = Array.isArray(payload.clauseExtractions)
     ? payload.clauseExtractions
