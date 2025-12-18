@@ -444,6 +444,7 @@ const jsonSchemaFormat = {
             "category",
             "tags",
             "clauseReference",
+            "legalBasis",
             "recommendation",
             "rationale",
           ],
@@ -960,6 +961,9 @@ function enforceClauseReferenceSeeds(payload: Record<string, unknown>) {
   issues.forEach((item, index) => {
     if (!item || typeof item !== "object") return;
     const issueRecord = item as Record<string, unknown>;
+    if (!Array.isArray(issueRecord.legalBasis)) {
+      issueRecord.legalBasis = [];
+    }
     const fallbackId = `issue-clause-${index + 1}`;
     const referenceCandidate =
       issueRecord.clauseReference && typeof issueRecord.clauseReference === "object"
