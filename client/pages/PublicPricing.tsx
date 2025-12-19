@@ -240,6 +240,36 @@ export default function PublicPricing() {
     logo: "/maigon-logo_3.png",
   });
 
+  const offers = [
+    paygPlan
+      ? {
+          price: paygPlan.price,
+          priceCurrency: "EUR",
+          url: "/public-pricing",
+        }
+      : null,
+    monthlyPlan
+      ? {
+          price: monthlyPlan.price,
+          priceCurrency: "EUR",
+          url: "/public-pricing",
+        }
+      : null,
+    freeTrialPlan
+      ? {
+          price: freeTrialPlan.price,
+          priceCurrency: "EUR",
+          url: "/public-pricing",
+          availability: "https://schema.org/PreOrder",
+        }
+      : null,
+  ].filter(Boolean) as Array<{
+    price: number | string;
+    priceCurrency: string;
+    url?: string;
+    availability?: string;
+  }>;
+
   const productSchema = buildProductSchema({
     name: "Maigon AI Contract Review Plans",
     description:
@@ -247,6 +277,7 @@ export default function PublicPricing() {
     url: "/public-pricing",
     logo: "/maigon-logo_3.png",
     brand: "Maigon",
+    offers,
   });
 
   // Custom styles for range slider

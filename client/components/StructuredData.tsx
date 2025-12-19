@@ -59,12 +59,20 @@ export function buildProductSchema({
   url,
   logo,
   brand = DEFAULT_SITE_NAME,
+  offers,
 }: {
   name: string;
   description: string;
   url: string;
   logo?: string;
   brand?: string;
+  offers?: Array<{
+    price: number | string;
+    priceCurrency: string;
+    url?: string;
+    availability?: string;
+    itemCondition?: string;
+  }>;
 }) {
   return {
     "@context": "https://schema.org",
@@ -74,6 +82,14 @@ export function buildProductSchema({
     brand,
     url: buildAbsoluteUrl(url),
     image: logo ? buildAbsoluteUrl(logo) : undefined,
+    offers: offers?.map((offer) => ({
+      "@type": "Offer",
+      price: offer.price,
+      priceCurrency: offer.priceCurrency,
+      url: offer.url ? buildAbsoluteUrl(offer.url) : undefined,
+      availability: offer.availability ?? "https://schema.org/InStock",
+      itemCondition: offer.itemCondition ?? "https://schema.org/NewCondition",
+    })),
   };
 }
 
