@@ -90,6 +90,42 @@ export function createServer() {
   app.use("/api/billing", billingRouter);
   app.use("/api/export", exportRouter);
 
+  const siteOrigin =
+    process.env.PUBLIC_SITE_URL ||
+    process.env.PUBLIC_APP_URL ||
+    process.env.APP_ORIGIN ||
+    "http://localhost:5173";
+  const normalizedSiteOrigin = siteOrigin.replace(/\/$/, "");
+
+  app.get("/sitemap.xml", (_req, res) => {
+    const publicPaths = [
+      "/",
+      "/solutions",
+      "/public-pricing",
+      "/news",
+      "/team",
+      "/public-articles/smarter-legal-solutions",
+      "/public-articles/code-to-clause",
+      "/public-articles/llms-and-lawyers",
+      "/public-articles/finding-contract-solution",
+    ];
+
+    const lastMod = new Date().toISOString().split("T")[0];
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${publicPaths
+  .map(
+    (path) => `<url>
+  <loc>${normalizedSiteOrigin}${path}</loc>
+  <lastmod>${lastMod}</lastmod>
+</url>`,
+  )
+  .join("\n")}
+</urlset>`;
+
+    res.header("Content-Type", "application/xml").send(xml);
+  });
+
   if (hasSentry && Sentry.Handlers) {
     app.use(Sentry.Handlers.errorHandler());
   }

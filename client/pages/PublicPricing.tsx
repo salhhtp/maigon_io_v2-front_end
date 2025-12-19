@@ -11,6 +11,12 @@ import {
   type PlanKey,
   type PlanDefinition,
 } from "@shared/plans";
+import { SEO } from "@/components/SEO";
+import {
+  StructuredData,
+  buildOrganizationSchema,
+  buildProductSchema,
+} from "@/components/StructuredData";
 
 const formatCurrency = (value: number) =>
   `€${value.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
@@ -228,6 +234,21 @@ export default function PublicPricing() {
     [],
   );
 
+  const organizationSchema = buildOrganizationSchema({
+    name: "Maigon",
+    url: "/public-pricing",
+    logo: "/maigon-logo_3.png",
+  });
+
+  const productSchema = buildProductSchema({
+    name: "Maigon AI Contract Review Plans",
+    description:
+      "Transparent pricing for AI-powered contract review across GDPR, NDAs, DPAs, and commercial agreements.",
+    url: "/public-pricing",
+    logo: "/maigon-logo_3.png",
+    brand: "Maigon",
+  });
+
   // Custom styles for range slider
   const rangeSliderStyles = `
     .slider-container {
@@ -327,6 +348,13 @@ export default function PublicPricing() {
 
   return (
     <div className="min-h-screen bg-[#F9F8F8]">
+      <SEO
+        title="Maigon Pricing | AI Contract Review Plans"
+        description="Flexible AI contract review pricing for GDPR, NDAs, DPAs, and commercial agreements. Start with a free trial or scale with enterprise plans."
+        canonicalPath="/public-pricing"
+        ogImage="/maigon-logo_3.png"
+      />
+      <StructuredData data={[organizationSchema, productSchema]} />
       <style>{rangeSliderStyles}</style>
       {/* Navigation */}
       <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-8 lg:px-16 py-6 bg-[#F9F8F8]">

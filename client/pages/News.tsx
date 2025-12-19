@@ -7,6 +7,12 @@ import Footer from "@/components/Footer";
 import AnimatedQuotes from "@/components/AnimatedQuotes";
 import CallToActionSection from "@/components/CallToActionSection";
 import MobileNavigation from "@/components/MobileNavigation";
+import { SEO } from "@/components/SEO";
+import {
+  StructuredData,
+  buildBreadcrumbSchema,
+  buildOrganizationSchema,
+} from "@/components/StructuredData";
 
 const NewsCard = ({
   title,
@@ -78,9 +84,26 @@ const FAQItem = ({
 
 export default function News() {
   const location = useLocation();
+  const organizationSchema = buildOrganizationSchema({
+    name: "Maigon",
+    url: "/news",
+    logo: "/maigon-logo_3.png",
+  });
+
+  const breadcrumbSchema = buildBreadcrumbSchema([
+    { name: "Home", url: "/" },
+    { name: "News", url: "/news" },
+  ]);
 
   return (
     <div className="min-h-screen bg-[#F9F8F8]">
+      <SEO
+        title="Maigon News | AI Contract Review Updates"
+        description="Company news, product updates, and insights on AI-driven contract compliance from the Maigon team."
+        canonicalPath="/news"
+        ogImage="/maigon-logo_3.png"
+      />
+      <StructuredData data={[organizationSchema, breadcrumbSchema]} />
       {/* Navigation */}
       <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-8 lg:px-16 py-6 bg-[#F9F8F8]">
         <Link to="/">

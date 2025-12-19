@@ -20,6 +20,13 @@ import PerspectiveReviewMockup from "@/components/mockups/PerspectiveReviewMocku
 import FullSummaryMockup from "@/components/mockups/FullSummaryMockup";
 import RiskAssessmentMockup from "@/components/mockups/RiskAssessmentMockup";
 import AIIntegrationMockup from "@/components/mockups/AIIntegrationMockup";
+import { SEO } from "@/components/SEO";
+import {
+  StructuredData,
+  buildFaqSchema,
+  buildOrganizationSchema,
+  buildProductSchema,
+} from "@/components/StructuredData";
 
 export default function Index() {
   const navigate = useNavigate();
@@ -86,8 +93,33 @@ export default function Index() {
     },
   ];
 
+  const organizationSchema = buildOrganizationSchema({
+    name: "Maigon",
+    url: "/",
+    logo: "/maigon-logo_3.png",
+  });
+
+  const productSchema = buildProductSchema({
+    name: "Maigon AI Contract Review",
+    description:
+      "AI-powered contract review for GDPR, NDAs, DPAs, and commercial agreements with instant compliance insights.",
+    url: "/",
+    logo: "/maigon-logo_3.png",
+    brand: "Maigon",
+  });
+
+  const faqSchema = buildFaqSchema(faqData);
+
   return (
     <div className="min-h-screen bg-[#F9F8F8]">
+      <SEO
+        title="Maigon | AI-Powered Contract Compliance Review"
+        description="AI-driven contract review for GDPR, NDAs, DPAs, and commercial agreements with instant compliance scoring and clause extraction."
+        canonicalPath="/"
+        ogImage="/maigon-logo_3.png"
+      />
+      <StructuredData data={[organizationSchema, productSchema, faqSchema]} />
+
       {/* Navigation */}
       <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 sm:px-8 lg:px-16 py-4 sm:py-6 bg-[#F9F8F8]">
         <Logo size="xl" />

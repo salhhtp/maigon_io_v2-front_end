@@ -3,10 +3,52 @@ import { Link } from "react-router-dom";
 import Logo from "@/components/Logo";
 import Footer from "@/components/Footer";
 import MobileNavigation from "@/components/MobileNavigation";
+import { SEO } from "@/components/SEO";
+import {
+  StructuredData,
+  buildArticleSchema,
+  buildBreadcrumbSchema,
+  buildOrganizationSchema,
+} from "@/components/StructuredData";
 
 export default function PublicFindingContractSolution() {
+  const articleUrl = "/public-articles/finding-contract-solution";
+  const articleImage =
+    "https://api.builder.io/api/v1/image/assets/TEMP/3164f011e907a7bd9e3dabbb1329fa6c8b77a4a5?width=1200";
+
+  const organizationSchema = buildOrganizationSchema({
+    name: "Maigon",
+    url: "/",
+    logo: "/maigon-logo_3.png",
+  });
+
+  const articleSchema = buildArticleSchema({
+    headline: "Finding the Right Contract Review Solution",
+    description:
+      "A practical guide to selecting an AI contract review platform that balances accuracy, speed, and compliance.",
+    url: articleUrl,
+    image: articleImage,
+    datePublished: "2025-02-05",
+    authorName: "Maigon",
+    publisherLogo: "/maigon-logo_3.png",
+  });
+
+  const breadcrumbSchema = buildBreadcrumbSchema([
+    { name: "Home", url: "/" },
+    { name: "Articles", url: "/news" },
+    { name: "Finding the Right Contract Review Solution", url: articleUrl },
+  ]);
+
   return (
     <div className="min-h-screen bg-[#F9F8F8]">
+      <SEO
+        title="Finding the Right Contract Review Solution"
+        description="How to choose an AI contract review solution that improves compliance, reduces risk, and accelerates deal cycles."
+        canonicalPath={articleUrl}
+        ogImage={articleImage}
+        ogType="article"
+      />
+      <StructuredData data={[organizationSchema, breadcrumbSchema, articleSchema]} />
       {/* Navigation - Always Public */}
       <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-8 lg:px-16 py-6 bg-[#F9F8F8]">
         <Link to="/">

@@ -13,6 +13,8 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 import logger from "@/utils/logger";
 import performanceMonitor from "@/utils/performance";
 import { initClientSentry } from "@/lib/sentry";
+import { HelmetProvider } from "react-helmet-async";
+import { SeoDefaults } from "@/components/SeoDefaults";
 import Index from "./pages/Index";
 import RootRedirect from "@/components/RootRedirect";
 import UserHome from "./pages/UserHome";
@@ -87,6 +89,7 @@ const Layout = () => {
 
   return (
     <>
+      <SeoDefaults />
       <ScrollToTop />
       <Outlet />
     </>
@@ -255,17 +258,19 @@ const router = createBrowserRouter([
 ]);
 
 const App = () => (
-  <ErrorBoundary>
-    <QueryClientProvider client={queryClient}>
-      <UserProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <RouterProvider router={router} />
-        </TooltipProvider>
-      </UserProvider>
-    </QueryClientProvider>
-  </ErrorBoundary>
+  <HelmetProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <UserProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <RouterProvider router={router} />
+          </TooltipProvider>
+        </UserProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
+  </HelmetProvider>
 );
 
 const container = document.getElementById("root")!;

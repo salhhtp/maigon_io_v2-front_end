@@ -3,10 +3,52 @@ import { Link } from "react-router-dom";
 import Logo from "@/components/Logo";
 import Footer from "@/components/Footer";
 import MobileNavigation from "@/components/MobileNavigation";
+import { SEO } from "@/components/SEO";
+import {
+  StructuredData,
+  buildArticleSchema,
+  buildBreadcrumbSchema,
+  buildOrganizationSchema,
+} from "@/components/StructuredData";
 
 export default function PublicLLMsAndLawyers() {
+  const articleUrl = "/public-articles/llms-and-lawyers";
+  const articleImage =
+    "https://api.builder.io/api/v1/image/assets/TEMP/e9cc1c073340e0862fe30d5940c137df82b0ee7e?width=1200";
+
+  const organizationSchema = buildOrganizationSchema({
+    name: "Maigon",
+    url: "/",
+    logo: "/maigon-logo_3.png",
+  });
+
+  const articleSchema = buildArticleSchema({
+    headline: "LLMs and Lawyers: Collaboration or Competition?",
+    description:
+      "Exploring how large language models and legal professionals can collaborate for better, faster contract review.",
+    url: articleUrl,
+    image: articleImage,
+    datePublished: "2025-02-10",
+    authorName: "Maigon",
+    publisherLogo: "/maigon-logo_3.png",
+  });
+
+  const breadcrumbSchema = buildBreadcrumbSchema([
+    { name: "Home", url: "/" },
+    { name: "Articles", url: "/news" },
+    { name: "LLMs and Lawyers", url: articleUrl },
+  ]);
+
   return (
     <div className="min-h-screen bg-[#F9F8F8]">
+      <SEO
+        title="LLMs and Lawyers: Collaboration or Competition?"
+        description="How AI-powered language models and legal professionals work together to deliver faster, more accurate contract review."
+        canonicalPath={articleUrl}
+        ogImage={articleImage}
+        ogType="article"
+      />
+      <StructuredData data={[organizationSchema, breadcrumbSchema, articleSchema]} />
       {/* Navigation - Always Public */}
       <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-8 lg:px-16 py-6 bg-[#F9F8F8]">
         <Link to="/">

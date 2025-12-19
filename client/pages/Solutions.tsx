@@ -22,6 +22,14 @@ import Step3Mockup from "@/components/step-mockups/Step3Mockup";
 import Step4Mockup from "@/components/step-mockups/Step4Mockup";
 import Step5Mockup from "@/components/step-mockups/Step5Mockup";
 import Step6Mockup from "@/components/step-mockups/Step6Mockup";
+import { SEO } from "@/components/SEO";
+import {
+  StructuredData,
+  buildFaqSchema,
+  buildHowToSchema,
+  buildOrganizationSchema,
+  buildProductSchema,
+} from "@/components/StructuredData";
 
 const SolutionCard = ({
   title,
@@ -555,6 +563,61 @@ export default function Solutions() {
   const location = useLocation();
   const { isLoggedIn } = useUser();
 
+  const organizationSchema = buildOrganizationSchema({
+    name: "Maigon",
+    url: "/solutions",
+    logo: "/maigon-logo_3.png",
+  });
+
+  const productSchema = buildProductSchema({
+    name: "Maigon AI Contract Review",
+    description:
+      "Contract-type specific AI modules for GDPR, NDAs, DPAs, and commercial agreements with instant risk identification.",
+    url: "/solutions",
+    logo: "/maigon-logo_3.png",
+  });
+
+  const howToSteps = [
+    { name: "Create or log into your Maigon account" },
+    { name: "Choose the solution for your contract type" },
+    { name: "Select the review perspective that matches your role" },
+    { name: "Upload your contract for AI analysis" },
+    { name: "Let Maigon process the document" },
+    { name: "Receive your compliance review and insights" },
+  ];
+
+  const howToSchema = buildHowToSchema({
+    name: "How to review a contract with Maigon",
+    description:
+      "Step-by-step workflow for uploading and reviewing contracts with Maigon's AI modules.",
+    steps: howToSteps,
+  });
+
+  const faqItems = [
+    {
+      question: "How do I get started?",
+      answer:
+        "Getting started is easy! Our solutions are available out-of-the-box. If you are looking for a one-time contract review, simply upload your contract and receive a comprehensive compliance report in just a few clicks. If you have larger volumes of contracts, contact us to create a corporate account and start using our AI review modules right away, streamlining your contract review process with ease.",
+    },
+    {
+      question: "Can I use Maigon without Playbook?",
+      answer:
+        "Yes! Our standard solution is available for use right away, even without Playbook. While Playbook allows for more customization of contract review, adjusted to your specific review guidelines, the standard solution is designed to check for the most important compliance aspects and adherence to best practices. Whether you choose to use Playbook or the standard solution, Maigon provides you with valuable insights every time.",
+    },
+    {
+      question: "Will you use my data for training?",
+      answer:
+        "No, we won't use your data for any other purpose than the intended contract review. We do not use your contract data for AI training or any other service improvements, unless you need us to look into your contract for troubleshooting. You can trust that your data is kept confidential and secure with us.",
+    },
+    {
+      question: "Is API available?",
+      answer:
+        "Yes! We offer an API that can be used by contract platform vendors and companies with internal contract review tools. Our API is tailored to specific contract types and is designed to be both simple to use and comprehensive, providing advanced AI insights into submitted agreements for compliance. To get started with our API, please contact our team.",
+    },
+  ];
+
+  const faqSchema = buildFaqSchema(faqItems);
+
   // Contract types data for the animation component
   const contractTypes = [
     {
@@ -601,6 +664,13 @@ export default function Solutions() {
 
   return (
     <div className="min-h-screen bg-[#F9F8F8]">
+      <SEO
+        title="AI-Powered Contract Review Solutions | Maigon"
+        description="Contract-type specific AI modules for GDPR, NDAs, DPAs, and commercial agreements with instant compliance insights."
+        canonicalPath="/solutions"
+        ogImage="/maigon-logo_3.png"
+      />
+      <StructuredData data={[organizationSchema, productSchema, howToSchema, faqSchema]} />
       {/* Navigation */}
       <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 sm:px-8 lg:px-16 py-4 sm:py-6 bg-[#F9F8F8]">
         <Link to="/">
@@ -1013,22 +1083,9 @@ export default function Solutions() {
         </div>
 
         <div className="space-y-4">
-          <FAQItem
-            question="How do I get started?"
-            answer="Getting started is easy! Our solutions are available out-of-the-box. If you are looking for a one-time contract review, simply upload your contract and receive a comprehensive compliance report in just a few clicks. If you have larger volumes of contracts, contact us to create a corporate account and start using our AI review modules right away, streamlining your contract review process with ease."
-          />
-          <FAQItem
-            question="Can I use Maigon without Playbook ?"
-            answer="Yes! Our standard solution is available for use right away, even without Playbook. While Playbook allows for more customization of contract review, adjusted to your specific review guidelines, the standard solution is designed to check for the most important compliance aspects and adherence to best practices. Whether you choose to use Playbook or the standard solution, Maigon provides you with valuable insights every time."
-          />
-          <FAQItem
-            question="Will you use my data for training ?"
-            answer="No, we won't use your data for any other purpose than the intended contract review. We do not use your contract data for AI training or any other service improvements, unless you need us to look into your contract for troubleshooting. You can trust that your data is kept confidential and secure with us."
-          />
-          <FAQItem
-            question="Is API available ?"
-            answer="Yes! We offer an API that can be used by contract platform vendors and companies with internal contract review tools. Our API is tailored to specific contract types and is designed to be both simple to use and comprehensive, providing advanced AI insights into submitted agreements for compliance. To get started with our API, please contact our team."
-          />
+          {faqItems.map((faq) => (
+            <FAQItem key={faq.question} question={faq.question} answer={faq.answer} />
+          ))}
         </div>
       </section>
 
