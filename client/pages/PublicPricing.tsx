@@ -6,6 +6,7 @@ import { useMemo, useState } from "react";
 import Logo from "@/components/Logo";
 import Footer from "@/components/Footer";
 import MobileNavigation from "@/components/MobileNavigation";
+import { useUser } from "@/contexts/SupabaseUserContext";
 import {
   getPlanByKey,
   type PlanKey,
@@ -217,6 +218,7 @@ const PricingCalculator = ({
 export default function PublicPricing() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { isLoggedIn } = useUser();
   const freeTrialPlan = useMemo<PlanDefinition | undefined>(
     () => getPlanByKey("free_trial"),
     [],
@@ -370,7 +372,15 @@ export default function PublicPricing() {
   `;
 
   const handlePlanSelect = (plan: PlanKey) => {
-    navigate("/demo-login", { state: { selectedPlan: plan } });
+    const planParam = `plan=${plan}`;
+    const redirectParam = "redirect=/pricing";
+
+    if (isLoggedIn) {
+      navigate(`/pricing?${planParam}`, { replace: true });
+      return;
+    }
+
+    navigate(`/signup?${redirectParam}&${planParam}`);
   };
 
   const handleCalculatorSelect = (plan: PlanKey) => {

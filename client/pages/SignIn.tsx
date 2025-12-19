@@ -3,7 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Mail, Lock } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import Logo from "@/components/Logo";
 import { useUser } from "@/contexts/SupabaseUserContext";
@@ -18,6 +18,16 @@ export default function SignIn() {
 
   const { signIn } = useUser();
   const navigate = useNavigate();
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  const redirect = searchParams.get("redirect");
+  const plan = searchParams.get("plan");
+  const signUpParams = new URLSearchParams();
+  if (redirect) signUpParams.set("redirect", redirect);
+  if (plan) signUpParams.set("plan", plan);
+  const signUpHref = signUpParams.toString()
+    ? `/signup?${signUpParams.toString()}`
+    : "/signup";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,7 +42,14 @@ export default function SignIn() {
         if (result.user?.hasTemporaryPassword) {
           navigate("/change-password");
         } else {
-          const target = getDefaultDashboardRoute(result.user ?? null);
+          let target = getDefaultDashboardRoute(result.user ?? null);
+          if (redirect) {
+            const redirectUrl = new URL(redirect, window.location.origin);
+            if (plan) {
+              redirectUrl.searchParams.set("plan", plan);
+            }
+            target = redirectUrl.pathname + redirectUrl.search;
+          }
           navigate(target);
         }
       } else {
@@ -253,7 +270,7 @@ export default function SignIn() {
                 {" "}
               </span>
               <Link
-                to="/signup"
+                to={signUpHref}
                 className="flex w-[115px] h-6 py-[2.5px] justify-center items-center flex-shrink-0 bg-transparent"
               >
                 <span className="flex w-[115px] h-[19px] flex-col justify-center flex-shrink-0 text-[#9A7C7C] text-center font-inter text-sm font-medium leading-6 hover:underline">

@@ -11,6 +11,10 @@ import type {
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 const publicRouter = express.Router();
+const ENTERPRISE_ALERT_WEBHOOK =
+  process.env.ENTERPRISE_ALERT_WEBHOOK ||
+  process.env.SENDGRID_ENTERPRISE_ALERT_WEBHOOK ||
+  "";
 
 type InviteRow = {
   id: string;
@@ -53,6 +57,41 @@ type MemberInviteRow = {
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
+
+publicRouter.post("/enterprise-interest", async (req, res) => {
+  const { email, name, company } = req.body ?? {};
+
+  const normalizedEmail =
+    typeof email === "string" ? email.trim().toLowerCase() : "";
+  if (!normalizedEmail) {
+    return res.status(400).json({ error: "Valid email is required" });
+  }
+
+  const payload = {
+    type: "enterprise_interest",
+    email: normalizedEmail,
+    name: typeof name === "string" ? name.trim() : undefined,
+    company: typeof company === "string" ? company.trim() : undefined,
+    timestamp: new Date().toISOString(),
+  };
+
+  if (ENTERPRISE_ALERT_WEBHOOK) {
+    try {
+      await fetch(ENTERPRISE_ALERT_WEBHOOK, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      return res.json({ ok: true, dispatched: true });
+    } catch (error) {
+      console.error("[public] Failed to dispatch enterprise alert", error);
+      return res.status(500).json({ error: "Failed to dispatch alert" });
+    }
+  }
+
+  console.info("[public] Enterprise interest (no webhook configured)", payload);
+  return res.json({ ok: true, dispatched: false });
+});
 
 function resolvePlanQuota(row: InviteRow) {
   const plan = getPlanByKey(row.plan_key);

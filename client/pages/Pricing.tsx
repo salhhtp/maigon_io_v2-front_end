@@ -8,7 +8,7 @@ import {
   Calculator,
 } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Logo from "@/components/Logo";
 import Footer from "@/components/Footer";
 import MobileNavigation from "@/components/MobileNavigation";
@@ -262,6 +262,9 @@ export default function Pricing() {
     () => getPlanByKey("professional"),
     [],
   );
+  const autoPlanHandled = useRef(false);
+  const enterpriseAlertSent = useRef(false);
+  const [showEnterpriseModal, setShowEnterpriseModal] = useState(false);
   const monthlySavingsLabel = useMemo(() => {
     const savings = 69 * 10 - 590;
     return savings > 0 ? `${formatCurrency(savings)} vs pay-as-you-go` : null;
@@ -356,6 +359,26 @@ export default function Pricing() {
     }
   `;
 
+  const notifyEnterpriseInterest = async () => {
+    if (enterpriseAlertSent.current) return;
+    if (!user?.email) return;
+
+    try {
+      await fetch("/api/public/enterprise-interest", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: user.email,
+          name: `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim() || undefined,
+          company: user.organization?.name ?? user.company ?? undefined,
+        }),
+      });
+      enterpriseAlertSent.current = true;
+    } catch (error) {
+      console.error("Failed to notify enterprise interest", error);
+    }
+  };
+
   const handlePlanSelect = async (planKey: PlanKey) => {
     const plan = getPlanByKey(planKey);
 
@@ -365,7 +388,11 @@ export default function Pricing() {
     }
 
     if (planKey === "professional") {
-      navigate("/demo-login", { state: { selectedPlan: planKey } });
+      await notifyEnterpriseInterest();
+      setShowEnterpriseModal(true);
+      toast.info(
+        "We’ll reach out to tailor an enterprise plan. You can keep using the platform on your current access while we schedule a call.",
+      );
       return;
     }
 
@@ -425,9 +452,53 @@ export default function Pricing() {
     handlePlanSelect(planKey);
   };
 
+  useEffect(() => {
+    if (autoPlanHandled.current) return;
+    if (!isLoggedIn || !user) return;
+
+    const params = new URLSearchParams(location.search);
+    const requestedPlan = params.get("plan") as PlanKey | null;
+    if (!requestedPlan) return;
+
+    if (requestedPlan === "professional") {
+      autoPlanHandled.current = true;
+      notifyEnterpriseInterest();
+      setShowEnterpriseModal(true);
+      return;
+    }
+
+    if (requestedPlan === "free_trial") {
+      autoPlanHandled.current = true;
+      return;
+    }
+
+    autoPlanHandled.current = true;
+    handlePlanSelect(requestedPlan);
+  }, [isLoggedIn, user, location.search]);
+
   return (
     <div className="min-h-screen bg-[#F9F8F8]">
       <style>{rangeSliderStyles}</style>
+      {showEnterpriseModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full p-8 space-y-4 border border-[#271D1D]/10">
+            <h2 className="text-2xl font-medium text-[#271D1D] font-lora">
+              Thanks for your interest in the Enterprise plan
+            </h2>
+            <p className="text-[#4B5563] leading-relaxed">
+              Our team will contact you shortly to schedule a call and tailor a plan to your needs. In the meantime, you can keep exploring the platform with your current access or free trial.
+            </p>
+            <div className="flex justify-end">
+              <Button
+                onClick={() => setShowEnterpriseModal(false)}
+                className="bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white"
+              >
+                Got it
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Navigation */}
       <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-8 lg:px-16 py-6 bg-[#F9F8F8]">
         <Link to={isLoggedIn ? "/dashboard" : "/"}>

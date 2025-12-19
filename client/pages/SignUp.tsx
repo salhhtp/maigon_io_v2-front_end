@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Mail, CheckCircle, AlertCircle } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import Logo from "@/components/Logo";
 import { useUser } from "@/contexts/SupabaseUserContext";
@@ -27,6 +27,16 @@ export default function SignUp() {
 
   const { signUp } = useUser();
   const navigate = useNavigate();
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  const redirect = searchParams.get("redirect") || "";
+  const selectedPlan = searchParams.get("plan") || "";
+  const signInParams = new URLSearchParams();
+  if (redirect) signInParams.set("redirect", redirect);
+  if (selectedPlan) signInParams.set("plan", selectedPlan);
+  const signInHref = signInParams.toString()
+    ? `/signin?${signInParams.toString()}`
+    : "/signin";
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -68,7 +78,7 @@ export default function SignUp() {
 
         // Redirect to sign in page after a delay
         setTimeout(() => {
-          navigate('/signin');
+          navigate(signInHref);
         }, 3000);
       } else {
         setMessage({ type: 'error', text: result.message });
@@ -281,7 +291,7 @@ export default function SignUp() {
               {/* Sign in link */}
               <div className="text-center">
                 <span className="text-[#4B5563] text-sm">Already have an account? </span>
-                <Link to="/signin" className="text-[#9A7C7C] text-sm font-medium hover:underline">
+                <Link to={signInHref} className="text-[#9A7C7C] text-sm font-medium hover:underline">
                   Log in
                 </Link>
               </div>
