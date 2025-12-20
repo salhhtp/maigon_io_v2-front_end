@@ -472,6 +472,9 @@ const buildUser = (
         billingPlan: access.organization.billingPlan,
         role: access.organizationRole ?? null,
         quotas: access.quotas,
+        metadata:
+          (access.organization.metadata as Record<string, unknown> | undefined) ??
+          {},
       }
     : null;
 

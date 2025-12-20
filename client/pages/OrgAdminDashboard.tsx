@@ -39,6 +39,7 @@ import {
   Layers,
   FileText,
   RefreshCw,
+  Target,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import OrgMemberInvitesPanel from "@/components/admin/OrgMemberInvitesPanel";
@@ -48,6 +49,8 @@ import {
   SOLUTION_DISPLAY_NAMES,
   type SolutionKey,
 } from "@/utils/solutionMapping";
+import aiService from "@/services/aiService";
+import type { CustomSolution } from "@shared/api";
 
 const STAT_CARD_CLASSES =
   "flex flex-col gap-2 rounded-xl border border-[#E8DDDD] bg-white p-6 shadow-sm";
@@ -102,6 +105,39 @@ const OrgAdminDashboard: React.FC = () => {
 
   const [memberFilter, setMemberFilter] = useState("");
   const [showAllQuickSolutions, setShowAllQuickSolutions] = useState(false);
+  const [orgCustomSolutions, setOrgCustomSolutions] = useState<CustomSolution[]>([]);
+  const [loadingOrgSolutions, setLoadingOrgSolutions] = useState(false);
+
+  const organizationMetadata = (user?.organization?.metadata ??
+    {}) as Record<string, unknown>;
+  const organizationLogoUrl =
+    typeof organizationMetadata.logoUrl === "string"
+      ? organizationMetadata.logoUrl
+      : null;
+
+  useEffect(() => {
+    if (!authUserId || !organizationId || !canView) {
+      setOrgCustomSolutions([]);
+      return;
+    }
+    setLoadingOrgSolutions(true);
+    aiService
+      .getCustomSolutions(authUserId, organizationId)
+      .then((solutions) => {
+        const filtered = solutions.filter(
+          (solution) =>
+            solution.organizationId === organizationId &&
+            solution.isActive !== false,
+        );
+        setOrgCustomSolutions(filtered);
+      })
+      .catch((err) => {
+        console.warn("[org-admin] failed to load org custom solutions", err);
+      })
+      .finally(() => setLoadingOrgSolutions(false));
+  }, [authUserId, organizationId, canView]);
+  const [orgCustomSolutions, setOrgCustomSolutions] = useState<CustomSolution[]>([]);
+  const [loadingOrgSolutions, setLoadingOrgSolutions] = useState(false);
 
   const overviewQuery = useQuery<OrgOverviewMetrics>({
     queryKey: ["org-overview", organizationId],
@@ -356,16 +392,23 @@ const OrgAdminDashboard: React.FC = () => {
       <main className="flex-1">
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-6 py-10 lg:px-10">
         <div className="flex flex-col gap-2">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <h1 className="text-3xl font-semibold text-[#271D1D]">
-                Organization Insights
-              </h1>
-              <p className="text-sm text-[#6B7280]">
-                {user?.organization?.name ?? "Your organization"}
-                {overview ? " • Updated moments ago" : ""}
-              </p>
-            </div>
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-semibold text-[#271D1D]">
+              Organization Insights
+            </h1>
+            <p className="text-sm text-[#6B7280]">
+              {user?.organization?.name ?? "Your organization"}
+              {overview ? " • Updated moments ago" : ""}
+            </p>
+          </div>
+          {organizationLogoUrl ? (
+            <img
+              src={organizationLogoUrl}
+              alt={`${user?.organization?.name ?? "Organization"} logo`}
+              className="h-12 w-12 object-contain rounded-lg border border-[#E8DDDD] bg-white"
+            />
+          ) : null}
             <div className="flex items-center gap-2">
               <Button
                 variant="outline"
@@ -471,6 +514,73 @@ const OrgAdminDashboard: React.FC = () => {
               </button>
             ))}
           </div>
+        </section>
+
+        <section className="bg-white border border-[#E8DDDD] rounded-2xl p-6 space-y-4 shadow-sm">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-xs uppercase tracking-[0.2em] text-[#9A7C7C]">
+                Custom Solutions
+              </p>
+              <h2 className="text-xl font-lora text-[#271D1D]">
+                Organization-specific playbooks
+              </h2>
+              <p className="text-sm text-[#725A5A]">
+                Launch reviews using your organization’s tailored playbooks.
+              </p>
+            </div>
+            <div className="text-sm text-[#725A5A]">
+              {loadingOrgSolutions
+                ? "Loading..."
+                : orgCustomSolutions.length > 0
+                  ? `${orgCustomSolutions.length} available`
+                  : "None available"}
+            </div>
+          </div>
+          {orgCustomSolutions.length === 0 && !loadingOrgSolutions ? (
+            <div className="border border-dashed border-[#271D1D]/20 rounded-lg py-6 text-center text-sm text-[#725A5A]">
+              No custom solutions available for this organization yet.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              {orgCustomSolutions.map((solution) => (
+                <div
+                  key={solution.id ?? solution.name}
+                  className="flex flex-col justify-between rounded-lg border border-[#271D1D]/10 bg-[#F9F8F8] p-4"
+                >
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-[#271D1D] font-lora">
+                      {solution.name}
+                    </p>
+                    <p className="text-xs text-[#725A5A]">
+                      {solution.contractType || "Custom"} •{" "}
+                      {solution.description?.slice(0, 120) ??
+                        "Organization-specific playbook"}
+                    </p>
+                  </div>
+                  <div className="flex justify-end mt-3">
+                    <Button
+                      size="sm"
+                      className="bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white"
+                      onClick={() =>
+                        navigate("/perspective-selection", {
+                          state: {
+                            solutionTitle: solution.name,
+                            solutionId: solution.id,
+                            solutionKey: solution.contractType ?? "custom",
+                            customSolutionId: solution.id,
+                            quickUpload: true,
+                          },
+                        })
+                      }
+                    >
+                      Launch
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </section>
 
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
