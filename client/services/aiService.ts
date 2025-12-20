@@ -869,10 +869,20 @@ class AIService {
     userId: string,
     organizationId?: string | null,
   ): Promise<CustomSolution[]> {
-    const filters = [`created_by.eq.${userId}`, "is_public.eq.true"];
+    const filters: string[] = [];
+
+    // Always allow creators to fetch their own custom solutions
+    if (userId) {
+      filters.push(`created_by.eq.${userId}`);
+    }
+
+    // Allow org-scoped solutions for the user's organization
     if (organizationId) {
       filters.push(`organization_id.eq.${organizationId}`);
     }
+
+    // Public solutions remain visible
+    filters.push("is_public.eq.true");
 
     const { data, error } = await supabase
       .from("custom_solutions")
@@ -916,6 +926,18 @@ class AIService {
       draftingSettings:
         (item.drafting_settings as CustomSolution["draftingSettings"]) ??
         undefined,
+      isActive:
+        typeof (item as Record<string, unknown>).is_active === "boolean"
+          ? Boolean((item as Record<string, unknown>).is_active)
+          : true,
+      createdBy:
+        typeof (item as Record<string, unknown>).created_by === "string"
+          ? String((item as Record<string, unknown>).created_by)
+          : undefined,
+      isPublic:
+        typeof (item as Record<string, unknown>).is_public === "boolean"
+          ? Boolean((item as Record<string, unknown>).is_public)
+          : undefined,
     }));
   }
 }

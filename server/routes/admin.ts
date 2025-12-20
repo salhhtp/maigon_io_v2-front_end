@@ -783,6 +783,10 @@ async function buildOrganizationSummaries(
       alertPreferences: prefsByOrg.get(org.id) ?? null,
       admins,
       createdAt: org.created_at,
+      metadata:
+        org.metadata && typeof org.metadata === "object"
+          ? (org.metadata as Record<string, unknown>)
+          : {},
     } satisfies AdminOrganizationSummary;
   });
 
@@ -983,6 +987,7 @@ adminRouter.post("/orgs/:id/assign-admin", async (req, res) => {
         first_name: typeof firstName === "string" ? firstName : "",
         last_name: typeof lastName === "string" ? lastName : "",
         role: "user",
+        is_temporary_password: true,
       },
     });
 
@@ -1131,6 +1136,7 @@ adminRouter.post("/users", async (req, res) => {
         last_name: payload.lastName ?? "",
         company: payload.company ?? "",
         role: "user",
+        is_temporary_password: true,
       },
     });
 
@@ -1379,12 +1385,24 @@ adminRouter.post("/users/:id/reset-password", async (req, res) => {
       return;
     }
 
+    const { data: existingAuthUser } = await supabase.auth.admin.getUserById(
+      userId,
+    );
+    const existingMetadata =
+      existingAuthUser?.user?.user_metadata && typeof existingAuthUser.user.user_metadata === "object"
+        ? (existingAuthUser.user.user_metadata as Record<string, unknown>)
+        : {};
+
     const temporaryPassword = generateTemporaryPassword();
     const { error: updateError } = await supabase.auth.admin.updateUserById(
       userId,
       {
         password: temporaryPassword,
         email_confirm: true,
+        user_metadata: {
+          ...existingMetadata,
+          is_temporary_password: true,
+        },
       },
     );
 

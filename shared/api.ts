@@ -402,6 +402,7 @@ export interface AdminOrganizationSummary {
   alertPreferences: OrgAlertPreferences | null;
   admins: OrgAdminProfileSummary[];
   createdAt: string;
+  metadata?: Record<string, unknown>;
 }
 
 export interface UserPlanSummary {

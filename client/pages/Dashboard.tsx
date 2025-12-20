@@ -31,9 +31,11 @@ import type {
   AdminDashboardTimeSeriesPoint,
   AdminDashboardTopUser,
 } from "@shared/api";
+import type { CustomSolution } from "@shared/api";
 import AddUserModal from "@/components/modals/AddUserModal";
 import CustomSolutionModal from "@/components/modals/CustomSolutionModal";
 import { getDefaultDashboardRoute } from "@/utils/navigation";
+import aiService from "@/services/aiService";
 import type { OrganizationSummary } from "@shared/api";
 
 const numberFormatter = new Intl.NumberFormat("en-US", {
@@ -651,6 +653,8 @@ export default function Dashboard() {
   const [addUserModalOpen, setAddUserModalOpen] = useState(false);
   const [customSolutionModalOpen, setCustomSolutionModalOpen] = useState(false);
   const [showAllQuickSolutions, setShowAllQuickSolutions] = useState(false);
+  const [orgCustomSolutions, setOrgCustomSolutions] = useState<CustomSolution[]>([]);
+  const [loadingOrgSolutions, setLoadingOrgSolutions] = useState(false);
 
   const loadAnalytics = useCallback(
     async (options?: { skipSpinner?: boolean }) => {
@@ -685,6 +689,29 @@ export default function Dashboard() {
     if (!user?.authUserId || !user.isMaigonAdmin) return;
     void loadAnalytics();
   }, [user?.authUserId, user?.isMaigonAdmin, loadAnalytics]);
+
+  useEffect(() => {
+    if (!user?.authUserId || !user.organization?.id) {
+      setOrgCustomSolutions([]);
+      return;
+    }
+
+    setLoadingOrgSolutions(true);
+    aiService
+      .getCustomSolutions(user.authUserId, user.organization.id)
+      .then((solutions) => {
+        const filtered = solutions.filter(
+          (solution) =>
+            solution.organizationId === user.organization?.id &&
+            solution.isActive !== false,
+        );
+        setOrgCustomSolutions(filtered);
+      })
+      .catch((err) => {
+        console.warn("[dashboard] failed to load org custom solutions", err);
+      })
+      .finally(() => setLoadingOrgSolutions(false));
+  }, [user?.authUserId, user?.organization?.id]);
 
   const handleUserAdded = useCallback(() => {
     setAddUserModalOpen(false);
@@ -1066,6 +1093,73 @@ export default function Dashboard() {
                 ))}
               </div>
             </section>
+
+            {user?.organization?.id ? (
+              <section className="bg-white border border-[#E8DDDD] rounded-2xl p-6 space-y-4 shadow-sm">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.2em] text-[#9A7C7C]">
+                      Custom Solutions
+                    </p>
+                    <h2 className="text-xl font-lora text-[#271D1D]">
+                      Organization-specific playbooks
+                    </h2>
+                    <p className="text-sm text-[#725A5A]">
+                      Launch reviews using your organization’s tailored playbooks.
+                    </p>
+                  </div>
+                  <div className="text-sm text-[#725A5A]">
+                    {loadingOrgSolutions
+                      ? "Loading..."
+                      : orgCustomSolutions.length > 0
+                        ? `${orgCustomSolutions.length} available`
+                        : "None available"}
+                  </div>
+                </div>
+                {orgCustomSolutions.length === 0 && !loadingOrgSolutions ? (
+                  <EmptyState message="No custom solutions available for this organization yet." />
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                    {orgCustomSolutions.map((solution) => (
+                      <div
+                        key={solution.id ?? solution.name}
+                        className="flex flex-col justify-between rounded-lg border border-[#271D1D]/10 bg-[#F9F8F8] p-4"
+                      >
+                        <div className="space-y-1">
+                          <p className="text-sm font-medium text-[#271D1D] font-lora">
+                            {solution.name}
+                          </p>
+                          <p className="text-xs text-[#725A5A]">
+                            {solution.contractType || "Custom"} •{" "}
+                            {solution.description?.slice(0, 120) ??
+                              "Organization-specific playbook"}
+                          </p>
+                        </div>
+                        <div className="flex justify-end mt-3">
+                          <Button
+                            size="sm"
+                            className="bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white"
+                            onClick={() =>
+                              navigate("/perspective-selection", {
+                                state: {
+                                  solutionTitle: solution.name,
+                                  solutionId: solution.id,
+                                  solutionKey: solution.contractType ?? "custom",
+                                  customSolutionId: solution.id,
+                                  quickUpload: true,
+                                },
+                              })
+                            }
+                          >
+                            Launch
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
+            ) : null}
 
             <section>
               <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">

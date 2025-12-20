@@ -59,8 +59,17 @@ const OrgManagementPanel: React.FC = () => {
   });
 
   const createOrgMutation = useMutation({
-    mutationFn: (payload: CreateOrganizationPayload) =>
-      AdminOrgService.createOrganization(authUserId!, payload),
+    mutationFn: (payload: CreateOrganizationPayload & { logoUrl?: string }) => {
+      const metadata =
+        payload.logoUrl && payload.logoUrl.trim()
+          ? { logoUrl: payload.logoUrl.trim() }
+          : {};
+      const { logoUrl, ...rest } = payload;
+      return AdminOrgService.createOrganization(authUserId!, {
+        ...rest,
+        metadata,
+      });
+    },
     onSuccess: (organization) => {
       toast({
         title: "Organization created",
@@ -361,6 +370,50 @@ const OrgManagementPanel: React.FC = () => {
                       })
                     }
                     placeholder="standard / professional / enterprise"
+                  />
+                </div>
+                <div className="grid gap-3">
+                  <label className="text-xs text-[#6B7280] flex items-center gap-2">
+                    <ImageIcon className="h-4 w-4 text-[#9A7C7C]" />
+                    Logo URL (optional)
+                  </label>
+                  <Input
+                    value={
+                      (updateForm.metadata as Record<string, unknown> | undefined)?.logoUrl
+                        ? String(
+                            (updateForm.metadata as Record<string, unknown>).logoUrl ?? "",
+                          )
+                        : (selectedOrg.metadata as Record<string, unknown> | undefined)
+                            ?.logoUrl
+                          ? String(
+                              (selectedOrg.metadata as Record<string, unknown>).logoUrl ?? "",
+                            )
+                          : ""
+                    }
+                    onChange={(event) =>
+                      setUpdateForm((prev) => {
+                        const next = { ...prev };
+                        const logo = event.target.value.trim();
+                        const baseMetadata =
+                          (prev.metadata as Record<string, unknown> | undefined) ??
+                          ((selectedOrg.metadata as Record<string, unknown>) ?? {});
+                        if (!logo) {
+                          // If nothing is set and no existing logo, drop metadata update
+                          if (baseMetadata.logoUrl) {
+                            next.metadata = { ...baseMetadata, logoUrl: "" };
+                          } else {
+                            if (next.metadata) delete (next.metadata as any).logoUrl;
+                            if (next.metadata && Object.keys(next.metadata).length === 0) {
+                              delete next.metadata;
+                            }
+                          }
+                        } else {
+                          next.metadata = { ...baseMetadata, logoUrl: logo };
+                        }
+                        return next;
+                      })
+                    }
+                    placeholder="https://..."
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
