@@ -136,8 +136,6 @@ const OrgAdminDashboard: React.FC = () => {
       })
       .finally(() => setLoadingOrgSolutions(false));
   }, [authUserId, organizationId, canView]);
-  const [orgCustomSolutions, setOrgCustomSolutions] = useState<CustomSolution[]>([]);
-  const [loadingOrgSolutions, setLoadingOrgSolutions] = useState(false);
 
   const overviewQuery = useQuery<OrgOverviewMetrics>({
     queryKey: ["org-overview", organizationId],
