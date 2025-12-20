@@ -2899,7 +2899,15 @@ const heroNavItems: { id: string; label: string }[] = [
               Back to Solutions
             </button>
             <div className="text-gray-300">|</div>
-            <Logo />
+            {organizationLogoUrl ? (
+              <img
+                src={organizationLogoUrl}
+                alt={`${user?.organization?.name ?? "Organization"} logo`}
+                className="h-8 w-auto max-w-[140px] object-contain"
+              />
+            ) : (
+              <Logo />
+            )}
           </div>
 
           <div className="flex items-center gap-3">
