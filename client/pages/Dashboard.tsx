@@ -431,20 +431,6 @@ function TopUsersTable({ users }: { users: AdminDashboardTopUser[] }) {
 }
 
 function SolutionsList({ solutions }: { solutions: SolutionSummary[] }) {
-  const navigate = useNavigate();
-
-  const handleLaunch = (solution: SolutionSummary) => {
-    navigate("/perspective-selection", {
-      state: {
-        solutionTitle: solution.name,
-        solutionId: solution.id,
-        solutionKey: solution.contractType ?? "custom",
-        customSolutionId: solution.id,
-        quickUpload: true,
-      },
-    });
-  };
-
   return (
     <div className="bg-white border border-[#271D1D]/10 rounded-xl p-5 sm:p-6 space-y-4">
       <div className="flex items-center gap-3">
@@ -474,27 +460,17 @@ function SolutionsList({ solutions }: { solutions: SolutionSummary[] }) {
                   {formatDateLabel(solution.lastUpdated?.slice(0, 10) ?? "")}
                 </p>
               </div>
-              <div className="text-right flex flex-col items-end gap-2">
-                <div>
-                  <p className="text-sm font-semibold text-[#271D1D]">
-                    {formatNumber(solution.usageCount)} uses
-                  </p>
-                  <p
-                    className={`text-xs font-medium ${
-                      solution.isActive ? "text-green-600" : "text-[#725A5A]"
-                    }`}
-                  >
-                    {solution.isActive ? "Active" : "Inactive"}
-                  </p>
-                </div>
-                <Button
-                  size="sm"
-                  className="bg-[#9A7C7C] hover:bg-[#9A7C7C]/90 text-white"
-                  disabled={!solution.isActive}
-                  onClick={() => handleLaunch(solution)}
+              <div className="text-right">
+                <p className="text-sm font-semibold text-[#271D1D]">
+                  {formatNumber(solution.usageCount)} uses
+                </p>
+                <p
+                  className={`text-xs font-medium ${
+                    solution.isActive ? "text-green-600" : "text-[#725A5A]"
+                  }`}
                 >
-                  Launch
-                </Button>
+                  {solution.isActive ? "Active" : "Inactive"}
+                </p>
               </div>
             </div>
           ))}
