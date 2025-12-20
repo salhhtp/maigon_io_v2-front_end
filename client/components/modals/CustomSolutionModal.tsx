@@ -238,7 +238,10 @@ export default function CustomSolutionModal({
     AdminOrgService.listOrganizations(user.authUserId)
       .then((orgs) =>
         orgs
-          .filter((org) => org.billingPlan === "professional")
+          .filter((org) => {
+            const plan = org.billingPlan?.toLowerCase().trim();
+            return plan === "professional" || plan === "enterprise";
+          })
           .sort((a, b) => a.name.localeCompare(b.name)),
       )
       .then((enterpriseOrgs) => {
