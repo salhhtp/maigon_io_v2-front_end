@@ -51,6 +51,7 @@ interface NewOrganizationInput {
   billingPlan?: string;
   seatsLimit?: number;
   documentsLimit?: number;
+  logoUrl?: string;
   makeOrgAdmin?: boolean;
 }
 
@@ -97,6 +98,7 @@ interface CreateInvitePayload {
     billingPlan?: string;
     seatsLimit?: number;
     documentsLimit?: number;
+    logoUrl?: string;
   };
   makeOrgAdmin?: boolean;
   sendEmail?: boolean;
@@ -541,6 +543,9 @@ adminRouter.post(
             prospectEmail: normalizedEmail,
             prospectCompany: payload.prospectCompany ?? null,
           },
+          ...(newOrgInput.logoUrl
+            ? { logoUrl: newOrgInput.logoUrl.trim() }
+            : {}),
         };
 
         const createdOrg = await supabase

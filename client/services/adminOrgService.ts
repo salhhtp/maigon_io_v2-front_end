@@ -10,6 +10,7 @@ interface CreateOrganizationPayload {
   billingPlan?: string;
   seatsLimit?: number;
   documentsLimit?: number;
+  logoUrl?: string;
   metadata?: Record<string, unknown>;
 }
 

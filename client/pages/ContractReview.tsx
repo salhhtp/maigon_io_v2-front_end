@@ -1064,6 +1064,12 @@ export default function ContractReview() {
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
+  const organizationMetadata = (user?.organization?.metadata ??
+    {}) as Record<string, unknown>;
+  const organizationLogoUrl =
+    typeof organizationMetadata.logoUrl === "string"
+      ? organizationMetadata.logoUrl
+      : null;
   const storedPayload = useMemo<ContractReviewPayload | null>(() => {
     if (typeof window === "undefined") return null;
     try {
@@ -3050,11 +3056,19 @@ const heroNavItems: { id: string; label: string }[] = [
                 </div>
               </div>
 
-              <div className="text-right">
-                <div className="text-[#725A5A] font-lora text-xl font-medium mb-1">
-                  MAIGON
-                </div>
-                <div className="text-xs text-gray-500">
+              <div className="text-right flex flex-col items-end gap-2">
+                {organizationLogoUrl ? (
+                  <img
+                    src={organizationLogoUrl}
+                    alt={`${user?.organization?.name ?? "Organization"} logo`}
+                    className="h-12 w-12 object-contain rounded-lg border border-[#E8DDDD] bg-white"
+                  />
+                ) : (
+                  <div className="text-[#725A5A] font-lora text-xl font-medium">
+                    {user?.organization?.name ?? "MAIGON"}
+                  </div>
+                )}
+                <div className="text-xs text-gray-500 text-right">
                   AI-Powered Contract Analysis
                 </div>
               </div>

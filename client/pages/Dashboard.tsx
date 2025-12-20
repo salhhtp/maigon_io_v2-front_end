@@ -34,6 +34,7 @@ import type {
 import AddUserModal from "@/components/modals/AddUserModal";
 import CustomSolutionModal from "@/components/modals/CustomSolutionModal";
 import { getDefaultDashboardRoute } from "@/utils/navigation";
+import type { OrganizationSummary } from "@shared/api";
 
 const numberFormatter = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 0,
@@ -823,6 +824,12 @@ export default function Dashboard() {
     return null;
   }
   const showSignInPrompt = !authLoading && !user;
+  const organizationMetadata = (user?.organization?.metadata ??
+    {}) as Record<string, unknown>;
+  const organizationLogoUrl =
+    typeof organizationMetadata.logoUrl === "string"
+      ? organizationMetadata.logoUrl
+      : null;
 
   return (
     <div className="min-h-screen bg-[#F9F8F8] flex flex-col">
@@ -831,6 +838,21 @@ export default function Dashboard() {
           <Link to="/home" className="focus:outline-none focus:ring-2 focus:ring-[#9A7C7C] rounded">
             <Logo size="xl" />
           </Link>
+          {user?.organization?.name && (
+            <div className="flex items-center gap-3">
+              {organizationLogoUrl ? (
+                <img
+                  src={organizationLogoUrl}
+                  alt={`${user.organization.name} logo`}
+                  className="h-10 w-10 rounded-lg object-contain border border-[#E8DDDD] bg-white"
+                />
+              ) : null}
+              <div className="leading-tight">
+                <p className="text-xs uppercase tracking-[0.2em] text-[#725A5A]">Organization</p>
+                <p className="text-sm font-medium text-[#271D1D]">{user.organization.name}</p>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="md:hidden">

@@ -25,13 +25,14 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/components/ui/use-toast";
-import { RefreshCw, AlertTriangle, Building2, UserPlus, Settings } from "lucide-react";
+import { RefreshCw, AlertTriangle, Building2, UserPlus, Settings, Image as ImageIcon } from "lucide-react";
 
-const emptyOrgForm: CreateOrganizationPayload = {
+const emptyOrgForm: CreateOrganizationPayload & { logoUrl?: string } = {
   name: "",
   billingPlan: "standard",
   seatsLimit: 10,
   documentsLimit: 1000,
+  logoUrl: "",
 };
 
 const OrgManagementPanel: React.FC = () => {
@@ -289,6 +290,19 @@ const OrgManagementPanel: React.FC = () => {
                   }
                 />
               </div>
+            </div>
+            <div className="grid gap-3">
+              <label className="text-xs text-[#6B7280] flex items-center gap-2">
+                <ImageIcon className="h-4 w-4 text-[#9A7C7C]" />
+                Logo URL (optional)
+              </label>
+              <Input
+                value={orgForm.logoUrl ?? ""}
+                onChange={(event) =>
+                  setOrgForm((prev) => ({ ...prev, logoUrl: event.target.value }))
+                }
+                placeholder="https://..."
+              />
             </div>
             <Button
               onClick={() => createOrgMutation.mutate(orgForm)}
