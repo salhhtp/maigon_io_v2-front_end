@@ -344,6 +344,25 @@ const OrgManagementPanel: React.FC = () => {
             </div>
             {selectedOrg ? (
               <div className="space-y-3">
+                <div className="grid gap-3">
+                  <label className="text-xs text-[#6B7280]">Billing Plan</label>
+                  <Input
+                    value={updateForm.billingPlan ?? selectedOrg.billingPlan ?? ""}
+                    onChange={(event) =>
+                      setUpdateForm((prev) => {
+                        const next = { ...prev };
+                        const value = event.target.value;
+                        if (!value || value === selectedOrg.billingPlan) {
+                          delete next.billingPlan;
+                        } else {
+                          next.billingPlan = value;
+                        }
+                        return next;
+                      })
+                    }
+                    placeholder="standard / professional / enterprise"
+                  />
+                </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-2">
                     <label className="text-xs text-[#6B7280]">Seat Limit</label>
