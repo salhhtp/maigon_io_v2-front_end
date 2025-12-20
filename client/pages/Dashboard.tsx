@@ -863,7 +863,15 @@ export default function Dashboard() {
       <header className="flex items-center justify-between px-6 lg:px-16 py-6 border-b border-[#E8DDDD] bg-white">
         <div className="flex items-center gap-6">
           <Link to="/home" className="focus:outline-none focus:ring-2 focus:ring-[#9A7C7C] rounded">
-            <Logo size="xl" />
+            {organizationLogoUrl ? (
+              <img
+                src={organizationLogoUrl}
+                alt={`${user?.organization?.name ?? "Organization"} logo`}
+                className="h-10 w-auto max-w-[160px] object-contain"
+              />
+            ) : (
+              <Logo size="xl" />
+            )}
           </Link>
           {user?.organization?.name && (
             <div className="flex items-center gap-3">

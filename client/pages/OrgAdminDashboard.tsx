@@ -348,7 +348,15 @@ const OrgAdminDashboard: React.FC = () => {
           to="/home"
           className="focus:outline-none focus:ring-2 focus:ring-[#9A7C7C] rounded"
         >
-          <Logo size="xl" />
+          {organizationLogoUrl ? (
+            <img
+              src={organizationLogoUrl}
+              alt={`${user?.organization?.name ?? "Organization"} logo`}
+              className="h-10 w-auto max-w-[160px] object-contain"
+            />
+          ) : (
+            <Logo size="xl" />
+          )}
         </Link>
         <div className="md:hidden">
           <MobileNavigation
