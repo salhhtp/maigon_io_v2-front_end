@@ -1408,6 +1408,7 @@ serve(async (req) => {
         ingestionId: request.ingestionId,
         modelTier,
         clauseDigest,
+        clauseExtractions: clauseSeed,
       });
 
       const responsePayload = buildLegacyResponse(reasoningResult.report, {

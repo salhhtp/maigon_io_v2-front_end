@@ -2,10 +2,12 @@ import {
   resolvePlaybook,
   type PlaybookKey,
   type ContractPlaybook,
+  CONTRACT_PLAYBOOKS,
 } from "./playbooks.ts";
 import {
   validateAnalysisReport,
   type AnalysisReport,
+  type ClauseExtraction,
 } from "./reviewSchema.ts";
 import { enhanceReportWithClauses } from "./clauseExtraction.ts";
 import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
@@ -563,6 +565,12 @@ const MAX_OUTPUT_TOKENS =
   Number.isFinite(parsedMaxOutput) && parsedMaxOutput > 0
     ? parsedMaxOutput
     : null;
+const DEFAULT_REQUEST_TIMEOUT_MS = 120000;
+const parsedTimeout = Number(Deno.env.get("OPENAI_REASONING_TIMEOUT_MS"));
+const REQUEST_TIMEOUT_MS =
+  Number.isFinite(parsedTimeout) && parsedTimeout > 0
+    ? parsedTimeout
+    : DEFAULT_REQUEST_TIMEOUT_MS;
 const SKIP_ENHANCEMENTS = (() => {
   const raw = (Deno.env.get("OPENAI_REASONING_SKIP_ENHANCEMENTS") ?? "1")
     .toLowerCase()
@@ -596,6 +604,7 @@ interface ReasoningContext {
     total: number;
     categoryCounts?: Record<string, number>;
   } | null;
+  clauseExtractions?: ClauseExtraction[] | null;
 }
 
 interface ReasoningResult {
@@ -1295,6 +1304,62 @@ function evaluatePlaybookCoverage(
   };
 }
 
+type ScoreBreakdown = {
+  issuePenalty: number;
+  criteriaPenalty: number;
+  coveragePenalty: number;
+  issuesBySeverity: Record<string, number>;
+};
+
+function computeRuleBasedScore(
+  report: AnalysisReport,
+  playbook: ContractPlaybook | null,
+): {
+  score: number;
+  coverage: PlaybookCoverageSummary | null;
+  breakdown: ScoreBreakdown;
+} {
+  const severityWeights: Record<string, number> = {
+    critical: 18,
+    high: 12,
+    medium: 7,
+    low: 3,
+    info: 1,
+  };
+
+  const issuesBySeverity: Record<string, number> = {};
+  const issuePenalty = report.issuesToAddress.reduce((sum, issue) => {
+    const severity = issue.severity?.toLowerCase() ?? "medium";
+    issuesBySeverity[severity] = (issuesBySeverity[severity] ?? 0) + 1;
+    return sum + (severityWeights[severity] ?? 6);
+  }, 0);
+
+  const unmetCriteria = report.criteriaMet.filter((criterion) => !criterion.met)
+    .length;
+  const criteriaPenalty = unmetCriteria * 4;
+
+  let coveragePenalty = 0;
+  let coverage: PlaybookCoverageSummary | null = null;
+  if (playbook) {
+    coverage = evaluatePlaybookCoverage(report, playbook);
+    coveragePenalty = Math.round((1 - coverage.coverageScore) * 30);
+  }
+
+  const rawScore = 100 - issuePenalty - criteriaPenalty - coveragePenalty;
+  const score = Math.max(0, Math.min(100, Math.round(rawScore)));
+
+  return {
+    score,
+    coverage,
+    breakdown: {
+      issuePenalty,
+      criteriaPenalty,
+      coveragePenalty,
+      issuesBySeverity,
+    },
+  };
+}
+
 function buildEnhancementPrompt(
   context: ReasoningContext,
   report: AnalysisReport,
@@ -1781,11 +1846,25 @@ export async function runReasoningAnalysis(
 
   const tier = FORCED_MODEL_TIER ?? context.modelTier ?? DEFAULT_MODEL_TIER;
   const model = resolveModelId(tier);
+  const normalizedSolutionKey =
+    (context.selectedSolution?.key ?? context.selectedSolution?.id ?? "")
+      .toString()
+      .toLowerCase();
   const playbookKey = normaliseSolutionKey(
-    context.selectedSolution?.key ?? context.selectedSolution?.id,
+    normalizedSolutionKey || context.classification?.contractType,
     context.classification?.contractType,
   );
   const playbook = resolvePlaybook(playbookKey);
+  const matchesKnownPlaybook = Object.values(CONTRACT_PLAYBOOKS).some(
+    (candidate) =>
+      candidate.key === normalizedSolutionKey ||
+      candidate.displayName.toLowerCase() === normalizedSolutionKey ||
+      candidate.key === playbookKey,
+  );
+  const hasCustomSolution = Boolean(
+    context.selectedSolution?.id && !matchesKnownPlaybook,
+  );
+  const usePlaybookCoverage = !hasCustomSolution;
 
   const systemPrompt = buildSystemPrompt(playbook.displayName, context.reviewType);
   const userPrompt = `${buildUserPrompt(context, playbook)}\n\n${buildJsonSchemaDescription()}`;
@@ -1805,6 +1884,7 @@ export async function runReasoningAnalysis(
     text: {
       format: jsonSchemaFormat,
     },
+    max_output_tokens: MAX_OUTPUT_TOKENS ?? undefined,
   });
 
   let lastError: unknown = null;
@@ -1816,14 +1896,22 @@ export async function runReasoningAnalysis(
     const attemptPrompt = userPrompt;
     const requestPayload = buildRequestPayload(attemptPrompt);
 
-    const response = await fetch(OPENAI_RESPONSES_API_BASE, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${OPENAI_API_KEY}`,
-      },
-      body: JSON.stringify(requestPayload),
-    });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+    let response: Response;
+    try {
+      response = await fetch(OPENAI_RESPONSES_API_BASE, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${OPENAI_API_KEY}`,
+        },
+        body: JSON.stringify(requestPayload),
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timeoutId);
+    }
 
     if (!response.ok) {
       const errorBody = await response.text();
@@ -1952,13 +2040,32 @@ export async function runReasoningAnalysis(
     reason: enhancementReason,
   });
   const clauseAlignedReport = enhanceReportWithClauses(finalReport, {
+    clauses: context.clauseExtractions ?? null,
     content: context.content,
-    contractType:
-      context.classification?.contractType ?? playbookKey ?? "general_contract",
   });
 
+  const scoringResult = computeRuleBasedScore(
+    clauseAlignedReport,
+    usePlaybookCoverage ? playbook : null,
+  );
+  const scoredReport: AnalysisReport = {
+    ...clauseAlignedReport,
+    generalInformation: {
+      ...clauseAlignedReport.generalInformation,
+      complianceScore: scoringResult.score,
+    },
+    metadata: {
+      ...clauseAlignedReport.metadata,
+      playbookCoverage:
+        scoringResult.coverage ??
+        clauseAlignedReport.metadata?.playbookCoverage,
+      scoreSource: "rule_based",
+      scoreBreakdown: scoringResult.breakdown,
+    } as AnalysisReport["metadata"],
+  };
+
   return {
-    report: clauseAlignedReport,
+    report: scoredReport,
     raw: {
       stageOne: corePayload,
       stageTwo: enhancementRaw,
