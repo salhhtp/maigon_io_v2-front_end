@@ -75,9 +75,9 @@ export async function generatePdfFromHtml(html: string): Promise<Buffer | null> 
 
   try {
     await fs.writeFile(htmlPath, html, "utf8");
-    const input = PDFServicesSdk.FileRef.createFromLocalFile(
+    const input = sdk.FileRef.createFromLocalFile(
       htmlPath,
-      PDFServicesSdk.CreatePDF.SupportedSourceFormat.html,
+      sdk.CreatePDF.SupportedSourceFormat.html,
     );
     createPdfOperation.setInput(input);
 

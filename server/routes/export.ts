@@ -505,6 +505,24 @@ exportRouter.post("/pdf", jsonParser, async (req, res) => {
         return;
       }
 
+      if (process.env.CLOUDCONVERT_API_KEY) {
+        const converted = await convertDocument({
+          buffer: Buffer.from(effectiveHtml, "utf8"),
+          fileName: `draft-${Date.now()}.html`,
+          inputFormat: "html",
+          outputFormat: "pdf",
+        });
+        if (converted) {
+          res.setHeader("Content-Type", "application/pdf");
+          res.setHeader(
+            "Content-Disposition",
+            'attachment; filename="contract.pdf"',
+          );
+          res.status(200).send(converted);
+          return;
+        }
+      }
+
       try {
         const htmlPdf = await loadHtmlPdf();
         const buffer = await htmlPdf.generatePdf(

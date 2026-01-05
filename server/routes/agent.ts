@@ -654,6 +654,53 @@ function normalizeDraftResponse(
   }
 }
 
+function isMissingPlaceholder(value: string) {
+  const normalized = value.trim().toLowerCase();
+  if (!normalized) return true;
+  return (
+    normalized === "not present" ||
+    normalized === "missing" ||
+    normalized === "n/a" ||
+    /\bnot\s+present\b/.test(normalized) ||
+    /\bmissing\b/.test(normalized) ||
+    /\bnot\s+found\b/.test(normalized)
+  );
+}
+
+function inferSuggestionChangeType(options: {
+  proposedText?: string | null;
+  previousText?: string | null;
+  anchorText?: string | null;
+  intent?: string | null;
+}) {
+  const proposedText = (options.proposedText ?? "").trim();
+  const previousText = (options.previousText ?? "").trim();
+  const anchorText = (options.anchorText ?? "").trim();
+  const intent = (options.intent ?? "").toLowerCase();
+
+  if (!proposedText) {
+    return "remove";
+  }
+
+  if (intent.includes("remove") || intent.includes("delete")) {
+    return "remove";
+  }
+
+  if (
+    intent.includes("insert") ||
+    intent.includes("add") ||
+    intent.includes("include")
+  ) {
+    return "insert";
+  }
+
+  if (isMissingPlaceholder(previousText) || isMissingPlaceholder(anchorText)) {
+    return "insert";
+  }
+
+  return "modify";
+}
+
 function applyEditsToPlainText(
   original: string,
   edits: AgentDraftEdit[],
@@ -661,15 +708,36 @@ function applyEditsToPlainText(
   let output = original;
 
   for (const edit of edits) {
+    const changeType = (edit.changeType || "modify").toLowerCase();
     const suggestion = (edit.suggestedText || "").trim();
     const originalText = (edit.originalText || "").trim();
-    if (!suggestion || !originalText) {
+    const escaped = originalText.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const flexibleWhitespace = escaped.replace(/\s+/g, "\\s+");
+    const pattern = flexibleWhitespace
+      ? new RegExp(flexibleWhitespace, "i")
+      : null;
+
+    if (changeType === "insert") {
+      if (!suggestion) continue;
+      if (pattern && pattern.test(output)) {
+        output = output.replace(pattern, (match) => `${match}\n\n${suggestion}`);
+        continue;
+      }
+      output = `${output.trim()}\n\n${suggestion}`;
       continue;
     }
 
-    const escaped = originalText.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const flexibleWhitespace = escaped.replace(/\s+/g, "\\s+");
-    const pattern = new RegExp(flexibleWhitespace, "i");
+    if (changeType === "remove") {
+      if (!pattern || !originalText) continue;
+      if (pattern.test(output)) {
+        output = output.replace(pattern, "").replace(/\n{3,}/g, "\n\n");
+      }
+      continue;
+    }
+
+    if (!suggestion || !originalText || !pattern) {
+      continue;
+    }
 
     if (pattern.test(output)) {
       output = output.replace(pattern, suggestion);
@@ -1239,15 +1307,33 @@ async function composeDraft(
       if (!suggestedText.trim()) {
         return null;
       }
+      const changeType = inferSuggestionChangeType({
+        proposedText: proposed.updatedText ?? proposed.proposedText ?? null,
+        previousText: proposed.previousText ?? null,
+        anchorText: proposed.anchorText ?? null,
+      });
+      const anchorIsPlaceholder = isMissingPlaceholder(
+        proposed.previousText ?? proposed.anchorText ?? "",
+      );
+      const clauseReference =
+        changeType === "insert"
+          ? proposed.clauseTitle ??
+            proposed.clauseId ??
+            (anchorIsPlaceholder ? null : proposed.anchorText) ??
+            null
+          : proposed.clauseTitle ??
+            proposed.clauseId ??
+            proposed.anchorText ??
+            null;
+      const originalText =
+        changeType === "insert" && anchorIsPlaceholder
+          ? null
+          : proposed.previousText ?? proposed.anchorText ?? null;
       return {
         id: item.id,
-        clauseReference:
-          proposed.clauseTitle ??
-          proposed.clauseId ??
-          proposed.anchorText ??
-          null,
-        changeType: "modify",
-        originalText: proposed.previousText ?? proposed.anchorText ?? null,
+        clauseReference,
+        changeType,
+        originalText,
         suggestedText,
         rationale: item.description,
       } satisfies AgentDraftEdit;
@@ -1503,6 +1589,7 @@ async function composeDraft(
         : undefined;
   let patchedResult: Awaited<ReturnType<typeof buildPatchedHtmlDraft>> | null =
     null;
+  let shouldUsePatched = false;
 
   if (htmlPackageRef && (combinedEdits.length > 0 || updatedPlainText)) {
     try {
@@ -1513,9 +1600,6 @@ async function composeDraft(
         agentEdits: combinedEdits,
         updatedPlainText,
       });
-      if (patchedResult?.html) {
-        htmlSource = "patched";
-      }
     } catch (patchError) {
       console.warn("[agent] Failed to patch HTML package", {
         contractId: body.contractId,
@@ -1537,19 +1621,30 @@ async function composeDraft(
     );
     if (inMemoryPatch) {
       patchedResult = inMemoryPatch;
-      if (inMemoryPatch.matchedEdits.length > 0) {
-        htmlSource = "patched";
-      }
+    }
+  }
+
+  if (patchedResult) {
+    const normalizedOriginal = contractContent.replace(/\s+/g, " ").trim();
+    const normalizedPatched = (patchedResult.plainText ?? "")
+      .replace(/\s+/g, " ")
+      .trim();
+    const patchedHasMatches = (patchedResult.matchedEdits ?? []).length > 0;
+    const patchedHasChanges =
+      normalizedPatched.length > 0 && normalizedPatched !== normalizedOriginal;
+    shouldUsePatched = patchedHasMatches || patchedHasChanges;
+    if (shouldUsePatched) {
+      htmlSource = "patched";
     }
   }
 
   const updatedHtml =
-    patchedResult?.html ??
+    (shouldUsePatched ? patchedResult?.html : null) ??
     normalized.updatedHtml ??
     baseHtml ??
     undefined;
   const updatedContractText =
-    patchedResult?.plainText ??
+    (shouldUsePatched ? patchedResult?.plainText : null) ??
     updatedPlainText ??
     contractContent;
 
@@ -1560,14 +1655,14 @@ async function composeDraft(
     plainText: updatedContractText ?? null,
     summary: normalized.summary ?? null,
     appliedChanges: normalized.appliedChanges ?? [],
-    assetRef: patchedResult?.assetRef ?? null,
+    assetRef: shouldUsePatched ? patchedResult?.assetRef ?? null : null,
     provider,
     model,
     metadata: {
       suggestionIds: suggestions.map((item) => item.id),
       cacheSource: htmlSource ?? "fallback",
-      matchedEdits: patchedResult?.matchedEdits ?? [],
-      unmatchedEdits: patchedResult?.unmatchedEdits ?? [],
+      matchedEdits: shouldUsePatched ? patchedResult?.matchedEdits ?? [] : [],
+      unmatchedEdits: shouldUsePatched ? patchedResult?.unmatchedEdits ?? [] : [],
     },
   });
 
@@ -1584,7 +1679,9 @@ async function composeDraft(
     originalContract: contractContent,
     originalHtml: baseHtml ?? undefined,
     draftId: snapshot?.id ?? null,
-    assetRef: snapshot?.assetRef ?? patchedResult?.assetRef ?? null,
+    assetRef:
+      snapshot?.assetRef ??
+      (shouldUsePatched ? patchedResult?.assetRef ?? null : null),
     htmlSource,
     cacheStatus: "miss",
   };

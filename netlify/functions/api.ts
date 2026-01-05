@@ -7,4 +7,13 @@ export const config = {
   nodeModuleFormat: "esm" as const,
 };
 
-export const handler = serverless(createServer());
+const binaryTypes = [
+  "application/pdf",
+  "application/octet-stream",
+  "application/zip",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+];
+
+export const handler = serverless(createServer(), {
+  binary: binaryTypes,
+});

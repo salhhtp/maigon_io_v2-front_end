@@ -11,6 +11,7 @@
 [functions]
   external_node_modules = ["express", "pdf-parse"]
   node_bundler = "esbuild"
+  included_files = ["netlify/functions/data/*"]
 
 [functions.api]
   node_bundler = "esbuild"
