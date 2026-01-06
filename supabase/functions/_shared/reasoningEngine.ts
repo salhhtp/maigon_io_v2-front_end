@@ -655,6 +655,16 @@ class ReasoningIncompleteError extends Error {
   }
 }
 
+function isAbortError(error: unknown) {
+  if (error instanceof DOMException && error.name === "AbortError") {
+    return true;
+  }
+  if (error instanceof Error) {
+    return /aborted|abort/i.test(error.message);
+  }
+  return false;
+}
+
 function resolveModelId(tier: ModelTier) {
   const entry = MODEL_CATALOG[tier];
   const envValue = Deno.env.get(entry.envKey);
@@ -734,7 +744,9 @@ function buildSystemPrompt(
 function buildUserPrompt(
   context: ReasoningContext,
   playbook: ReturnType<typeof resolvePlaybook>,
+  options?: { compact?: boolean; maxChars?: number },
 ) {
+  const compact = Boolean(options?.compact);
   const buildContentExcerpt = (content: string, maxChars = 6000) => {
     if (!content) return "";
     if (content.length <= maxChars) return content;
@@ -758,19 +770,31 @@ function buildUserPrompt(
     .filter(Boolean)
     .join("\n");
 
-  const playbookSection = [
-    `Playbook summary: ${playbook.description}`,
-    `Regulatory focus: ${playbook.regulatoryFocus.join(", ")}`,
-    `Critical clauses:`,
-    ...playbook.criticalClauses.map(
-      (clause, index) =>
-        `${index + 1}. ${clause.title} | Must include: ${clause.mustInclude.join(", ")} | Red flags: ${clause.redFlags.join(", ")}`,
-    ),
-    `Negotiation guidance: ${playbook.negotiationGuidance.join("; ")}`,
-  ].join("\n");
+  const playbookSection = compact
+    ? [
+        `Playbook summary: ${playbook.description}`,
+        `Regulatory focus: ${playbook.regulatoryFocus.join(", ")}`,
+        `Critical clauses: ${playbook.criticalClauses
+          .map((clause) => clause.title)
+          .join("; ")}`,
+        `Clause anchors: ${playbook.clauseAnchors.join("; ")}`,
+      ].join("\n")
+    : [
+        `Playbook summary: ${playbook.description}`,
+        `Regulatory focus: ${playbook.regulatoryFocus.join(", ")}`,
+        `Critical clauses:`,
+        ...playbook.criticalClauses.map(
+          (clause, index) =>
+            `${index + 1}. ${clause.title} | Must include: ${clause.mustInclude.join(", ")} | Red flags: ${clause.redFlags.join(", ")}`,
+        ),
+        `Negotiation guidance: ${playbook.negotiationGuidance.join("; ")}`,
+      ].join("\n");
 
   const clauseDigestSection = (() => {
     if (context.clauseDigest?.summary) {
+      const digestSummary = compact
+        ? buildContentExcerpt(context.clauseDigest.summary, 1200)
+        : context.clauseDigest.summary;
       const categoryCounts = context.clauseDigest.categoryCounts;
       const categoryLine = categoryCounts
         ? `Category coverage: ${Object.entries(categoryCounts)
@@ -779,7 +803,7 @@ function buildUserPrompt(
         : null;
       return [
         `Clause digest (${context.clauseDigest.total} segments):`,
-        context.clauseDigest.summary,
+        digestSummary,
         categoryLine,
       ]
         .filter(Boolean)
@@ -788,7 +812,10 @@ function buildUserPrompt(
     return "Clause digest unavailable. Derive anchors directly from the contract excerpt.";
   })();
 
-  const contentExcerpt = buildContentExcerpt(context.content);
+  const contentExcerpt = buildContentExcerpt(
+    context.content,
+    options?.maxChars ?? 6000,
+  );
 
   return `${metadataSections}\n\n${playbookSection}\n\n${clauseDigestSection}\n\nContract content (excerpt):\n${contentExcerpt}`;
 }
@@ -1952,7 +1979,10 @@ export async function runReasoningAnalysis(
       context.reviewType,
       { compact },
     );
-    const userPrompt = `${buildUserPrompt(context, playbook)}\n\n${buildJsonSchemaDescription({ compact })}`;
+    const userPrompt = `${buildUserPrompt(context, playbook, {
+      compact,
+      maxChars: compact ? 3500 : 6000,
+    })}\n\n${buildJsonSchemaDescription({ compact })}`;
     return { systemPrompt, userPrompt };
   };
 
@@ -1960,16 +1990,17 @@ export async function runReasoningAnalysis(
     systemPrompt: string,
     promptText: string,
     format: typeof jsonSchemaFormat | typeof jsonSchemaFormatCompact,
+    options?: { effort?: "low" | "medium" | "high"; maxTokens?: number | null },
   ) => ({
     model,
     reasoning: {
-      effort: "medium",
+      effort: options?.effort ?? "medium",
     },
     input: buildResponsesInput(systemPrompt, promptText),
     text: {
       format,
     },
-    max_output_tokens: MAX_OUTPUT_TOKENS ?? undefined,
+    max_output_tokens: options?.maxTokens ?? MAX_OUTPUT_TOKENS ?? undefined,
   });
 
   let lastError: unknown = null;
@@ -1982,10 +2013,20 @@ export async function runReasoningAnalysis(
   for (let attemptIndex = 0; attemptIndex < maxAttempts; attemptIndex += 1) {
     const isLastAttempt = attemptIndex === maxAttempts - 1;
     const { systemPrompt, userPrompt } = buildPrompts(useCompact);
+    const compactMaxTokens =
+      MAX_OUTPUT_TOKENS !== null && MAX_OUTPUT_TOKENS !== undefined
+        ? Math.min(MAX_OUTPUT_TOKENS, 6000)
+        : 6000;
     const requestPayload = buildRequestPayload(
       systemPrompt,
       userPrompt,
       useCompact ? jsonSchemaFormatCompact : jsonSchemaFormat,
+      useCompact
+        ? {
+            effort: "low",
+            maxTokens: compactMaxTokens,
+          }
+        : undefined,
     );
 
     const controller = new AbortController();
@@ -2001,6 +2042,17 @@ export async function runReasoningAnalysis(
         body: JSON.stringify(requestPayload),
         signal: controller.signal,
       });
+    } catch (error) {
+      lastError = error;
+      if (isAbortError(error) && !isLastAttempt && !useCompact) {
+        console.warn(
+          "⚠️ Reasoning request aborted; retrying with compact prompt",
+          { model },
+        );
+        useCompact = true;
+        continue;
+      }
+      throw error;
     } finally {
       clearTimeout(timeoutId);
     }
