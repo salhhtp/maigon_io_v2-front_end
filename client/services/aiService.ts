@@ -234,8 +234,12 @@ class AIService {
 
         const processingTime = (performance.now() - startTime) / 1000;
 
-        // Validate result completeness
-        if (!result.score || typeof result.score !== "number") {
+        // Validate result completeness (allow 0 score)
+        const parsedScore =
+          typeof result.score === "number"
+            ? result.score
+            : Number(result.score);
+        if (!Number.isFinite(parsedScore)) {
           throw new Error("Invalid AI response: missing or invalid score");
         }
 
@@ -246,14 +250,19 @@ class AIService {
           model_used: enforcedModel,
           custom_solution_id: customSolution?.id,
           pages: result.pages || 1,
-          confidence: result.confidence || 0.75,
-          score: result.score,
+          confidence:
+            typeof result.confidence === "number"
+              ? result.confidence
+              : Number.isFinite(Number(result.confidence))
+                ? Number(result.confidence)
+                : 0.75,
+          score: parsedScore,
         };
 
         logger.contractAction("AI analysis completed", undefined, {
           reviewType: request.reviewType,
           processingTime,
-          score: result.score,
+          score: parsedScore,
           confidence: result.confidence,
           userId: request.userId,
           attempt,
