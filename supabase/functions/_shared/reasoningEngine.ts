@@ -1390,29 +1390,34 @@ function computeRuleBasedScore(
   breakdown: ScoreBreakdown;
 } {
   const severityWeights: Record<string, number> = {
-    critical: 18,
-    high: 12,
-    medium: 7,
-    low: 3,
+    critical: 12,
+    high: 7,
+    medium: 4,
+    low: 2,
     info: 1,
   };
 
   const issuesBySeverity: Record<string, number> = {};
-  const issuePenalty = report.issuesToAddress.reduce((sum, issue) => {
+  report.issuesToAddress.forEach((issue) => {
     const severity = issue.severity?.toLowerCase() ?? "medium";
     issuesBySeverity[severity] = (issuesBySeverity[severity] ?? 0) + 1;
-    return sum + (severityWeights[severity] ?? 6);
-  }, 0);
-
-  const unmetCriteria = report.criteriaMet.filter((criterion) => !criterion.met)
-    .length;
-  const criteriaPenalty = unmetCriteria * 4;
+  });
+  const issuePenaltyRaw = Object.entries(issuesBySeverity).reduce(
+    (sum, [severity, count]) => {
+      const weight = severityWeights[severity] ?? 4;
+      const scaled = weight * Math.log2(1 + count);
+      return sum + scaled;
+    },
+    0,
+  );
+  const issuePenalty = Math.min(60, Math.round(issuePenaltyRaw));
+  const criteriaPenalty = 0;
 
   let coveragePenalty = 0;
   let coverage: PlaybookCoverageSummary | null = null;
   if (playbook) {
     coverage = evaluatePlaybookCoverage(report, playbook);
-    coveragePenalty = Math.round((1 - coverage.coverageScore) * 30);
+    coveragePenalty = Math.round((1 - coverage.coverageScore) * 25);
   }
 
   const rawScore = 100 - issuePenalty - criteriaPenalty - coveragePenalty;
