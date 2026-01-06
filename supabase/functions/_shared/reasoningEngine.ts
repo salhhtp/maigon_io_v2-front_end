@@ -495,10 +495,6 @@ const jsonSchemaFormat = {
             "proposedText",
             "intent",
             "rationale",
-            "previousText",
-            "updatedText",
-            "previewHtml",
-            "applyByDefault",
           ],
           properties: {
             id: { type: "string" },
@@ -536,6 +532,34 @@ const jsonSchemaFormat = {
           tokenUsage: tokenUsageSchema,
           critiqueNotes: stringArraySchema,
         },
+      },
+    },
+  },
+} as const;
+
+const COMPACT_MAX_ISSUES = 40;
+const COMPACT_MAX_CRITERIA = 40;
+const COMPACT_MAX_EDITS = 20;
+
+const jsonSchemaFormatCompact = {
+  ...jsonSchemaFormat,
+  name: "analysis_report_compact",
+  schema: {
+    ...jsonSchemaFormat.schema,
+    title: "analysis_report_compact",
+    properties: {
+      ...jsonSchemaFormat.schema.properties,
+      issuesToAddress: {
+        ...jsonSchemaFormat.schema.properties.issuesToAddress,
+        maxItems: COMPACT_MAX_ISSUES,
+      },
+      criteriaMet: {
+        ...jsonSchemaFormat.schema.properties.criteriaMet,
+        maxItems: COMPACT_MAX_CRITERIA,
+      },
+      proposedEdits: {
+        ...jsonSchemaFormat.schema.properties.proposedEdits,
+        maxItems: COMPACT_MAX_EDITS,
       },
     },
   },
@@ -682,19 +706,33 @@ function normaliseSolutionKey(
   }
 }
 
-function buildSystemPrompt(playbookTitle: string, reviewType: string) {
+function buildSystemPrompt(
+  playbookTitle: string,
+  reviewType: string,
+  options?: { compact?: boolean },
+) {
+  const compact = Boolean(options?.compact);
+  const enumerationInstruction = compact
+    ? "Prioritize critical/high/medium issues; include low/info only if space allows."
+    : "Enumerate every issue across all severities (critical, high, medium, low, info); do not prune minor gaps.";
+
   return [
     `You are Maigon Counsel, a senior technology contracts attorney tasked with generating a ${reviewType} review.`,
     "Emulate a professional legal memo: be objective, concise, and grounded in industry-standard compliance criteria.",
     "Use precise legal verbs (shall/must/may/is entitled to/shall not); avoid hedging.",
     "Think through each clause carefully before producing structured output.",
-    "Enumerate every issue across all severities (critical, high, medium, low, info); do not prune minor gaps.",
+    enumerationInstruction,
     "Use legal reasoning, cite regulatory frameworks, and flag negotiation levers.",
     "Anchor observations to the clause digest when available; if the full contract text contains content not captured in the digest, still use it. If a clause is missing in both, mark it as a drafting gap and propose language.",
     "For each checklist/anchor item in the playbook, emit a finding (met/missing/attention) and include an issue for anything missing or ambiguous.",
+    compact
+      ? "If output length is constrained, group similar findings and keep each item concise."
+      : null,
     `Apply the playbook for ${playbookTitle}.`,
     "Always respond with JSON that matches the requested schema.",
-  ].join(" ");
+  ]
+    .filter(Boolean)
+    .join(" ");
 }
 
 function buildUserPrompt(
@@ -759,17 +797,28 @@ function buildUserPrompt(
   return `${metadataSections}\n\n${playbookSection}\n\n${clauseDigestSection}\n\nContract content (excerpt):\n${contentExcerpt}`;
 }
 
-function buildJsonSchemaDescription() {
-  return `Return JSON with the following sections. Include every item you find; do not cap array lengths, and include lower-severity observations when present. Write issues as negotiation-ready actions (risk + requested change + why it matters/market norm), include negotiation levers (what is standard vs. an ask), and provide a concrete clauseReference (heading/section/number). Proposed edits must be paste-ready clauses (full text, definitions/cross-references as needed); set updatedText equal to proposedText (no placeholders like "see proposedText above"). You may offer labeled variants (e.g., "Option A: court" / "Option B: arbitration") where appropriate. Tailor perspective to the primary party and adjust asks accordingly.
-- version: "v3"
-- generatedAt: ISO timestamp
-- generalInformation: { complianceScore (0-100), selectedPerspective, reviewTimeSeconds, timeSavingsMinutes, reportExpiry }
-- contractSummary: { contractName, filename, parties[], agreementDirection, purpose, verbalInformationCovered, contractPeriod, governingLaw, jurisdiction }
-- issuesToAddress: Every issue (include critical, high, medium, low, info) with id, title, severity, recommendation, rationale, and clauseReference { clauseId, heading, excerpt, locationHint }. The excerpt must quote or paraphrase the clause digest entry. If a clause is missing, state "Not present" in excerpt and location.
-- proposedEdits: All proposed edits for the uploaded contract, each with id, clauseId, anchorText, proposedText, intent, rationale. Anchor text = original problematic excerpt. Proposed text = fully rewritten clause or paragraph ready to paste into the contract—not a recommendation. Intent must be one of insert|replace|remove.
-- optional fields you MAY include: criteriaMet, metadata, playbookInsights, clauseExtractions, similarityAnalysis, deviationInsights, actionItems, draftMetadata (set to [] if omitted). Omit clauseFindings and legalBasis unless explicitly requested.
-- Always evaluate the document against the standard compliance checklist in the clause digest/playbook and explicitly call out missing clauses before generic risks.
-- If a value is unknown, set it to a descriptive default like "Not specified", 0, false, or [] but never emit null unless specified.`;
+function buildJsonSchemaDescription(options?: { compact?: boolean }) {
+  const compact = Boolean(options?.compact);
+  return [
+    "Return JSON with the required sections below. Keep language precise and avoid duplicating the same text across fields.",
+    "- version: \"v3\"",
+    "- generatedAt: ISO timestamp",
+    "- generalInformation: { complianceScore (0-100), selectedPerspective, reviewTimeSeconds, timeSavingsMinutes, reportExpiry }",
+    "- contractSummary: { contractName, filename, parties[], agreementDirection, purpose, verbalInformationCovered, contractPeriod, governingLaw, jurisdiction }",
+    "- issuesToAddress: Issues with id, title, severity, recommendation, rationale, clauseReference { clauseId, heading, excerpt, locationHint }. Excerpt must quote or paraphrase the clause digest. If a clause is missing, state \"Not present\" in excerpt and location.",
+    "- criteriaMet: Checklist items with id, title, description, met, evidence.",
+    "- proposedEdits: Each edit with id, clauseId, anchorText, proposedText, intent, rationale. Anchor text = original problematic excerpt. Proposed text = fully rewritten clause or paragraph ready to paste into the contract. Intent must be insert|replace|remove.",
+    "- metadata: model + classification + token usage + critique notes.",
+    "Do not include previewHtml/previousText/updatedText/applyByDefault; these are derived later.",
+    "Optional sections (playbookInsights, clauseExtractions, similarityAnalysis, deviationInsights, actionItems, draftMetadata) should be omitted unless explicitly requested.",
+    "Always evaluate the document against the playbook/checklist and call out missing clauses before generic risks.",
+    "If a value is unknown, set a descriptive default like \"Not specified\", 0, false, or []. Do not emit null unless the schema allows it.",
+    compact
+      ? `Compact mode: prioritize critical/high/medium issues, group similar findings, and keep outputs concise. Limit to ${COMPACT_MAX_ISSUES} issues, ${COMPACT_MAX_CRITERIA} criteria, and ${COMPACT_MAX_EDITS} proposed edits.`
+      : null,
+  ]
+    .filter(Boolean)
+    .join("\n");
 }
 
 function shouldUseResponsesApi(model: string) {
@@ -794,19 +843,35 @@ function extractResponsesContent(payload: any): string {
     throw new Error("Model returned empty response");
   }
 
+  const coerceText = (value: unknown) =>
+    typeof value === "string" && value.trim().length > 0 ? value : null;
+  const coerceJson = (value: unknown) =>
+    value && typeof value === "object" ? JSON.stringify(value) : null;
+
   const output = payload.output;
   if (Array.isArray(output)) {
     for (const entry of output) {
+      const entryText = coerceText(entry?.text) ?? coerceText(entry?.content);
+      if (entryText) {
+        return entryText;
+      }
+      if (entry?.json) {
+        const entryJson = coerceJson(entry.json);
+        if (entryJson) {
+          return entryJson;
+        }
+      }
       if (Array.isArray(entry?.content)) {
         for (const part of entry.content) {
-          if (typeof part?.text === "string" && part.text.trim().length > 0) {
-            return part.text;
+          const partText = coerceText(part?.text) ?? coerceText(part?.content);
+          if (partText) {
+            return partText;
           }
-          if (
-            typeof part?.content === "string" &&
-            part.content.trim().length > 0
-          ) {
-            return part.content;
+          if (part?.json) {
+            const partJson = coerceJson(part.json);
+            if (partJson) {
+              return partJson;
+            }
           }
         }
       }
@@ -820,8 +885,17 @@ function extractResponsesContent(payload: any): string {
     return payload.choices[0].message.content;
   }
 
-  if (Array.isArray(payload?.output_text) && payload.output_text[0]) {
-    return payload.output_text[0];
+  if (typeof payload?.output_text === "string") {
+    const outputText = coerceText(payload.output_text);
+    if (outputText) {
+      return outputText;
+    }
+  }
+  if (Array.isArray(payload?.output_text)) {
+    const outputText = coerceText(payload.output_text[0]);
+    if (outputText) {
+      return outputText;
+    }
   }
 
   console.error("📭 Responses payload missing textual content", {
@@ -1866,15 +1940,25 @@ export async function runReasoningAnalysis(
   );
   const usePlaybookCoverage = !hasCustomSolution;
 
-  const systemPrompt = buildSystemPrompt(playbook.displayName, context.reviewType);
-  const userPrompt = `${buildUserPrompt(context, playbook)}\n\n${buildJsonSchemaDescription()}`;
   const responsesSupported = shouldUseResponsesApi(model);
   if (!responsesSupported) {
     throw new Error("Selected model does not support structured responses API.");
   }
 
+  const buildPrompts = (compact: boolean) => {
+    const systemPrompt = buildSystemPrompt(
+      playbook.displayName,
+      context.reviewType,
+      { compact },
+    );
+    const userPrompt = `${buildUserPrompt(context, playbook)}\n\n${buildJsonSchemaDescription({ compact })}`;
+    return { systemPrompt, userPrompt };
+  };
+
   const buildRequestPayload = (
+    systemPrompt: string,
     promptText: string,
+    format: typeof jsonSchemaFormat | typeof jsonSchemaFormatCompact,
   ) => ({
     model,
     reasoning: {
@@ -1882,7 +1966,7 @@ export async function runReasoningAnalysis(
     },
     input: buildResponsesInput(systemPrompt, promptText),
     text: {
-      format: jsonSchemaFormat,
+      format,
     },
     max_output_tokens: MAX_OUTPUT_TOKENS ?? undefined,
   });
@@ -1891,10 +1975,17 @@ export async function runReasoningAnalysis(
   let corePayload: unknown = null;
   let coreReport: AnalysisReport | null = null;
 
-  for (let attemptIndex = 0; attemptIndex < 1; attemptIndex += 1) {
-    const isLastAttempt = true;
-    const attemptPrompt = userPrompt;
-    const requestPayload = buildRequestPayload(attemptPrompt);
+  const maxAttempts = 2;
+  let useCompact = false;
+
+  for (let attemptIndex = 0; attemptIndex < maxAttempts; attemptIndex += 1) {
+    const isLastAttempt = attemptIndex === maxAttempts - 1;
+    const { systemPrompt, userPrompt } = buildPrompts(useCompact);
+    const requestPayload = buildRequestPayload(
+      systemPrompt,
+      userPrompt,
+      useCompact ? jsonSchemaFormatCompact : jsonSchemaFormat,
+    );
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
@@ -1938,13 +2029,18 @@ export async function runReasoningAnalysis(
         details: detailsCandidate ?? null,
         reason: reason ?? null,
       });
-      if (reason === "max_output_tokens" && !isLastAttempt) {
+      if (reason === "max_output_tokens" && !isLastAttempt && !useCompact) {
         lastError = new ReasoningIncompleteError(
           `OpenAI response incomplete: ${payload.status}${
             detail ? ` ${detail}` : ""
           }`,
           reason,
         );
+        console.warn(
+          "⚠️ Retrying reasoning with compact schema due to max_output_tokens",
+          { model },
+        );
+        useCompact = true;
         continue;
       }
       throw new ReasoningIncompleteError(
@@ -1992,7 +2088,12 @@ export async function runReasoningAnalysis(
       break;
     } catch (error) {
       lastError = error;
-      if (error instanceof ReasoningIncompleteError && !isLastAttempt) {
+      if (
+        error instanceof ReasoningIncompleteError &&
+        !isLastAttempt &&
+        !useCompact
+      ) {
+        useCompact = true;
         continue;
       }
       throw error;
