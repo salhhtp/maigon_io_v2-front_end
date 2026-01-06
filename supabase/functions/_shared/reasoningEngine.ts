@@ -536,26 +536,77 @@ const jsonSchemaFormat = {
 const COMPACT_MAX_ISSUES = 40;
 const COMPACT_MAX_CRITERIA = 40;
 const COMPACT_MAX_EDITS = 20;
+const ULTRA_MAX_ISSUES = 25;
+const ULTRA_MAX_CRITERIA = 25;
+const ULTRA_MAX_EDITS = 10;
+
+const baseSchema = jsonSchemaFormat.schema;
+const baseProposedEdits = baseSchema.properties.proposedEdits;
+const baseProposedEditsItems = baseProposedEdits.items;
 
 const jsonSchemaFormatCompact = {
   ...jsonSchemaFormat,
   name: "analysis_report_compact",
   schema: {
-    ...jsonSchemaFormat.schema,
+    ...baseSchema,
     title: "analysis_report_compact",
     properties: {
-      ...jsonSchemaFormat.schema.properties,
+      ...baseSchema.properties,
       issuesToAddress: {
-        ...jsonSchemaFormat.schema.properties.issuesToAddress,
+        ...baseSchema.properties.issuesToAddress,
         maxItems: COMPACT_MAX_ISSUES,
       },
       criteriaMet: {
-        ...jsonSchemaFormat.schema.properties.criteriaMet,
+        ...baseSchema.properties.criteriaMet,
         maxItems: COMPACT_MAX_CRITERIA,
       },
       proposedEdits: {
-        ...jsonSchemaFormat.schema.properties.proposedEdits,
+        ...baseProposedEdits,
         maxItems: COMPACT_MAX_EDITS,
+        items: {
+          ...baseProposedEditsItems,
+          properties: {
+            ...baseProposedEditsItems.properties,
+            anchorText: shortText(140),
+            proposedText: clauseText(1200),
+            intent: shortText(160),
+            rationale: shortText(160),
+          },
+        },
+      },
+    },
+  },
+} as const;
+
+const jsonSchemaFormatUltra = {
+  ...jsonSchemaFormat,
+  name: "analysis_report_ultra",
+  schema: {
+    ...baseSchema,
+    title: "analysis_report_ultra",
+    properties: {
+      ...baseSchema.properties,
+      issuesToAddress: {
+        ...baseSchema.properties.issuesToAddress,
+        maxItems: ULTRA_MAX_ISSUES,
+      },
+      criteriaMet: {
+        ...baseSchema.properties.criteriaMet,
+        maxItems: ULTRA_MAX_CRITERIA,
+      },
+      proposedEdits: {
+        ...baseProposedEdits,
+        maxItems: ULTRA_MAX_EDITS,
+        items: {
+          ...baseProposedEditsItems,
+          properties: {
+            ...baseProposedEditsItems.properties,
+            anchorText: shortText(120),
+            proposedText: clauseText(900),
+            intent: shortText(140),
+            rationale: shortText(140),
+          },
+        },
       },
     },
   },
@@ -820,8 +871,11 @@ function buildUserPrompt(
   return `${metadataSections}\n\n${playbookSection}\n\n${clauseDigestSection}\n\nContract content (excerpt):\n${contentExcerpt}`;
 }
 
-function buildJsonSchemaDescription(options?: { compact?: boolean }) {
-  const compact = Boolean(options?.compact);
+function buildJsonSchemaDescription(
+  options?: { compact?: boolean; mode?: "full" | "compact" | "ultra" },
+) {
+  const mode = options?.mode ?? (options?.compact ? "compact" : "full");
+  const compact = mode !== "full";
   return [
     "Return JSON with the required sections below. Keep language precise and avoid duplicating the same text across fields.",
     "- version: \"v3\"",
@@ -836,8 +890,11 @@ function buildJsonSchemaDescription(options?: { compact?: boolean }) {
     "Optional sections (playbookInsights, clauseExtractions, similarityAnalysis, deviationInsights, actionItems, draftMetadata) should be omitted unless explicitly requested.",
     "Always evaluate the document against the playbook/checklist and call out missing clauses before generic risks.",
     "If a value is unknown, set a descriptive default like \"Not specified\", 0, false, or []. Do not emit null unless the schema allows it.",
-    compact
+    compact && mode === "compact"
       ? `Compact mode: prioritize critical/high/medium issues, group similar findings, and keep outputs concise. Limit to ${COMPACT_MAX_ISSUES} issues, ${COMPACT_MAX_CRITERIA} criteria, and ${COMPACT_MAX_EDITS} proposed edits.`
+      : null,
+    compact && mode === "ultra"
+      ? `Ultra-compact mode: return only the most material findings. Limit to ${ULTRA_MAX_ISSUES} issues, ${ULTRA_MAX_CRITERIA} criteria, and ${ULTRA_MAX_EDITS} proposed edits.`
       : null,
   ]
     .filter(Boolean)
@@ -1973,7 +2030,8 @@ export async function runReasoningAnalysis(
     throw new Error("Selected model does not support structured responses API.");
   }
 
-  const buildPrompts = (compact: boolean) => {
+  const buildPrompts = (mode: "full" | "compact" | "ultra") => {
+    const compact = mode !== "full";
     const systemPrompt = buildSystemPrompt(
       playbook.displayName,
       context.reviewType,
@@ -1981,15 +2039,18 @@ export async function runReasoningAnalysis(
     );
     const userPrompt = `${buildUserPrompt(context, playbook, {
       compact,
-      maxChars: compact ? 3500 : 6000,
-    })}\n\n${buildJsonSchemaDescription({ compact })}`;
+      maxChars: mode === "ultra" ? 2200 : mode === "compact" ? 3500 : 6000,
+    })}\n\n${buildJsonSchemaDescription({ mode })}`;
     return { systemPrompt, userPrompt };
   };
 
   const buildRequestPayload = (
     systemPrompt: string,
     promptText: string,
-    format: typeof jsonSchemaFormat | typeof jsonSchemaFormatCompact,
+    format:
+      | typeof jsonSchemaFormat
+      | typeof jsonSchemaFormatCompact
+      | typeof jsonSchemaFormatUltra,
     options?: { effort?: "low" | "medium" | "high"; maxTokens?: number | null },
   ) => ({
     model,
@@ -2007,26 +2068,43 @@ export async function runReasoningAnalysis(
   let corePayload: unknown = null;
   let coreReport: AnalysisReport | null = null;
 
-  const maxAttempts = 2;
-  let useCompact = false;
+  const isTightTimeout = REQUEST_TIMEOUT_MS <= 45000;
+  const maxAttempts = 3;
+  let mode: "full" | "compact" | "ultra" = isTightTimeout ? "compact" : "full";
 
   for (let attemptIndex = 0; attemptIndex < maxAttempts; attemptIndex += 1) {
     const isLastAttempt = attemptIndex === maxAttempts - 1;
-    const { systemPrompt, userPrompt } = buildPrompts(useCompact);
+    const { systemPrompt, userPrompt } = buildPrompts(mode);
     const compactMaxTokens =
       MAX_OUTPUT_TOKENS !== null && MAX_OUTPUT_TOKENS !== undefined
         ? Math.min(MAX_OUTPUT_TOKENS, 6000)
         : 6000;
+    const ultraMaxTokens =
+      MAX_OUTPUT_TOKENS !== null && MAX_OUTPUT_TOKENS !== undefined
+        ? Math.min(MAX_OUTPUT_TOKENS, 3000)
+        : 3000;
+    const format =
+      mode === "ultra"
+        ? jsonSchemaFormatUltra
+        : mode === "compact"
+          ? jsonSchemaFormatCompact
+          : jsonSchemaFormat;
+    const effort =
+      mode === "full" ? "medium" : "low";
+    const maxTokens =
+      mode === "ultra"
+        ? ultraMaxTokens
+        : mode === "compact"
+          ? compactMaxTokens
+          : MAX_OUTPUT_TOKENS ?? undefined;
     const requestPayload = buildRequestPayload(
       systemPrompt,
       userPrompt,
-      useCompact ? jsonSchemaFormatCompact : jsonSchemaFormat,
-      useCompact
-        ? {
-            effort: "low",
-            maxTokens: compactMaxTokens,
-          }
-        : undefined,
+      format,
+      {
+        effort,
+        maxTokens,
+      },
     );
 
     const controller = new AbortController();
@@ -2044,12 +2122,12 @@ export async function runReasoningAnalysis(
       });
     } catch (error) {
       lastError = error;
-      if (isAbortError(error) && !isLastAttempt && !useCompact) {
+      if (isAbortError(error) && !isLastAttempt && mode !== "ultra") {
         console.warn(
-          "⚠️ Reasoning request aborted; retrying with compact prompt",
-          { model },
+          "⚠️ Reasoning request aborted; retrying with smaller prompt",
+          { model, mode },
         );
-        useCompact = true;
+        mode = mode === "full" ? "compact" : "ultra";
         continue;
       }
       throw error;
@@ -2082,7 +2160,7 @@ export async function runReasoningAnalysis(
         details: detailsCandidate ?? null,
         reason: reason ?? null,
       });
-      if (reason === "max_output_tokens" && !isLastAttempt && !useCompact) {
+      if (reason === "max_output_tokens" && !isLastAttempt && mode !== "ultra") {
         lastError = new ReasoningIncompleteError(
           `OpenAI response incomplete: ${payload.status}${
             detail ? ` ${detail}` : ""
@@ -2091,9 +2169,9 @@ export async function runReasoningAnalysis(
         );
         console.warn(
           "⚠️ Retrying reasoning with compact schema due to max_output_tokens",
-          { model },
+          { model, mode },
         );
-        useCompact = true;
+        mode = mode === "full" ? "compact" : "ultra";
         continue;
       }
       throw new ReasoningIncompleteError(
@@ -2141,12 +2219,8 @@ export async function runReasoningAnalysis(
       break;
     } catch (error) {
       lastError = error;
-      if (
-        error instanceof ReasoningIncompleteError &&
-        !isLastAttempt &&
-        !useCompact
-      ) {
-        useCompact = true;
+      if (error instanceof ReasoningIncompleteError && !isLastAttempt && mode !== "ultra") {
+        mode = mode === "full" ? "compact" : "ultra";
         continue;
       }
       throw error;
