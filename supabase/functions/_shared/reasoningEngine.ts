@@ -10,6 +10,11 @@ import {
   type ClauseExtraction,
 } from "./reviewSchema.ts";
 import { enhanceReportWithClauses } from "./clauseExtraction.ts";
+import {
+  bindProposedEditsToClauses,
+  buildRetrievedClauseContext,
+  evaluatePlaybookCoverageFromContent,
+} from "../../../shared/ai/reliability.ts";
 import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
@@ -129,7 +134,7 @@ const clauseReferenceJsonSchema = {
     clauseId: shortText(120),
     heading: shortText(120),
     locationHint: locationHintSchema,
-    excerpt: shortText(180),
+    excerpt: shortText(320),
   },
 } as const;
 
@@ -642,6 +647,11 @@ const REQUEST_TIMEOUT_MS =
   Number.isFinite(parsedTimeout) && parsedTimeout > 0
     ? parsedTimeout
     : DEFAULT_REQUEST_TIMEOUT_MS;
+const DEBUG_REVIEW = (() => {
+  const raw = (Deno.env.get("MAIGON_REVIEW_DEBUG") ?? "1").toLowerCase().trim();
+  if (raw === "0" || raw === "false" || raw === "no") return false;
+  return true;
+})();
 const SKIP_ENHANCEMENTS = (() => {
   const raw = (Deno.env.get("OPENAI_REASONING_SKIP_ENHANCEMENTS") ?? "1")
     .toLowerCase()
@@ -676,6 +686,7 @@ interface ReasoningContext {
     categoryCounts?: Record<string, number>;
   } | null;
   clauseExtractions?: ClauseExtraction[] | null;
+  clauseSetWeak?: boolean;
 }
 
 interface ReasoningResult {
@@ -780,7 +791,8 @@ function buildSystemPrompt(
     "Think through each clause carefully before producing structured output.",
     enumerationInstruction,
     "Use legal reasoning, cite regulatory frameworks, and flag negotiation levers.",
-    "Anchor observations to the clause digest when available; if the full contract text contains content not captured in the digest, still use it. If a clause is missing in both, mark it as a drafting gap and propose language.",
+    "Ground every observation in the retrieved excerpts, clause digest, or contract excerpt provided. Do not infer missing language from general knowledge.",
+    "If a clause is not present in the provided excerpts, mark it as \"Not present\" and propose language only when clearly missing.",
     "For each checklist/anchor item in the playbook, emit a finding (met/missing/attention) and include an issue for anything missing or ambiguous.",
     compact
       ? "If output length is constrained, group similar findings and keep each item concise."
@@ -863,12 +875,45 @@ function buildUserPrompt(
     return "Clause digest unavailable. Derive anchors directly from the contract excerpt.";
   })();
 
-  const contentExcerpt = buildContentExcerpt(
-    context.content,
-    options?.maxChars ?? 6000,
-  );
+  const clauseContextSection = (() => {
+    const clauseExtractions = context.clauseExtractions ?? [];
+    if (!clauseExtractions.length) {
+      return null;
+    }
+    if (context.clauseSetWeak) {
+      return "Clause extraction quality is weak; rely primarily on the contract excerpt.";
+    }
+    const retrieved = buildRetrievedClauseContext({
+      playbook,
+      clauses: clauseExtractions,
+      maxPerAnchor: compact ? 1 : 2,
+      maxTotal: compact ? 8 : 14,
+      excerptLength: compact ? 220 : 320,
+    });
+    if (!retrieved.summary) {
+      return null;
+    }
+    return `Retrieved clause excerpts (matched to playbook anchors):\n${retrieved.summary}`;
+  })();
 
-  return `${metadataSections}\n\n${playbookSection}\n\n${clauseDigestSection}\n\nContract content (excerpt):\n${contentExcerpt}`;
+  const maxChars = options?.maxChars ?? 6000;
+  const retrievalBudget = clauseContextSection ? clauseContextSection.length : 0;
+  const contentBudget =
+    clauseContextSection && !context.clauseSetWeak
+      ? Math.max(1400, maxChars - retrievalBudget)
+      : maxChars;
+
+  const contentExcerpt = buildContentExcerpt(context.content, contentBudget);
+
+  return [
+    metadataSections,
+    playbookSection,
+    clauseDigestSection,
+    clauseContextSection,
+    `Contract content (excerpt):\n${contentExcerpt}`,
+  ]
+    .filter(Boolean)
+    .join("\n\n");
 }
 
 function buildJsonSchemaDescription(
@@ -882,9 +927,9 @@ function buildJsonSchemaDescription(
     "- generatedAt: ISO timestamp",
     "- generalInformation: { complianceScore (0-100), selectedPerspective, reviewTimeSeconds, timeSavingsMinutes, reportExpiry }",
     "- contractSummary: { contractName, filename, parties[], agreementDirection, purpose, verbalInformationCovered, contractPeriod, governingLaw, jurisdiction }",
-    "- issuesToAddress: Issues with id, title, severity, recommendation, rationale, clauseReference { clauseId, heading, excerpt, locationHint }. Excerpt must quote or paraphrase the clause digest. If a clause is missing, state \"Not present\" in excerpt and location.",
+    "- issuesToAddress: Issues with id, title, severity, recommendation, rationale, clauseReference { clauseId, heading, excerpt, locationHint }. Excerpt must quote or paraphrase the retrieved clause excerpts, clause digest, or contract excerpt. If a clause is missing, state \"Not present\" in excerpt and location.",
     "- criteriaMet: Checklist items with id, title, description, met, evidence.",
-    "- proposedEdits: Each edit with id, clauseId, anchorText, proposedText, intent, rationale. Anchor text = original problematic excerpt. Proposed text = fully rewritten clause or paragraph ready to paste into the contract. Intent must be insert|replace|remove.",
+    "- proposedEdits: Each edit with id, clauseId, anchorText, proposedText, intent, rationale. Anchor text must be an exact excerpt from the contract text. Proposed text = fully rewritten clause or paragraph ready to paste into the contract. Intent must be insert|replace|remove.",
     "- metadata: model + classification + token usage + critique notes.",
     "Do not include previewHtml/previousText/updatedText/applyByDefault; these are derived later.",
     "Optional sections (playbookInsights, clauseExtractions, similarityAnalysis, deviationInsights, actionItems, draftMetadata) should be omitted unless explicitly requested.",
@@ -1018,9 +1063,22 @@ function normaliseTokenUsage(payload: any, viaResponses: boolean) {
 function runHeuristicCritique(
   report: AnalysisReport,
   playbookKey: PlaybookKey,
-): { notes: string[]; coverage: PlaybookCoverageSummary | null } {
+  coverageContext?: {
+    content?: string | null;
+    clauses?: ClauseExtraction[] | null;
+  },
+): {
+  notes: string[];
+  coverage: PlaybookCoverageSummary | null;
+  diagnostics: {
+    content: PlaybookCoverageSummary | null;
+    model: PlaybookCoverageSummary | null;
+  };
+} {
   const notes: string[] = [];
   let coverage: PlaybookCoverageSummary | null = null;
+  let contentCoverage: PlaybookCoverageSummary | null = null;
+  let modelCoverage: PlaybookCoverageSummary | null = null;
   let playbook: ContractPlaybook | null = null;
 
   try {
@@ -1030,7 +1088,12 @@ function runHeuristicCritique(
   }
 
   if (playbook) {
-    coverage = evaluatePlaybookCoverage(report, playbook);
+    contentCoverage = evaluatePlaybookCoverageFromContent(playbook, {
+      content: coverageContext?.content ?? "",
+      clauses: coverageContext?.clauses ?? [],
+    });
+    modelCoverage = evaluatePlaybookCoverageFromReport(report, playbook);
+    coverage = contentCoverage ?? modelCoverage;
     coverage.criticalClauses.forEach((clause) => {
       if (!clause.met) {
         notes.push(
@@ -1078,7 +1141,25 @@ function runHeuristicCritique(
   ) {
     notes.push("DPA reviews must address security or breach handling.");
   }
-  return { notes, coverage };
+  if (DEBUG_REVIEW && playbook && contentCoverage && modelCoverage) {
+    const missingAnchors = contentCoverage.anchorCoverage
+      .filter((anchor) => !anchor.met)
+      .map((anchor) => anchor.anchor);
+    console.info("📊 Playbook coverage diagnostics", {
+      playbook: playbook.displayName,
+      contentScore: contentCoverage.coverageScore,
+      modelScore: modelCoverage.coverageScore,
+      missingAnchors,
+    });
+  }
+  return {
+    notes,
+    coverage,
+    diagnostics: {
+      content: contentCoverage,
+      model: modelCoverage,
+    },
+  };
 }
 
 function applyOptionalSectionDefaults(payload: Record<string, unknown>) {
@@ -1158,15 +1239,7 @@ function enforceClauseReferenceSeeds(payload: Record<string, unknown>) {
       typeof referenceCandidate.excerpt !== "string" ||
       referenceCandidate.excerpt.trim().length === 0
     ) {
-      const excerptSource =
-        typeof issueRecord.rationale === "string"
-          ? issueRecord.rationale
-          : typeof issueRecord.recommendation === "string"
-            ? issueRecord.recommendation
-            : undefined;
-      if (excerptSource) {
-        referenceCandidate.excerpt = excerptSource.slice(0, 180);
-      }
+      referenceCandidate.excerpt = "Evidence not found";
     }
     if (
       !referenceCandidate.locationHint ||
@@ -1215,67 +1288,14 @@ function enforceProposedEditClauseBindings(payload: Record<string, unknown>) {
   const clauseCandidates = Array.isArray(payload.clauseExtractions)
     ? (payload.clauseExtractions as Array<Record<string, unknown>>)
     : [];
+  const issues = Array.isArray(payload.issuesToAddress)
+    ? (payload.issuesToAddress as Array<Record<string, unknown>>)
+    : [];
 
-  const normalize = (text: unknown) =>
-    typeof text === "string" ? text.toLowerCase() : "";
-
-  const findClauseIdForText = (text: string, fallback: string) => {
-    if (!text.trim()) return fallback;
-    const keywords = text
-      .toLowerCase()
-      .match(/[a-z0-9]{4,}/g) ?? [];
-    let bestScore = 0;
-    let bestClause: Record<string, unknown> | null = null;
-    clauseCandidates.forEach((clause) => {
-      const clauseText = normalize(
-        `${clause.title ?? ""} ${clause.originalText ?? ""}`,
-      );
-      if (!clauseText) return;
-      let score = 0;
-      keywords.forEach((keyword) => {
-        if (clauseText.includes(keyword)) {
-          score += 1;
-        }
-      });
-      if (score > bestScore) {
-        bestScore = score;
-        bestClause = clause;
-      }
-    });
-    if (bestClause && bestScore > 0) {
-      const candidateId =
-        typeof bestClause.clauseId === "string"
-          ? bestClause.clauseId
-          : typeof bestClause.id === "string"
-            ? bestClause.id
-            : null;
-      if (candidateId) {
-        return candidateId;
-      }
-    }
-    return fallback;
-  };
-
-  payload.proposedEdits = payload.proposedEdits.map((entry, index) => {
-    if (!entry || typeof entry !== "object") {
-      return entry;
-    }
-    const editRecord = entry as Record<string, unknown>;
-    const fallbackId = `proposed-edit-${index + 1}`;
-    if (
-      typeof editRecord.clauseId === "string" &&
-      editRecord.clauseId.trim().length > 0
-    ) {
-      return editRecord;
-    }
-    const anchor = (
-      editRecord.anchorText ??
-      editRecord.intent ??
-      editRecord.proposedText ??
-      ""
-    ).toString();
-    editRecord.clauseId = findClauseIdForText(anchor, fallbackId);
-    return editRecord;
+  payload.proposedEdits = bindProposedEditsToClauses({
+    proposedEdits: payload.proposedEdits as Array<Record<string, unknown>>,
+    issues: issues as Array<Record<string, unknown>>,
+    clauses: clauseCandidates as Array<Record<string, unknown>>,
   });
 }
 
@@ -1407,7 +1427,7 @@ function findEvidenceForKeywords(
   return { met: false };
 }
 
-function evaluatePlaybookCoverage(
+function evaluatePlaybookCoverageFromReport(
   report: AnalysisReport,
   playbook: ContractPlaybook,
 ): PlaybookCoverageSummary {
@@ -1468,6 +1488,10 @@ type ScoreBreakdown = {
 function computeRuleBasedScore(
   report: AnalysisReport,
   playbook: ContractPlaybook | null,
+  coverageContext?: {
+    content?: string | null;
+    clauses?: ClauseExtraction[] | null;
+  },
 ): {
   score: number;
   coverage: PlaybookCoverageSummary | null;
@@ -1500,7 +1524,10 @@ function computeRuleBasedScore(
   let coveragePenalty = 0;
   let coverage: PlaybookCoverageSummary | null = null;
   if (playbook) {
-    coverage = evaluatePlaybookCoverage(report, playbook);
+    coverage = evaluatePlaybookCoverageFromContent(playbook, {
+      content: coverageContext?.content ?? "",
+      clauses: coverageContext?.clauses ?? [],
+    });
     coveragePenalty = Math.round((1 - coverage.coverageScore) * 25);
   }
 
@@ -2190,9 +2217,13 @@ export async function runReasoningAnalysis(
       }
       const report = validateAnalysisReport(parsed);
       const tokenUsage = normaliseTokenUsage(payload, true);
-      const { notes: critiqueNotes, coverage } = runHeuristicCritique(
+      const { notes: critiqueNotes, coverage, diagnostics } = runHeuristicCritique(
         report,
         playbookKey,
+        {
+          content: context.content,
+          clauses: context.clauseExtractions ?? null,
+        },
       );
       const enrichedReport: AnalysisReport = {
         ...report,
@@ -2212,6 +2243,8 @@ export async function runReasoningAnalysis(
           tokenUsage: tokenUsage ?? report.metadata?.tokenUsage,
           critiqueNotes,
           playbookCoverage: coverage ?? report.metadata?.playbookCoverage,
+          playbookCoverageContent: diagnostics.content ?? undefined,
+          playbookCoverageModel: diagnostics.model ?? undefined,
         },
       };
       coreReport = enrichedReport;
@@ -2271,22 +2304,39 @@ export async function runReasoningAnalysis(
     clauses: context.clauseExtractions ?? null,
     content: context.content,
   });
+  const boundEdits = bindProposedEditsToClauses({
+    proposedEdits: clauseAlignedReport.proposedEdits,
+    issues: clauseAlignedReport.issuesToAddress,
+    clauses:
+      context.clauseExtractions ??
+      clauseAlignedReport.clauseExtractions ??
+      [],
+  });
+  const clauseAlignedReportWithEdits: AnalysisReport = {
+    ...clauseAlignedReport,
+    proposedEdits: boundEdits,
+  };
 
   const scoringResult = computeRuleBasedScore(
-    clauseAlignedReport,
+    clauseAlignedReportWithEdits,
     usePlaybookCoverage ? playbook : null,
+    {
+      content: context.content,
+      clauses:
+        context.clauseExtractions ?? clauseAlignedReport.clauseExtractions,
+    },
   );
   const scoredReport: AnalysisReport = {
-    ...clauseAlignedReport,
+    ...clauseAlignedReportWithEdits,
     generalInformation: {
-      ...clauseAlignedReport.generalInformation,
+      ...clauseAlignedReportWithEdits.generalInformation,
       complianceScore: scoringResult.score,
     },
     metadata: {
-      ...clauseAlignedReport.metadata,
+      ...clauseAlignedReportWithEdits.metadata,
       playbookCoverage:
         scoringResult.coverage ??
-        clauseAlignedReport.metadata?.playbookCoverage,
+        clauseAlignedReportWithEdits.metadata?.playbookCoverage,
       scoreSource: "rule_based",
       scoreBreakdown: scoringResult.breakdown,
     } as AnalysisReport["metadata"],

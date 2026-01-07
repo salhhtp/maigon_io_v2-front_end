@@ -920,12 +920,16 @@ function buildClauseDigestForPrompt(
       clause.id ||
       `clause-${index + 1}`;
     const title = clause.title || identifier;
-    const excerpt = (clause.normalizedText || clause.originalText || "")
-      .replace(/\s+/g, " ")
-      .slice(0, 200);
+    const excerptSource = clause.originalText || clause.normalizedText || "";
+    const excerpt = excerptSource.replace(/\s+/g, " ").slice(0, 320);
     const category = clause.category || "general";
+    const locationHint = clause.location?.section ||
+      clause.location?.clauseNumber ||
+      null;
     lines.push(
-      `${index + 1}. [${identifier} | ${category}] ${title} → ${excerpt}`,
+      `${index + 1}. [${identifier} | ${category}] ${title}${
+        locationHint ? ` (${locationHint})` : ""
+      } -> ${excerpt}`,
     );
   });
   const categoryCounts = clauses.reduce((acc, clause) => {
@@ -940,10 +944,33 @@ function buildClauseDigestForPrompt(
   };
 }
 
-function isClauseSetWeak(clauses: ClauseExtraction[]): boolean {
-  if (!clauses.length) return true;
+function assessClauseSetQuality(clauses: ClauseExtraction[]): {
+  isWeak: boolean;
+  reasons: string[];
+  stats: {
+    total: number;
+    aiSourced: number;
+    shortExcerpts: number;
+    uniqueHeadings: number;
+    duplicateIds: number;
+  };
+} {
+  if (!clauses.length) {
+    return {
+      isWeak: true,
+      reasons: ["no_clauses"],
+      stats: {
+        total: 0,
+        aiSourced: 0,
+        shortExcerpts: 0,
+        uniqueHeadings: 0,
+        duplicateIds: 0,
+      },
+    };
+  }
   let aiSourced = 0;
   let shortExcerpts = 0;
+  let duplicateIds = 0;
   const seenIds = new Set<string>();
 
   for (const clause of clauses) {
@@ -963,27 +990,52 @@ function isClauseSetWeak(clauses: ClauseExtraction[]): boolean {
     }
     if (clause.clauseId) {
       if (seenIds.has(clause.clauseId)) {
-        return true;
+        duplicateIds += 1;
+      } else {
+        seenIds.add(clause.clauseId);
       }
-      seenIds.add(clause.clauseId);
     }
   }
 
-  if (aiSourced >= Math.max(3, clauses.length * 0.4)) {
-    return false;
-  }
-  if (shortExcerpts >= Math.max(2, clauses.length * 0.5)) {
-    return true;
-  }
   const uniqueHeadings = new Set(
     clauses
       .map((clause) => clause.title?.toLowerCase()?.trim())
       .filter(Boolean),
   );
-  if (uniqueHeadings.size <= Math.ceil(clauses.length * 0.3)) {
-    return true;
+
+  const reasons: string[] = [];
+  if (shortExcerpts >= Math.max(2, clauses.length * 0.5)) {
+    reasons.push("short_excerpts");
   }
-  return aiSourced === 0;
+  if (uniqueHeadings.size <= Math.ceil(clauses.length * 0.3)) {
+    reasons.push("low_heading_variety");
+  }
+  if (duplicateIds > 0) {
+    reasons.push("duplicate_clause_ids");
+  }
+  if (aiSourced === 0) {
+    reasons.push("no_ai_source");
+  }
+
+  const isWeak =
+    reasons.length > 0 &&
+    shortExcerpts >= Math.max(2, clauses.length * 0.4);
+
+  return {
+    isWeak,
+    reasons,
+    stats: {
+      total: clauses.length,
+      aiSourced,
+      shortExcerpts,
+      uniqueHeadings: uniqueHeadings.size,
+      duplicateIds,
+    },
+  };
+}
+
+function isClauseSetWeak(clauses: ClauseExtraction[]): boolean {
+  return assessClauseSetQuality(clauses).isWeak;
 }
 
 async function persistClauseExtractionsIfMissing(
@@ -1387,6 +1439,11 @@ serve(async (req) => {
     const cachedDigest = readCachedClauseDigest(ingestionRecord, contentHash);
     const clauseSeed = mergeClauseCollections(storedClauses);
     const clauseDigest = cachedDigest ?? buildClauseDigestForPrompt(clauseSeed);
+    const clauseQuality = assessClauseSetQuality(clauseSeed);
+
+    if (clauseQuality.isWeak) {
+      console.warn("⚠️ Weak clause extraction set detected", clauseQuality);
+    }
 
     if (ingestionRecord && !cachedDigest && clauseDigest) {
       await persistClauseDigestIfMissing(
@@ -1409,6 +1466,7 @@ serve(async (req) => {
         modelTier,
         clauseDigest,
         clauseExtractions: clauseSeed,
+        clauseSetWeak: clauseQuality.isWeak,
       });
 
       const responsePayload = buildLegacyResponse(reasoningResult.report, {

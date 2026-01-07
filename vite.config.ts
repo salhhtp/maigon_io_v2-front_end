@@ -1,9 +1,8 @@
-import "tsconfig-paths/register.js";
 import { defineConfig, Plugin } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import dotenv from "dotenv";
-import { sentryVitePlugin } from "@sentry/vite-plugin";
+import type { PluginOption } from "vite";
 
 console.info("[vite-config] Loading configuration...");
 
@@ -11,9 +10,9 @@ console.info("[vite-config] Loading configuration...");
 dotenv.config({ path: path.resolve(process.cwd(), ".env") });
 console.info("[vite-config] Environment loaded.");
 
-function buildPlugins(mode: string) {
+async function buildPlugins(mode: string): Promise<PluginOption[]> {
   console.info("[vite-config] Building plugins for mode:", mode);
-  const plugins: Plugin[] = [react()];
+  const plugins: PluginOption[] = [react()];
 
   const embedApi = process.env.SKIP_EMBEDDED_API !== "1";
   if (embedApi) {
@@ -30,20 +29,27 @@ function buildPlugins(mode: string) {
       process.env.SENTRY_PROJECT,
   );
 
-  if (hasSentryUpload) {
-    plugins.push(
-      sentryVitePlugin({
-        org: process.env.SENTRY_ORG!,
-        project: process.env.SENTRY_PROJECT!,
-        authToken: process.env.SENTRY_AUTH_TOKEN!,
-        release: process.env.SENTRY_RELEASE || process.env.VITE_COMMIT_SHA,
-        include: "./dist",
-        telemetry: false,
-        sourcemaps: {
-          assets: "./dist/**",
-        },
-      }),
-    );
+  if (hasSentryUpload && mode === "production") {
+    try {
+      const { sentryVitePlugin } = await import("@sentry/vite-plugin");
+      plugins.push(
+        sentryVitePlugin({
+          org: process.env.SENTRY_ORG!,
+          project: process.env.SENTRY_PROJECT!,
+          authToken: process.env.SENTRY_AUTH_TOKEN!,
+          release: process.env.SENTRY_RELEASE || process.env.VITE_COMMIT_SHA,
+          include: "./dist",
+          telemetry: false,
+          sourcemaps: {
+            assets: "./dist/**",
+          },
+        }),
+      );
+    } catch (error) {
+      console.warn("[vite-config] Sentry plugin import failed; skipping.", {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
   } else if (mode === "production") {
     console.info(
       "Sentry source map upload skipped: set SENTRY_AUTH_TOKEN, SENTRY_ORG, and SENTRY_PROJECT to enable it.",
@@ -54,7 +60,7 @@ function buildPlugins(mode: string) {
 }
 
 // https://vitejs.dev/config/
-export default defineConfig(({ mode }) => ({
+export default defineConfig(async ({ mode }) => ({
   server: {
     // Prefer IPv4 binding to avoid browsers hanging on IPv6-only localhost resolution
     host: "0.0.0.0",
@@ -85,7 +91,7 @@ export default defineConfig(({ mode }) => ({
   build: {
     outDir: "dist/spa",
   },
-  plugins: buildPlugins(mode),
+  plugins: await buildPlugins(mode),
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./client"),
@@ -100,10 +106,21 @@ function expressPlugin(): Plugin {
     apply: "serve", // Only apply during development (serve mode)
     async configureServer(server) {
       console.info("[vite-config] Creating embedded Express server...");
-      const { createServer } = await import(
-        /* @vite-ignore */ "./server/index.ts"
-      );
-      const app = createServer();
+      let app: any = null;
+      try {
+        const serverModule = await server.ssrLoadModule(
+          "/server/index.ts",
+        ) as { createServer?: () => any };
+        if (typeof serverModule?.createServer !== "function") {
+          throw new Error("createServer export missing from server/index.ts");
+        }
+        app = serverModule.createServer();
+      } catch (error) {
+        console.error("[vite-config] Failed to load embedded Express server.", {
+          error: error instanceof Error ? error.message : String(error),
+        });
+        return;
+      }
       const isApiRequest = (url: string | undefined | null) => {
         if (!url) return false;
         return url === "/api" || url.startsWith("/api/") || url.startsWith("/api?");

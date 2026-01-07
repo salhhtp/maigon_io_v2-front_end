@@ -259,10 +259,15 @@ function buildClauseDigestForPrompt(clauses: ClauseExtraction[]): ClauseDigestSu
   const lines = clauses.map((clause) => {
     const heading = clause.title || clause.clauseId || "Clause";
     const category = clause.category ? clause.category : "general";
-    const snippet = (clause.originalText || clause.normalizedText || "")
-      .replace(/\s+/g, " ")
-      .slice(0, 200);
-    return `[${clause.clauseId || heading} | ${category}] ${heading} → ${snippet}`;
+    const snippetSource = clause.originalText || clause.normalizedText || "";
+    const snippet = snippetSource.replace(/\s+/g, " ").slice(0, 320);
+    const locationHint =
+      clause.location?.section ||
+      clause.location?.clauseNumber ||
+      null;
+    return `[${clause.clauseId || heading} | ${category}] ${heading}${
+      locationHint ? ` (${locationHint})` : ""
+    } -> ${snippet}`;
   });
   const categoryCounts = clauses.reduce((acc, clause) => {
     const key = (clause.category || "general").toLowerCase();
