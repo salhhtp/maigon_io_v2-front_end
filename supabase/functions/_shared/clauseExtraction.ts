@@ -2,6 +2,7 @@ import type { AnalysisReport, ClauseExtraction } from "./reviewSchema.ts";
 import {
   buildEvidenceExcerpt,
   checkEvidenceMatch,
+  checkEvidenceMatchAgainstClause,
   isMissingEvidenceMarker,
   matchClauseToText as matchClauseToTextWithDebug,
   normalizeForMatch,
@@ -14,6 +15,9 @@ const DEBUG_REVIEW = (() => {
   if (raw === "0" || raw === "false" || raw === "no") return false;
   return true;
 })();
+const MIN_ISSUE_CONFIDENCE = 0.28;
+const MIN_CRITERIA_CONFIDENCE = 0.3;
+const DUPLICATE_EXCERPT_MIN_CONFIDENCE = 0.35;
 
 export function matchClauseToText(
   text: string,
@@ -42,6 +46,13 @@ export function enhanceReportWithClauses(
     matched: 0,
     missing: 0,
   };
+  const issueMatchMeta: Array<{
+    index: number;
+    confidence: number;
+    clauseId: string;
+    excerptKey: string;
+    method: string;
+  }> = [];
   const evidenceDebug: Record<
     string,
     { clauseId: string; heading?: string | null; excerpt: string }
@@ -54,7 +65,13 @@ export function enhanceReportWithClauses(
       fallbackText,
       clauses: clauseCandidates,
     });
-    const match = matchResult.match;
+    const acceptedMatch = Boolean(
+      matchResult.match &&
+        (matchResult.method === "id" ||
+          matchResult.method === "heading" ||
+          matchResult.confidence >= MIN_ISSUE_CONFIDENCE),
+    );
+    const match = acceptedMatch ? matchResult.match : null;
     const existingReference = issue.clauseReference ?? {
       clauseId: "",
       heading: undefined,
@@ -98,32 +115,43 @@ export function enhanceReportWithClauses(
       (existingReference?.excerpt && existingReference.excerpt.trim().length > 0
         ? existingReference.excerpt
         : "");
+    const clauseText = match
+      ? match.originalText ?? match.normalizedText ?? match.title ?? ""
+      : "";
 
     let nextExcerpt = currentExcerpt;
     let evidenceResult = currentExcerpt
       ? checkEvidenceMatch(currentExcerpt, content)
       : { matched: false, reason: "empty-excerpt" };
+    let clauseEvidenceResult = match && currentExcerpt
+      ? checkEvidenceMatchAgainstClause(currentExcerpt, clauseText)
+      : { matched: false, reason: "empty-content" };
 
     if (!currentExcerpt) {
       if (isMissingEvidenceMarker(existingReference?.excerpt)) {
-        nextExcerpt = existingReference?.excerpt ?? "Evidence not found";
+        nextExcerpt = existingReference?.excerpt ?? "Not present";
       } else {
-        nextExcerpt = "Evidence not found";
+        nextExcerpt = match ? "Evidence not found" : "Not present";
       }
       evidenceResult = { matched: false, reason: "empty-excerpt" };
-    } else if (!evidenceResult.matched) {
+    } else if (!clauseEvidenceResult.matched || !evidenceResult.matched) {
       if (isMissingEvidenceMarker(currentExcerpt)) {
         nextExcerpt = currentExcerpt;
       } else if (preferredExcerpt && preferredExcerpt !== currentExcerpt) {
+        const preferredClauseResult = checkEvidenceMatchAgainstClause(
+          preferredExcerpt,
+          clauseText,
+        );
         const preferredResult = checkEvidenceMatch(preferredExcerpt, content);
-        if (preferredResult.matched) {
+        if (preferredClauseResult.matched && preferredResult.matched) {
           nextExcerpt = preferredExcerpt;
           evidenceResult = preferredResult;
+          clauseEvidenceResult = preferredClauseResult;
         } else {
-          nextExcerpt = "Evidence not found";
+          nextExcerpt = match ? "Evidence not found" : "Not present";
         }
       } else {
-        nextExcerpt = "Evidence not found";
+        nextExcerpt = match ? "Evidence not found" : "Not present";
       }
     }
 
@@ -140,6 +168,7 @@ export function enhanceReportWithClauses(
         confidence: matchResult.confidence,
         candidates: matchResult.candidates,
         evidence: evidenceResult,
+        clauseEvidence: clauseEvidenceResult,
         clauseId: stableClauseId,
       });
     }
@@ -148,7 +177,7 @@ export function enhanceReportWithClauses(
       return issue;
     }
 
-    return {
+    const updatedIssue = {
       ...issue,
       clauseReference: {
         clauseId: stableClauseId,
@@ -158,12 +187,45 @@ export function enhanceReportWithClauses(
           match?.location ?? {
             page: null,
             paragraph: null,
-            section: match?.title ?? null,
+            section: match?.title ?? (match ? null : "Not present"),
             clauseNumber: matchedClauseId ?? null,
           },
       },
     };
+    const excerptKey = normalizeForMatch(updatedIssue.clauseReference?.excerpt ?? "");
+    if (excerptKey && !isMissingEvidenceMarker(updatedIssue.clauseReference?.excerpt)) {
+      issueMatchMeta.push({
+        index,
+        confidence: matchResult.confidence,
+        clauseId: stableClauseId,
+        excerptKey,
+        method: matchResult.method,
+      });
+    }
+    return updatedIssue;
   });
+
+  let issuesWithNormalizedEvidence = issuesWithEvidence;
+  if (issueMatchMeta.length > 1) {
+    const duplicates = new Map<string, typeof issueMatchMeta>();
+    issueMatchMeta.forEach((meta) => {
+      const list = duplicates.get(meta.excerptKey) ?? [];
+      list.push(meta);
+      duplicates.set(meta.excerptKey, list);
+    });
+    duplicates.forEach((entries) => {
+      if (entries.length <= 1) return;
+      const clauseIds = new Set(entries.map((entry) => entry.clauseId));
+      if (clauseIds.size <= 1) return;
+      const ranked = [...entries].sort((a, b) => b.confidence - a.confidence);
+      ranked.slice(1).forEach((entry) => {
+        if (entry.confidence >= DUPLICATE_EXCERPT_MIN_CONFIDENCE) return;
+        const issue = issuesWithNormalizedEvidence[entry.index];
+        if (!issue?.clauseReference) return;
+        issue.clauseReference.excerpt = "Evidence not found";
+      });
+    });
+  }
 
   const criteriaWithEvidence = report.criteriaMet.map((criterion) => {
     const fallbackText = `${criterion.title} ${criterion.description ?? ""}`.trim();
@@ -172,7 +234,13 @@ export function enhanceReportWithClauses(
       fallbackText,
       clauses: clauseCandidates,
     });
-    const match = matchResult.match;
+    const acceptedMatch = Boolean(
+      matchResult.match &&
+        (matchResult.method === "id" ||
+          matchResult.method === "heading" ||
+          matchResult.confidence >= MIN_CRITERIA_CONFIDENCE),
+    );
+    const match = acceptedMatch ? matchResult.match : null;
     const fallbackExcerpt = match
       ? buildEvidenceExcerpt({
         clauseText:
@@ -183,6 +251,9 @@ export function enhanceReportWithClauses(
         anchorText: criterion.evidence ?? criterion.title,
       })
       : "";
+    const clauseText = match
+      ? match.originalText ?? match.normalizedText ?? match.title ?? ""
+      : "";
 
     const currentEvidence =
       typeof criterion.evidence === "string" && criterion.evidence.trim().length > 0
@@ -192,17 +263,25 @@ export function enhanceReportWithClauses(
     let evidenceResult = currentEvidence
       ? checkEvidenceMatch(currentEvidence, content)
       : { matched: false, reason: "empty-excerpt" };
+    let clauseEvidenceResult = match && currentEvidence
+      ? checkEvidenceMatchAgainstClause(currentEvidence, clauseText)
+      : { matched: false, reason: "empty-content" };
 
     let nextEvidence = currentEvidence;
     if (!currentEvidence) {
       nextEvidence = fallbackExcerpt || "Evidence not found";
       evidenceResult = { matched: false, reason: "empty-excerpt" };
-    } else if (!evidenceResult.matched) {
+    } else if (!clauseEvidenceResult.matched || !evidenceResult.matched) {
       if (fallbackExcerpt && fallbackExcerpt !== currentEvidence) {
+        const fallbackClauseResult = checkEvidenceMatchAgainstClause(
+          fallbackExcerpt,
+          clauseText,
+        );
         const fallbackResult = checkEvidenceMatch(fallbackExcerpt, content);
-        if (fallbackResult.matched) {
+        if (fallbackClauseResult.matched && fallbackResult.matched) {
           nextEvidence = fallbackExcerpt;
           evidenceResult = fallbackResult;
+          clauseEvidenceResult = fallbackClauseResult;
         } else if (isMissingEvidenceMarker(currentEvidence)) {
           nextEvidence = currentEvidence;
         } else {
@@ -228,16 +307,59 @@ export function enhanceReportWithClauses(
         confidence: matchResult.confidence,
         candidates: matchResult.candidates,
         evidence: evidenceResult,
+        clauseEvidence: clauseEvidenceResult,
       });
     }
 
-    return { ...criterion, evidence: nextEvidence };
+    const hasEvidence = evidenceResult.matched && !isMissingEvidenceMarker(nextEvidence);
+    return {
+      ...criterion,
+      evidence: nextEvidence,
+      met: hasEvidence ? criterion.met : false,
+    };
   });
 
+  const recomputeStats = (
+    issues: AnalysisReport["issuesToAddress"],
+    criteria: AnalysisReport["criteriaMet"],
+  ) => {
+    const issueStats = issues.reduce(
+      (acc, issue) => {
+        const excerpt = issue.clauseReference?.excerpt ?? "";
+        const result = checkEvidenceMatch(excerpt, content);
+        if (result.matched || isMissingEvidenceMarker(excerpt)) {
+          acc.matched += 1;
+        } else {
+          acc.missing += 1;
+        }
+        return acc;
+      },
+      { total: issues.length, matched: 0, missing: 0 },
+    );
+    const criteriaStats = criteria.reduce(
+      (acc, criterion) => {
+        const evidence = criterion.evidence ?? "";
+        const result = checkEvidenceMatch(evidence, content);
+        if (result.matched || isMissingEvidenceMarker(evidence)) {
+          acc.matched += 1;
+        } else {
+          acc.missing += 1;
+        }
+        return acc;
+      },
+      { total: criteria.length, matched: 0, missing: 0 },
+    );
+    return { issueStats, criteriaStats };
+  };
+
   if (DEBUG_REVIEW) {
+    const { issueStats, criteriaStats } = recomputeStats(
+      issuesWithNormalizedEvidence,
+      criteriaWithEvidence,
+    );
     console.info("🧭 Evidence alignment summary", {
-      issues: issueEvidenceStats,
-      criteria: criteriaEvidenceStats,
+      issues: issueStats,
+      criteria: criteriaStats,
       contentLength: normalizedContent.length,
       clauseCount: clauseCandidates.length,
     });
@@ -254,7 +376,7 @@ export function enhanceReportWithClauses(
   return {
     ...report,
     clauseExtractions: clauseCandidates,
-    issuesToAddress: issuesWithEvidence,
+    issuesToAddress: issuesWithNormalizedEvidence,
     criteriaMet: criteriaWithEvidence,
     metadata: nextMetadata as AnalysisReport["metadata"],
   };

@@ -26,6 +26,7 @@ export type ClauseReferenceLike = {
 export type IssueLike = {
   id?: string | null;
   title?: string | null;
+  severity?: string | null;
   recommendation?: string | null;
   rationale?: string | null;
   clauseReference?: ClauseReferenceLike | null;
@@ -460,6 +461,48 @@ export function checkEvidenceMatch(
   return { matched: false, reason: "no-match", ratio };
 }
 
+export function checkEvidenceMatchAgainstClause(
+  excerpt: string,
+  clauseText: string,
+): EvidenceMatchResult {
+  const normalizedClause = normalizeForMatch(clauseText ?? "");
+  if (!normalizedClause) {
+    return { matched: false, reason: "empty-content" };
+  }
+  if (!excerpt || excerpt.trim().length === 0) {
+    return { matched: false, reason: "empty-excerpt" };
+  }
+  if (isMissingEvidenceMarker(excerpt)) {
+    return { matched: true, reason: "missing-marker" };
+  }
+  const normalizedExcerpt = normalizeForMatch(excerpt);
+  if (!normalizedExcerpt) {
+    return { matched: false, reason: "empty-excerpt" };
+  }
+  if (normalizedClause.includes(normalizedExcerpt)) {
+    return { matched: true, reason: "exact" };
+  }
+  const prefix = normalizedExcerpt.slice(0, 200);
+  if (prefix.length > 40 && normalizedClause.includes(prefix)) {
+    return { matched: true, reason: "prefix" };
+  }
+  const excerptGrams = buildNgrams(normalizedExcerpt, 4);
+  if (!excerptGrams.size) {
+    return { matched: false, reason: "no-match" };
+  }
+  let hits = 0;
+  excerptGrams.forEach((gram) => {
+    if (normalizedClause.includes(gram)) {
+      hits += 1;
+    }
+  });
+  const ratio = hits / excerptGrams.size;
+  if (ratio >= 0.5) {
+    return { matched: true, reason: "ngram", ratio };
+  }
+  return { matched: false, reason: "no-match", ratio };
+}
+
 function scoreAnchorToIssue(anchor: string, issue: IssueLike): number {
   const candidate = [
     issue.clauseReference?.excerpt,
@@ -697,4 +740,98 @@ export function buildRetrievedClauseContext(options: {
     .join("\n");
 
   return { summary, snippets };
+}
+
+const severityRank: Record<string, number> = {
+  critical: 5,
+  high: 4,
+  medium: 3,
+  low: 2,
+  info: 1,
+};
+
+function similarityForText(a: string, b: string): number {
+  const tokensA = tokenizeForMatch(a);
+  const tokensB = tokenizeForMatch(b);
+  return jaccardSimilarity(tokensA, tokensB);
+}
+
+export function dedupeIssues(issues: IssueLike[]): IssueLike[] {
+  const buckets = new Map<string, IssueLike[]>();
+  issues.forEach((issue) => {
+    const clauseId = issue.clauseReference?.clauseId ?? "unbound";
+    const bucket = buckets.get(clauseId) ?? [];
+    bucket.push(issue);
+    buckets.set(clauseId, bucket);
+  });
+
+  const deduped: IssueLike[] = [];
+  buckets.forEach((bucket) => {
+    const kept: IssueLike[] = [];
+    bucket.forEach((issue) => {
+      const issueText = `${issue.title ?? ""} ${issue.recommendation ?? ""}`.trim();
+      const matchIndex = kept.findIndex((existing) => {
+        const existingText =
+          `${existing.title ?? ""} ${existing.recommendation ?? ""}`.trim();
+        const similarity = similarityForText(issueText, existingText);
+        return similarity >= 0.82;
+      });
+      if (matchIndex === -1) {
+        kept.push(issue);
+        return;
+      }
+      const existing = kept[matchIndex];
+      const existingRank =
+        severityRank[(existing.severity ?? "").toLowerCase()] ?? 0;
+      const nextRank =
+        severityRank[(issue.severity ?? "").toLowerCase()] ?? 0;
+      if (nextRank > existingRank) {
+        kept[matchIndex] = issue;
+      }
+    });
+    deduped.push(...kept);
+  });
+  return deduped;
+}
+
+export function dedupeProposedEdits(
+  edits: ProposedEditLike[],
+): ProposedEditLike[] {
+  const buckets = new Map<string, ProposedEditLike[]>();
+  edits.forEach((edit) => {
+    const clauseId = edit.clauseId ?? "unbound";
+    const bucket = buckets.get(clauseId) ?? [];
+    bucket.push(edit);
+    buckets.set(clauseId, bucket);
+  });
+
+  const deduped: ProposedEditLike[] = [];
+  buckets.forEach((bucket) => {
+    const kept: ProposedEditLike[] = [];
+    bucket.forEach((edit) => {
+      const editText = `${edit.intent ?? ""} ${edit.proposedText ?? ""}`.trim();
+      const matchIndex = kept.findIndex((existing) => {
+        const existingText =
+          `${existing.intent ?? ""} ${existing.proposedText ?? ""}`.trim();
+        const similarity = similarityForText(editText, existingText);
+        return similarity >= 0.86;
+      });
+      if (matchIndex === -1) {
+        kept.push(edit);
+      }
+    });
+    deduped.push(...kept);
+  });
+  return deduped;
+}
+
+export function normaliseReportExpiry(value?: string | null): string {
+  if (typeof value !== "string") {
+    return new Date(Date.now() + 86_400_000 * 30).toISOString();
+  }
+  const parsed = Date.parse(value);
+  if (Number.isFinite(parsed)) {
+    return new Date(parsed).toISOString();
+  }
+  return new Date(Date.now() + 86_400_000 * 30).toISOString();
 }

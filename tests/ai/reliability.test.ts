@@ -7,7 +7,11 @@ import {
   bindProposedEditsToClauses,
   buildEvidenceExcerpt,
   checkEvidenceMatch,
+  checkEvidenceMatchAgainstClause,
+  dedupeIssues,
+  dedupeProposedEdits,
   evaluatePlaybookCoverageFromContent,
+  normaliseReportExpiry,
   resolveClauseMatch,
 } from "../../shared/ai/reliability";
 
@@ -231,5 +235,73 @@ describe("Reliability harness", () => {
     });
 
     expect(bound[0].clauseId).toBe(clauseId);
+  });
+
+  it("verifies evidence against the matched clause text", () => {
+    const ndaContent = readFixture("NDA_Sample.txt");
+    const ndaClauses = extractClausesFromSample(ndaContent);
+    const obligationsClause = ndaClauses.find((clause) =>
+      clause.title.includes("OBLIGATIONS OF RECEIVING PARTY"),
+    );
+    const remediesClause = ndaClauses.find((clause) =>
+      clause.title.includes("REMEDIES"),
+    );
+
+    expect(obligationsClause).toBeTruthy();
+    expect(remediesClause).toBeTruthy();
+
+    const inClause = checkEvidenceMatchAgainstClause(
+      "Use the Confidential Information solely for the Purpose",
+      obligationsClause?.originalText ?? "",
+    );
+    expect(inClause.matched).toBe(true);
+
+    const wrongClause = checkEvidenceMatchAgainstClause(
+      "injunction and specific performance",
+      obligationsClause?.originalText ?? "",
+    );
+    expect(wrongClause.matched).toBe(false);
+  });
+
+  it("dedupes overlapping issues and edits while keeping higher severity", () => {
+    const issues = dedupeIssues([
+      {
+        id: "issue-1",
+        title: "Term and Survival",
+        recommendation: "Set a fixed term and survival for trade secrets.",
+        severity: "medium",
+        clauseReference: { clauseId: "clause-term" },
+      },
+      {
+        id: "issue-2",
+        title: "Survival for Trade Secrets",
+        recommendation: "Set a fixed term and survival for trade secrets.",
+        severity: "high",
+        clauseReference: { clauseId: "clause-term" },
+      },
+    ]);
+    expect(issues).toHaveLength(1);
+    expect(issues[0].id).toBe("issue-2");
+
+    const edits = dedupeProposedEdits([
+      {
+        id: "edit-1",
+        clauseId: "clause-term",
+        intent: "replace",
+        proposedText: "Confidentiality survives 3 years, trade secrets survive indefinitely.",
+      },
+      {
+        id: "edit-2",
+        clauseId: "clause-term",
+        intent: "replace",
+        proposedText: "Confidentiality survives 3 years; trade secrets survive indefinitely.",
+      },
+    ]);
+    expect(edits).toHaveLength(1);
+  });
+
+  it("normalizes invalid report expiry values to ISO dates", () => {
+    const normalized = normaliseReportExpiry("Invalid Date");
+    expect(Number.isFinite(Date.parse(normalized))).toBe(true);
   });
 });

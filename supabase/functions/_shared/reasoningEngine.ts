@@ -13,7 +13,10 @@ import { enhanceReportWithClauses } from "./clauseExtraction.ts";
 import {
   bindProposedEditsToClauses,
   buildRetrievedClauseContext,
+  dedupeIssues,
+  dedupeProposedEdits,
   evaluatePlaybookCoverageFromContent,
+  normaliseReportExpiry,
 } from "../../../shared/ai/reliability.ts";
 import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
@@ -2216,6 +2219,9 @@ export async function runReasoningAnalysis(
         applyOptionalSectionDefaults(parsed as Record<string, unknown>);
       }
       const report = validateAnalysisReport(parsed);
+      report.generalInformation.reportExpiry = normaliseReportExpiry(
+        report.generalInformation.reportExpiry,
+      );
       const tokenUsage = normaliseTokenUsage(payload, true);
       const { notes: critiqueNotes, coverage, diagnostics } = runHeuristicCritique(
         report,
@@ -2316,9 +2322,14 @@ export async function runReasoningAnalysis(
     ...clauseAlignedReport,
     proposedEdits: boundEdits,
   };
+  const dedupedReport: AnalysisReport = {
+    ...clauseAlignedReportWithEdits,
+    issuesToAddress: dedupeIssues(clauseAlignedReportWithEdits.issuesToAddress),
+    proposedEdits: dedupeProposedEdits(clauseAlignedReportWithEdits.proposedEdits),
+  };
 
   const scoringResult = computeRuleBasedScore(
-    clauseAlignedReportWithEdits,
+    dedupedReport,
     usePlaybookCoverage ? playbook : null,
     {
       content: context.content,
@@ -2327,16 +2338,16 @@ export async function runReasoningAnalysis(
     },
   );
   const scoredReport: AnalysisReport = {
-    ...clauseAlignedReportWithEdits,
+    ...dedupedReport,
     generalInformation: {
-      ...clauseAlignedReportWithEdits.generalInformation,
+      ...dedupedReport.generalInformation,
       complianceScore: scoringResult.score,
     },
     metadata: {
-      ...clauseAlignedReportWithEdits.metadata,
+      ...dedupedReport.metadata,
       playbookCoverage:
         scoringResult.coverage ??
-        clauseAlignedReportWithEdits.metadata?.playbookCoverage,
+        dedupedReport.metadata?.playbookCoverage,
       scoreSource: "rule_based",
       scoreBreakdown: scoringResult.breakdown,
     } as AnalysisReport["metadata"],
