@@ -15,8 +15,8 @@ const DEBUG_REVIEW = (() => {
   if (raw === "0" || raw === "false" || raw === "no") return false;
   return true;
 })();
-const MIN_ISSUE_CONFIDENCE = 0.28;
-const MIN_CRITERIA_CONFIDENCE = 0.3;
+const MIN_ISSUE_CONFIDENCE = 0.32;
+const MIN_CRITERIA_CONFIDENCE = 0.32;
 const DUPLICATE_EXCERPT_MIN_CONFIDENCE = 0.35;
 
 export function matchClauseToText(
@@ -181,10 +181,10 @@ export function enhanceReportWithClauses(
       ...issue,
       clauseReference: {
         clauseId: stableClauseId,
-        heading: existingReference?.heading ?? match?.title,
+        heading: match?.title ?? existingReference?.heading,
         excerpt: nextExcerpt,
-        locationHint: existingReference?.locationHint ??
-          match?.location ?? {
+        locationHint: match?.location ??
+          existingReference?.locationHint ?? {
             page: null,
             paragraph: null,
             section: match?.title ?? (match ? null : "Not present"),
@@ -319,6 +319,11 @@ export function enhanceReportWithClauses(
     };
   });
 
+  const filteredCriteria = criteriaWithEvidence.filter((criterion) =>
+    Boolean(criterion.met) &&
+    !isMissingEvidenceMarker(criterion.evidence),
+  );
+
   const recomputeStats = (
     issues: AnalysisReport["issuesToAddress"],
     criteria: AnalysisReport["criteriaMet"],
@@ -355,7 +360,7 @@ export function enhanceReportWithClauses(
   if (DEBUG_REVIEW) {
     const { issueStats, criteriaStats } = recomputeStats(
       issuesWithNormalizedEvidence,
-      criteriaWithEvidence,
+      filteredCriteria,
     );
     console.info("🧭 Evidence alignment summary", {
       issues: issueStats,
@@ -377,7 +382,7 @@ export function enhanceReportWithClauses(
     ...report,
     clauseExtractions: clauseCandidates,
     issuesToAddress: issuesWithNormalizedEvidence,
-    criteriaMet: criteriaWithEvidence,
+    criteriaMet: filteredCriteria,
     metadata: nextMetadata as AnalysisReport["metadata"],
   };
 }
