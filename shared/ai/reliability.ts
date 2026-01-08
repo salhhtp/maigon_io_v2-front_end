@@ -459,7 +459,9 @@ export function buildEvidenceExcerpt(options: {
   }
 
   return clauseText.slice(0, maxLength);
-}export function buildEvidenceExcerptFromContent(options: {
+}
+
+export function buildEvidenceExcerptFromContent(options: {
   content: string;
   anchorText: string;
   maxLength?: number;

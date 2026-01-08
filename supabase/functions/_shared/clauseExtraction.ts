@@ -9,6 +9,7 @@ import {
   matchClauseToText as matchClauseToTextWithDebug,
   normalizeForMatch,
   resolveClauseMatch,
+  tokenizeForMatch,
 } from "../../../shared/ai/reliability.ts";
 
 const DEBUG_REVIEW = (() => {
@@ -20,6 +21,36 @@ const DEBUG_REVIEW = (() => {
 const MIN_ISSUE_CONFIDENCE = 0.32;
 const MIN_CRITERIA_CONFIDENCE = 0.32;
 const DUPLICATE_EXCERPT_MIN_CONFIDENCE = 0.35;
+const GENERIC_TOKENS = new Set([
+  "confidential",
+  "information",
+  "agreement",
+  "party",
+  "parties",
+  "receiving",
+  "disclosing",
+  "discloser",
+  "recipient",
+  "disclosure",
+  "project",
+  "purpose",
+]);
+const MIN_ANCHOR_TOKEN_HITS = 2;
+
+function hasAnchorTokenOverlap(anchor: string, excerpt: string): boolean {
+  const anchorTokens = tokenizeForMatch(anchor).filter(
+    (token) => !GENERIC_TOKENS.has(token),
+  );
+  if (!anchorTokens.length) return false;
+  const excerptTokens = new Set(tokenizeForMatch(excerpt));
+  let hits = 0;
+  anchorTokens.forEach((token) => {
+    if (excerptTokens.has(token)) hits += 1;
+  });
+  const requiredHits = Math.min(MIN_ANCHOR_TOKEN_HITS, anchorTokens.length);
+  return hits >= requiredHits;
+}
+
 const FALLBACK_CLAUSE_LIMIT = 28;
 
 function isClauseSetWeak(clauses: ClauseExtraction[]): boolean {
@@ -312,8 +343,7 @@ export function enhanceReportWithClauses(
       ? match.originalText ?? match.normalizedText ?? match.title ?? ""
       : "";
 
-    const contentAnchor =
-      fallbackText || criterion.title || criterion.description || "";
+    const contentAnchor = fallbackText || issue.title || "";
     const contentExcerpt = contentAnchor
       ? buildEvidenceExcerptFromContent({
           content,
@@ -323,6 +353,10 @@ export function enhanceReportWithClauses(
     const contentResult = contentExcerpt
       ? checkEvidenceMatch(contentExcerpt, content)
       : { matched: false, reason: "empty-excerpt" };
+    const contentAligned =
+      Boolean(contentExcerpt) &&
+      contentResult.matched &&
+      hasAnchorTokenOverlap(contentAnchor, contentExcerpt);
 
     let nextExcerpt = currentExcerpt;
     let evidenceResult = currentExcerpt
@@ -333,14 +367,24 @@ export function enhanceReportWithClauses(
       : { matched: false, reason: "empty-content" };
 
     if (!currentExcerpt) {
-      if (isMissingEvidenceMarker(existingReference?.excerpt)) {
+      if (contentAligned) {
+        nextExcerpt = contentExcerpt;
+        evidenceResult = contentResult;
+      } else if (isMissingEvidenceMarker(existingReference?.excerpt)) {
         nextExcerpt = existingReference?.excerpt ?? "Not present";
+        evidenceResult = { matched: false, reason: "empty-excerpt" };
       } else {
         nextExcerpt = match ? "Evidence not found" : "Not present";
+        evidenceResult = { matched: false, reason: "empty-excerpt" };
       }
-      evidenceResult = { matched: false, reason: "empty-excerpt" };
     } else if (!clauseEvidenceResult.matched || !evidenceResult.matched) {
-      if (isMissingEvidenceMarker(currentExcerpt)) {
+      if (contentAligned) {
+        nextExcerpt = contentExcerpt;
+        evidenceResult = contentResult;
+        clauseEvidenceResult = match && contentExcerpt
+          ? checkEvidenceMatchAgainstClause(contentExcerpt, clauseText)
+          : clauseEvidenceResult;
+      } else if (isMissingEvidenceMarker(currentExcerpt)) {
         nextExcerpt = currentExcerpt;
       } else if (preferredExcerpt && preferredExcerpt !== currentExcerpt) {
         const preferredClauseResult = checkEvidenceMatchAgainstClause(
@@ -473,8 +517,7 @@ export function enhanceReportWithClauses(
       ? match.originalText ?? match.normalizedText ?? match.title ?? ""
       : "";
 
-    const contentAnchor =
-      fallbackText || criterion.title || criterion.description || "";
+    const contentAnchor = fallbackText || issue.title || "";
     const contentExcerpt = contentAnchor
       ? buildEvidenceExcerptFromContent({
           content,
@@ -484,6 +527,10 @@ export function enhanceReportWithClauses(
     const contentResult = contentExcerpt
       ? checkEvidenceMatch(contentExcerpt, content)
       : { matched: false, reason: "empty-excerpt" };
+    const contentAligned =
+      Boolean(contentExcerpt) &&
+      contentResult.matched &&
+      hasAnchorTokenOverlap(contentAnchor, contentExcerpt);
 
     const currentEvidence =
       typeof criterion.evidence === "string" && criterion.evidence.trim().length > 0
@@ -499,7 +546,7 @@ export function enhanceReportWithClauses(
 
     let nextEvidence = currentEvidence;
     if (!currentEvidence) {
-      if (contentResult.matched) {
+      if (contentAligned) {
         nextEvidence = contentExcerpt;
         evidenceResult = contentResult;
       } else {
@@ -507,7 +554,7 @@ export function enhanceReportWithClauses(
         evidenceResult = { matched: false, reason: "empty-excerpt" };
       }
     } else if (!clauseEvidenceResult.matched || !evidenceResult.matched) {
-      if (contentResult.matched) {
+      if (contentAligned) {
         nextEvidence = contentExcerpt;
         evidenceResult = contentResult;
         clauseEvidenceResult = match && contentExcerpt
