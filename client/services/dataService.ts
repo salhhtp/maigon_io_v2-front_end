@@ -1064,8 +1064,17 @@ export class DataService {
       ? solutionProfile.fallbackConfidence
       : solutionProfile.baselineConfidence;
 
+    const structuredScore =
+      typeof results?.structured_report?.generalInformation?.complianceScore ===
+          "number"
+        ? results.structured_report.generalInformation.complianceScore
+        : typeof results?.general_information?.complianceScore === "number"
+          ? results.general_information.complianceScore
+          : undefined;
+    const scoreCandidate =
+      typeof results?.score === "number" ? results.score : structuredScore;
     const { score, source: scoreSource } = this.normalizeScore(
-      results?.score,
+      scoreCandidate,
       defaultScore,
     );
     const { confidence, source: confidenceSource } = this.normalizeConfidence(

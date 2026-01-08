@@ -160,6 +160,104 @@ const DEFAULT_EXCERPT_LENGTH = 320;
 const MIN_MATCH_SCORE = 0.22;
 const MIN_HEADING_SCORE = 0.3;
 const MIN_HEADING_ALIGNMENT_SCORE = 0.22;
+const MISSING_ANCHOR_PATTERN =
+  /\b(?:not present|missing|not found|absence of|lack of)\b/gi;
+
+const CANONICAL_TOKEN_MAP: Record<string, string> = {
+  destruction: "destroy",
+  destroy: "destroy",
+  delete: "destroy",
+  deleted: "destroy",
+  deletion: "destroy",
+  erase: "destroy",
+  erasure: "destroy",
+  terminate: "terminate",
+  termination: "terminate",
+  terminated: "terminate",
+  compel: "compel",
+  compelled: "compel",
+  required: "compel",
+  mandated: "compel",
+  ordered: "compel",
+  disclose: "disclose",
+  disclosure: "disclose",
+  disclosed: "disclose",
+  disclosing: "disclose",
+  injunctive: "injunction",
+  injunction: "injunction",
+  survive: "survive",
+  survival: "survive",
+  survives: "survive",
+  license: "license",
+  licence: "license",
+  licensing: "license",
+};
+
+const ANCHOR_SYNONYMS: Record<string, string[]> = {
+  destroy: ["destruction", "delete", "deletion", "erase", "erasure"],
+  destruction: ["destroy", "delete", "deletion", "erase", "erasure"],
+  terminate: ["termination", "terminated"],
+  termination: ["terminate", "terminated"],
+  compel: ["compelled", "required", "mandated", "ordered"],
+  compelled: ["compel", "required", "mandated", "ordered"],
+  disclose: ["disclosure", "disclosed", "disclosing"],
+  disclosure: ["disclose", "disclosed", "disclosing"],
+  injunctive: ["injunction"],
+  injunction: ["injunctive"],
+  survive: ["survival", "survives"],
+  survival: ["survive", "survives"],
+  license: ["licence", "licensing"],
+  licence: ["license", "licensing"],
+};
+
+function stemAnchorToken(token: string): string {
+  if (token.length <= 4) return token;
+  const suffixes = ["ments", "ment", "tion", "sion", "ions", "ing", "ed", "es", "s"];
+  for (const suffix of suffixes) {
+    if (token.endsWith(suffix) && token.length - suffix.length >= 4) {
+      return token.slice(0, -suffix.length);
+    }
+  }
+  return token;
+}
+
+function normalizeAnchorToken(token: string): string {
+  const normalized = token.toLowerCase();
+  if (CANONICAL_TOKEN_MAP[normalized]) {
+    return CANONICAL_TOKEN_MAP[normalized];
+  }
+  return stemAnchorToken(normalized);
+}
+
+export function normalizeAnchorText(value: string): string {
+  if (!value) return "";
+  return value.replace(MISSING_ANCHOR_PATTERN, " ").replace(/\s+/g, " ").trim();
+}
+
+export function tokenizeForAnchor(value: string): string[] {
+  const normalized = normalizeAnchorText(value);
+  const tokens = tokenizeForMatch(normalized).filter(
+    (token) => !GENERIC_TOKENS.has(token),
+  );
+  return tokens.map((token) => normalizeAnchorToken(token)).filter(Boolean);
+}
+
+function expandAnchorSearchTokens(tokens: string[]): string[] {
+  const expanded = new Set<string>();
+  tokens.forEach((token) => {
+    if (!token) return;
+    expanded.add(token);
+    const canonical = normalizeAnchorToken(token);
+    expanded.add(canonical);
+    const synonyms =
+      ANCHOR_SYNONYMS[token] ??
+      ANCHOR_SYNONYMS[canonical] ??
+      [];
+    synonyms.forEach((synonym) => expanded.add(synonym));
+  });
+  return Array.from(expanded);
+}
+
 
 export function normalizeForMatch(value: string): string {
   if (!value) return "";
@@ -472,21 +570,45 @@ export function buildEvidenceExcerptFromContent(options: {
   const anchorText =
     typeof options.anchorText === "string" ? options.anchorText.trim() : "";
   if (!anchorText) return "";
-  const tokens = tokenizeForMatch(anchorText).filter(
+  const baseTokens = tokenizeForMatch(normalizeAnchorText(anchorText)).filter(
     (token) => !GENERIC_TOKENS.has(token),
   );
-  if (!tokens.length) return "";
+  if (!baseTokens.length) return "";
+  const anchorTokens = new Set(
+    baseTokens.map((token) => normalizeAnchorToken(token)).filter(Boolean),
+  );
+  if (!anchorTokens.size) return "";
+  const searchTokens = expandAnchorSearchTokens(baseTokens);
   const lowerContent = content.toLowerCase();
-  let index = -1;
-  for (const token of tokens) {
-    if (token.length < 3) continue;
-    index = lowerContent.indexOf(token);
-    if (index >= 0) break;
+  let bestExcerpt = "";
+  let bestHits = 0;
+  const requiredHits = Math.min(2, anchorTokens.size);
+
+  for (const token of searchTokens) {
+    if (!token || token.length < 3) continue;
+    const index = lowerContent.indexOf(token);
+    if (index < 0) continue;
+    const start = Math.max(0, index - Math.floor(maxLength * 0.4));
+    const end = Math.min(content.length, start + maxLength);
+    const excerpt = content.slice(start, end).trim();
+    const excerptTokens = new Set(
+      tokenizeForMatch(excerpt).map((value) => normalizeAnchorToken(value)),
+    );
+    let hits = 0;
+    anchorTokens.forEach((anchorToken) => {
+      if (excerptTokens.has(anchorToken)) hits += 1;
+    });
+    if (hits > bestHits) {
+      bestHits = hits;
+      bestExcerpt = excerpt;
+    }
+    if (bestHits >= requiredHits) {
+      break;
+    }
   }
-  if (index < 0) return "";
-  const start = Math.max(0, index - Math.floor(maxLength * 0.4));
-  const end = Math.min(content.length, start + maxLength);
-  return content.slice(start, end).trim();
+
+  if (bestHits < requiredHits) return "";
+  return bestExcerpt;
 }
 
 

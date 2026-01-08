@@ -20,7 +20,9 @@ import {
   dedupeIssues,
   dedupeProposedEdits,
   evaluatePlaybookCoverageFromContent,
+  isMissingEvidenceMarker,
   normaliseReportExpiry,
+  normalizeAnchorText,
   resolveClauseMatch,
 } from "../../../shared/ai/reliability.ts";
 import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
@@ -1376,6 +1378,117 @@ function normaliseProposedEditContent(payload: Record<string, unknown>) {
   });
 }
 
+function repairProposedEditAnchors(options: {
+  proposedEdits: AnalysisReport["proposedEdits"];
+  issues: AnalysisReport["issuesToAddress"];
+  clauses: ClauseExtraction[];
+  content: string;
+}): AnalysisReport["proposedEdits"] {
+  const { proposedEdits, issues, clauses, content } = options;
+  if (!proposedEdits?.length || !content) return proposedEdits;
+
+  const clauseIndex = new Map<string, ClauseExtraction>();
+  clauses.forEach((clause) => {
+    const id = (clause.clauseId ?? clause.id ?? "").toString().trim();
+    if (id) clauseIndex.set(id, clause);
+  });
+
+  const issueIndex = new Map<string, AnalysisReport["issuesToAddress"][number]>();
+  issues.forEach((issue) => {
+    const id = issue.clauseReference?.clauseId?.toString().trim();
+    if (id) issueIndex.set(id, issue);
+  });
+
+  return proposedEdits.map((edit) => {
+    if (!edit || typeof edit !== "object") return edit;
+    const anchorText = typeof edit.anchorText === "string" ? edit.anchorText.trim() : "";
+    if (anchorText && checkEvidenceMatch(anchorText, content).matched) {
+      return edit;
+    }
+
+    const cleanedAnchor = normalizeAnchorText(anchorText);
+    let nextAnchor = "";
+    const clauseId = typeof edit.clauseId === "string" ? edit.clauseId.trim() : "";
+    const clause = clauseId ? clauseIndex.get(clauseId) : null;
+
+    if (clause) {
+      const clauseText = clause.originalText ?? clause.normalizedText ?? clause.title ?? "";
+      if (clauseText) {
+        const clauseAnchor =
+          cleanedAnchor ||
+          edit.intent ||
+          (typeof edit.proposedText === "string"
+            ? edit.proposedText.slice(0, 120)
+            : "");
+        const excerpt = buildEvidenceExcerpt({
+          clauseText,
+          anchorText: clauseAnchor,
+        });
+        if (excerpt && checkEvidenceMatch(excerpt, content).matched) {
+          nextAnchor = excerpt;
+        }
+      }
+    }
+
+    if (!nextAnchor) {
+      const issue = clauseId ? issueIndex.get(clauseId) : null;
+      const issueAnchor =
+        issue?.title ||
+        issue?.recommendation ||
+        cleanedAnchor ||
+        edit.intent ||
+        "";
+      if (issueAnchor) {
+        const excerpt = buildEvidenceExcerptFromContent({
+          content,
+          anchorText: issueAnchor,
+        });
+        if (excerpt && checkEvidenceMatch(excerpt, content).matched) {
+          nextAnchor = excerpt;
+        }
+      }
+    }
+
+    if (!nextAnchor) {
+      const fallbackAnchor =
+        cleanedAnchor ||
+        edit.intent ||
+        (typeof edit.proposedText === "string"
+          ? edit.proposedText.slice(0, 120)
+          : "");
+      if (fallbackAnchor) {
+        const excerpt = buildEvidenceExcerptFromContent({
+          content,
+          anchorText: fallbackAnchor,
+        });
+        if (excerpt && checkEvidenceMatch(excerpt, content).matched) {
+          nextAnchor = excerpt;
+        }
+      }
+    }
+
+    if (!nextAnchor) {
+      const intent = typeof edit.intent === "string" ? edit.intent.toLowerCase() : "";
+      nextAnchor = intent === "insert" ? "Not present" : "Evidence not found";
+    }
+
+    const previousText =
+      typeof edit.previousText === "string" ? edit.previousText.trim() : "";
+    const previousMatches =
+      previousText && checkEvidenceMatch(previousText, content).matched;
+    const updatedPrevious = previousMatches
+      ? previousText
+      : (!isMissingEvidenceMarker(nextAnchor) ? nextAnchor : previousText);
+
+    return {
+      ...edit,
+      anchorText: nextAnchor,
+      previousText: updatedPrevious || edit.previousText,
+    };
+  });
+}
+
+
 type PlaybookCoverageSummary = {
   coverageScore: number;
   criticalClauses: Array<{
@@ -2430,39 +2543,53 @@ export async function runReasoningAnalysis(
     source: enhancementSource,
     reason: enhancementReason,
   });
-  let criteriaSeededReport = finalReport;
-  if (!finalReport.criteriaMet?.length && playbook) {
-    const coverageSeed = evaluatePlaybookCoverageFromContent(playbook, {
-      content: context.content,
-      clauses: context.clauseExtractions ?? [],
-    });
-    const criteriaSeed = buildCriteriaFromCoverage(
-      coverageSeed,
-      context.clauseExtractions ?? [],
-      context.content,
-    );
-    if (criteriaSeed.length) {
-      criteriaSeededReport = {
-        ...finalReport,
-        criteriaMet: criteriaSeed,
-      };
-    }
-  }
-  const clauseAlignedReport = enhanceReportWithClauses(criteriaSeededReport, {
+  const baseAlignedReport = enhanceReportWithClauses(finalReport, {
     clauses: context.clauseExtractions ?? null,
     content: context.content,
   });
+  let criteriaSeededReport = baseAlignedReport;
+  if (!baseAlignedReport.criteriaMet?.length && playbook) {
+    const clauseCandidates =
+      baseAlignedReport.clauseExtractions ?? context.clauseExtractions ?? [];
+    const coverageSeed = evaluatePlaybookCoverageFromContent(playbook, {
+      content: context.content,
+      clauses: clauseCandidates,
+    });
+    const criteriaSeed = buildCriteriaFromCoverage(
+      coverageSeed,
+      clauseCandidates,
+      context.content,
+    );
+    if (criteriaSeed.length) {
+      const seededReport: AnalysisReport = {
+        ...baseAlignedReport,
+        criteriaMet: criteriaSeed,
+      };
+      criteriaSeededReport = enhanceReportWithClauses(seededReport, {
+        clauses: clauseCandidates,
+        content: context.content,
+      });
+    }
+  }
+  const clausesForBindings =
+    criteriaSeededReport.clauseExtractions ??
+    baseAlignedReport.clauseExtractions ??
+    context.clauseExtractions ??
+    [];
   const boundEdits = bindProposedEditsToClauses({
-    proposedEdits: clauseAlignedReport.proposedEdits,
-    issues: clauseAlignedReport.issuesToAddress,
-    clauses:
-      context.clauseExtractions ??
-      clauseAlignedReport.clauseExtractions ??
-      [],
+    proposedEdits: criteriaSeededReport.proposedEdits,
+    issues: criteriaSeededReport.issuesToAddress,
+    clauses: clausesForBindings,
+  });
+  const repairedEdits = repairProposedEditAnchors({
+    proposedEdits: boundEdits,
+    issues: criteriaSeededReport.issuesToAddress,
+    clauses: clausesForBindings,
+    content: context.content,
   });
   const clauseAlignedReportWithEdits: AnalysisReport = {
-    ...clauseAlignedReport,
-    proposedEdits: boundEdits,
+    ...criteriaSeededReport,
+    proposedEdits: repairedEdits,
   };
   const dedupedReport: AnalysisReport = {
     ...clauseAlignedReportWithEdits,
@@ -2475,8 +2602,7 @@ export async function runReasoningAnalysis(
     usePlaybookCoverage ? playbook : null,
     {
       content: context.content,
-      clauses:
-        context.clauseExtractions ?? clauseAlignedReport.clauseExtractions,
+      clauses: clausesForBindings,
     },
   );
   const scoredReport: AnalysisReport = {
