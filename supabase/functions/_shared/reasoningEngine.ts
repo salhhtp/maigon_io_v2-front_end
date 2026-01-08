@@ -1302,16 +1302,46 @@ function enforceProposedEditClauseBindings(payload: Record<string, unknown>) {
   });
 }
 
+function sanitizeUnmarkedExclusions(text: string): string {
+  const normalized = text.toLowerCase();
+  if (
+    !normalized.includes("shall not include") &&
+    !normalized.includes("does not include")
+  ) {
+    return text;
+  }
+  if (
+    !normalized.includes("unmarked") ||
+    !normalized.includes("treated as confidential")
+  ) {
+    return text;
+  }
+  const pattern = /(\([ivx]+\)|\([0-9]+\))[^.]*unmarked[^.]*treated as confidential[^.]*/i;
+  if (!pattern.test(text)) {
+    return text;
+  }
+  return text.replace(
+    pattern,
+    (match, prefix) =>
+      `${prefix} is unmarked information unless the Discloser confirms in writing within 30 days that such information is confidential`,
+  );
+}
+
 function normaliseProposedEditContent(payload: Record<string, unknown>) {
   if (!Array.isArray(payload.proposedEdits)) return;
   payload.proposedEdits = payload.proposedEdits.map((entry) => {
     if (!entry || typeof entry !== "object") return entry;
     const record = entry as Record<string, unknown>;
-    const proposedText =
+    const rawProposedText =
       typeof record.proposedText === "string" ? record.proposedText : "";
+    const proposedText = sanitizeUnmarkedExclusions(rawProposedText);
     const previousText =
       typeof record.previousText === "string" ? record.previousText : "";
 
+    record.proposedText = proposedText;
+    if (typeof record.updatedText === "string") {
+      record.updatedText = sanitizeUnmarkedExclusions(record.updatedText);
+    }
     const needsRewrite = (value: unknown) =>
       typeof value !== "string" ||
       value.trim().length === 0 ||
@@ -1326,6 +1356,8 @@ function normaliseProposedEditContent(payload: Record<string, unknown>) {
       const preview = record.previewHtml as Record<string, unknown>;
       if (needsRewrite(preview.updated)) {
         preview.updated = proposedText;
+      } else if (typeof preview.updated === "string") {
+        preview.updated = sanitizeUnmarkedExclusions(preview.updated);
       }
       if (
         (typeof preview.previous !== "string" ||
