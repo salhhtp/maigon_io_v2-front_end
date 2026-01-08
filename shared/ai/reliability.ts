@@ -884,8 +884,10 @@ export function evaluatePlaybookCoverageFromContent(
     };
   });
 
-  const anchorCoverage = (playbook.clauseAnchors ?? []).map((anchor) => {
-    const anchorMatch = findRequirementMatch(anchor, clauses, content);
+  const anchorCoverage = (playbook.clauseAnchors ?? [])
+    .filter((anchor): anchor is string => typeof anchor === "string")
+    .map((anchor) => {
+      const anchorMatch = findRequirementMatch(anchor, clauses, content);
     return {
       anchor,
       met: anchorMatch.met,
@@ -923,7 +925,9 @@ export function buildRetrievedClauseContext(options: {
   const excerptLength = options.excerptLength ?? DEFAULT_EXCERPT_LENGTH;
 
   const anchors = [
-    ...(playbook.clauseAnchors ?? []),
+    ...(playbook.clauseAnchors ?? []).filter(
+      (anchor): anchor is string => typeof anchor === "string",
+    ),
     ...(playbook.criticalClauses ?? []).map((clause) => clause.title),
     ...(playbook.criticalClauses ?? []).flatMap((clause) => clause.mustInclude ?? []),
   ].filter((value) => typeof value === "string" && value.trim().length > 0);
@@ -1015,6 +1019,21 @@ export function dedupeIssues(issues: IssueLike[]): IssueLike[] {
     bucket.forEach((issue) => {
       const issueText = `${issue.title ?? ""} ${issue.recommendation ?? ""}`.trim();
       const matchIndex = kept.findIndex((existing) => {
+        const issueTags = Array.isArray(issue.tags) ? issue.tags : [];
+        const existingTags = Array.isArray(existing.tags) ? existing.tags : [];
+        const issueChecklistTags = issueTags.filter((tag) =>
+          /^CHECK_|^ISSUE_CHECK_/i.test(tag),
+        );
+        const existingChecklistTags = existingTags.filter((tag) =>
+          /^CHECK_|^ISSUE_CHECK_/i.test(tag),
+        );
+        if (
+          issueChecklistTags.length > 0 &&
+          existingChecklistTags.length > 0 &&
+          !issueChecklistTags.some((tag) => existingChecklistTags.includes(tag))
+        ) {
+          return false;
+        }
         const existingText =
           `${existing.title ?? ""} ${existing.recommendation ?? ""}`.trim();
         const similarity = similarityForText(issueText, existingText);

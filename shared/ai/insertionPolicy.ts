@@ -1,4 +1,4 @@
-import type { ClauseExtractionLike, ClauseLocationLike } from "./reliability";
+import type { ClauseExtractionLike, ClauseLocationLike } from "./reliability.ts";
 
 export type InsertionPolicyResult = {
   policyKey: string;

@@ -188,10 +188,9 @@ export function buildClauseCandidates(options: {
 }): ClauseExtraction[] {
   const content = options.content ?? "";
   const clauseCandidates = options.clauses ?? [];
-  const fallbackClauses =
-    isClauseSetWeak(clauseCandidates) && content
-      ? buildFallbackClausesFromContent(content, FALLBACK_CLAUSE_LIMIT)
-      : [];
+  const fallbackClauses = content
+    ? buildFallbackClausesFromContent(content, FALLBACK_CLAUSE_LIMIT)
+    : [];
   return mergeClauseCandidates(clauseCandidates, fallbackClauses);
 }
 function sanitizeLocationHint(location?: ClauseExtraction["location"] | null) {

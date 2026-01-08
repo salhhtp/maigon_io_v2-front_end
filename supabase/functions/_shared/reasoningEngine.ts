@@ -752,6 +752,11 @@ function resolveModelId(tier: ModelTier) {
     : entry.fallback;
 }
 
+function isKnownPlaybookKey(value: string | null | undefined): value is PlaybookKey {
+  if (!value) return false;
+  return Object.prototype.hasOwnProperty.call(CONTRACT_PLAYBOOKS, value);
+}
+
 function normaliseSolutionKey(
   key?: string | null,
   fallback?: string | null,
@@ -784,10 +789,16 @@ function normaliseSolutionKey(
     case "professional_services_agreement":
     case "product_supply_agreement":
       return "professional_services_agreement";
-    default:
-      return (
-        (basis as PlaybookKey) ?? ("non_disclosure_agreement" as PlaybookKey)
-      );
+    default: {
+      if (isKnownPlaybookKey(basis)) {
+        return basis;
+      }
+      const fallbackKey = fallback?.toLowerCase() ?? "";
+      if (isKnownPlaybookKey(fallbackKey)) {
+        return fallbackKey;
+      }
+      return "non_disclosure_agreement";
+    }
   }
 }
 
@@ -1134,7 +1145,9 @@ function runHeuristicCritique(
     });
     coverage.anchorCoverage.forEach((anchor) => {
       if (!anchor.met) {
-        notes.push(`No coverage found for "${anchor}" requirement.`);
+        const anchorLabel =
+          typeof anchor.anchor === "string" ? anchor.anchor : String(anchor.anchor);
+        notes.push(`No coverage found for "${anchorLabel}" requirement.`);
       }
     });
     if (coverage.coverageScore < 0.85) {
@@ -1712,8 +1725,10 @@ function evaluatePlaybookCoverageFromReport(
     };
   });
 
-  const anchorCoverage = (playbook.clauseAnchors ?? []).map((anchor) => {
-    const result = findEvidenceForKeywords([anchor], sources);
+  const anchorCoverage = (playbook.clauseAnchors ?? [])
+    .filter((anchor): anchor is string => typeof anchor === "string")
+    .map((anchor) => {
+      const result = findEvidenceForKeywords([anchor], sources);
     return {
       anchor,
       met: result.met,
@@ -2298,15 +2313,9 @@ export async function runReasoningAnalysis(
   );
   const playbook = resolvePlaybook(playbookKey);
   const matchesKnownPlaybook = Object.values(CONTRACT_PLAYBOOKS).some(
-    (candidate) =>
-      candidate.key === normalizedSolutionKey ||
-      candidate.displayName.toLowerCase() === normalizedSolutionKey ||
-      candidate.key === playbookKey,
+    (candidate) => candidate.key === playbookKey,
   );
-  const hasCustomSolution = Boolean(
-    context.selectedSolution?.id && !matchesKnownPlaybook,
-  );
-  const usePlaybookCoverage = !hasCustomSolution;
+  const usePlaybookCoverage = matchesKnownPlaybook;
 
   const responsesSupported = shouldUseResponsesApi(model);
   if (!responsesSupported) {
@@ -2350,6 +2359,7 @@ export async function runReasoningAnalysis(
   let lastError: unknown = null;
   let corePayload: unknown = null;
   let coreReport: AnalysisReport | null = null;
+  let modelScore: number | null = null;
 
   const isTightTimeout = REQUEST_TIMEOUT_MS <= 45000;
   const maxAttempts = 3;
@@ -2475,15 +2485,8 @@ export async function runReasoningAnalysis(
       report.generalInformation.reportExpiry = normaliseReportExpiry(
         report.generalInformation.reportExpiry,
       );
+      modelScore = report.generalInformation.complianceScore;
       const tokenUsage = normaliseTokenUsage(payload, true);
-      const { notes: critiqueNotes, coverage, diagnostics } = runHeuristicCritique(
-        report,
-        playbookKey,
-        {
-          content: context.content,
-          clauses: context.clauseExtractions ?? null,
-        },
-      );
       const enrichedReport: AnalysisReport = {
         ...report,
         metadata: {
@@ -2500,10 +2503,6 @@ export async function runReasoningAnalysis(
               report.metadata?.classification?.confidence,
           },
           tokenUsage: tokenUsage ?? report.metadata?.tokenUsage,
-          critiqueNotes,
-          playbookCoverage: coverage ?? report.metadata?.playbookCoverage,
-          playbookCoverageContent: diagnostics.content ?? undefined,
-          playbookCoverageModel: diagnostics.model ?? undefined,
         },
       };
       coreReport = enrichedReport;
@@ -2625,8 +2624,38 @@ export async function runReasoningAnalysis(
     } as AnalysisReport["metadata"],
   };
 
+  const critique = runHeuristicCritique(scoredReport, playbookKey, {
+    content: context.content,
+    clauses: clauseCandidates,
+  });
+  const existingNotes = Array.isArray(scoredReport.metadata?.critiqueNotes)
+    ? scoredReport.metadata?.critiqueNotes
+    : [];
+  const mergedNotes = Array.from(
+    new Set([...existingNotes, ...critique.notes].filter(Boolean)),
+  );
+  const finalReport: AnalysisReport = {
+    ...scoredReport,
+    metadata: {
+      ...scoredReport.metadata,
+      critiqueNotes: mergedNotes,
+      playbookCoverage:
+        scoringResult.coverage ??
+        critique.coverage ??
+        scoredReport.metadata?.playbookCoverage,
+      playbookCoverageContent:
+        critique.diagnostics.content ??
+        scoredReport.metadata?.playbookCoverageContent,
+      playbookCoverageModel:
+        critique.diagnostics.model ??
+        scoredReport.metadata?.playbookCoverageModel,
+      modelScore: modelScore ?? undefined,
+      modelScoreSource: modelScore !== null ? "model" : undefined,
+    } as AnalysisReport["metadata"],
+  };
+
   return {
-    report: scoredReport,
+    report: finalReport,
     raw: {
       stageOne: corePayload,
       stageTwo: enhancementRaw,
