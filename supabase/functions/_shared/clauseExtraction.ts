@@ -32,7 +32,10 @@ function hasAnchorTokenOverlap(anchor: string, excerpt: string): boolean {
   anchorTokens.forEach((token) => {
     if (excerptTokens.has(token)) hits += 1;
   });
-  const requiredHits = Math.min(MIN_ANCHOR_TOKEN_HITS, anchorTokens.length);
+  const requiredHits =
+    anchorTokens.length <= 2
+      ? 1
+      : Math.min(MIN_ANCHOR_TOKEN_HITS, anchorTokens.length);
   return hits >= requiredHits;
 }
 
@@ -644,6 +647,63 @@ export function enhanceReportWithClauses(
     !isMissingEvidenceMarker(criterion.evidence),
   );
 
+  const criteriaSignals = filteredCriteria
+    .map((criterion) => {
+      const evidence =
+        typeof criterion.evidence === "string" ? criterion.evidence.trim() : "";
+      if (!evidence || isMissingEvidenceMarker(evidence)) return null;
+      if (!checkEvidenceMatch(evidence, content).matched) return null;
+      const tokens = tokenizeForAnchor(
+        `${criterion.title ?? ""} ${criterion.description ?? ""}`.trim(),
+      );
+      if (!tokens.length) return null;
+      return { tokens: new Set(tokens), evidence };
+    })
+    .filter(Boolean) as Array<{ tokens: Set<string>; evidence: string }>;
+
+  const issuesWithConsistency = issuesWithNormalizedEvidence.map((issue) => {
+    if (!criteriaSignals.length) return issue;
+    const issueText = `${issue.title ?? ""} ${issue.recommendation ?? ""}`.trim();
+    const issueTokens = tokenizeForAnchor(issueText);
+    if (!issueTokens.length) return issue;
+    const issueTokenSet = new Set(issueTokens);
+    const match = criteriaSignals.find((signal) => {
+      let hits = 0;
+      signal.tokens.forEach((token) => {
+        if (issueTokenSet.has(token)) hits += 1;
+      });
+      const requiredHits = signal.tokens.size <= 2 ? 1 : 2;
+      return hits >= requiredHits;
+    });
+    if (!match) return issue;
+    const title = typeof issue.title === "string" ? issue.title : "";
+    let nextTitle = title;
+    if (/\b(not present|missing)\b/i.test(title)) {
+      nextTitle = title.replace(/:\s*(not present|missing)\s*$/i, ": Needs attention");
+      if (nextTitle === title) {
+        nextTitle = title.replace(/\b(not present|missing)\b/gi, "Needs attention");
+      }
+    }
+    const excerpt = issue.clauseReference?.excerpt ?? "";
+    if (isMissingEvidenceMarker(excerpt)) {
+      return {
+        ...issue,
+        title: nextTitle || issue.title,
+        clauseReference: {
+          ...issue.clauseReference,
+          excerpt: match.evidence,
+        },
+      };
+    }
+    if (nextTitle && nextTitle !== title) {
+      return {
+        ...issue,
+        title: nextTitle,
+      };
+    }
+    return issue;
+  });
+
   const recomputeStats = (
     issues: AnalysisReport["issuesToAddress"],
     criteria: AnalysisReport["criteriaMet"],
@@ -679,7 +739,7 @@ export function enhanceReportWithClauses(
 
   if (DEBUG_REVIEW) {
     const { issueStats, criteriaStats } = recomputeStats(
-      issuesWithNormalizedEvidence,
+      issuesWithConsistency,
       filteredCriteria,
     );
     console.info("🧭 Evidence alignment summary", {
@@ -701,7 +761,7 @@ export function enhanceReportWithClauses(
   return {
     ...report,
     clauseExtractions: mergedClauseCandidates,
-    issuesToAddress: issuesWithNormalizedEvidence,
+    issuesToAddress: issuesWithConsistency,
     criteriaMet: filteredCriteria,
     metadata: nextMetadata as AnalysisReport["metadata"],
   };

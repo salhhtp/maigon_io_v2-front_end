@@ -149,6 +149,8 @@ const GENERIC_TOKENS = new Set([
   "purpose",
 ]);
 
+const ANCHOR_KEEP_TOKENS = new Set(["purpose"]);
+
 const MISSING_EVIDENCE_MARKERS = [
   "not present",
   "missing",
@@ -237,7 +239,7 @@ export function normalizeAnchorText(value: string): string {
 export function tokenizeForAnchor(value: string): string[] {
   const normalized = normalizeAnchorText(value);
   const tokens = tokenizeForMatch(normalized).filter(
-    (token) => !GENERIC_TOKENS.has(token),
+    (token) => !GENERIC_TOKENS.has(token) || ANCHOR_KEEP_TOKENS.has(token),
   );
   return tokens.map((token) => normalizeAnchorToken(token)).filter(Boolean);
 }
@@ -532,6 +534,26 @@ export function isMissingEvidenceMarker(value?: string | null): boolean {
   );
 }
 
+function sliceExcerpt(text: string, start: number, end: number): string {
+  const safeStart = Math.max(0, Math.min(start, text.length));
+  const safeEnd = Math.max(safeStart, Math.min(end, text.length));
+  let excerpt = text.slice(safeStart, safeEnd);
+  if (!excerpt) return "";
+  if (safeStart > 0 && !/\s/.test(text[safeStart - 1])) {
+    const firstSpace = excerpt.search(/\s/);
+    if (firstSpace >= 0 && firstSpace < excerpt.length - 1) {
+      excerpt = excerpt.slice(firstSpace + 1);
+    }
+  }
+  if (safeEnd < text.length && !/\s/.test(text[safeEnd])) {
+    const lastSpace = excerpt.lastIndexOf(" ");
+    if (lastSpace > 20) {
+      excerpt = excerpt.slice(0, lastSpace);
+    }
+  }
+  return excerpt.trim();
+}
+
 export function buildEvidenceExcerpt(options: {
   clauseText: string;
   anchorText?: string | null;
@@ -552,11 +574,11 @@ export function buildEvidenceExcerpt(options: {
     if (index >= 0) {
       const start = Math.max(0, index - Math.floor(maxLength * 0.4));
       const end = Math.min(clauseText.length, start + maxLength);
-      return clauseText.slice(start, end);
+      return sliceExcerpt(clauseText, start, end);
     }
   }
 
-  return clauseText.slice(0, maxLength);
+  return sliceExcerpt(clauseText, 0, maxLength);
 }
 
 export function buildEvidenceExcerptFromContent(options: {
@@ -571,7 +593,7 @@ export function buildEvidenceExcerptFromContent(options: {
     typeof options.anchorText === "string" ? options.anchorText.trim() : "";
   if (!anchorText) return "";
   const baseTokens = tokenizeForMatch(normalizeAnchorText(anchorText)).filter(
-    (token) => !GENERIC_TOKENS.has(token),
+    (token) => !GENERIC_TOKENS.has(token) || ANCHOR_KEEP_TOKENS.has(token),
   );
   if (!baseTokens.length) return "";
   const anchorTokens = new Set(
@@ -582,7 +604,8 @@ export function buildEvidenceExcerptFromContent(options: {
   const lowerContent = content.toLowerCase();
   let bestExcerpt = "";
   let bestHits = 0;
-  const requiredHits = Math.min(2, anchorTokens.size);
+  const requiredHits =
+    anchorTokens.size <= 2 ? 1 : Math.min(2, anchorTokens.size);
 
   for (const token of searchTokens) {
     if (!token || token.length < 3) continue;
@@ -590,7 +613,7 @@ export function buildEvidenceExcerptFromContent(options: {
     if (index < 0) continue;
     const start = Math.max(0, index - Math.floor(maxLength * 0.4));
     const end = Math.min(content.length, start + maxLength);
-    const excerpt = content.slice(start, end).trim();
+    const excerpt = sliceExcerpt(content, start, end);
     const excerptTokens = new Set(
       tokenizeForMatch(excerpt).map((value) => normalizeAnchorToken(value)),
     );
