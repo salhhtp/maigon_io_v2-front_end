@@ -12,11 +12,15 @@ import {
 import { enhanceReportWithClauses } from "./clauseExtraction.ts";
 import {
   bindProposedEditsToClauses,
+  buildEvidenceExcerpt,
+  buildEvidenceExcerptFromContent,
   buildRetrievedClauseContext,
+  checkEvidenceMatch,
   dedupeIssues,
   dedupeProposedEdits,
   evaluatePlaybookCoverageFromContent,
   normaliseReportExpiry,
+  resolveClauseMatch,
 } from "../../../shared/ai/reliability.ts";
 import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
@@ -1386,6 +1390,93 @@ type PlaybookCoverageSummary = {
   }>;
 };
 
+function buildCriteriaFromCoverage(
+  coverage: PlaybookCoverageSummary | null,
+  clauses: ClauseExtraction[],
+  content: string,
+): AnalysisReport["criteriaMet"] {
+  if (!coverage) return [];
+  const criteria: AnalysisReport["criteriaMet"] = [];
+  const seen = new Set<string>();
+
+  const addCriterion = (
+    title: string,
+    description: string,
+    idPrefix: string,
+    index: number,
+  ) => {
+    const normalized = title.toLowerCase().trim();
+    if (!normalized || seen.has(normalized)) return;
+    const match = resolveClauseMatch({
+      clauseReference: null,
+      fallbackText: title,
+      clauses,
+    });
+    const clauseText = match.match
+      ? match.match.originalText ??
+          match.match.normalizedText ??
+          match.match.title ??
+          ""
+      : "";
+    let evidence = "";
+    if (clauseText) {
+      const clauseExcerpt = buildEvidenceExcerpt({
+        clauseText,
+        anchorText: title,
+      });
+      if (clauseExcerpt) {
+        const clauseMatch = checkEvidenceMatch(clauseExcerpt, content);
+        if (clauseMatch.matched) {
+          evidence = clauseExcerpt;
+        }
+      }
+    }
+    if (!evidence) {
+      const contentExcerpt = buildEvidenceExcerptFromContent({
+        content,
+        anchorText: title,
+      });
+      if (contentExcerpt) {
+        const contentMatch = checkEvidenceMatch(contentExcerpt, content);
+        if (contentMatch.matched) {
+          evidence = contentExcerpt;
+        }
+      }
+    }
+    if (!evidence) return;
+    seen.add(normalized);
+    criteria.push({
+      id: `${idPrefix}-${index + 1}`,
+      title,
+      description,
+      met: true,
+      evidence,
+    });
+  };
+
+  coverage.criticalClauses
+    .filter((clause) => clause.met)
+    .forEach((clause, index) => {
+      addCriterion(
+        clause.title,
+        "Required clause detected in the contract.",
+        "criteria-critical",
+        index,
+      );
+    });
+  coverage.anchorCoverage
+    .filter((anchor) => anchor.met)
+    .forEach((anchor, index) => {
+      addCriterion(
+        anchor.anchor,
+        "Playbook anchor present in the contract.",
+        "criteria-anchor",
+        index,
+      );
+    });
+  return criteria.slice(0, 8);
+}
+
 type EvidenceSource = { label: string; text: string };
 
 function normaliseTextCandidate(value: string | undefined | null) {
@@ -2338,7 +2429,25 @@ export async function runReasoningAnalysis(
     source: enhancementSource,
     reason: enhancementReason,
   });
-  const clauseAlignedReport = enhanceReportWithClauses(finalReport, {
+  let criteriaSeededReport = finalReport;
+  if (!finalReport.criteriaMet?.length && playbook) {
+    const coverageSeed = evaluatePlaybookCoverageFromContent(playbook, {
+      content: context.content,
+      clauses: context.clauseExtractions ?? [],
+    });
+    const criteriaSeed = buildCriteriaFromCoverage(
+      coverageSeed,
+      context.clauseExtractions ?? [],
+      context.content,
+    );
+    if (criteriaSeed.length) {
+      criteriaSeededReport = {
+        ...finalReport,
+        criteriaMet: criteriaSeed,
+      };
+    }
+  }
+  const clauseAlignedReport = enhanceReportWithClauses(criteriaSeededReport, {
     clauses: context.clauseExtractions ?? null,
     content: context.content,
   });
