@@ -27,6 +27,8 @@ export type IssueLike = {
   id?: string | null;
   title?: string | null;
   severity?: string | null;
+  category?: string | null;
+  tags?: string[] | null;
   recommendation?: string | null;
   rationale?: string | null;
   clauseReference?: ClauseReferenceLike | null;
