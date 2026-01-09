@@ -203,7 +203,7 @@ function jaccardSimilarity(a: string[], b: string[]): number {
   return union === 0 ? 0 : intersection / union;
 }
 
-export function hasTopicOverlap(query: string, candidate: string): boolean {
+function hasTopicOverlap(query: string, candidate: string): boolean {
   const queryTokens = tokenizeForMatch(query).filter(
     (token) => !GENERIC_TOKENS.has(token),
   );
@@ -370,9 +370,8 @@ export function resolveClauseMatch(options: {
     typeof fallbackText === "string" ? fallbackText : null;
   const headingQuery =
     headingQueryRaw && fallbackQuery
-      ? (hasTopicOverlap(headingQueryRaw, fallbackQuery) &&
-            scoreTextSimilarity(headingQueryRaw, fallbackQuery).score >=
-              MIN_HEADING_ALIGNMENT_SCORE
+      ? (scoreTextSimilarity(headingQueryRaw, fallbackQuery).score >=
+            MIN_HEADING_ALIGNMENT_SCORE
           ? headingQueryRaw
           : null)
       : headingQueryRaw;
@@ -459,35 +458,7 @@ export function buildEvidenceExcerpt(options: {
   }
 
   return clauseText.slice(0, maxLength);
-}export function buildEvidenceExcerptFromContent(options: {
-  content: string;
-  anchorText: string;
-  maxLength?: number;
-}): string {
-  const maxLength = options.maxLength ?? DEFAULT_EXCERPT_LENGTH;
-  const content = (options.content ?? "").replace(/\s+/g, " ").trim();
-  if (!content) return "";
-  const anchorText =
-    typeof options.anchorText === "string" ? options.anchorText.trim() : "";
-  if (!anchorText) return "";
-  const tokens = tokenizeForMatch(anchorText).filter(
-    (token) => !GENERIC_TOKENS.has(token),
-  );
-  if (!tokens.length) return "";
-  const lowerContent = content.toLowerCase();
-  let index = -1;
-  for (const token of tokens) {
-    if (token.length < 3) continue;
-    index = lowerContent.indexOf(token);
-    if (index >= 0) break;
-  }
-  if (index < 0) return "";
-  const start = Math.max(0, index - Math.floor(maxLength * 0.4));
-  const end = Math.min(content.length, start + maxLength);
-  return content.slice(start, end).trim();
 }
-
-
 
 export function checkEvidenceMatch(
   excerpt: string,

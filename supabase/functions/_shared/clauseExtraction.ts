@@ -1,10 +1,8 @@
 import type { AnalysisReport, ClauseExtraction } from "./reviewSchema.ts";
 import {
   buildEvidenceExcerpt,
-  buildEvidenceExcerptFromContent,
   checkEvidenceMatch,
   checkEvidenceMatchAgainstClause,
-  hasTopicOverlap,
   isMissingEvidenceMarker,
   matchClauseToText as matchClauseToTextWithDebug,
   normalizeForMatch,
@@ -25,10 +23,7 @@ const FALLBACK_CLAUSE_LIMIT = 28;
 function isClauseSetWeak(clauses: ClauseExtraction[]): boolean {
   if (!clauses.length) return true;
   let shortExcerpts = 0;
-  let titled = 0;
-  let withLocation = 0;
   const headings = new Set<string>();
-  const genericHeading = /^(section|article|clause)\s*\d*$/i;
   clauses.forEach((clause) => {
     if (
       typeof clause.originalText !== "string" ||
@@ -37,26 +32,13 @@ function isClauseSetWeak(clauses: ClauseExtraction[]): boolean {
       shortExcerpts += 1;
     }
     if (clause.title) {
-      const cleaned = clause.title.toLowerCase().trim();
-      headings.add(cleaned);
-      if (!genericHeading.test(cleaned) && cleaned.length > 3) {
-        titled += 1;
-      }
-    }
-    if (clause.location?.section) {
-      withLocation += 1;
+      headings.add(clause.title.toLowerCase().trim());
     }
   });
   if (shortExcerpts >= Math.max(2, clauses.length * 0.5)) {
     return true;
   }
   if (headings.size <= Math.ceil(clauses.length * 0.3)) {
-    return true;
-  }
-  if (titled < Math.max(2, Math.ceil(clauses.length * 0.4))) {
-    return true;
-  }
-  if (withLocation < Math.max(1, Math.ceil(clauses.length * 0.3))) {
     return true;
   }
   return false;
@@ -162,17 +144,6 @@ function buildFallbackClausesFromContent(
   }
   return clauses.slice(0, limit);
 }
-function sanitizeLocationHint(location?: ClauseExtraction["location"] | null) {
-  if (!location || typeof location !== "object") return null;
-  const section =
-    typeof location.section === "string" ? location.section.trim() : "";
-  const normalized = section.toLowerCase();
-  if (normalized.includes("unknown") || normalized.includes("not present")) {
-    return { ...location, section: null };
-  }
-  return location;
-}
-
 
 
 export function matchClauseToText(
@@ -242,24 +213,11 @@ export function enhanceReportWithClauses(
       fallbackText,
       clauses: clauseCandidatesForMatch,
     });
-    const matchClauseText = matchResult.match
-      ? matchResult.match.originalText ??
-          matchResult.match.normalizedText ??
-          matchResult.match.title ??
-          ""
-      : "";
-    const topicAligned =
-      !fallbackText ||
-      fallbackText.trim().length === 0 ||
-      (matchClauseText
-        ? hasTopicOverlap(fallbackText, matchClauseText)
-        : false);
     const acceptedMatch = Boolean(
       matchResult.match &&
         (matchResult.method === "id" ||
-          (topicAligned &&
-            (matchResult.method === "heading" ||
-              matchResult.confidence >= MIN_ISSUE_CONFIDENCE))),
+          matchResult.method === "heading" ||
+          matchResult.confidence >= MIN_ISSUE_CONFIDENCE),
     );
     const match = acceptedMatch ? matchResult.match : null;
     const existingReference = issue.clauseReference ?? {
@@ -268,9 +226,6 @@ export function enhanceReportWithClauses(
       excerpt: undefined,
       locationHint: undefined,
     };
-    const existingLocation = sanitizeLocationHint(
-      existingReference?.locationHint ?? null,
-    );
 
     const matchedClauseId = match?.clauseId ?? match?.id ?? null;
     const stableClauseId =
@@ -311,18 +266,6 @@ export function enhanceReportWithClauses(
     const clauseText = match
       ? match.originalText ?? match.normalizedText ?? match.title ?? ""
       : "";
-
-    const contentAnchor =
-      fallbackText || criterion.title || criterion.description || "";
-    const contentExcerpt = contentAnchor
-      ? buildEvidenceExcerptFromContent({
-          content,
-          anchorText: contentAnchor,
-        })
-      : "";
-    const contentResult = contentExcerpt
-      ? checkEvidenceMatch(contentExcerpt, content)
-      : { matched: false, reason: "empty-excerpt" };
 
     let nextExcerpt = currentExcerpt;
     let evidenceResult = currentExcerpt
@@ -386,13 +329,13 @@ export function enhanceReportWithClauses(
       ...issue,
       clauseReference: {
         clauseId: stableClauseId,
-        heading: match ? (match.title ?? existingReference?.heading) : undefined,
+        heading: match?.title ?? existingReference?.heading,
         excerpt: nextExcerpt,
         locationHint: match?.location ??
-          existingLocation ?? {
+          existingReference?.locationHint ?? {
             page: null,
             paragraph: null,
-            section: match?.title ?? null,
+            section: match?.title ?? (match ? null : "Not present"),
             clauseNumber: matchedClauseId ?? null,
           },
       },
@@ -439,24 +382,11 @@ export function enhanceReportWithClauses(
       fallbackText,
       clauses: clauseCandidatesForMatch,
     });
-    const matchClauseText = matchResult.match
-      ? matchResult.match.originalText ??
-          matchResult.match.normalizedText ??
-          matchResult.match.title ??
-          ""
-      : "";
-    const topicAligned =
-      !fallbackText ||
-      fallbackText.trim().length === 0 ||
-      (matchClauseText
-        ? hasTopicOverlap(fallbackText, matchClauseText)
-        : false);
     const acceptedMatch = Boolean(
       matchResult.match &&
         (matchResult.method === "id" ||
-          (topicAligned &&
-            (matchResult.method === "heading" ||
-              matchResult.confidence >= MIN_CRITERIA_CONFIDENCE))),
+          matchResult.method === "heading" ||
+          matchResult.confidence >= MIN_CRITERIA_CONFIDENCE),
     );
     const match = acceptedMatch ? matchResult.match : null;
     const fallbackExcerpt = match
@@ -473,18 +403,6 @@ export function enhanceReportWithClauses(
       ? match.originalText ?? match.normalizedText ?? match.title ?? ""
       : "";
 
-    const contentAnchor =
-      fallbackText || criterion.title || criterion.description || "";
-    const contentExcerpt = contentAnchor
-      ? buildEvidenceExcerptFromContent({
-          content,
-          anchorText: contentAnchor,
-        })
-      : "";
-    const contentResult = contentExcerpt
-      ? checkEvidenceMatch(contentExcerpt, content)
-      : { matched: false, reason: "empty-excerpt" };
-
     const currentEvidence =
       typeof criterion.evidence === "string" && criterion.evidence.trim().length > 0
         ? criterion.evidence
@@ -499,21 +417,10 @@ export function enhanceReportWithClauses(
 
     let nextEvidence = currentEvidence;
     if (!currentEvidence) {
-      if (contentResult.matched) {
-        nextEvidence = contentExcerpt;
-        evidenceResult = contentResult;
-      } else {
-        nextEvidence = fallbackExcerpt || "Evidence not found";
-        evidenceResult = { matched: false, reason: "empty-excerpt" };
-      }
+      nextEvidence = fallbackExcerpt || "Evidence not found";
+      evidenceResult = { matched: false, reason: "empty-excerpt" };
     } else if (!clauseEvidenceResult.matched || !evidenceResult.matched) {
-      if (contentResult.matched) {
-        nextEvidence = contentExcerpt;
-        evidenceResult = contentResult;
-        clauseEvidenceResult = match && contentExcerpt
-          ? checkEvidenceMatchAgainstClause(contentExcerpt, clauseText)
-          : clauseEvidenceResult;
-      } else if (fallbackExcerpt && fallbackExcerpt !== currentEvidence) {
+      if (fallbackExcerpt && fallbackExcerpt !== currentEvidence) {
         const fallbackClauseResult = checkEvidenceMatchAgainstClause(
           fallbackExcerpt,
           clauseText,

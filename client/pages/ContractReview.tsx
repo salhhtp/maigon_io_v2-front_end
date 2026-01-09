@@ -3403,7 +3403,7 @@ const heroNavItems: { id: string; label: string }[] = [
                   </div>
                 </div>
               )}
-              {structuredReport && (
+              {criteriaFromReport.length > 0 && (
                 <div
                   id="criteria-section"
                   className="bg-[#F6FCF8] border border-[#CDE9D8] rounded-lg p-6 shadow-sm"
