@@ -90,26 +90,6 @@ const splitIntoSentences = (text: string) => {
   return parts.filter((part) => part.length >= 30 && part.length <= 220);
 };
 
-const signalPresentInText = (text: string, signal: string) => {
-  const trimmed = signal.trim();
-  if (!trimmed) return false;
-  const normalizedText = normalizeText(text);
-  if (!normalizedText) return false;
-  const normalizedSignal = normalizeText(trimmed);
-  const tokens = tokenizeForAnchor(trimmed);
-  if (tokens.length <= 1) {
-    return normalizedText.includes(normalizedSignal);
-  }
-  let hits = 0;
-  tokens.forEach((token) => {
-    if (normalizedText.includes(token)) hits += 1;
-  });
-  return hits >= Math.min(2, tokens.length);
-};
-
-const filterMissingSignals = (content: string, signals: string[]) =>
-  signals.filter((signal) => !signalPresentInText(content, signal));
-
 const buildCriterionFromChecklistItem = (
   item: PlaybookChecklistItem,
   index: EvidenceIndex,
@@ -355,11 +335,7 @@ export function alignIssuesToChecklist(options: {
     issuesWithChecklistCoverage.push(issue);
   });
 
-  const normalizedIssues = issuesWithChecklistCoverage.map((issue) =>
-    enforceIssueClauseReference(issue, evidenceIndex),
-  );
-
-  return { issues: normalizedIssues, issueToCriterion };
+  return { issues: issuesWithChecklistCoverage, issueToCriterion };
 }
 
 export function validateAnchorTextExists(
@@ -384,9 +360,7 @@ export function ensureDeltaSignals(
     return { proposedText, addedSignals };
   }
   addedSignals.push(...missingToAdd);
-  const base = proposedText.trim();
-  const separator = base.endsWith(".") ? " " : ". ";
-  const appended = `${base}${separator}The parties shall include ${missingToAdd.join(", ")}.`;
+  const appended = `${proposedText.trim()}\n\nInclude: ${missingToAdd.join("; ")}.`;
   return { proposedText: appended, addedSignals };
 }
 
@@ -395,49 +369,11 @@ const buildFallbackProposedText = (criterion: ChecklistCriterion) => {
     ? criterion.missingSignals
     : criterion.requiredSignals;
   if (!missingSignals.length) {
-    return `${criterion.title}. The parties shall include the missing requirement.`;
+    return `${criterion.title}. Add the missing requirement.`;
   }
-  const sentences = missingSignals.map(
-    (signal) => `The parties shall include ${signal}.`,
-  );
-  return `${criterion.title}. ${sentences.join(" ")}`;
-};
-
-const isPlaceholderDraft = (text: string) => {
-  if (!text) return true;
-  const normalized = text.toLowerCase();
-  return (
-    /include:/i.test(text) ||
-    /shall address/i.test(normalized) ||
-    /add or clarify/i.test(normalized) ||
-    /not present/i.test(normalized) ||
-    /add the missing requirement/i.test(normalized) ||
-    /tbd/i.test(normalized)
-  );
-};
-
-const pickDraftingSeed = (
-  baseEdit: ProposedEditLike | null,
-  issuesForCriterion: IssueLike[],
-  criterion: ChecklistCriterion,
-) => {
-  const baseText =
-    typeof baseEdit?.proposedText === "string" ? baseEdit.proposedText.trim() : "";
-  if (baseText && !isPlaceholderDraft(baseText)) {
-    return baseText;
-  }
-  const issueRecommendation =
-    typeof issuesForCriterion[0]?.recommendation === "string"
-      ? issuesForCriterion[0]?.recommendation.trim()
-      : "";
-  if (issueRecommendation && !isPlaceholderDraft(issueRecommendation)) {
-    return issueRecommendation;
-  }
-  const description = criterion.description?.trim() ?? "";
-  if (description) {
-    return `${criterion.title}. ${description}`;
-  }
-  return buildFallbackProposedText(criterion);
+  return `${criterion.title}. The parties shall address: ${missingSignals.join(
+    "; ",
+  )}.`;
 };
 
 const pickEditCandidate = (
@@ -534,17 +470,15 @@ export function buildProposedEditsFromChecklist(options: {
     const issuesForCriterion = issuesByCriterion.get(criterion.id) ?? [];
     const issueClauseId = issuesForCriterion[0]?.clauseReference?.clauseId ?? null;
 
-    let intent =
+    const intent =
       criterion.status === "missing" && !criterion.clauseId
         ? "insert"
         : "replace";
 
-    let proposedText = pickDraftingSeed(baseEdit, issuesForCriterion, criterion);
-    const missingSignalsForEdit = filterMissingSignals(
-      content,
-      criterion.missingSignals.length ? criterion.missingSignals : criterion.requiredSignals,
-    );
-    const deltaResult = ensureDeltaSignals(proposedText, missingSignalsForEdit);
+    let proposedText =
+      (baseEdit?.proposedText as string | undefined) ??
+      buildFallbackProposedText(criterion);
+    const deltaResult = ensureDeltaSignals(proposedText, criterion.missingSignals);
     proposedText = deltaResult.proposedText;
 
     let anchorText =
@@ -567,16 +501,6 @@ export function buildProposedEditsFromChecklist(options: {
       });
       if (anchorCandidate) {
         anchorText = anchorCandidate;
-      }
-      if (!anchorText || !validateAnchorTextExists(content, anchorText)) {
-        const insertion = selectInsertionPoint(
-          content,
-          clauses,
-          criterion.insertionPolicyKey,
-        );
-        anchorText = insertion.anchorText;
-        clauseId = insertion.clauseId ?? clauseId;
-        intent = "insert";
       }
     } else {
       const insertion = selectInsertionPoint(content, clauses, criterion.insertionPolicyKey);

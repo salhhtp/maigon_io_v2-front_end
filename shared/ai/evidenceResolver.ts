@@ -71,40 +71,12 @@ const matchSignal = (text: string, normalizedText: string, signal: string) => {
     }
   }
   const normalizedSignal = normalizeSignal(trimmed);
-  if (!normalizedSignal) return false;
-  const signalTokens = tokenizeForAnchor(trimmed);
-  if (signalTokens.length <= 1) {
-    return normalizedText.includes(normalizedSignal);
-  }
-  let hits = 0;
-  signalTokens.forEach((token) => {
-    if (normalizedText.includes(token)) hits += 1;
-  });
-  const requiredHits = Math.min(2, signalTokens.length);
-  return hits >= requiredHits;
+  return normalizedSignal.length > 0 && normalizedText.includes(normalizedSignal);
 };
 
 const pickAnchorSeed = (item: PlaybookChecklistItem, matchedSignals: string[]) => {
   if (matchedSignals.length > 0) return matchedSignals[0];
   return item.title || item.description || "";
-};
-
-const MIN_TOPIC_RATIO = 0.35;
-const MIN_TOPIC_HITS = 2;
-
-const isTopicAligned = (itemTokens: string[], clause: EvidenceClause) => {
-  if (!itemTokens.length) return false;
-  const clauseTokens = new Set(
-    tokenizeForAnchor(`${clause.heading} ${clause.text}`),
-  );
-  let hits = 0;
-  itemTokens.forEach((token) => {
-    if (clauseTokens.has(token)) hits += 1;
-  });
-  const ratio = hits / itemTokens.length;
-  const minHits = itemTokens.length <= 2 ? 1 : MIN_TOPIC_HITS;
-  const minRatio = itemTokens.length <= 2 ? 0.5 : MIN_TOPIC_RATIO;
-  return hits >= minHits && ratio >= minRatio;
 };
 
 const findClauseIdsByHeading = (
@@ -144,16 +116,11 @@ const buildEvidenceRefs = (
   item: PlaybookChecklistItem,
   clauses: EvidenceClause[],
   requiredSignals: string[],
-  options?: { requireTopicMatch?: boolean; topicTokens?: string[] },
 ): { refs: EvidenceRef[]; matchedSignals: Set<string> } => {
   const refs: EvidenceRef[] = [];
   const matched = new Set<string>();
-  const topicTokens = options?.topicTokens ?? [];
 
   clauses.forEach((clause) => {
-    if (options?.requireTopicMatch && !isTopicAligned(topicTokens, clause)) {
-      return;
-    }
     const clauseText = clause.text;
     const normalizedClauseText = clause.normalizedText;
     const matchedSignals = requiredSignals.filter((signal) =>
@@ -182,31 +149,6 @@ const buildEvidenceRefs = (
   });
 
   return { refs, matchedSignals: matched };
-};
-
-const buildTopicRefs = (
-  item: PlaybookChecklistItem,
-  clauses: EvidenceClause[],
-  topicTokens: string[],
-): EvidenceRef[] => {
-  if (!topicTokens.length) return [];
-  return clauses
-    .filter((clause) => isTopicAligned(topicTokens, clause))
-    .map((clause) => {
-      const anchorSeed = normalizeAnchorText(item.title || item.description || "");
-      const excerpt =
-        buildEvidenceExcerpt({
-          clauseText: clause.text,
-          anchorText: anchorSeed || clause.heading,
-        }) || clause.text.slice(0, 240);
-      return {
-        clauseId: clause.clauseId,
-        heading: clause.heading,
-        excerpt,
-        locationHint: clause.locationHint,
-        matchedSignals: [],
-      };
-    });
 };
 
 const pickPrimaryEvidence = (
@@ -297,9 +239,6 @@ export function resolveEvidence(
   const requiredSignals = Array.isArray(item.requiredSignals)
     ? item.requiredSignals.filter((signal) => signal && signal.trim().length > 0)
     : [];
-  const topicTokens = tokenizeForAnchor(
-    `${item.title ?? ""} ${item.description ?? ""}`.trim(),
-  );
   const candidateClauseIds: string[] = [];
   const seen = new Set<string>();
   const pushClauseId = (clauseId: string) => {
@@ -331,39 +270,14 @@ export function resolveEvidence(
     item,
     candidateClauses,
     requiredSignals,
-    { topicTokens },
   );
-  let broadMatchUsed = false;
-
-  if (matchedSignals.size === 0) {
-    const topicRefs = buildTopicRefs(item, candidateClauses, topicTokens);
-    if (topicRefs.length > 0) {
-      refs = topicRefs;
-    }
-  }
 
   if (matchedSignals.size === 0 && requiredSignals.length > 0) {
-    const fallback = buildEvidenceRefs(item, index.clauses, requiredSignals, {
-      requireTopicMatch: true,
-      topicTokens,
-    });
+    const fallback = buildEvidenceRefs(item, index.clauses, requiredSignals);
     if (fallback.matchedSignals.size > 0) {
       refs = fallback.refs;
       matchedSignals = fallback.matchedSignals;
     }
-  }
-
-  if (matchedSignals.size === 0 && requiredSignals.length > 0) {
-    const broad = buildEvidenceRefs(item, index.clauses, requiredSignals);
-    if (broad.matchedSignals.size > 0) {
-      refs = broad.refs;
-      matchedSignals = broad.matchedSignals;
-      broadMatchUsed = true;
-    }
-  }
-
-  if (matchedSignals.size === 0 && refs.length === 0) {
-    refs = buildTopicRefs(item, index.clauses, topicTokens);
   }
 
   const matchedSignalsList = Array.from(matchedSignals);
@@ -375,14 +289,11 @@ export function resolveEvidence(
   if (requiredSignals.length === 0) {
     status = refs.length > 0 ? "met" : "missing";
   } else if (matchedSignalsList.length === 0) {
-    status = refs.length > 0 ? "attention" : "missing";
+    status = "missing";
   } else if (matchedSignalsList.length < requiredSignals.length) {
     status = "attention";
   } else {
     status = "met";
-  }
-  if (broadMatchUsed && status === "met") {
-    status = "attention";
   }
 
   const primary = pickPrimaryEvidence(refs, candidateClauseIds);
