@@ -16,7 +16,6 @@ import {
   buildEvidenceExcerptFromContent,
   buildRetrievedClauseContext,
   checkEvidenceMatch,
-  hasTopicOverlap,
   dedupeIssues,
   dedupeProposedEdits,
   evaluatePlaybookCoverageFromContent,
@@ -1439,7 +1438,7 @@ function buildCriteriaFromCoverage(
       });
       if (contentExcerpt) {
         const contentMatch = checkEvidenceMatch(contentExcerpt, content);
-        if (contentMatch.matched && hasTopicOverlap(title, contentExcerpt)) {
+        if (contentMatch.matched) {
           evidence = contentExcerpt;
         }
       }
