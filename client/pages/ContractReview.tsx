@@ -1718,14 +1718,14 @@ Next step: ${
     perspectiveKey,
   ]);
   const structuredIssues = structuredReport?.issuesToAddress ?? [];
-  const criteriaFromReport = structuredReport?.criteriaMet ?? [];
   const structuredCriteria = useMemo(() => {
-    return criteriaFromReport.filter(
+    const criteria = structuredReport?.criteriaMet ?? [];
+    return criteria.filter(
       (criterion) =>
         Boolean(criterion.met) &&
         !isMissingEvidenceMarker(criterion.evidence),
     );
-  }, [criteriaFromReport]);
+  }, [structuredReport]);
   const structuredPlaybookInsights = structuredReport?.playbookInsights ?? [];
   const structuredClauseExtractions = structuredReport?.clauseExtractions ?? [];
   const structuredSimilarityAnalysis =
@@ -3403,7 +3403,7 @@ const heroNavItems: { id: string; label: string }[] = [
                   </div>
                 </div>
               )}
-              {criteriaFromReport.length > 0 && (
+              {structuredCriteria.length > 0 && (
                 <div
                   id="criteria-section"
                   className="bg-[#F6FCF8] border border-[#CDE9D8] rounded-lg p-6 shadow-sm"
@@ -3412,8 +3412,7 @@ const heroNavItems: { id: string; label: string }[] = [
                     Criteria Met
                   </h3>
                   <div className="space-y-3">
-                    {structuredCriteria.length > 0 ? (
-                      structuredCriteria.map((criterion) => (
+                    {structuredCriteria.map((criterion) => (
                       <div
                         key={criterion.id}
                         className="flex items-start gap-3 text-sm text-gray-800 bg-white/70 border border-[#D9F0E4] rounded-md p-3"
@@ -3439,12 +3438,7 @@ const heroNavItems: { id: string; label: string }[] = [
                           )}
                         </div>
                       </div>
-                      ))
-                    ) : (
-                      <p className="text-sm text-gray-600">
-                        No criteria have been confirmed with evidence for this document yet.
-                      </p>
-                    )}
+                    ))}
                   </div>
                 </div>
               )}

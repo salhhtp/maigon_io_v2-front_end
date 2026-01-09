@@ -134,20 +134,6 @@ const SHORT_TOKENS = new Set([
   "gdpr",
   "ci",
 ]);
-const GENERIC_TOKENS = new Set([
-  "confidential",
-  "information",
-  "agreement",
-  "party",
-  "parties",
-  "receiving",
-  "disclosing",
-  "discloser",
-  "recipient",
-  "disclosure",
-  "project",
-  "purpose",
-]);
 
 const MISSING_EVIDENCE_MARKERS = [
   "not present",
@@ -201,15 +187,6 @@ function jaccardSimilarity(a: string[], b: string[]): number {
   });
   const union = new Set([...setA, ...setB]).size;
   return union === 0 ? 0 : intersection / union;
-}
-
-function hasTopicOverlap(query: string, candidate: string): boolean {
-  const queryTokens = tokenizeForMatch(query).filter(
-    (token) => !GENERIC_TOKENS.has(token),
-  );
-  if (!queryTokens.length) return true;
-  const candidateTokens = new Set(tokenizeForMatch(candidate));
-  return queryTokens.some((token) => candidateTokens.has(token));
 }
 
 function buildNgrams(value: string, n = 4): Set<string> {
@@ -278,16 +255,10 @@ function rankClauseCandidates(
           clause.normalizedText ?? ""
         }`;
     const { score, method } = scoreTextSimilarity(query, clauseText);
-    const topicAligned = hasTopicOverlap(query, clauseText);
-    const adjustedScore = topicAligned
-      ? score
-      : mode === "heading"
-        ? 0
-        : score * 0.25;
     results.push({
       clauseId,
       title: clause.title ?? null,
-      score: adjustedScore,
+      score,
       method: mode === "heading" ? "heading" : method,
     });
   }

@@ -18,133 +18,6 @@ const DEBUG_REVIEW = (() => {
 const MIN_ISSUE_CONFIDENCE = 0.32;
 const MIN_CRITERIA_CONFIDENCE = 0.32;
 const DUPLICATE_EXCERPT_MIN_CONFIDENCE = 0.35;
-const FALLBACK_CLAUSE_LIMIT = 28;
-
-function isClauseSetWeak(clauses: ClauseExtraction[]): boolean {
-  if (!clauses.length) return true;
-  let shortExcerpts = 0;
-  const headings = new Set<string>();
-  clauses.forEach((clause) => {
-    if (
-      typeof clause.originalText !== "string" ||
-      clause.originalText.trim().length < 60
-    ) {
-      shortExcerpts += 1;
-    }
-    if (clause.title) {
-      headings.add(clause.title.toLowerCase().trim());
-    }
-  });
-  if (shortExcerpts >= Math.max(2, clauses.length * 0.5)) {
-    return true;
-  }
-  if (headings.size <= Math.ceil(clauses.length * 0.3)) {
-    return true;
-  }
-  return false;
-}
-
-function mergeClauseCandidates(
-  primary: ClauseExtraction[],
-  fallback: ClauseExtraction[],
-): ClauseExtraction[] {
-  if (!fallback.length) return primary;
-  const seen = new Set<string>();
-  const merged: ClauseExtraction[] = [];
-  const pushClause = (clause: ClauseExtraction) => {
-    const key =
-      clause.clauseId ??
-      clause.id ??
-      (clause.title
-        ? clause.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 64)
-        : "");
-    if (key && seen.has(key)) return;
-    if (key) seen.add(key);
-    merged.push(clause);
-  };
-  primary.forEach(pushClause);
-  fallback.forEach(pushClause);
-  return merged;
-}
-
-function buildFallbackClausesFromContent(
-  content: string,
-  limit: number,
-): ClauseExtraction[] {
-  if (!content || !content.trim()) return [];
-  const lines = content.split(/\r?\n/);
-  const clauses: ClauseExtraction[] = [];
-  let currentTitle = "";
-  let buffer: string[] = [];
-  const headingRegex =
-    /^(section\s+\d+|article\s+\d+|\d+(\.\d+)*\.?|[A-Z][A-Z\s-]+)$/i;
-  const pushClause = () => {
-    if (!currentTitle || buffer.length === 0) return;
-    const snippet = buffer.join(" ").replace(/\s+/g, " ").trim().slice(0, 480);
-    const clauseId = currentTitle
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "")
-      .slice(0, 64);
-    clauses.push({
-      id: `fallback-${clauses.length + 1}`,
-      clauseId: clauseId || `fallback-${clauses.length + 1}`,
-      title: currentTitle,
-      originalText: snippet,
-      normalizedText: snippet,
-      category: "general",
-      importance: "medium",
-      location: {
-        page: null,
-        paragraph: null,
-        section: currentTitle,
-        clauseNumber: null,
-      },
-      references: [],
-      metadata: { source: "fallback-parser" },
-    });
-    buffer = [];
-  };
-  for (const rawLine of lines) {
-    const line = rawLine.trim();
-    if (!line) continue;
-    if (headingRegex.test(line) && line.length <= 140) {
-      pushClause();
-      currentTitle = line.replace(/[:.-\s]+$/, "").slice(0, 160);
-      continue;
-    }
-    if (!currentTitle) {
-      currentTitle = "Preamble";
-    }
-    buffer.push(line);
-    if (buffer.join(" ").length > 520) {
-      pushClause();
-    }
-  }
-  pushClause();
-  if (!clauses.length) {
-    const snippet = content.replace(/\s+/g, " ").trim().slice(0, 480);
-    clauses.push({
-      id: "fallback-1",
-      clauseId: "overview",
-      title: "Contract overview",
-      originalText: snippet,
-      normalizedText: snippet,
-      category: "general",
-      importance: "low",
-      location: {
-        page: null,
-        paragraph: null,
-        section: "overview",
-        clauseNumber: null,
-      },
-      references: [],
-      metadata: { source: "fallback-parser" },
-    });
-  }
-  return clauses.slice(0, limit);
-}
-
 
 export function matchClauseToText(
   text: string,
@@ -160,29 +33,8 @@ export function enhanceReportWithClauses(
     content?: string | null;
   },
 ): AnalysisReport {
-  const content = options.content ?? "";
   const clauseCandidates = options.clauses ?? [];
-  const fallbackClauses =
-    isClauseSetWeak(clauseCandidates) && content
-      ? buildFallbackClausesFromContent(content, FALLBACK_CLAUSE_LIMIT)
-      : [];
-  const mergedClauseCandidates = mergeClauseCandidates(
-    clauseCandidates,
-    fallbackClauses,
-  );
-  const anchoredClauseCandidates = content
-    ? mergedClauseCandidates.filter((clause) => {
-        const clauseText =
-          clause.originalText ?? clause.normalizedText ?? clause.title ?? "";
-        return clauseText
-          ? checkEvidenceMatch(clauseText, content).matched
-          : false;
-      })
-    : mergedClauseCandidates;
-  const clauseCandidatesForMatch =
-    anchoredClauseCandidates.length > 0
-      ? anchoredClauseCandidates
-      : mergedClauseCandidates;
+  const content = options.content ?? "";
   const normalizedContent = normalizeForMatch(content);
   const issueEvidenceStats = {
     total: report.issuesToAddress.length,
@@ -211,7 +63,7 @@ export function enhanceReportWithClauses(
     const matchResult = resolveClauseMatch({
       clauseReference: issue.clauseReference ?? null,
       fallbackText,
-      clauses: clauseCandidatesForMatch,
+      clauses: clauseCandidates,
     });
     const acceptedMatch = Boolean(
       matchResult.match &&
@@ -380,7 +232,7 @@ export function enhanceReportWithClauses(
     const matchResult = resolveClauseMatch({
       clauseReference: null,
       fallbackText,
-      clauses: clauseCandidatesForMatch,
+      clauses: clauseCandidates,
     });
     const acceptedMatch = Boolean(
       matchResult.match &&
@@ -514,7 +366,7 @@ export function enhanceReportWithClauses(
       issues: issueStats,
       criteria: criteriaStats,
       contentLength: normalizedContent.length,
-      clauseCount: clauseCandidatesForMatch.length,
+      clauseCount: clauseCandidates.length,
     });
   }
 
@@ -528,7 +380,7 @@ export function enhanceReportWithClauses(
 
   return {
     ...report,
-    clauseExtractions: mergedClauseCandidates,
+    clauseExtractions: clauseCandidates,
     issuesToAddress: issuesWithNormalizedEvidence,
     criteriaMet: filteredCriteria,
     metadata: nextMetadata as AnalysisReport["metadata"],
