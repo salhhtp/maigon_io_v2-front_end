@@ -2554,7 +2554,7 @@ export async function runReasoningAnalysis(
   const appliedEnhancements =
     enhancementSections ?? buildEnhancementFallback(baseReport);
 
-  const mergedReport = mergeEnhancements(baseReport, appliedEnhancements, {
+  const finalReport = mergeEnhancements(baseReport, appliedEnhancements, {
     source: enhancementSource,
     reason: enhancementReason,
   });
@@ -2564,7 +2564,7 @@ export async function runReasoningAnalysis(
     content,
   });
   const baseAlignedReport: AnalysisReport = {
-    ...mergedReport,
+    ...finalReport,
     clauseExtractions: clauseCandidates,
   };
 
