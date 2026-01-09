@@ -9,7 +9,7 @@ import {
   type AnalysisReport,
   type ClauseExtraction,
 } from "./reviewSchema.ts";
-import { buildClauseCandidates } from "./clauseExtraction.ts";
+import { enhanceReportWithClauses } from "./clauseExtraction.ts";
 import {
   bindProposedEditsToClauses,
   buildEvidenceExcerpt,
@@ -25,13 +25,6 @@ import {
   normalizeAnchorText,
   resolveClauseMatch,
 } from "../../../shared/ai/reliability.ts";
-import { buildEvidenceIndex } from "../../../shared/ai/evidenceResolver.ts";
-import {
-  alignIssuesToChecklist,
-  buildChecklistCriteria,
-  buildProposedEditsFromChecklist,
-  toCriteriaReportEntries,
-} from "../../../shared/ai/reviewAlignment.ts";
 import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
@@ -858,9 +851,6 @@ function buildUserPrompt(
           .map((clause) => clause.title)
           .join("; ")}`,
         `Clause anchors: ${playbook.clauseAnchors.join("; ")}`,
-        `Checklist: ${(playbook.checklist ?? [])
-          .map((item) => `${item.id} - ${item.title}`)
-          .join("; ")}`,
       ].join("\n")
     : [
         `Playbook summary: ${playbook.description}`,
@@ -871,12 +861,6 @@ function buildUserPrompt(
             `${index + 1}. ${clause.title} | Must include: ${clause.mustInclude.join(", ")} | Red flags: ${clause.redFlags.join(", ")}`,
         ),
         `Negotiation guidance: ${playbook.negotiationGuidance.join("; ")}`,
-        `Checklist (id: title -> required signals): ${(playbook.checklist ?? [])
-          .map(
-            (item) =>
-              `${item.id}: ${item.title} -> ${item.requiredSignals.join(", ")}`,
-          )
-          .join("; ")}`,
       ].join("\n");
 
   const clauseDigestSection = (() => {
@@ -2559,47 +2543,59 @@ export async function runReasoningAnalysis(
     source: enhancementSource,
     reason: enhancementReason,
   });
-  const content = context.content ?? "";
-  const clauseCandidates = buildClauseCandidates({
+  const baseAlignedReport = enhanceReportWithClauses(finalReport, {
     clauses: context.clauseExtractions ?? null,
-    content,
+    content: context.content,
   });
-  const baseAlignedReport: AnalysisReport = {
-    ...finalReport,
-    clauseExtractions: clauseCandidates,
-  };
-
-  let criteriaEntries = baseAlignedReport.criteriaMet;
-  let alignedIssues = baseAlignedReport.issuesToAddress;
-  let alignedEdits = baseAlignedReport.proposedEdits;
-
-  if (playbook && usePlaybookCoverage) {
-    const evidenceIndex = buildEvidenceIndex({ clauses: clauseCandidates, content });
-    const checklistCriteria = buildChecklistCriteria(playbook, evidenceIndex);
-    criteriaEntries = toCriteriaReportEntries(checklistCriteria);
-    const aligned = alignIssuesToChecklist({
-      issues: baseAlignedReport.issuesToAddress,
-      criteria: checklistCriteria,
-      evidenceIndex,
-    });
-    alignedIssues = aligned.issues;
-    alignedEdits = buildProposedEditsFromChecklist({
-      criteria: checklistCriteria,
-      issues: alignedIssues,
-      existingEdits: baseAlignedReport.proposedEdits,
-      evidenceIndex,
-      content,
+  let criteriaSeededReport = baseAlignedReport;
+  if (!baseAlignedReport.criteriaMet?.length && playbook) {
+    const clauseCandidates =
+      baseAlignedReport.clauseExtractions ?? context.clauseExtractions ?? [];
+    const coverageSeed = evaluatePlaybookCoverageFromContent(playbook, {
+      content: context.content,
       clauses: clauseCandidates,
     });
+    const criteriaSeed = buildCriteriaFromCoverage(
+      coverageSeed,
+      clauseCandidates,
+      context.content,
+    );
+    if (criteriaSeed.length) {
+      const seededReport: AnalysisReport = {
+        ...baseAlignedReport,
+        criteriaMet: criteriaSeed,
+      };
+      criteriaSeededReport = enhanceReportWithClauses(seededReport, {
+        clauses: clauseCandidates,
+        content: context.content,
+      });
+    }
   }
-
-  const dedupedReport: AnalysisReport = {
-    ...baseAlignedReport,
-    criteriaMet: criteriaEntries,
-    issuesToAddress: dedupeIssues(alignedIssues),
-    proposedEdits: dedupeProposedEdits(alignedEdits),
+  const clausesForBindings =
+    criteriaSeededReport.clauseExtractions ??
+    baseAlignedReport.clauseExtractions ??
+    context.clauseExtractions ??
+    [];
+  const boundEdits = bindProposedEditsToClauses({
+    proposedEdits: criteriaSeededReport.proposedEdits,
+    issues: criteriaSeededReport.issuesToAddress,
+    clauses: clausesForBindings,
+  });
+  const repairedEdits = repairProposedEditAnchors({
+    proposedEdits: boundEdits,
+    issues: criteriaSeededReport.issuesToAddress,
+    clauses: clausesForBindings,
+    content: context.content,
+  });
+  const clauseAlignedReportWithEdits: AnalysisReport = {
+    ...criteriaSeededReport,
+    proposedEdits: repairedEdits,
   };
-  const clausesForBindings = clauseCandidates;
+  const dedupedReport: AnalysisReport = {
+    ...clauseAlignedReportWithEdits,
+    issuesToAddress: dedupeIssues(clauseAlignedReportWithEdits.issuesToAddress),
+    proposedEdits: dedupeProposedEdits(clauseAlignedReportWithEdits.proposedEdits),
+  };
 
   const scoringResult = computeRuleBasedScore(
     dedupedReport,

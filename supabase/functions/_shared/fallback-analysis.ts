@@ -736,7 +736,7 @@ function describePurpose(contractTypeKey: string) {
     case "end_user_license_agreement":
       return "Provides the license terms for using software or digital services.";
     case "professional_services_agreement":
-      return "Framework for supplying goods, delivery schedules, and quality obligations.";
+      return "Framework for delivering professional services and SOWs.";
     default:
       return "Commercial agreement outlining obligations and risk allocation.";
   }

@@ -181,19 +181,6 @@ function buildFallbackClausesFromContent(
   }
   return clauses.slice(0, limit);
 }
-
-export function buildClauseCandidates(options: {
-  clauses?: ClauseExtraction[] | null;
-  content?: string | null;
-}): ClauseExtraction[] {
-  const content = options.content ?? "";
-  const clauseCandidates = options.clauses ?? [];
-  const fallbackClauses =
-    isClauseSetWeak(clauseCandidates) && content
-      ? buildFallbackClausesFromContent(content, FALLBACK_CLAUSE_LIMIT)
-      : [];
-  return mergeClauseCandidates(clauseCandidates, fallbackClauses);
-}
 function sanitizeLocationHint(location?: ClauseExtraction["location"] | null) {
   if (!location || typeof location !== "object") return null;
   const section =
