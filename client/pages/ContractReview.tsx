@@ -220,25 +220,11 @@ const FALLBACK_MISSING_INFO = [
   "Potential gaps cannot be confirmed without deeper AI review.",
   "This area requires additional AI review.",
 ];
-const MISSING_EVIDENCE_MARKERS = [
-  "not present",
-  "missing",
-  "not found",
-  "evidence not found",
-];
 
 function shouldHideFallbackMessage(value: string) {
   const normalized = value.toLowerCase();
   return FALLBACK_MISSING_INFO.some((fallback) =>
     normalized.includes(fallback.toLowerCase()),
-  );
-}
-
-function isMissingEvidenceMarker(value?: string | null): boolean {
-  if (!value) return false;
-  const normalized = value.trim().toLowerCase();
-  return MISSING_EVIDENCE_MARKERS.some((marker) =>
-    normalized.includes(marker),
   );
 }
 
@@ -850,7 +836,7 @@ function matchClauseForDecision(
     return titleMatch;
   }
 
-  return null;
+  return clauses[0];
 }
 
 function attachFallbackClausePreviews(
@@ -1718,14 +1704,7 @@ Next step: ${
     perspectiveKey,
   ]);
   const structuredIssues = structuredReport?.issuesToAddress ?? [];
-  const structuredCriteria = useMemo(() => {
-    const criteria = structuredReport?.criteriaMet ?? [];
-    return criteria.filter(
-      (criterion) =>
-        Boolean(criterion.met) &&
-        !isMissingEvidenceMarker(criterion.evidence),
-    );
-  }, [structuredReport]);
+  const structuredCriteria = structuredReport?.criteriaMet ?? [];
   const structuredPlaybookInsights = structuredReport?.playbookInsights ?? [];
   const structuredClauseExtractions = structuredReport?.clauseExtractions ?? [];
   const structuredSimilarityAnalysis =
@@ -1762,13 +1741,6 @@ Next step: ${
   const reviewDurationSeconds =
     derivedTimingSeconds ?? persistedTimingSeconds ?? null;
   const formattedReviewTime = formatReviewDuration(reviewDurationSeconds);
-  const formattedReportExpiry = useMemo(() => {
-    const value = generalInformation?.reportExpiry;
-    if (!value) return "n/a";
-    const parsed = Date.parse(value);
-    if (!Number.isFinite(parsed)) return "n/a";
-    return new Date(parsed).toLocaleDateString();
-  }, [generalInformation?.reportExpiry]);
   const contractMetadata = (contractData?.metadata ?? null) as
     | Record<string, unknown>
     | null;
@@ -1817,6 +1789,16 @@ Next step: ${
         ? "Yes"
         : "No";
 
+  const clauseTitleMap = useMemo(() => {
+    const map = new Map<string, string>();
+    (structuredReport?.clauseFindings ?? []).forEach((clause: ClauseFinding) => {
+      if (clause.clauseId) {
+        map.set(clause.clauseId, clause.title);
+      }
+    });
+    return map;
+  }, [structuredReport]);
+
   const parsedClauseExtractions = useMemo(
     () => deriveClauseExtractionsFromContent(contractData?.content ?? null),
     [contractData?.content],
@@ -1839,24 +1821,6 @@ Next step: ${
               ? [(clause as Record<string, string>).page_reference]
               : [],
         }));
-  const clauseTitleMap = useMemo(() => {
-    const map = new Map<string, string>();
-    if (resolvedClauseExtractions.length) {
-      resolvedClauseExtractions.forEach((clause) => {
-        const clauseId = clause.clauseId ?? clause.id;
-        if (clauseId && clause.title) {
-          map.set(clauseId, clause.title);
-        }
-      });
-      return map;
-    }
-    (structuredReport?.clauseFindings ?? []).forEach((clause: ClauseFinding) => {
-      if (clause.clauseId) {
-        map.set(clause.clauseId, clause.title);
-      }
-    });
-    return map;
-  }, [resolvedClauseExtractions, structuredReport]);
   const resolvedPlaybookInsights: PlaybookInsight[] =
     structuredPlaybookInsights.length
       ? structuredPlaybookInsights
@@ -3191,7 +3155,13 @@ const heroNavItems: { id: string; label: string }[] = [
                       <dt className="text-xs uppercase text-gray-500">
                         Report expires
                       </dt>
-                      <dd>{formattedReportExpiry}</dd>
+                      <dd>
+                        {generalInformation?.reportExpiry
+                          ? new Date(
+                              generalInformation.reportExpiry,
+                            ).toLocaleDateString()
+                          : "n/a"}
+                      </dd>
                     </div>
                   </dl>
                 </div>
@@ -3425,8 +3395,7 @@ const heroNavItems: { id: string; label: string }[] = [
                           <p className="text-gray-600">
                             {criterion.description}
                           </p>
-                          {criterion.evidence &&
-                            !isMissingEvidenceMarker(criterion.evidence) && (
+                          {criterion.evidence && (
                             <div className="mt-2 rounded-md border border-[#E8DDDD] bg-[#FEFBFB] px-3 py-2 text-xs text-[#6B4F4F]">
                               <p className="font-semibold uppercase tracking-wide">
                                 Clause evidence

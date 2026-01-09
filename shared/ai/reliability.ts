@@ -143,9 +143,8 @@ const MISSING_EVIDENCE_MARKERS = [
 ];
 
 const DEFAULT_EXCERPT_LENGTH = 320;
-const MIN_MATCH_SCORE = 0.22;
+const MIN_MATCH_SCORE = 0.18;
 const MIN_HEADING_SCORE = 0.3;
-const MIN_HEADING_ALIGNMENT_SCORE = 0.22;
 
 export function normalizeForMatch(value: string): string {
   if (!value) return "";
@@ -329,27 +328,16 @@ export function resolveClauseMatch(options: {
     }
   }
 
-  const headingQueryRaw =
+  const headingQuery =
     typeof clauseReference?.heading === "string"
       ? clauseReference?.heading
       : null;
-  const excerptQueryRaw =
+  const excerptQuery =
     typeof clauseReference?.excerpt === "string"
       ? clauseReference?.excerpt
       : null;
   const fallbackQuery =
     typeof fallbackText === "string" ? fallbackText : null;
-  const headingQuery =
-    headingQueryRaw && fallbackQuery
-      ? (scoreTextSimilarity(headingQueryRaw, fallbackQuery).score >=
-            MIN_HEADING_ALIGNMENT_SCORE
-          ? headingQueryRaw
-          : null)
-      : headingQueryRaw;
-  const excerptQuery =
-    excerptQueryRaw && !isMissingEvidenceMarker(excerptQueryRaw)
-      ? excerptQueryRaw
-      : null;
   const textQuery = [excerptQuery, fallbackQuery]
     .filter((value) => value && value.trim().length > 0)
     .join(" ");
@@ -564,24 +552,13 @@ export function bindProposedEditsToClauses(options: {
     if (currentId && clauseIds.has(currentId)) {
       return edit;
     }
-    let anchorText =
+    const anchorText =
       typeof edit.anchorText === "string" ? edit.anchorText.trim() : "";
-    if (anchorText && isMissingEvidenceMarker(anchorText)) {
-      anchorText = "";
-    }
-    const proposedSnippet =
-      typeof edit.proposedText === "string"
-        ? edit.proposedText.slice(0, 400)
-        : "";
-    const issueSearchText = [anchorText, edit.intent, proposedSnippet]
-      .filter(Boolean)
-      .join(" ")
-      .trim();
-    if (issueSearchText) {
+    if (anchorText) {
       let bestIssue: IssueLike | null = null;
       let bestScore = 0;
       issues.forEach((issue) => {
-        const score = scoreAnchorToIssue(issueSearchText, issue);
+        const score = scoreAnchorToIssue(anchorText, issue);
         if (score > bestScore) {
           bestScore = score;
           bestIssue = issue;
@@ -596,7 +573,7 @@ export function bindProposedEditsToClauses(options: {
 
       const clauseMatch = resolveClauseMatch({
         clauseReference: null,
-        fallbackText: issueSearchText,
+        fallbackText: anchorText,
         clauses,
       });
       const matchedId = clauseMatch.match
@@ -779,24 +756,10 @@ function similarityForText(a: string, b: string): number {
   return jaccardSimilarity(tokensA, tokensB);
 }
 
-function normalizeClauseBucketId(value?: string | null): string {
-  const normalized = (value ?? "").trim().toLowerCase();
-  if (!normalized) return "unbound";
-  if (
-    normalized.startsWith("unmatched-issue-") ||
-    normalized.startsWith("proposed-edit-") ||
-    normalized.startsWith("synthetic-clause-") ||
-    normalized.startsWith("clause-fallback-")
-  ) {
-    return "unbound";
-  }
-  return normalized;
-}
-
 export function dedupeIssues(issues: IssueLike[]): IssueLike[] {
   const buckets = new Map<string, IssueLike[]>();
   issues.forEach((issue) => {
-    const clauseId = normalizeClauseBucketId(issue.clauseReference?.clauseId);
+    const clauseId = issue.clauseReference?.clauseId ?? "unbound";
     const bucket = buckets.get(clauseId) ?? [];
     bucket.push(issue);
     buckets.set(clauseId, bucket);
@@ -836,7 +799,7 @@ export function dedupeProposedEdits(
 ): ProposedEditLike[] {
   const buckets = new Map<string, ProposedEditLike[]>();
   edits.forEach((edit) => {
-    const clauseId = normalizeClauseBucketId(edit.clauseId);
+    const clauseId = edit.clauseId ?? "unbound";
     const bucket = buckets.get(clauseId) ?? [];
     bucket.push(edit);
     buckets.set(clauseId, bucket);
