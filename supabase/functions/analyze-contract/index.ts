@@ -1454,7 +1454,6 @@ serve(async (req) => {
     }
 
     try {
-      const analysisStart = performance.now();
       const reasoningResult = await runReasoningAnalysis({
         content: processedContent,
         reviewType: request.reviewType,
@@ -1469,13 +1468,6 @@ serve(async (req) => {
         clauseExtractions: clauseSeed,
         clauseSetWeak: clauseQuality.isWeak,
       });
-
-      const analysisDurationSeconds = Math.max(
-        0,
-        Math.round((performance.now() - analysisStart) / 1000),
-      );
-      reasoningResult.report.generalInformation.reviewTimeSeconds =
-        analysisDurationSeconds;
 
       const responsePayload = buildLegacyResponse(reasoningResult.report, {
         classification: request.classification,

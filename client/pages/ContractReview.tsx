@@ -1760,10 +1760,7 @@ Next step: ${
           ? ((resultsMetadata["latency_ms"] as number) / 1000)
           : null;
   const reviewDurationSeconds =
-    derivedTimingSeconds ??
-    persistedTimingSeconds ??
-    generalInformation?.reviewTimeSeconds ??
-    null;
+    derivedTimingSeconds ?? persistedTimingSeconds ?? null;
   const formattedReviewTime = formatReviewDuration(reviewDurationSeconds);
   const formattedReportExpiry = useMemo(() => {
     const value = generalInformation?.reportExpiry;

@@ -7,10 +7,9 @@ import {
   hasTopicOverlap,
   isMissingEvidenceMarker,
   matchClauseToText as matchClauseToTextWithDebug,
-  normalizeAnchorText,
   normalizeForMatch,
   resolveClauseMatch,
-  tokenizeForAnchor,
+  tokenizeForMatch,
 } from "../../../shared/ai/reliability.ts";
 
 const DEBUG_REVIEW = (() => {
@@ -19,15 +18,31 @@ const DEBUG_REVIEW = (() => {
   if (raw === "0" || raw === "false" || raw === "no") return false;
   return true;
 })();
-const MIN_ISSUE_CONFIDENCE = 0.26;
-const MIN_CRITERIA_CONFIDENCE = 0.26;
+const MIN_ISSUE_CONFIDENCE = 0.32;
+const MIN_CRITERIA_CONFIDENCE = 0.32;
 const DUPLICATE_EXCERPT_MIN_CONFIDENCE = 0.35;
+const GENERIC_TOKENS = new Set([
+  "confidential",
+  "information",
+  "agreement",
+  "party",
+  "parties",
+  "receiving",
+  "disclosing",
+  "discloser",
+  "recipient",
+  "disclosure",
+  "project",
+  "purpose",
+]);
 const MIN_ANCHOR_TOKEN_HITS = 2;
 
 function hasAnchorTokenOverlap(anchor: string, excerpt: string): boolean {
-  const anchorTokens = tokenizeForAnchor(anchor);
+  const anchorTokens = tokenizeForMatch(anchor).filter(
+    (token) => !GENERIC_TOKENS.has(token),
+  );
   if (!anchorTokens.length) return false;
-  const excerptTokens = new Set(tokenizeForAnchor(excerpt));
+  const excerptTokens = new Set(tokenizeForMatch(excerpt));
   let hits = 0;
   anchorTokens.forEach((token) => {
     if (excerptTokens.has(token)) hits += 1;
@@ -273,8 +288,9 @@ export function enhanceReportWithClauses(
     const acceptedMatch = Boolean(
       matchResult.match &&
         (matchResult.method === "id" ||
-          matchResult.method === "heading" ||
-          (topicAligned && matchResult.confidence >= MIN_ISSUE_CONFIDENCE)),
+          (topicAligned &&
+            (matchResult.method === "heading" ||
+              matchResult.confidence >= MIN_ISSUE_CONFIDENCE))),
     );
     const match = acceptedMatch ? matchResult.match : null;
     const existingReference = issue.clauseReference ?? {
@@ -306,12 +322,6 @@ export function enhanceReportWithClauses(
         };
       }
     }
-    const anchorSeed =
-      existingReference?.excerpt &&
-      !isMissingEvidenceMarker(existingReference.excerpt)
-        ? existingReference.excerpt
-        : issue.title ?? issue.recommendation ?? "";
-    const cleanedAnchor = normalizeAnchorText(anchorSeed);
 
     const preferredExcerpt = match
       ? buildEvidenceExcerpt({
@@ -320,31 +330,20 @@ export function enhanceReportWithClauses(
             match.normalizedText ??
             match.title ??
             "",
-        anchorText: cleanedAnchor || issue.title,
+        anchorText: existingReference?.excerpt ?? issue.title,
       })
       : "";
-    const preferredAligned =
-      preferredExcerpt && cleanedAnchor
-        ? hasAnchorTokenOverlap(cleanedAnchor, preferredExcerpt)
-        : Boolean(preferredExcerpt);
-
-    const existingExcerpt =
-      existingReference?.excerpt &&
-      existingReference.excerpt.trim().length > 0 &&
-      !isMissingEvidenceMarker(existingReference.excerpt)
-        ? existingReference.excerpt
-        : "";
 
     const currentExcerpt =
-      (preferredAligned ? preferredExcerpt : "") || existingExcerpt;
+      preferredExcerpt ||
+      (existingReference?.excerpt && existingReference.excerpt.trim().length > 0
+        ? existingReference.excerpt
+        : "");
     const clauseText = match
       ? match.originalText ?? match.normalizedText ?? match.title ?? ""
       : "";
 
-    const contentAnchor =
-      normalizeAnchorText(issue.title ?? "") ||
-      normalizeAnchorText(issue.recommendation ?? "") ||
-      normalizeAnchorText(fallbackText);
+    const contentAnchor = fallbackText || issue.title || "";
     const contentExcerpt = contentAnchor
       ? buildEvidenceExcerptFromContent({
           content,
@@ -423,37 +422,23 @@ export function enhanceReportWithClauses(
       });
     }
 
-    const hasEvidence =
-      evidenceResult.matched && !isMissingEvidenceMarker(nextExcerpt);
-    const normalizedTitle = hasEvidence
-      ? issue.title.replace(/:\s*(not present|missing)\s*$/i, ": Needs attention")
-      : issue.title;
-    const includeLocation = Boolean(
-      match && (evidenceResult.matched || clauseEvidenceResult.matched),
-    );
+    if (!issue.clauseReference && !match) {
+      return issue;
+    }
+
     const updatedIssue = {
       ...issue,
-      title: normalizedTitle,
       clauseReference: {
         clauseId: stableClauseId,
-        heading: includeLocation
-          ? (match.title ?? existingReference?.heading)
-          : undefined,
+        heading: match ? (match.title ?? existingReference?.heading) : undefined,
         excerpt: nextExcerpt,
-        locationHint: includeLocation
-          ? match?.location ??
-            existingLocation ?? {
-              page: null,
-              paragraph: null,
-              section: match?.title ?? null,
-              clauseNumber: matchedClauseId ?? null,
-            }
-          : {
-              page: null,
-              paragraph: null,
-              section: null,
-              clauseNumber: null,
-            },
+        locationHint: match?.location ??
+          existingLocation ?? {
+            page: null,
+            paragraph: null,
+            section: match?.title ?? null,
+            clauseNumber: matchedClauseId ?? null,
+          },
       },
     };
     const excerptKey = normalizeForMatch(updatedIssue.clauseReference?.excerpt ?? "");
@@ -513,18 +498,11 @@ export function enhanceReportWithClauses(
     const acceptedMatch = Boolean(
       matchResult.match &&
         (matchResult.method === "id" ||
-          matchResult.method === "heading" ||
-          (topicAligned && matchResult.confidence >= MIN_CRITERIA_CONFIDENCE)),
+          (topicAligned &&
+            (matchResult.method === "heading" ||
+              matchResult.confidence >= MIN_CRITERIA_CONFIDENCE))),
     );
     const match = acceptedMatch ? matchResult.match : null;
-    const anchorSeed =
-      typeof criterion.evidence === "string" &&
-      criterion.evidence.trim().length > 0 &&
-      !isMissingEvidenceMarker(criterion.evidence)
-        ? criterion.evidence
-        : criterion.title ?? criterion.description ?? "";
-    const cleanedAnchor = normalizeAnchorText(anchorSeed);
-
     const fallbackExcerpt = match
       ? buildEvidenceExcerpt({
         clauseText:
@@ -532,21 +510,14 @@ export function enhanceReportWithClauses(
             match.normalizedText ??
             match.title ??
             "",
-        anchorText: cleanedAnchor || criterion.title,
+        anchorText: criterion.evidence ?? criterion.title,
       })
       : "";
-    const fallbackAligned =
-      fallbackExcerpt && cleanedAnchor
-        ? hasAnchorTokenOverlap(cleanedAnchor, fallbackExcerpt)
-        : Boolean(fallbackExcerpt);
     const clauseText = match
       ? match.originalText ?? match.normalizedText ?? match.title ?? ""
       : "";
 
-    const contentAnchor =
-      normalizeAnchorText(criterion.title ?? "") ||
-      normalizeAnchorText(criterion.description ?? "") ||
-      normalizeAnchorText(fallbackText);
+    const contentAnchor = fallbackText || issue.title || "";
     const contentExcerpt = contentAnchor
       ? buildEvidenceExcerptFromContent({
           content,
@@ -562,12 +533,9 @@ export function enhanceReportWithClauses(
       hasAnchorTokenOverlap(contentAnchor, contentExcerpt);
 
     const currentEvidence =
-      (fallbackAligned ? fallbackExcerpt : "") ||
-      (typeof criterion.evidence === "string" &&
-      criterion.evidence.trim().length > 0 &&
-      !isMissingEvidenceMarker(criterion.evidence)
+      typeof criterion.evidence === "string" && criterion.evidence.trim().length > 0
         ? criterion.evidence
-        : "");
+        : fallbackExcerpt;
 
     let evidenceResult = currentEvidence
       ? checkEvidenceMatch(currentEvidence, content)
@@ -635,7 +603,7 @@ export function enhanceReportWithClauses(
     return {
       ...criterion,
       evidence: nextEvidence,
-      met: hasEvidence,
+      met: hasEvidence ? criterion.met : false,
     };
   });
 
