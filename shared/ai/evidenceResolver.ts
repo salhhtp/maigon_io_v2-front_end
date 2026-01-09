@@ -2,9 +2,9 @@ import {
   buildEvidenceExcerpt,
   normalizeAnchorText,
   tokenizeForAnchor,
-} from "./reliability.ts";
-import type { ClauseExtractionLike, ClauseLocationLike } from "./reliability.ts";
-import type { PlaybookChecklistItem } from "./playbooks.ts";
+} from "./reliability";
+import type { ClauseExtractionLike, ClauseLocationLike } from "./reliability";
+import type { PlaybookChecklistItem } from "./playbooks";
 
 export type EvidenceClause = {
   clauseId: string;

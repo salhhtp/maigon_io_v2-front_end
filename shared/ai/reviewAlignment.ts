@@ -4,20 +4,20 @@ import type {
   ClauseReferenceLike,
   IssueLike,
   ProposedEditLike,
-} from "./reliability.ts";
+} from "./reliability";
 import {
   buildEvidenceExcerpt,
   isMissingEvidenceMarker,
   normalizeAnchorText,
   tokenizeForAnchor,
-} from "./reliability.ts";
-import type { ContractPlaybook, PlaybookChecklistItem } from "./playbooks.ts";
+} from "./reliability";
+import type { ContractPlaybook, PlaybookChecklistItem } from "./playbooks";
 import {
   buildEvidenceIndex,
   resolveEvidence,
   type EvidenceIndex,
-} from "./evidenceResolver.ts";
-import { selectInsertionPoint } from "./insertionPolicy.ts";
+} from "./evidenceResolver";
+import { selectInsertionPoint } from "./insertionPolicy";
 
 export type ChecklistCriterion = {
   id: string;
