@@ -110,7 +110,6 @@ serve(async (req) => {
         content,
         contractType,
         filename,
-        maxClauses: request.maxClauses ?? 15,
       });
       clauses = aiResult.clauses;
       rawPayload = aiResult.raw;
@@ -120,7 +119,7 @@ serve(async (req) => {
         error: error instanceof Error ? error.message : String(error),
       });
       source = "fallback";
-      clauses = buildFallbackClauses(content, contractType, request.maxClauses ?? 15);
+      clauses = buildFallbackClauses(content, contractType);
     }
 
     if (!clauses.length) {
@@ -212,7 +211,6 @@ function jsonError(message: string, status: number, error?: unknown) {
 function buildFallbackClauses(
   content: string,
   contractType: string,
-  limit: number,
 ): ClauseExtraction[] {
   if (!content || content.trim().length === 0) {
     return [];
@@ -223,7 +221,7 @@ function buildFallbackClauses(
   let buffer: string[] = [];
   const pushClause = () => {
     if (!currentTitle || buffer.length === 0) return;
-    const snippet = buffer.join(" ").slice(0, 420);
+    const snippet = buffer.join(" ").trim();
     clauses.push({
       id: `fallback-${clauses.length + 1}`,
       clauseId: currentTitle
@@ -264,9 +262,6 @@ function buildFallbackClauses(
       currentTitle = "Preamble";
     }
     buffer.push(line);
-    if (buffer.join(" ").length > 500) {
-      pushClause();
-    }
   }
   pushClause();
 
@@ -275,8 +270,8 @@ function buildFallbackClauses(
       id: "fallback-1",
       clauseId: "overview",
       title: `${contractType || "contract"} overview`,
-      originalText: content.slice(0, 420),
-      normalizedText: content.slice(0, 420),
+      originalText: content,
+      normalizedText: content,
       category: "general",
       importance: "medium",
       location: {
@@ -293,7 +288,7 @@ function buildFallbackClauses(
     });
   }
 
-  return clauses.slice(0, limit);
+  return clauses;
 }
 
 function inferFallbackCategory(title: string): string {

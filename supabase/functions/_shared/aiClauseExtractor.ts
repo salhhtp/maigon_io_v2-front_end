@@ -1,7 +1,5 @@
 import type { ClauseExtraction } from "./reviewSchema.ts";
 
-const MAX_SEGMENTS_DEFAULT = 15;
-
 export interface ClauseExtractionJob {
   clauses: ClauseExtraction[];
   source: "segment-parser";
@@ -19,10 +17,7 @@ export async function extractClausesWithAI(options: {
     throw new Error("No content provided for clause extraction.");
   }
 
-  const segments = buildSegments(content, {
-    maxSegments: options.maxClauses ?? MAX_SEGMENTS_DEFAULT,
-    maxCharsPerSegment: 360,
-  });
+  const segments = buildSegments(content);
 
   if (!segments.length) {
     throw new Error("Unable to derive clause segments from content.");
@@ -50,10 +45,7 @@ type ContractSegment = {
   references: string[];
 };
 
-function buildSegments(
-  content: string,
-  options: { maxSegments: number; maxCharsPerSegment: number },
-): ContractSegment[] {
+function buildSegments(content: string): ContractSegment[] {
   const lines = content.split(/\r?\n/);
   const segments: ContractSegment[] = [];
   let currentHeading = "";
@@ -65,7 +57,7 @@ function buildSegments(
     segments.push({
       heading: currentHeading,
       section: currentHeading,
-      text: text.slice(0, options.maxCharsPerSegment),
+      text,
       references: [`segment ${segments.length + 1}`],
     });
     buffer = [];
@@ -80,24 +72,15 @@ function buildSegments(
     if (headingRegex.test(line) && line.length <= 140) {
       pushSegment();
       currentHeading = line.replace(/[:\s]+$/, "").slice(0, 120) || "Clause";
-      if (segments.length >= options.maxSegments) {
-        break;
-      }
       continue;
     }
     if (!currentHeading) {
       currentHeading = "Preamble";
     }
     buffer.push(line);
-    if (buffer.join(" ").length > options.maxCharsPerSegment * 1.4) {
-      pushSegment();
-    }
-    if (segments.length >= options.maxSegments) {
-      break;
-    }
   }
   pushSegment();
-  return segments.slice(0, options.maxSegments);
+  return segments;
 }
 
 function buildClauseFromSegment(options: {

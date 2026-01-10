@@ -794,7 +794,7 @@ function buildSystemPrompt(
     "Think through each clause carefully before producing structured output.",
     enumerationInstruction,
     "Use legal reasoning, cite regulatory frameworks, and flag negotiation levers.",
-    "Ground every observation in the retrieved excerpts, clause digest, or contract excerpt provided. Do not infer missing language from general knowledge.",
+    "Ground every observation in the retrieved excerpts or clause digest provided. Do not infer missing language from general knowledge.",
     "If a clause is not present in the provided excerpts, mark it as \"Not present\" and propose language only when clearly missing.",
     "For each checklist/anchor item in the playbook, emit a finding (met/missing/attention) and include an issue for anything missing or ambiguous.",
     compact
@@ -813,13 +813,6 @@ function buildUserPrompt(
   options?: { compact?: boolean; maxChars?: number },
 ) {
   const compact = Boolean(options?.compact);
-  const buildContentExcerpt = (content: string, maxChars = 6000) => {
-    if (!content) return "";
-    if (content.length <= maxChars) return content;
-    const head = content.slice(0, Math.floor(maxChars / 2));
-    const tail = content.slice(-Math.floor(maxChars / 2));
-    return `${head}\n\n[...content truncated for brevity...]\n\n${tail}`;
-  };
 
   const metadataSections = [
     context.filename ? `Filename: ${context.filename}` : null,
@@ -858,9 +851,7 @@ function buildUserPrompt(
 
   const clauseDigestSection = (() => {
     if (context.clauseDigest?.summary) {
-      const digestSummary = compact
-        ? buildContentExcerpt(context.clauseDigest.summary, 1200)
-        : context.clauseDigest.summary;
+      const digestSummary = context.clauseDigest.summary;
       const categoryCounts = context.clauseDigest.categoryCounts;
       const categoryLine = categoryCounts
         ? `Category coverage: ${Object.entries(categoryCounts)
@@ -875,7 +866,15 @@ function buildUserPrompt(
         .filter(Boolean)
         .join("\n");
     }
-    return "Clause digest unavailable. Derive anchors directly from the contract excerpt.";
+    return "Clause digest unavailable. Base findings only on retrieved clause excerpts.";
+  })();
+
+  const extractionNotice = (() => {
+    const clauseExtractions = context.clauseExtractions ?? [];
+    if (!clauseExtractions.length && !context.clauseDigest?.summary) {
+      return "No clause extractions available. Mark items as missing unless explicitly supported by retrieved excerpts.";
+    }
+    return null;
   })();
 
   const clauseContextSection = (() => {
@@ -884,7 +883,7 @@ function buildUserPrompt(
       return null;
     }
     if (context.clauseSetWeak) {
-      return "Clause extraction quality is weak; rely primarily on the contract excerpt.";
+      return "Clause extraction quality is weak; rely on available excerpts and treat uncertain items as missing.";
     }
     const retrieved = buildRetrievedClauseContext({
       playbook,
@@ -899,21 +898,12 @@ function buildUserPrompt(
     return `Retrieved clause excerpts (matched to playbook anchors):\n${retrieved.summary}`;
   })();
 
-  const maxChars = options?.maxChars ?? 6000;
-  const retrievalBudget = clauseContextSection ? clauseContextSection.length : 0;
-  const contentBudget =
-    clauseContextSection && !context.clauseSetWeak
-      ? Math.max(1400, maxChars - retrievalBudget)
-      : maxChars;
-
-  const contentExcerpt = buildContentExcerpt(context.content, contentBudget);
-
   return [
     metadataSections,
     playbookSection,
     clauseDigestSection,
+    extractionNotice,
     clauseContextSection,
-    `Contract content (excerpt):\n${contentExcerpt}`,
   ]
     .filter(Boolean)
     .join("\n\n");
@@ -930,9 +920,9 @@ function buildJsonSchemaDescription(
     "- generatedAt: ISO timestamp",
     "- generalInformation: { complianceScore (0-100), selectedPerspective, reviewTimeSeconds, timeSavingsMinutes, reportExpiry }",
     "- contractSummary: { contractName, filename, parties[], agreementDirection, purpose, verbalInformationCovered, contractPeriod, governingLaw, jurisdiction }",
-    "- issuesToAddress: Issues with id, title, severity, recommendation, rationale, clauseReference { clauseId, heading, excerpt, locationHint }. Excerpt must quote or paraphrase the retrieved clause excerpts, clause digest, or contract excerpt. If a clause is missing, state \"Not present\" in excerpt and location.",
+    "- issuesToAddress: Issues with id, title, severity, recommendation, rationale, clauseReference { clauseId, heading, excerpt, locationHint }. Excerpt must quote or paraphrase the retrieved clause excerpts or clause digest. If a clause is missing, state \"Not present\" in excerpt and location.",
     "- criteriaMet: Checklist items with id, title, description, met, evidence.",
-    "- proposedEdits: Each edit with id, clauseId, anchorText, proposedText, intent, rationale. Anchor text must be an exact excerpt from the contract text. Proposed text = fully rewritten clause or paragraph ready to paste into the contract. Intent must be insert|replace|remove.",
+    "- proposedEdits: Each edit with id, clauseId, anchorText, proposedText, intent, rationale. Anchor text must be an exact excerpt from the extracted clause text provided. Proposed text = fully rewritten clause or paragraph ready to paste into the contract. Intent must be insert|replace|remove.",
     "- metadata: model + classification + token usage + critique notes.",
     "Do not include previewHtml/previousText/updatedText/applyByDefault; these are derived later.",
     "Optional sections (playbookInsights, clauseExtractions, similarityAnalysis, deviationInsights, actionItems, draftMetadata) should be omitted unless explicitly requested.",

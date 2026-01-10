@@ -696,12 +696,11 @@ function detectContractType(
   provided?: string,
 ) {
   if (provided) return provided;
-  const shortContent = content.slice(0, 4000);
   let bestMatch: { type: string; score: number } | null = null;
   for (const [type, patterns] of Object.entries(CONTRACT_PATTERNS)) {
     let score = 0;
     for (const pattern of patterns) {
-      if (pattern.test(shortContent)) {
+      if (pattern.test(content)) {
         score += 1;
       }
     }

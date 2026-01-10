@@ -15,8 +15,8 @@ const DEBUG_REVIEW = (() => {
   if (raw === "0" || raw === "false" || raw === "no") return false;
   return true;
 })();
-const MIN_ISSUE_CONFIDENCE = 0.28;
-const MIN_CRITERIA_CONFIDENCE = 0.3;
+const MIN_ISSUE_CONFIDENCE = 0.2;
+const MIN_CRITERIA_CONFIDENCE = 0.2;
 const DUPLICATE_EXCERPT_MIN_CONFIDENCE = 0.35;
 
 export function matchClauseToText(
@@ -120,42 +120,41 @@ export function enhanceReportWithClauses(
       : "";
 
     let nextExcerpt = currentExcerpt;
-    let evidenceResult = currentExcerpt
-      ? checkEvidenceMatch(currentExcerpt, content)
-      : { matched: false, reason: "empty-excerpt" };
-    let clauseEvidenceResult = match && currentExcerpt
-      ? checkEvidenceMatchAgainstClause(currentExcerpt, clauseText)
-      : { matched: false, reason: "empty-content" };
-
     if (!currentExcerpt) {
       if (isMissingEvidenceMarker(existingReference?.excerpt)) {
         nextExcerpt = existingReference?.excerpt ?? "Not present";
-      } else {
-        nextExcerpt = match ? "Evidence not found" : "Not present";
-      }
-      evidenceResult = { matched: false, reason: "empty-excerpt" };
-    } else if (!clauseEvidenceResult.matched || !evidenceResult.matched) {
-      if (isMissingEvidenceMarker(currentExcerpt)) {
-        nextExcerpt = currentExcerpt;
-      } else if (preferredExcerpt && preferredExcerpt !== currentExcerpt) {
-        const preferredClauseResult = checkEvidenceMatchAgainstClause(
-          preferredExcerpt,
+      } else if (match && clauseText) {
+        nextExcerpt = preferredExcerpt || buildEvidenceExcerpt({
           clauseText,
-        );
-        const preferredResult = checkEvidenceMatch(preferredExcerpt, content);
-        if (preferredClauseResult.matched && preferredResult.matched) {
-          nextExcerpt = preferredExcerpt;
-          evidenceResult = preferredResult;
-          clauseEvidenceResult = preferredClauseResult;
-        } else {
-          nextExcerpt = match ? "Evidence not found" : "Not present";
-        }
+          anchorText: issue.title,
+        });
       } else {
-        nextExcerpt = match ? "Evidence not found" : "Not present";
+        nextExcerpt = "Not present";
       }
+    } else if (match && clauseText) {
+      const clauseEvidenceResult = checkEvidenceMatchAgainstClause(
+        currentExcerpt,
+        clauseText,
+      );
+      if (!clauseEvidenceResult.matched && preferredExcerpt) {
+        nextExcerpt = preferredExcerpt;
+      }
+    } else if (isMissingEvidenceMarker(currentExcerpt)) {
+      nextExcerpt = currentExcerpt;
     }
 
-    if (evidenceResult.matched || isMissingEvidenceMarker(nextExcerpt)) {
+    const evidenceResult = nextExcerpt
+      ? checkEvidenceMatch(nextExcerpt, content)
+      : { matched: false, reason: "empty-excerpt" };
+    const clauseEvidenceResult = match && nextExcerpt
+      ? checkEvidenceMatchAgainstClause(nextExcerpt, clauseText)
+      : { matched: false, reason: "empty-content" };
+    const evidenceMatched =
+      isMissingEvidenceMarker(nextExcerpt) ||
+      clauseEvidenceResult.matched ||
+      evidenceResult.matched;
+
+    if (evidenceMatched) {
       issueEvidenceStats.matched += 1;
     } else {
       issueEvidenceStats.missing += 1;
@@ -260,41 +259,33 @@ export function enhanceReportWithClauses(
         ? criterion.evidence
         : fallbackExcerpt;
 
-    let evidenceResult = currentEvidence
-      ? checkEvidenceMatch(currentEvidence, content)
-      : { matched: false, reason: "empty-excerpt" };
-    let clauseEvidenceResult = match && currentEvidence
-      ? checkEvidenceMatchAgainstClause(currentEvidence, clauseText)
-      : { matched: false, reason: "empty-content" };
-
     let nextEvidence = currentEvidence;
     if (!currentEvidence) {
-      nextEvidence = fallbackExcerpt || "Evidence not found";
-      evidenceResult = { matched: false, reason: "empty-excerpt" };
-    } else if (!clauseEvidenceResult.matched || !evidenceResult.matched) {
-      if (fallbackExcerpt && fallbackExcerpt !== currentEvidence) {
-        const fallbackClauseResult = checkEvidenceMatchAgainstClause(
-          fallbackExcerpt,
-          clauseText,
-        );
-        const fallbackResult = checkEvidenceMatch(fallbackExcerpt, content);
-        if (fallbackClauseResult.matched && fallbackResult.matched) {
-          nextEvidence = fallbackExcerpt;
-          evidenceResult = fallbackResult;
-          clauseEvidenceResult = fallbackClauseResult;
-        } else if (isMissingEvidenceMarker(currentEvidence)) {
-          nextEvidence = currentEvidence;
-        } else {
-          nextEvidence = "Evidence not found";
-        }
-      } else if (isMissingEvidenceMarker(currentEvidence)) {
-        nextEvidence = currentEvidence;
-      } else {
-        nextEvidence = "Evidence not found";
+      nextEvidence = fallbackExcerpt || (match ? "Evidence not found" : "Not present");
+    } else if (match && clauseText) {
+      const clauseEvidenceResult = checkEvidenceMatchAgainstClause(
+        currentEvidence,
+        clauseText,
+      );
+      if (!clauseEvidenceResult.matched && fallbackExcerpt) {
+        nextEvidence = fallbackExcerpt;
       }
+    } else if (isMissingEvidenceMarker(currentEvidence)) {
+      nextEvidence = currentEvidence;
     }
 
-    if (evidenceResult.matched || isMissingEvidenceMarker(nextEvidence)) {
+    const evidenceResult = nextEvidence
+      ? checkEvidenceMatch(nextEvidence, content)
+      : { matched: false, reason: "empty-excerpt" };
+    const clauseEvidenceResult = match && nextEvidence
+      ? checkEvidenceMatchAgainstClause(nextEvidence, clauseText)
+      : { matched: false, reason: "empty-content" };
+    const evidenceMatched =
+      isMissingEvidenceMarker(nextEvidence) ||
+      clauseEvidenceResult.matched ||
+      evidenceResult.matched;
+
+    if (evidenceMatched) {
       criteriaEvidenceStats.matched += 1;
     } else {
       criteriaEvidenceStats.missing += 1;
@@ -311,13 +302,18 @@ export function enhanceReportWithClauses(
       });
     }
 
-    const hasEvidence = evidenceResult.matched && !isMissingEvidenceMarker(nextEvidence);
+    const hasEvidence = evidenceMatched && !isMissingEvidenceMarker(nextEvidence);
     return {
       ...criterion,
       evidence: nextEvidence,
       met: hasEvidence ? criterion.met : false,
     };
   });
+
+  const criteriaAlignedWithIssues = alignCriteriaWithIssues(
+    criteriaWithEvidence,
+    issuesWithNormalizedEvidence,
+  );
 
   const recomputeStats = (
     issues: AnalysisReport["issuesToAddress"],
@@ -377,7 +373,86 @@ export function enhanceReportWithClauses(
     ...report,
     clauseExtractions: clauseCandidates,
     issuesToAddress: issuesWithNormalizedEvidence,
-    criteriaMet: criteriaWithEvidence,
+    criteriaMet: criteriaAlignedWithIssues,
     metadata: nextMetadata as AnalysisReport["metadata"],
   };
+}
+
+function normalizeChecklistKey(value: string): string {
+  return value.trim().toUpperCase();
+}
+
+function normalizeTitleKey(value: string): string {
+  return normalizeForMatch(value);
+}
+
+function extractChecklistIds(value: string): string[] {
+  const matches = new Set<string>();
+  const raw = value.toUpperCase();
+  const issueMatches = raw.match(/ISSUE_CHECK_[A-Z0-9_]+/g) ?? [];
+  const checkMatches = raw.match(/CHECK_[A-Z0-9_]+/g) ?? [];
+  issueMatches.forEach((match) => {
+    matches.add(match.replace(/^ISSUE_/, ""));
+  });
+  checkMatches.forEach((match) => matches.add(match));
+  return Array.from(matches);
+}
+
+function alignCriteriaWithIssues(
+  criteria: AnalysisReport["criteriaMet"],
+  issues: AnalysisReport["issuesToAddress"],
+): AnalysisReport["criteriaMet"] {
+  if (!criteria.length || !issues.length) return criteria;
+  const criteriaCopy = criteria.map((criterion) => ({ ...criterion }));
+  const criteriaById = new Map<string, number>();
+  const criteriaByTitle = new Map<string, number>();
+  criteriaCopy.forEach((criterion, index) => {
+    criteriaById.set(normalizeChecklistKey(criterion.id), index);
+    criteriaByTitle.set(normalizeTitleKey(criterion.title), index);
+  });
+
+  issues.forEach((issue) => {
+    const sources: string[] = [];
+    if (issue.id) sources.push(issue.id);
+    if (Array.isArray(issue.tags)) {
+      issue.tags.forEach((tag) => {
+        if (typeof tag === "string") sources.push(tag);
+      });
+    }
+    const matchedIds = new Set<string>();
+    sources.forEach((source) => {
+      extractChecklistIds(source).forEach((id) => matchedIds.add(id));
+    });
+
+    if (matchedIds.size === 0 && issue.title) {
+      const baseTitle = issue.title.split(":")[0]?.trim();
+      if (baseTitle) {
+        const titleKey = normalizeTitleKey(baseTitle);
+        const index = criteriaByTitle.get(titleKey);
+        if (index !== undefined) {
+          matchedIds.add(criteriaCopy[index].id);
+        }
+      }
+    }
+
+    matchedIds.forEach((id) => {
+      const index = criteriaById.get(normalizeChecklistKey(id));
+      if (index === undefined) return;
+      const criterion = criteriaCopy[index];
+      criteriaCopy[index] = {
+        ...criterion,
+        met: false,
+        evidence:
+          criterion.evidence &&
+          !isMissingEvidenceMarker(criterion.evidence) &&
+          criterion.evidence !== "Evidence not found"
+            ? criterion.evidence
+            : issue.clauseReference?.excerpt ??
+              criterion.evidence ??
+              "Not present",
+      };
+    });
+  });
+
+  return criteriaCopy;
 }

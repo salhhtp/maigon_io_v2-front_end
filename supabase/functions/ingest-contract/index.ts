@@ -135,7 +135,6 @@ serve(async (req) => {
       content: extractedText,
       contractType: request.contractType,
       filename: fileName,
-      maxClauses: 20,
     }).catch((error) => {
       console.warn("⚠️ Clause extraction failed, continuing", error);
       return { clauses: [] as ClauseExtraction[], source: "fallback" as const, raw: null };
