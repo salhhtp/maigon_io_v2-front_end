@@ -20,6 +20,7 @@ const DEBUG_REVIEW = (() => {
   if (raw === "0" || raw === "false" || raw === "no") return false;
   return true;
 })();
+const OPTIONAL_ANCHOR_PATTERN = /\bif (applicable|relevant)\b/i;
 const MIN_ISSUE_CONFIDENCE = 0.2;
 const MIN_CRITERIA_CONFIDENCE = 0.2;
 const DUPLICATE_EXCERPT_MIN_CONFIDENCE = 0.35;
@@ -141,6 +142,7 @@ const buildCriteriaFromPlaybook = (playbook: ContractPlaybook) => {
   const criteria: AnalysisReport["criteriaMet"] = [];
   const requirementsById = new Map<string, string[]>();
   const usedIds = new Map<string, number>();
+  const optionalCriteriaIds = new Set<string>();
 
   playbook.criticalClauses.forEach((clause, index) => {
     const id = buildCriterionId(
@@ -148,7 +150,10 @@ const buildCriteriaFromPlaybook = (playbook: ContractPlaybook) => {
       usedIds,
       `CRITICAL_${index + 1}`,
     );
-    requirementsById.set(id, clause.mustInclude ?? []);
+    requirementsById.set(
+      id,
+      clause.mustInclude?.length ? clause.mustInclude : [clause.title],
+    );
     criteria.push({
       id,
       title: clause.title,
@@ -167,6 +172,10 @@ const buildCriteriaFromPlaybook = (playbook: ContractPlaybook) => {
     const titleKey = normalizeForMatch(anchor);
     if (existingTitles.has(titleKey)) return;
     const id = buildCriterionId(anchor, usedIds, `ANCHOR_${index + 1}`);
+    requirementsById.set(id, [anchor]);
+    if (OPTIONAL_ANCHOR_PATTERN.test(anchor)) {
+      optionalCriteriaIds.add(id);
+    }
     criteria.push({
       id,
       title: anchor,
@@ -176,7 +185,7 @@ const buildCriteriaFromPlaybook = (playbook: ContractPlaybook) => {
     });
   });
 
-  return { criteria, requirementsById };
+  return { criteria, requirementsById, optionalCriteriaIds };
 };
 
 export function matchClauseToText(
@@ -203,6 +212,8 @@ export function enhanceReportWithClauses(
   const baseCriteria = playbookCriteria?.criteria ?? report.criteriaMet;
   const requiredSignalsById =
     playbookCriteria?.requirementsById ?? new Map<string, string[]>();
+  const optionalCriteriaIds =
+    playbookCriteria?.optionalCriteriaIds ?? new Set<string>();
   const issueEvidenceStats = {
     total: report.issuesToAddress.length,
     matched: 0,
@@ -448,7 +459,7 @@ export function enhanceReportWithClauses(
       ...issue,
       clauseReference: {
         clauseId: stableClauseId,
-        heading: existingReference?.heading ?? match?.title,
+        heading: match?.title ?? existingReference?.heading,
         excerpt: nextExcerpt,
         locationHint: existingReference?.locationHint ??
           match?.location ?? {
@@ -509,6 +520,10 @@ export function enhanceReportWithClauses(
     );
     let match = acceptedMatch ? matchResult.match : null;
     const requiredSignals = requiredSignalsById.get(criterion.id) ?? [];
+    const optionalCriterion = optionalCriteriaIds.has(criterion.id);
+    const signalsForMatch = requiredSignals.length > 0
+      ? requiredSignals
+      : [criterion.title ?? ""].filter(Boolean);
     let clauseText = match
       ? match.originalText ?? match.normalizedText ?? match.title ?? ""
       : "";
@@ -520,7 +535,7 @@ export function enhanceReportWithClauses(
       const clauseTokens = tokenizeForMatch(clauseText);
       if (!hasStructuralMatch(structuralTokens, clauseTokens)) {
         const signalClause = findClauseBySignals(
-          requiredSignals,
+          signalsForMatch,
           clauseCandidates,
           content,
         );
@@ -529,9 +544,9 @@ export function enhanceReportWithClauses(
           ? match.originalText ?? match.normalizedText ?? match.title ?? ""
           : "";
       }
-    } else if (!match && requiredSignals.length > 0) {
+    } else if (!match && signalsForMatch.length > 0) {
       const signalClause = findClauseBySignals(
-        requiredSignals,
+        signalsForMatch,
         clauseCandidates,
         content,
       );
@@ -599,10 +614,13 @@ export function enhanceReportWithClauses(
     const negativeDescription =
       looksNegativeEvidence(criterion.description ?? "") ||
       looksNegativeEvidence(criterion.title ?? "");
-    const missingSignals = requiredSignals.filter((signal) =>
-      !findRequirementMatch(signal, clauseCandidates, content).met
-    );
-    const meetsRequiredSignals = missingSignals.length === 0;
+    const missingSignals = optionalCriterion
+      ? []
+      : requiredSignals.filter((signal) =>
+        !findRequirementMatch(signal, clauseCandidates, content).met
+      );
+    const meetsRequiredSignals =
+      optionalCriterion || missingSignals.length === 0;
 
     if (evidenceMatched) {
       criteriaEvidenceStats.matched += 1;
@@ -650,6 +668,7 @@ export function enhanceReportWithClauses(
     criteriaWithEvidence,
     issuesWithNormalizedEvidence,
     clauseCandidates,
+    optionalCriteriaIds,
   );
 
   if (issuesBackfilledFromCriteria.length === 0) {
@@ -663,6 +682,7 @@ export function enhanceReportWithClauses(
   const issuesFiltered = filterIssuesByCriteria(
     issuesBackfilledFromCriteria,
     criteriaWithEvidence,
+    optionalCriteriaIds,
   );
 
   const criteriaAlignedWithIssues = alignCriteriaWithIssues(
@@ -829,9 +849,11 @@ function backfillIssuesFromCriteria(
   criteria: AnalysisReport["criteriaMet"],
   issues: AnalysisReport["issuesToAddress"],
   clauses: ClauseExtraction[],
+  optionalCriteriaIds: Set<string>,
 ): AnalysisReport["issuesToAddress"] {
   const nextIssues = [...issues];
   criteria.forEach((criterion) => {
+    if (optionalCriteriaIds.has(criterion.id)) return;
     if (criterion.met) return;
     const hasIssue = nextIssues.some((issue) =>
       issueMatchesCriterion(issue, criterion)
@@ -906,11 +928,13 @@ function isDraftIssue(issue: AnalysisReport["issuesToAddress"][number]) {
 function filterIssuesByCriteria(
   issues: AnalysisReport["issuesToAddress"],
   criteria: AnalysisReport["criteriaMet"],
+  optionalCriteriaIds: Set<string>,
 ): AnalysisReport["issuesToAddress"] {
   if (!issues.length || !criteria.length) return issues;
   const filtered = issues.filter((issue) => {
     const matched = findMatchingCriterion(issue, criteria);
     if (!matched) return true;
+    if (optionalCriteriaIds.has(matched.id)) return true;
     return !matched.met;
   });
   const nonDraftIssues = filtered.filter((issue) => !isDraftIssue(issue));

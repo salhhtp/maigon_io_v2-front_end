@@ -194,6 +194,36 @@ describe("Reliability harness", () => {
     expect(emptyCoverage.coverageScore).toBe(0);
   });
 
+  it("excludes optional anchors from coverage scoring", () => {
+    const clauses = [
+      {
+        id: "remedies",
+        clauseId: "remedies",
+        title: "Remedies",
+        originalText:
+          "The Discloser may seek injunctive relief and other remedies at law.",
+        normalizedText:
+          "The Discloser may seek injunctive relief and other remedies at law.",
+      },
+    ];
+    const content = clauses[0].originalText;
+    const playbook = {
+      clauseAnchors: [
+        "Remedies / injunctive relief",
+        "Export control / sanctions (if relevant)",
+      ],
+      criticalClauses: [],
+    };
+
+    const coverage = evaluatePlaybookCoverageFromContent(playbook, {
+      content,
+      clauses,
+    });
+
+    expect(coverage.anchorCoverage).toHaveLength(2);
+    expect(coverage.coverageScore).toBe(1);
+  });
+
   it("matches structural requirements with synonyms", () => {
     const clauses = [
       {
@@ -495,6 +525,22 @@ describe("Reliability harness", () => {
       clauses,
     });
     expect(bound[0].clauseId).toBe("Section-7");
+  });
+
+  it("drops placeholder proposed edits", () => {
+    const bound = bindProposedEditsToClauses({
+      proposedEdits: [
+        {
+          id: "edit-placeholder",
+          anchorText: "Not present in contract",
+          proposedText: "[Insert exact project date]",
+          intent: "insert",
+        },
+      ],
+      issues: [],
+      clauses: [],
+    });
+    expect(bound).toHaveLength(0);
   });
 
   it("fails evidence checks when content is empty", () => {
