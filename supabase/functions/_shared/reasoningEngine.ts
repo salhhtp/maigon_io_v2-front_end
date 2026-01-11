@@ -2312,6 +2312,7 @@ export async function runReasoningAnalysis(
   const clauseAlignedReport = enhanceReportWithClauses(finalReport, {
     clauses: context.clauseExtractions ?? null,
     content: context.content,
+    playbook,
   });
   const boundEdits = bindProposedEditsToClauses({
     proposedEdits: clauseAlignedReport.proposedEdits,

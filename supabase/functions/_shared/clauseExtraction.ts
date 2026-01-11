@@ -1,12 +1,15 @@
 import type { AnalysisReport, ClauseExtraction } from "./reviewSchema.ts";
+import type { ContractPlaybook } from "./playbooks.ts";
 import {
   buildEvidenceExcerpt,
   checkEvidenceMatch,
   checkEvidenceMatchAgainstClause,
+  findRequirementMatch,
   isMissingEvidenceMarker,
   matchClauseToText as matchClauseToTextWithDebug,
   normalizeForMatch,
   resolveClauseMatch,
+  STRUCTURAL_TOKENS,
   tokenizeForMatch,
 } from "../../../shared/ai/reliability.ts";
 
@@ -35,43 +38,6 @@ const NEGATIVE_EVIDENCE_MARKERS = [
   "not clearly",
   "not addressed",
 ];
-const STRUCTURAL_TOKENS = new Set([
-  "term",
-  "termination",
-  "survival",
-  "remedies",
-  "injunctive",
-  "relief",
-  "specific",
-  "performance",
-  "return",
-  "destruction",
-  "destroy",
-  "compelled",
-  "disclosure",
-  "license",
-  "ownership",
-  "ip",
-  "purpose",
-  "use",
-  "need",
-  "know",
-  "residual",
-  "unmarked",
-  "governing",
-  "law",
-  "jurisdiction",
-  "arbitration",
-  "export",
-  "sanctions",
-  "liability",
-  "cap",
-  "limitation",
-  "notice",
-  "protective",
-  "order",
-]);
-
 const normalizeIssueKey = (value: string) => value.trim().toUpperCase();
 const buildMissingClauseId = (value: string) => {
   const slug = normalizeForMatch(value).replace(/\s+/g, "-");
@@ -97,6 +63,62 @@ const similarityForText = (a: string, b: string) => {
   return union === 0 ? 0 : intersection / union;
 };
 
+const buildCriterionId = (
+  value: string,
+  used: Map<string, number>,
+  fallback: string,
+): string => {
+  const base = normalizeForMatch(value).replace(/\s+/g, "_").toUpperCase();
+  const baseKey = base || fallback;
+  const count = used.get(baseKey) ?? 0;
+  used.set(baseKey, count + 1);
+  if (count === 0) return baseKey.slice(0, 64) || fallback;
+  const suffix = `_${count + 1}`;
+  return `${baseKey.slice(0, 64 - suffix.length)}${suffix}`;
+};
+
+const buildCriteriaFromPlaybook = (playbook: ContractPlaybook) => {
+  const criteria: AnalysisReport["criteriaMet"] = [];
+  const requirementsById = new Map<string, string[]>();
+  const usedIds = new Map<string, number>();
+
+  playbook.criticalClauses.forEach((clause, index) => {
+    const id = buildCriterionId(
+      clause.title,
+      usedIds,
+      `CRITICAL_${index + 1}`,
+    );
+    requirementsById.set(id, clause.mustInclude ?? []);
+    criteria.push({
+      id,
+      title: clause.title,
+      description: clause.mustInclude?.length
+        ? `Must include: ${clause.mustInclude.join("; ")}`
+        : clause.title,
+      met: false,
+      evidence: "",
+    });
+  });
+
+  const existingTitles = new Set(
+    criteria.map((entry) => normalizeForMatch(entry.title ?? "")),
+  );
+  playbook.clauseAnchors.forEach((anchor, index) => {
+    const titleKey = normalizeForMatch(anchor);
+    if (existingTitles.has(titleKey)) return;
+    const id = buildCriterionId(anchor, usedIds, `ANCHOR_${index + 1}`);
+    criteria.push({
+      id,
+      title: anchor,
+      description: anchor,
+      met: false,
+      evidence: "",
+    });
+  });
+
+  return { criteria, requirementsById };
+};
+
 export function matchClauseToText(
   text: string,
   clauses: ClauseExtraction[],
@@ -109,18 +131,25 @@ export function enhanceReportWithClauses(
   options: {
     clauses?: ClauseExtraction[] | null;
     content?: string | null;
+    playbook?: ContractPlaybook | null;
   },
 ): AnalysisReport {
   const clauseCandidates = options.clauses ?? [];
   const content = options.content ?? "";
   const normalizedContent = normalizeForMatch(content);
+  const playbookCriteria = options.playbook
+    ? buildCriteriaFromPlaybook(options.playbook)
+    : null;
+  const baseCriteria = playbookCriteria?.criteria ?? report.criteriaMet;
+  const requiredSignalsById =
+    playbookCriteria?.requirementsById ?? new Map<string, string[]>();
   const issueEvidenceStats = {
     total: report.issuesToAddress.length,
     matched: 0,
     missing: 0,
   };
   const criteriaEvidenceStats = {
-    total: report.criteriaMet.length,
+    total: baseCriteria.length,
     matched: 0,
     missing: 0,
   };
@@ -138,31 +167,72 @@ export function enhanceReportWithClauses(
 
   const issuesWithEvidence = report.issuesToAddress.map((issue, index) => {
     const fallbackText = `${issue.title} ${issue.recommendation ?? ""}`.trim();
-    const matchResult = resolveClauseMatch({
-      clauseReference: issue.clauseReference ?? null,
-      fallbackText,
-      clauses: clauseCandidates,
-    });
-    const acceptedMatch = Boolean(
-      matchResult.match &&
-        (matchResult.method === "id" ||
-          matchResult.method === "heading" ||
-          matchResult.confidence >= MIN_ISSUE_CONFIDENCE),
-    );
-    const match = acceptedMatch ? matchResult.match : null;
     const existingReference = issue.clauseReference ?? {
       clauseId: "",
       heading: undefined,
       excerpt: undefined,
       locationHint: undefined,
     };
+    let matchResult = resolveClauseMatch({
+      clauseReference: issue.clauseReference ?? null,
+      fallbackText,
+      clauses: clauseCandidates,
+    });
+    let acceptedMatch = Boolean(
+      matchResult.match &&
+        (matchResult.method === "id" ||
+          matchResult.method === "heading" ||
+          matchResult.confidence >= MIN_ISSUE_CONFIDENCE),
+    );
+    let match = acceptedMatch ? matchResult.match : null;
+
+    const existingClauseId =
+      typeof existingReference.clauseId === "string"
+        ? existingReference.clauseId.trim()
+        : "";
+    const existingExcerpt =
+      typeof existingReference.excerpt === "string"
+        ? existingReference.excerpt.trim()
+        : "";
+    let trustExistingClauseId = true;
+    if (match && matchResult.method === "id" && existingClauseId) {
+      const clauseText =
+        match.originalText ?? match.normalizedText ?? match.title ?? "";
+      const excerptMismatch =
+        existingExcerpt &&
+        !isMissingEvidenceMarker(existingExcerpt) &&
+        !checkEvidenceMatchAgainstClause(existingExcerpt, clauseText).matched;
+      const missingMarkerWithId =
+        existingExcerpt &&
+        isMissingEvidenceMarker(existingExcerpt);
+      if (excerptMismatch || missingMarkerWithId) {
+        trustExistingClauseId = false;
+        const fallback = [fallbackText, existingExcerpt]
+          .filter(Boolean)
+          .join(" ")
+          .trim();
+        const reMatch = resolveClauseMatch({
+          clauseReference: null,
+          fallbackText: fallback,
+          clauses: clauseCandidates,
+        });
+        const reAccepted = Boolean(
+          reMatch.match &&
+            (reMatch.method === "heading" ||
+              reMatch.confidence >= MIN_ISSUE_CONFIDENCE),
+        );
+        matchResult = reMatch;
+        acceptedMatch = reAccepted;
+        match = reAccepted ? reMatch.match : null;
+      }
+    }
 
     const matchedClauseId = match?.clauseId ?? match?.id ?? null;
     const stableClauseId =
       matchedClauseId ??
-      (existingReference?.clauseId && existingReference.clauseId.trim().length > 0
-        ? existingReference.clauseId
-        : `unmatched-issue-${index + 1}`);
+      (trustExistingClauseId && existingClauseId.trim().length > 0
+        ? existingClauseId
+        : buildMissingClauseId(issue.id ?? `issue-${index + 1}`));
 
     if (match && (issue.id || stableClauseId)) {
       const longExcerpt = (match.originalText ?? match.normalizedText ?? "")
@@ -304,7 +374,7 @@ export function enhanceReportWithClauses(
     });
   }
 
-  const criteriaWithEvidence = report.criteriaMet.map((criterion) => {
+  const criteriaWithEvidence = baseCriteria.map((criterion) => {
     const fallbackText = `${criterion.title} ${criterion.description ?? ""}`.trim();
     const matchResult = resolveClauseMatch({
       clauseReference: null,
@@ -376,6 +446,11 @@ export function enhanceReportWithClauses(
     const negativeDescription =
       looksNegativeEvidence(criterion.description ?? "") ||
       looksNegativeEvidence(criterion.title ?? "");
+    const requiredSignals = requiredSignalsById.get(criterion.id) ?? [];
+    const missingSignals = requiredSignals.filter((signal) =>
+      !findRequirementMatch(signal, clauseCandidates, content).met
+    );
+    const meetsRequiredSignals = missingSignals.length === 0;
 
     if (evidenceMatched) {
       criteriaEvidenceStats.matched += 1;
@@ -398,8 +473,14 @@ export function enhanceReportWithClauses(
       evidenceMatched &&
       !isMissingEvidenceMarker(nextEvidence) &&
       !negativeEvidence;
-    const shouldUpgradeMet = Boolean(match) && hasEvidence && !structuralMismatch;
-    const nextMet = negativeDescription || structuralMismatch
+    const shouldUpgradeMet =
+      Boolean(match) &&
+      hasEvidence &&
+      !structuralMismatch &&
+      meetsRequiredSignals;
+    const nextMet = negativeDescription ||
+        structuralMismatch ||
+        !meetsRequiredSignals
       ? false
       : shouldUpgradeMet
       ? true
@@ -419,11 +500,13 @@ export function enhanceReportWithClauses(
     clauseCandidates,
   );
 
-  issuesBackfilledFromCriteria = backfillIssuesFromEdits(
-    issuesBackfilledFromCriteria,
-    report.proposedEdits ?? [],
-    clauseCandidates,
-  );
+  if (issuesBackfilledFromCriteria.length === 0) {
+    issuesBackfilledFromCriteria = backfillIssuesFromEdits(
+      issuesBackfilledFromCriteria,
+      report.proposedEdits ?? [],
+      clauseCandidates,
+    );
+  }
 
   const issuesFiltered = filterIssuesByCriteria(
     issuesBackfilledFromCriteria,
@@ -527,6 +610,7 @@ function alignCriteriaWithIssues(
   issues.forEach((issue) => {
     criteriaCopy.forEach((criterion, index) => {
       if (!issueMatchesCriterion(issue, criterion)) return;
+      if (criterion.met) return;
       const currentEvidence = criterion.evidence ?? "";
       const nextEvidence =
         currentEvidence &&
@@ -538,7 +622,6 @@ function alignCriteriaWithIssues(
             "Not present in contract";
       criteriaCopy[index] = {
         ...criterion,
-        met: false,
         evidence: nextEvidence,
       };
     });
@@ -554,12 +637,20 @@ function issueMatchesCriterion(
   const criterionId = normalizeIssueKey(criterion.id);
   const criterionTitle = normalizeTitleKey(criterion.title ?? "");
   const issueTitle = normalizeTitleKey(issue.title ?? "");
-  if (normalizeIssueKey(issue.id) === criterionId) return true;
+  const issueId = normalizeIssueKey(issue.id);
+  if (issueId === criterionId) return true;
+  if (issueId.includes(criterionId) || criterionId.includes(issueId)) return true;
   if (issueTitle && issueTitle === criterionTitle) return true;
   if (Array.isArray(issue.tags)) {
     const tags = issue.tags.map((tag) => normalizeIssueKey(tag));
     if (tags.includes(criterionId)) return true;
   }
+  const checklistIds = new Set<string>();
+  extractChecklistIds(issue.id ?? "").forEach((id) => checklistIds.add(id));
+  (issue.tags ?? []).forEach((tag) => {
+    extractChecklistIds(tag ?? "").forEach((id) => checklistIds.add(id));
+  });
+  if (checklistIds.has(criterionId)) return true;
   const titleSimilarity = similarityForText(issue.title ?? "", criterion.title ?? "");
   if (titleSimilarity >= 0.35) return true;
   const categorySimilarity = similarityForText(

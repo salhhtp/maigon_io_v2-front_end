@@ -11,6 +11,7 @@ import {
   dedupeIssues,
   dedupeProposedEdits,
   evaluatePlaybookCoverageFromContent,
+  findRequirementMatch,
   isMissingEvidenceMarker,
   normaliseReportExpiry,
   resolveClauseMatch,
@@ -273,6 +274,40 @@ describe("Reliability harness", () => {
     );
   });
 
+  it("replaces missing anchor text when a clause match exists", () => {
+    const clauses = [
+      {
+        id: "confidentiality",
+        clauseId: "confidentiality",
+        title: "Confidentiality",
+        originalText:
+          "The Receiving Party shall return or destroy Confidential Information upon request.",
+        normalizedText:
+          "The Receiving Party shall return or destroy Confidential Information upon request.",
+      },
+    ];
+    const proposedEdits = [
+      {
+        id: "edit-return",
+        clauseId: "confidentiality",
+        anchorText: "Not present in contract",
+        proposedText: "Return or destroy Confidential Information.",
+        intent: "insert",
+      },
+    ];
+
+    const bound = bindProposedEditsToClauses({
+      proposedEdits,
+      issues: [],
+      clauses,
+    });
+
+    expect(bound[0].anchorText).not.toBe("Not present in contract");
+    expect(
+      clauses[0].originalText.includes(bound[0].anchorText),
+    ).toBe(true);
+  });
+
   it("matches short query signals within long clauses", () => {
     const clauses = [
       {
@@ -294,6 +329,27 @@ describe("Reliability harness", () => {
 
     expect(match.match?.clauseId).toBe("confidentiality");
     expect(match.confidence).toBeGreaterThan(0.15);
+  });
+
+  it("avoids term/survival matches when no term clause exists", () => {
+    const clauses = [
+      {
+        id: "definition",
+        clauseId: "definition",
+        title: "Confidential Information",
+        originalText:
+          "Confidential Information includes trade secrets and proprietary information.",
+        normalizedText:
+          "Confidential Information includes trade secrets and proprietary information.",
+      },
+    ];
+    const content = clauses[0].originalText;
+    const match = findRequirementMatch(
+      "Term & survival (trade secrets vs other CI)",
+      clauses,
+      content,
+    );
+    expect(match.met).toBe(false);
   });
 
   it("verifies evidence against the matched clause text", () => {
