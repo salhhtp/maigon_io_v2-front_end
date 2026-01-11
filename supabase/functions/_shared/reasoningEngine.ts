@@ -1308,6 +1308,19 @@ function normaliseProposedEditContent(payload: Record<string, unknown>) {
       /as in proposed text/i.test(value) ||
       /see proposedtext/i.test(value);
 
+    if (typeof record.anchorText === "string") {
+      const rawAnchor = record.anchorText;
+      const arrowIndex = rawAnchor.lastIndexOf("->");
+      const unicodeArrowIndex = rawAnchor.lastIndexOf("→");
+      const cutIndex = Math.max(arrowIndex, unicodeArrowIndex);
+      if (cutIndex >= 0) {
+        const trimmed = rawAnchor.slice(cutIndex + 2).trim();
+        if (trimmed) {
+          record.anchorText = trimmed;
+        }
+      }
+    }
+
     if (needsRewrite(record.updatedText)) {
       record.updatedText = proposedText;
     }

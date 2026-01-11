@@ -7,6 +7,7 @@ import {
   matchClauseToText as matchClauseToTextWithDebug,
   normalizeForMatch,
   resolveClauseMatch,
+  tokenizeForMatch,
 } from "../../../shared/ai/reliability.ts";
 
 const DEBUG_REVIEW = (() => {
@@ -31,7 +32,45 @@ const NEGATIVE_EVIDENCE_MARKERS = [
   "unclear",
   "conflict",
   "inconsistent",
+  "not clearly",
+  "not addressed",
 ];
+const STRUCTURAL_TOKENS = new Set([
+  "term",
+  "termination",
+  "survival",
+  "remedies",
+  "injunctive",
+  "relief",
+  "specific",
+  "performance",
+  "return",
+  "destruction",
+  "destroy",
+  "compelled",
+  "disclosure",
+  "license",
+  "ownership",
+  "ip",
+  "purpose",
+  "use",
+  "need",
+  "know",
+  "residual",
+  "unmarked",
+  "governing",
+  "law",
+  "jurisdiction",
+  "arbitration",
+  "export",
+  "sanctions",
+  "liability",
+  "cap",
+  "limitation",
+  "notice",
+  "protective",
+  "order",
+]);
 
 const normalizeIssueKey = (value: string) => value.trim().toUpperCase();
 const buildMissingClauseId = (value: string) => {
@@ -42,6 +81,20 @@ const looksNegativeEvidence = (value: string) => {
   const normalized = normalizeForMatch(value);
   if (!normalized) return false;
   return NEGATIVE_EVIDENCE_MARKERS.some((marker) => normalized.includes(marker));
+};
+
+const similarityForText = (a: string, b: string) => {
+  const tokensA = tokenizeForMatch(a);
+  const tokensB = tokenizeForMatch(b);
+  if (!tokensA.length || !tokensB.length) return 0;
+  const setA = new Set(tokensA);
+  const setB = new Set(tokensB);
+  let intersection = 0;
+  setA.forEach((token) => {
+    if (setB.has(token)) intersection += 1;
+  });
+  const union = new Set([...setA, ...setB]).size;
+  return union === 0 ? 0 : intersection / union;
 };
 
 export function matchClauseToText(
@@ -278,6 +331,14 @@ export function enhanceReportWithClauses(
     const clauseText = match
       ? match.originalText ?? match.normalizedText ?? match.title ?? ""
       : "";
+    const clauseTokens = tokenizeForMatch(clauseText);
+    const titleTokens = tokenizeForMatch(criterion.title ?? "");
+    const structuralTokens = titleTokens.filter((token) =>
+      STRUCTURAL_TOKENS.has(token),
+    );
+    const structuralMismatch =
+      structuralTokens.length > 0 &&
+      !structuralTokens.some((token) => clauseTokens.includes(token));
 
     const currentEvidence =
       typeof criterion.evidence === "string" && criterion.evidence.trim().length > 0
@@ -312,6 +373,9 @@ export function enhanceReportWithClauses(
       evidenceResult.matched;
     const negativeEvidence =
       !clauseEvidenceResult.matched && looksNegativeEvidence(nextEvidence ?? "");
+    const negativeDescription =
+      looksNegativeEvidence(criterion.description ?? "") ||
+      looksNegativeEvidence(criterion.title ?? "");
 
     if (evidenceMatched) {
       criteriaEvidenceStats.matched += 1;
@@ -334,8 +398,14 @@ export function enhanceReportWithClauses(
       evidenceMatched &&
       !isMissingEvidenceMarker(nextEvidence) &&
       !negativeEvidence;
-    const shouldUpgradeMet = Boolean(match) && hasEvidence;
-    const nextMet = shouldUpgradeMet ? true : !hasEvidence ? false : criterion.met;
+    const shouldUpgradeMet = Boolean(match) && hasEvidence && !structuralMismatch;
+    const nextMet = negativeDescription || structuralMismatch
+      ? false
+      : shouldUpgradeMet
+      ? true
+      : !hasEvidence
+      ? false
+      : criterion.met;
     return {
       ...criterion,
       evidence: nextEvidence,
@@ -343,26 +413,26 @@ export function enhanceReportWithClauses(
     };
   });
 
-  let criteriaAlignedWithIssues = alignCriteriaWithIssues(
+  let issuesBackfilledFromCriteria = backfillIssuesFromCriteria(
     criteriaWithEvidence,
-    issuesWithNormalizedEvidence,
-  );
-
-  const issuesBackfilledFromCriteria = backfillIssuesFromCriteria(
-    criteriaAlignedWithIssues,
     issuesWithNormalizedEvidence,
     clauseCandidates,
   );
 
-  const issuesBackfilledFromEdits = backfillIssuesFromEdits(
+  issuesBackfilledFromCriteria = backfillIssuesFromEdits(
     issuesBackfilledFromCriteria,
     report.proposedEdits ?? [],
     clauseCandidates,
   );
 
-  criteriaAlignedWithIssues = alignCriteriaWithIssues(
-    criteriaAlignedWithIssues,
-    issuesBackfilledFromEdits,
+  const issuesFiltered = filterIssuesByCriteria(
+    issuesBackfilledFromCriteria,
+    criteriaWithEvidence,
+  );
+
+  const criteriaAlignedWithIssues = alignCriteriaWithIssues(
+    criteriaWithEvidence,
+    issuesFiltered,
   );
 
   const recomputeStats = (
@@ -422,7 +492,7 @@ export function enhanceReportWithClauses(
   return {
     ...report,
     clauseExtractions: clauseCandidates,
-    issuesToAddress: issuesBackfilledFromEdits,
+    issuesToAddress: issuesFiltered,
     criteriaMet: criteriaAlignedWithIssues,
     metadata: nextMetadata as AnalysisReport["metadata"],
   };
@@ -454,52 +524,22 @@ function alignCriteriaWithIssues(
 ): AnalysisReport["criteriaMet"] {
   if (!criteria.length || !issues.length) return criteria;
   const criteriaCopy = criteria.map((criterion) => ({ ...criterion }));
-  const criteriaById = new Map<string, number>();
-  const criteriaByTitle = new Map<string, number>();
-  criteriaCopy.forEach((criterion, index) => {
-    criteriaById.set(normalizeChecklistKey(criterion.id), index);
-    criteriaByTitle.set(normalizeTitleKey(criterion.title), index);
-  });
-
   issues.forEach((issue) => {
-    const sources: string[] = [];
-    if (issue.id) sources.push(issue.id);
-    if (Array.isArray(issue.tags)) {
-      issue.tags.forEach((tag) => {
-        if (typeof tag === "string") sources.push(tag);
-      });
-    }
-    const matchedIds = new Set<string>();
-    sources.forEach((source) => {
-      extractChecklistIds(source).forEach((id) => matchedIds.add(id));
-    });
-
-    if (matchedIds.size === 0 && issue.title) {
-      const baseTitle = issue.title.split(":")[0]?.trim();
-      if (baseTitle) {
-        const titleKey = normalizeTitleKey(baseTitle);
-        const index = criteriaByTitle.get(titleKey);
-        if (index !== undefined) {
-          matchedIds.add(criteriaCopy[index].id);
-        }
-      }
-    }
-
-    matchedIds.forEach((id) => {
-      const index = criteriaById.get(normalizeChecklistKey(id));
-      if (index === undefined) return;
-      const criterion = criteriaCopy[index];
+    criteriaCopy.forEach((criterion, index) => {
+      if (!issueMatchesCriterion(issue, criterion)) return;
+      const currentEvidence = criterion.evidence ?? "";
+      const nextEvidence =
+        currentEvidence &&
+        !isMissingEvidenceMarker(currentEvidence) &&
+        currentEvidence !== "Evidence not found"
+          ? currentEvidence
+          : issue.clauseReference?.excerpt ??
+            criterion.evidence ??
+            "Not present in contract";
       criteriaCopy[index] = {
         ...criterion,
         met: false,
-        evidence:
-          criterion.evidence &&
-          !isMissingEvidenceMarker(criterion.evidence) &&
-          criterion.evidence !== "Evidence not found"
-            ? criterion.evidence
-            : issue.clauseReference?.excerpt ??
-              criterion.evidence ??
-              "Not present in contract",
+        evidence: nextEvidence,
       };
     });
   });
@@ -512,12 +552,32 @@ function issueMatchesCriterion(
   criterion: AnalysisReport["criteriaMet"][number],
 ) {
   const criterionId = normalizeIssueKey(criterion.id);
-  const criterionTitle = normalizeTitleKey(criterion.title);
+  const criterionTitle = normalizeTitleKey(criterion.title ?? "");
+  const issueTitle = normalizeTitleKey(issue.title ?? "");
   if (normalizeIssueKey(issue.id) === criterionId) return true;
-  if (normalizeTitleKey(issue.title) === criterionTitle) return true;
+  if (issueTitle && issueTitle === criterionTitle) return true;
   if (Array.isArray(issue.tags)) {
     const tags = issue.tags.map((tag) => normalizeIssueKey(tag));
     if (tags.includes(criterionId)) return true;
+  }
+  const titleSimilarity = similarityForText(issue.title ?? "", criterion.title ?? "");
+  if (titleSimilarity >= 0.35) return true;
+  const categorySimilarity = similarityForText(
+    issue.category ?? "",
+    criterion.title ?? "",
+  );
+  if (categorySimilarity >= 0.35) return true;
+  const issueText = normalizeForMatch(
+    `${issue.title ?? ""} ${issue.recommendation ?? ""}`,
+  );
+  const criterionTitleNormalized = normalizeForMatch(criterion.title ?? "");
+  if (
+    issueText &&
+    criterionTitleNormalized &&
+    (issueText.includes(criterionTitleNormalized) ||
+      criterionTitleNormalized.includes(issueText))
+  ) {
+    return true;
   }
   return false;
 }
@@ -580,6 +640,25 @@ function backfillIssuesFromCriteria(
     });
   });
   return nextIssues;
+}
+
+function findMatchingCriterion(
+  issue: AnalysisReport["issuesToAddress"][number],
+  criteria: AnalysisReport["criteriaMet"],
+) {
+  return criteria.find((criterion) => issueMatchesCriterion(issue, criterion));
+}
+
+function filterIssuesByCriteria(
+  issues: AnalysisReport["issuesToAddress"],
+  criteria: AnalysisReport["criteriaMet"],
+): AnalysisReport["issuesToAddress"] {
+  if (!issues.length || !criteria.length) return issues;
+  return issues.filter((issue) => {
+    const matched = findMatchingCriterion(issue, criteria);
+    if (!matched) return true;
+    return !matched.met;
+  });
 }
 
 function issueMatchesEdit(

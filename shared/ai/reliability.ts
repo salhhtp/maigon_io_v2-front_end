@@ -376,9 +376,16 @@ export function resolveClauseMatch(options: {
   }
 
   const topHeading = headingCandidates[0];
+  const topText = textCandidates[0];
+  const headingScore = topHeading?.score ?? 0;
+  const textScore = topText?.score ?? 0;
   const shouldPreferHeading =
-    topHeading && topHeading.score >= MIN_HEADING_SCORE;
-  const preferredCandidate = shouldPreferHeading ? topHeading : bestCandidate;
+    topHeading &&
+    headingScore >= MIN_HEADING_SCORE &&
+    (!topText || textScore < MIN_MATCH_SCORE || headingScore >= textScore + 0.08);
+  const preferredCandidate = shouldPreferHeading
+    ? topHeading
+    : topText ?? bestCandidate;
   const bestClause =
     clauses.find((clause) =>
       normalizeClauseId(getClauseIdentifier(clause)) ===
@@ -388,8 +395,6 @@ export function resolveClauseMatch(options: {
   const bestMethod = shouldPreferHeading
     ? "heading"
     : preferredCandidate.method;
-
-  const headingScore = topHeading?.score ?? 0;
 
   const minScore = bestMethod === "heading" ? MIN_HEADING_SCORE : MIN_MATCH_SCORE;
   if (bestScore < minScore && headingScore < MIN_HEADING_SCORE) {
@@ -711,7 +716,13 @@ function findRequirementMatch(
   if (!requirement || !requirement.trim()) {
     return { met: false, score: 0 };
   }
+  const requirementTokens = tokenizeForMatch(requirement);
+  const minCoverage =
+    requirementTokens.length <= 3 ? 0.5 : 0.35;
+  const minHits = requirementTokens.length >= 4 ? 2 : 1;
   let bestScore = 0;
+  let bestCoverage = 0;
+  let bestHits = 0;
   let bestEvidence: string | undefined;
 
   for (const clause of clauses) {
@@ -719,13 +730,26 @@ function findRequirementMatch(
       clause.normalizedText ?? ""
     }`;
     const { score } = scoreTextSimilarity(requirement, clauseText);
+    const clauseTokens = tokenizeForMatch(clauseText);
+    const coverage = queryCoverageScore(requirementTokens, clauseTokens);
+    const clauseTokenSet = new Set(clauseTokens);
+    let hits = 0;
+    requirementTokens.forEach((token) => {
+      if (clauseTokenSet.has(token)) hits += 1;
+    });
     if (score > bestScore) {
       bestScore = score;
+      bestCoverage = coverage;
+      bestHits = hits;
       bestEvidence = clause.title ?? getClauseIdentifier(clause) ?? undefined;
     }
   }
 
-  if (bestScore >= MIN_MATCH_SCORE) {
+  if (
+    bestScore >= MIN_MATCH_SCORE &&
+    bestCoverage >= minCoverage &&
+    bestHits >= minHits
+  ) {
     return { met: true, evidence: bestEvidence, score: bestScore };
   }
 
