@@ -122,14 +122,14 @@ export function enhanceReportWithClauses(
     let nextExcerpt = currentExcerpt;
     if (!currentExcerpt) {
       if (isMissingEvidenceMarker(existingReference?.excerpt)) {
-        nextExcerpt = existingReference?.excerpt ?? "Not present";
+        nextExcerpt = existingReference?.excerpt ?? "Not present in contract";
       } else if (match && clauseText) {
         nextExcerpt = preferredExcerpt || buildEvidenceExcerpt({
           clauseText,
           anchorText: issue.title,
         });
       } else {
-        nextExcerpt = "Not present";
+        nextExcerpt = "Not present in contract";
       }
     } else if (match && clauseText) {
       const clauseEvidenceResult = checkEvidenceMatchAgainstClause(
@@ -186,7 +186,7 @@ export function enhanceReportWithClauses(
           match?.location ?? {
             page: null,
             paragraph: null,
-            section: match?.title ?? (match ? null : "Not present"),
+            section: match?.title ?? (match ? null : "Not present in contract"),
             clauseNumber: matchedClauseId ?? null,
           },
       },
@@ -261,7 +261,8 @@ export function enhanceReportWithClauses(
 
     let nextEvidence = currentEvidence;
     if (!currentEvidence) {
-      nextEvidence = fallbackExcerpt || (match ? "Evidence not found" : "Not present");
+      nextEvidence =
+        fallbackExcerpt || (match ? "Evidence not found" : "Not present in contract");
     } else if (match && clauseText) {
       const clauseEvidenceResult = checkEvidenceMatchAgainstClause(
         currentEvidence,
@@ -449,7 +450,7 @@ function alignCriteriaWithIssues(
             ? criterion.evidence
             : issue.clauseReference?.excerpt ??
               criterion.evidence ??
-              "Not present",
+              "Not present in contract",
       };
     });
   });

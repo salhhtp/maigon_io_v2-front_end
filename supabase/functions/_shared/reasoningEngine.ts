@@ -795,7 +795,7 @@ function buildSystemPrompt(
     enumerationInstruction,
     "Use legal reasoning, cite regulatory frameworks, and flag negotiation levers.",
     "Ground every observation in the retrieved excerpts or clause digest provided. Do not infer missing language from general knowledge.",
-    "If a clause is not present in the provided excerpts, mark it as \"Not present\" and propose language only when clearly missing.",
+    "If a clause is not present in the provided excerpts, mark it as \"Not present in contract\" and propose language only when clearly missing.",
     "For each checklist/anchor item in the playbook, emit a finding (met/missing/attention) and include an issue for anything missing or ambiguous.",
     compact
       ? "If output length is constrained, group similar findings and keep each item concise."
@@ -920,7 +920,7 @@ function buildJsonSchemaDescription(
     "- generatedAt: ISO timestamp",
     "- generalInformation: { complianceScore (0-100), selectedPerspective, reviewTimeSeconds, timeSavingsMinutes, reportExpiry }",
     "- contractSummary: { contractName, filename, parties[], agreementDirection, purpose, verbalInformationCovered, contractPeriod, governingLaw, jurisdiction }",
-    "- issuesToAddress: Issues with id, title, severity, recommendation, rationale, clauseReference { clauseId, heading, excerpt, locationHint }. Excerpt must quote or paraphrase the retrieved clause excerpts or clause digest. If a clause is missing, state \"Not present\" in excerpt and location.",
+    "- issuesToAddress: Issues with id, title, severity, recommendation, rationale, clauseReference { clauseId, heading, excerpt, locationHint }. Excerpt must quote or paraphrase the retrieved clause excerpts or clause digest. If a clause is missing, state \"Not present in contract\" in excerpt and location.",
     "- criteriaMet: Checklist items with id, title, description, met, evidence.",
     "- proposedEdits: Each edit with id, clauseId, anchorText, proposedText, intent, rationale. Anchor text must be an exact excerpt from the extracted clause text provided. Proposed text = fully rewritten clause or paragraph ready to paste into the contract. Intent must be insert|replace|remove.",
     "- metadata: model + classification + token usage + critique notes.",

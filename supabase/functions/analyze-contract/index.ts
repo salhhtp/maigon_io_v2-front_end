@@ -2165,7 +2165,7 @@ Return JSON in this exact format:
   "score": number (60-100),
   "confidence": number (0.7-1.0),
   "pages": number,
-  "critical_clauses": [
+  "key_clauses": [
     {
       "clause_number": "string",
       "clause_title": "string",

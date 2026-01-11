@@ -121,7 +121,6 @@ const STOP_TOKENS = new Set([
   "may",
   "must",
   "will",
-  "not",
 ]);
 
 const SHORT_TOKENS = new Set([
@@ -136,10 +135,10 @@ const SHORT_TOKENS = new Set([
 ]);
 
 const MISSING_EVIDENCE_MARKERS = [
-  "not present",
-  "missing",
-  "not found",
   "evidence not found",
+  "no evidence found",
+  "not found in contract",
+  "not present in contract",
 ];
 
 const DEFAULT_EXCERPT_LENGTH = 320;
@@ -238,6 +237,10 @@ function getClauseIdentifier(clause: ClauseExtractionLike): string | null {
   return candidate && candidate.trim().length > 0 ? candidate : null;
 }
 
+function normalizeClauseId(value?: string | null): string {
+  return (value ?? "").toLowerCase().trim();
+}
+
 function rankClauseCandidates(
   query: string,
   clauses: ClauseExtractionLike[],
@@ -269,9 +272,11 @@ function mergeCandidates(
 ): ClauseMatchCandidate[] {
   const deduped = new Map<string, ClauseMatchCandidate>();
   for (const candidate of candidates) {
-    const existing = deduped.get(candidate.clauseId);
+    const normalizedId = normalizeClauseId(candidate.clauseId);
+    if (!normalizedId) continue;
+    const existing = deduped.get(normalizedId);
     if (!existing || candidate.score > existing.score) {
-      deduped.set(candidate.clauseId, candidate);
+      deduped.set(normalizedId, candidate);
     }
   }
   return Array.from(deduped.values()).sort((a, b) => b.score - a.score);
@@ -281,11 +286,11 @@ function resolveClauseById(
   clauseId: string,
   clauses: ClauseExtractionLike[],
 ): ClauseExtractionLike | null {
-  const normalized = clauseId.toLowerCase().trim();
+  const normalized = normalizeClauseId(clauseId);
   if (!normalized) return null;
   return (
     clauses.find((clause) =>
-      (getClauseIdentifier(clause) ?? "").toLowerCase().trim() === normalized
+      normalizeClauseId(getClauseIdentifier(clause)) === normalized
     ) ?? null
   );
 }
@@ -357,14 +362,21 @@ export function resolveClauseMatch(options: {
     return { match: null, confidence: 0, method: "none", candidates: [] };
   }
 
+  const topHeading = headingCandidates[0];
+  const shouldPreferHeading =
+    topHeading && topHeading.score >= MIN_HEADING_SCORE;
+  const preferredCandidate = shouldPreferHeading ? topHeading : bestCandidate;
   const bestClause =
     clauses.find((clause) =>
-      getClauseIdentifier(clause) === bestCandidate.clauseId
+      normalizeClauseId(getClauseIdentifier(clause)) ===
+        normalizeClauseId(preferredCandidate.clauseId)
     ) ?? null;
-  const bestScore = bestCandidate.score;
-  const bestMethod = bestCandidate.method;
+  const bestScore = preferredCandidate.score;
+  const bestMethod = shouldPreferHeading
+    ? "heading"
+    : preferredCandidate.method;
 
-  const headingScore = headingCandidates[0]?.score ?? 0;
+  const headingScore = topHeading?.score ?? 0;
 
   const minScore = bestMethod === "heading" ? MIN_HEADING_SCORE : MIN_MATCH_SCORE;
   if (bestScore < minScore && headingScore < MIN_HEADING_SCORE) {
@@ -376,11 +388,24 @@ export function resolveClauseMatch(options: {
     };
   }
 
+  const topCandidates = candidates.slice(0, 3);
+  if (shouldPreferHeading && topHeading) {
+    const hasHeading = topCandidates.some(
+      (candidate) =>
+        normalizeClauseId(candidate.clauseId) ===
+        normalizeClauseId(topHeading.clauseId),
+    );
+    if (!hasHeading) {
+      topCandidates.pop();
+      topCandidates.push(topHeading);
+    }
+  }
+
   return {
     match: bestClause,
     confidence: bestScore,
     method: bestMethod,
-    candidates: candidates.slice(0, 3),
+    candidates: topCandidates,
   };
 }
 
@@ -425,7 +450,8 @@ export function checkEvidenceMatch(
 ): EvidenceMatchResult {
   const normalizedContent = normalizeForMatch(content ?? "");
   if (!normalizedContent) {
-    return { matched: true, reason: "empty-content" };
+    // Empty content cannot validate evidence.
+    return { matched: false, reason: "empty-content" };
   }
   if (!excerpt || excerpt.trim().length === 0) {
     return { matched: false, reason: "empty-excerpt" };
@@ -522,15 +548,26 @@ export function bindProposedEditsToClauses(options: {
   const { proposedEdits, issues, clauses } = options;
   if (!proposedEdits.length) return proposedEdits;
 
-  const clauseIds = new Set(
-    clauses.map((clause) => getClauseIdentifier(clause)).filter(Boolean) as string[],
-  );
+  const clauseIdMap = new Map<string, string>();
+  clauses.forEach((clause) => {
+    const clauseId = getClauseIdentifier(clause);
+    const normalized = normalizeClauseId(clauseId);
+    if (!normalized) return;
+    if (!clauseIdMap.has(normalized)) {
+      clauseIdMap.set(normalized, clauseId ?? normalized);
+    }
+  });
+  const clauseIds = new Set(clauseIdMap.keys());
 
   const issueClauseMap = new Map<IssueLike, string>();
   issues.forEach((issue) => {
     const clauseId = issue.clauseReference?.clauseId ?? "";
-    if (clauseId && clauseIds.has(clauseId)) {
-      issueClauseMap.set(issue, clauseId);
+    const normalizedId = normalizeClauseId(clauseId);
+    if (normalizedId && clauseIds.has(normalizedId)) {
+      issueClauseMap.set(
+        issue,
+        clauseIdMap.get(normalizedId) ?? clauseId,
+      );
       return;
     }
     const fallbackText = `${issue.title ?? ""} ${issue.recommendation ?? ""}`.trim();
@@ -540,8 +577,12 @@ export function bindProposedEditsToClauses(options: {
       clauses,
     });
     const matchedId = match.match ? getClauseIdentifier(match.match) : null;
-    if (matchedId) {
-      issueClauseMap.set(issue, matchedId);
+    const normalizedMatched = normalizeClauseId(matchedId);
+    if (normalizedMatched && clauseIds.has(normalizedMatched)) {
+      issueClauseMap.set(
+        issue,
+        clauseIdMap.get(normalizedMatched) ?? matchedId ?? "",
+      );
     }
   });
 
@@ -549,8 +590,10 @@ export function bindProposedEditsToClauses(options: {
     if (!edit || typeof edit !== "object") return edit;
     const currentId =
       typeof edit.clauseId === "string" ? edit.clauseId.trim() : "";
-    if (currentId && clauseIds.has(currentId)) {
-      return edit;
+    const normalizedCurrentId = normalizeClauseId(currentId);
+    if (normalizedCurrentId && clauseIds.has(normalizedCurrentId)) {
+      const canonical = clauseIdMap.get(normalizedCurrentId) ?? currentId;
+      return { ...edit, clauseId: canonical };
     }
     const anchorText =
       typeof edit.anchorText === "string" ? edit.anchorText.trim() : "";
@@ -579,13 +622,14 @@ export function bindProposedEditsToClauses(options: {
       const matchedId = clauseMatch.match
         ? getClauseIdentifier(clauseMatch.match)
         : null;
-      if (matchedId) {
-        return { ...edit, clauseId: matchedId };
+      const normalizedMatched = normalizeClauseId(matchedId);
+      if (normalizedMatched && clauseIds.has(normalizedMatched)) {
+        const canonical = clauseIdMap.get(normalizedMatched) ?? matchedId;
+        return { ...edit, clauseId: canonical };
       }
     }
 
-    const fallbackId = currentId || `proposed-edit-${index + 1}`;
-    return { ...edit, clauseId: fallbackId };
+    return { ...edit, clauseId: undefined };
   });
 }
 
@@ -710,7 +754,8 @@ export function buildRetrievedClauseContext(options: {
       if (snippets.length >= maxTotal) break;
       if (seen.has(candidate.clauseId)) continue;
       const clause = clauses.find((entry) =>
-        getClauseIdentifier(entry) === candidate.clauseId
+        normalizeClauseId(getClauseIdentifier(entry)) ===
+          normalizeClauseId(candidate.clauseId)
       );
       if (!clause) continue;
       const excerpt = buildEvidenceExcerpt({

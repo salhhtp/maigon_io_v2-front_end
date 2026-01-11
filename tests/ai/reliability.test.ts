@@ -11,8 +11,10 @@ import {
   dedupeIssues,
   dedupeProposedEdits,
   evaluatePlaybookCoverageFromContent,
+  isMissingEvidenceMarker,
   normaliseReportExpiry,
   resolveClauseMatch,
+  tokenizeForMatch,
 } from "../../shared/ai/reliability";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -303,5 +305,93 @@ describe("Reliability harness", () => {
   it("normalizes invalid report expiry values to ISO dates", () => {
     const normalized = normaliseReportExpiry("Invalid Date");
     expect(Number.isFinite(Date.parse(normalized))).toBe(true);
+  });
+
+  it("normalizes clause IDs when binding proposed edits", () => {
+    const clauses = [
+      {
+        id: "Section-7",
+        clauseId: "Section-7",
+        title: "Section 7",
+        originalText: "Payment terms and timing.",
+        normalizedText: "Payment terms and timing.",
+      },
+    ];
+    const issues = [
+      {
+        id: "issue-payment",
+        title: "Payment",
+        recommendation: "Clarify payment timing.",
+        clauseReference: {
+          clauseId: "section-7",
+          excerpt: "Payment terms",
+        },
+      },
+    ];
+    const proposedEdits = [
+      {
+        id: "edit-1",
+        clauseId: "section-7",
+        anchorText: "Payment terms",
+        proposedText: "Payment is due within 30 days.",
+        intent: "replace",
+      },
+    ];
+
+    const bound = bindProposedEditsToClauses({
+      proposedEdits,
+      issues,
+      clauses,
+    });
+    expect(bound[0].clauseId).toBe("Section-7");
+  });
+
+  it("fails evidence checks when content is empty", () => {
+    const result = checkEvidenceMatch("Any excerpt", "");
+    expect(result.matched).toBe(false);
+    expect(result.reason).toBe("empty-content");
+  });
+
+  it("uses explicit missing-evidence markers only", () => {
+    expect(isMissingEvidenceMarker("missing approvals")).toBe(false);
+    expect(
+      isMissingEvidenceMarker("Evidence not found in contract"),
+    ).toBe(true);
+  });
+
+  it("retains negation tokens during matching", () => {
+    const tokens = tokenizeForMatch("may not disclose");
+    expect(tokens).toContain("not");
+  });
+
+  it("prefers strong heading matches over weaker text matches", () => {
+    const clauses = [
+      {
+        id: "clause-a",
+        clauseId: "clause-a",
+        title: "PAYMENT TERMS",
+        originalText: "Payment shall be due within 30 days.",
+        normalizedText: "Payment shall be due within 30 days.",
+      },
+      {
+        id: "clause-b",
+        clauseId: "clause-b",
+        title: "CONFIDENTIALITY",
+        originalText: "Confidential information must be protected.",
+        normalizedText: "Confidential information must be protected.",
+      },
+    ];
+
+    const match = resolveClauseMatch({
+      clauseReference: {
+        heading: "PAYMENT TERMS",
+        excerpt: "confidential information",
+      },
+      fallbackText: "",
+      clauses,
+    });
+
+    expect(match.match?.clauseId).toBe("clause-a");
+    expect(match.method).toBe("heading");
   });
 });
