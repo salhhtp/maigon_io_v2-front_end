@@ -6,6 +6,8 @@ export default defineConfig({
     environment: "node",
     globals: true,
     setupFiles: [],
+    // Avoid hangs seen with forked/threads pools on this repo.
+    pool: "vmThreads",
     coverage: {
       provider: "v8",
       reporter: ["text", "lcov"],

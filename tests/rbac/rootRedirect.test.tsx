@@ -1,3 +1,4 @@
+// @vitest-environment happy-dom
 import { render } from "@testing-library/react";
 import { describe, it, beforeEach, vi, expect } from "vitest";
 import RootRedirect from "@/components/RootRedirect";
@@ -65,7 +66,7 @@ describe("RootRedirect RBAC", () => {
     });
   });
 
-  it("redirects maigon admins to analytics", () => {
+  it("redirects maigon admins to the main dashboard", () => {
     mockUserState = {
       user: {
         hasTemporaryPassword: false,
@@ -81,12 +82,12 @@ describe("RootRedirect RBAC", () => {
 
     render(<RootRedirect />);
 
-    expect(navigateMock).toHaveBeenCalledWith("/admin-analytics", {
+    expect(navigateMock).toHaveBeenCalledWith("/dashboard", {
       replace: true,
     });
   });
 
-  it("redirects regular users to the dashboard", () => {
+  it("redirects regular users to the user dashboard", () => {
     mockUserState = {
       user: {
         hasTemporaryPassword: false,
@@ -102,7 +103,7 @@ describe("RootRedirect RBAC", () => {
 
     render(<RootRedirect />);
 
-    expect(navigateMock).toHaveBeenCalledWith("/dashboard", {
+    expect(navigateMock).toHaveBeenCalledWith("/user-dashboard", {
       replace: true,
     });
   });

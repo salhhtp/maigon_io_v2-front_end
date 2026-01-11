@@ -45,6 +45,21 @@ type ContractSegment = {
   references: string[];
 };
 
+const STOP_HEADINGS = new Set(["and", "or", "by", "of", "the", "a", "an"]);
+const PARTY_HEADING_REGEX = /^(company|party)\s+\d+\b/i;
+
+function isStopHeading(value: string): boolean {
+  return STOP_HEADINGS.has(value.trim().toLowerCase());
+}
+
+function isLikelyInlineHeading(value: string): boolean {
+  const trimmed = value.trim();
+  if (!trimmed) return true;
+  if (trimmed.endsWith(",")) return true;
+  if (PARTY_HEADING_REGEX.test(trimmed)) return true;
+  return false;
+}
+
 function buildSegments(content: string): ContractSegment[] {
   const lines = content.split(/\r?\n/);
   const segments: ContractSegment[] = [];
@@ -65,13 +80,38 @@ function buildSegments(content: string): ContractSegment[] {
 
   const headingRegex =
     /^(section\s+\d+|article\s+\d+|\d+(?:\.\d+)*\.?|[A-Z][A-Z\s,&-]{3,}|[A-Z][A-Za-z0-9\s,&-]{0,80}:?)$/i;
+  const splitInlineHeading = (line: string) => {
+    const match = line.match(
+      /^([A-Z][A-Za-z0-9\s,&-]{0,80}?)\s+((?:shall|means|mean|include|includes)\b[\s\S]+)$/i,
+    );
+    if (!match) return null;
+    const heading = match[1].trim().replace(/[:\s]+$/, "");
+    const remainder = match[2].trim();
+    if (!heading || remainder.length < 20) return null;
+    return { heading, remainder };
+  };
 
   for (const rawLine of lines) {
     const line = rawLine.trim();
     if (!line) continue;
     if (headingRegex.test(line) && line.length <= 140) {
+      const inlineSplit = splitInlineHeading(line);
+      if (inlineSplit) {
+        pushSegment();
+        currentHeading = inlineSplit.heading;
+        buffer.push(inlineSplit.remainder);
+        continue;
+      }
+      const nextHeading = line.replace(/[:\s]+$/, "").slice(0, 120) || "Clause";
+      if (isStopHeading(nextHeading) || isLikelyInlineHeading(nextHeading)) {
+        if (!currentHeading) {
+          currentHeading = "Preamble";
+        }
+        buffer.push(line);
+        continue;
+      }
       pushSegment();
-      currentHeading = line.replace(/[:\s]+$/, "").slice(0, 120) || "Clause";
+      currentHeading = nextHeading;
       continue;
     }
     if (!currentHeading) {

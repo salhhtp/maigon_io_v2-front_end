@@ -6,11 +6,11 @@ import {
   checkEvidenceMatchAgainstClause,
   findRequirementMatch,
   hasStructuralMatch,
+  isStructuralToken,
   isMissingEvidenceMarker,
   matchClauseToText as matchClauseToTextWithDebug,
   normalizeForMatch,
   resolveClauseMatch,
-  STRUCTURAL_TOKENS,
   tokenizeForMatch,
 } from "../../../shared/ai/reliability.ts";
 
@@ -41,8 +41,8 @@ const NEGATIVE_EVIDENCE_MARKERS = [
   "not addressed",
 ];
 const normalizeIssueKey = (value: string) => value.trim().toUpperCase();
-const buildMissingClauseId = (value: string) => {
-  const slug = normalizeForMatch(value).replace(/\s+/g, "-");
+const buildMissingClauseId = (value?: string | null) => {
+  const slug = normalizeForMatch(value ?? "").replace(/\s+/g, "-");
   return slug ? `missing-${slug.slice(0, 40)}` : "missing-criterion";
 };
 const looksNegativeEvidence = (value: string) => {
@@ -243,7 +243,7 @@ export function enhanceReportWithClauses(
     }`.trim();
     const issueTokens = tokenizeForMatch(issueSignal || fallbackText);
     const issueStructuralTokens = issueTokens.filter((token) =>
-      STRUCTURAL_TOKENS.has(token),
+      isStructuralToken(token),
     );
     const existingReference = issue.clauseReference ?? {
       clauseId: "",
@@ -265,15 +265,24 @@ export function enhanceReportWithClauses(
     let match = acceptedMatch ? matchResult.match : null;
     let issueStructuralMismatch = false;
 
+    let trustExistingClauseId = true;
     const existingClauseId =
       typeof existingReference.clauseId === "string"
         ? existingReference.clauseId.trim()
         : "";
+    const existingClauseIdKnown = existingClauseId
+      ? clauseCandidates.some((clause) =>
+        normalizeForMatch(getClauseKey(clause)) ===
+          normalizeForMatch(existingClauseId)
+      )
+      : false;
+    if (!existingClauseIdKnown) {
+      trustExistingClauseId = false;
+    }
     const existingExcerpt =
       typeof existingReference.excerpt === "string"
         ? existingReference.excerpt.trim()
         : "";
-    let trustExistingClauseId = true;
     if (match && matchResult.method === "id" && existingClauseId) {
       const clauseText =
         match.originalText ?? match.normalizedText ?? match.title ?? "";
@@ -354,11 +363,13 @@ export function enhanceReportWithClauses(
     }
 
     const matchedClauseId = match?.clauseId ?? match?.id ?? null;
+    const missingLabel =
+      issue.title ?? issue.category ?? issue.id ?? `issue-${index + 1}`;
     const stableClauseId =
       matchedClauseId ??
       (trustExistingClauseId && existingClauseId.trim().length > 0
         ? existingClauseId
-        : buildMissingClauseId(issue.id ?? `issue-${index + 1}`));
+        : buildMissingClauseId(missingLabel));
 
     if (match && (issue.id || stableClauseId)) {
       const longExcerpt = (match.originalText ?? match.normalizedText ?? "")
@@ -529,7 +540,7 @@ export function enhanceReportWithClauses(
       : "";
     const titleTokens = tokenizeForMatch(criterion.title ?? "");
     const structuralTokens = titleTokens.filter((token) =>
-      STRUCTURAL_TOKENS.has(token),
+      isStructuralToken(token),
     );
     if (structuralTokens.length > 0 && match) {
       const clauseTokens = tokenizeForMatch(clauseText);
@@ -689,6 +700,9 @@ export function enhanceReportWithClauses(
     criteriaWithEvidence,
     issuesFiltered,
   );
+  const metOnlyCriteria = criteriaAlignedWithIssues.filter((criterion) =>
+    Boolean(criterion.met)
+  );
 
   const recomputeStats = (
     issues: AnalysisReport["issuesToAddress"],
@@ -748,7 +762,7 @@ export function enhanceReportWithClauses(
     ...report,
     clauseExtractions: clauseCandidates,
     issuesToAddress: issuesFiltered,
-    criteriaMet: criteriaAlignedWithIssues,
+    criteriaMet: metOnlyCriteria,
     metadata: nextMetadata as AnalysisReport["metadata"],
   };
 }
@@ -823,25 +837,6 @@ function issueMatchesCriterion(
     extractChecklistIds(tag ?? "").forEach((id) => checklistIds.add(id));
   });
   if (checklistIds.has(criterionId)) return true;
-  const titleSimilarity = similarityForText(issue.title ?? "", criterion.title ?? "");
-  if (titleSimilarity >= 0.35) return true;
-  const categorySimilarity = similarityForText(
-    issue.category ?? "",
-    criterion.title ?? "",
-  );
-  if (categorySimilarity >= 0.35) return true;
-  const issueText = normalizeForMatch(
-    `${issue.title ?? ""} ${issue.recommendation ?? ""}`,
-  );
-  const criterionTitleNormalized = normalizeForMatch(criterion.title ?? "");
-  if (
-    issueText &&
-    criterionTitleNormalized &&
-    (issueText.includes(criterionTitleNormalized) ||
-      criterionTitleNormalized.includes(issueText))
-  ) {
-    return true;
-  }
   return false;
 }
 
@@ -877,8 +872,8 @@ function backfillIssuesFromCriteria(
       })
       : "Not present in contract";
     const clauseId = match
-      ? (match.clauseId ?? match.id ?? buildMissingClauseId(criterion.id))
-      : buildMissingClauseId(criterion.id);
+      ? (match.clauseId ?? match.id ?? buildMissingClauseId(criterion.title ?? criterion.id))
+      : buildMissingClauseId(criterion.title ?? criterion.id);
 
     const issueId = `ISSUE_${criterion.id}`;
     nextIssues.push({
@@ -933,8 +928,8 @@ function filterIssuesByCriteria(
   if (!issues.length || !criteria.length) return issues;
   const filtered = issues.filter((issue) => {
     const matched = findMatchingCriterion(issue, criteria);
-    if (!matched) return true;
-    if (optionalCriteriaIds.has(matched.id)) return true;
+    if (!matched) return false;
+    if (optionalCriteriaIds.has(matched.id)) return false;
     return !matched.met;
   });
   const nonDraftIssues = filtered.filter((issue) => !isDraftIssue(issue));
@@ -983,7 +978,12 @@ function backfillIssuesFromEdits(
 
     const clauseId = edit.clauseId?.toString().trim().length
       ? edit.clauseId!.toString().trim()
-      : buildMissingClauseId(edit.id ?? `edit-${index + 1}`);
+      : buildMissingClauseId(
+          edit.anchorText ??
+            edit.proposedText ??
+            edit.id ??
+            `edit-${index + 1}`,
+        );
     const match = resolveClauseMatch({
       clauseReference: null,
       fallbackText: edit.anchorText ?? edit.proposedText ?? edit.id,

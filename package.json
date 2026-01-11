@@ -31,7 +31,8 @@
     "user:delete": "tsx scripts/manage.ts user delete",
     "ingestion:verify": "tsx scripts/verify-ingestion.ts",
     "stripe:sync": "tsx scripts/sync-stripe-plans.ts",
-    "generate:adobe-schema": "tsx scripts/generate-adobe-schema.ts"
+    "generate:adobe-schema": "tsx scripts/generate-adobe-schema.ts",
+    "debug:review": "tsx scripts/debug-review.ts"
   },
   "dependencies": {
     "@adobe/pdfservices-node-sdk": "^4.1.0",
@@ -94,6 +95,8 @@
     "@swc/core": "^1.11.24",
     "@tailwindcss/typography": "^0.5.15",
     "@tanstack/react-query": "^5.56.2",
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/react": "^16.3.1",
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
     "@types/multer": "^2.0.0",
@@ -111,7 +114,9 @@
     "embla-carousel-react": "^8.3.0",
     "framer-motion": "^12.6.2",
     "globals": "^15.9.0",
+    "happy-dom": "^20.1.0",
     "input-otp": "^1.2.4",
+    "jsdom": "^27.0.1",
     "lucide-react": "^0.462.0",
     "next-themes": "^0.3.0",
     "playwright": "^1.56.1",

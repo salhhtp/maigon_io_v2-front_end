@@ -912,6 +912,9 @@ function buildClauseDigestForPrompt(
   if (!clauses.length) {
     return null;
   }
+  const maxExcerpt = 420;
+  const headChars = 240;
+  const tailChars = 160;
   const lines: string[] = [];
   clauses.forEach((clause, index) => {
     const identifier =
@@ -920,7 +923,11 @@ function buildClauseDigestForPrompt(
       `clause-${index + 1}`;
     const title = clause.title || identifier;
     const excerptSource = clause.originalText || clause.normalizedText || "";
-    const excerpt = excerptSource.replace(/\s+/g, " ").slice(0, 320);
+    const cleaned = excerptSource.replace(/\s+/g, " ").trim();
+    const excerpt =
+      cleaned.length > maxExcerpt
+        ? `${cleaned.slice(0, headChars)} ... ${cleaned.slice(-tailChars)}`
+        : cleaned;
     const category = clause.category || "general";
     const locationHint = clause.location?.section ||
       clause.location?.clauseNumber ||

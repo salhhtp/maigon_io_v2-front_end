@@ -1,3 +1,5 @@
+import JSZip from "https://esm.sh/jszip@3.10.1?target=deno";
+
 /**
  * Real PDF text extraction for contract analysis
  * This replaces the mock PDF extraction with actual text extraction
@@ -134,7 +136,7 @@ function cleanExtractedText(text: string): string {
       // Remove PDF encoding artifacts
       .replace(/\\[0-9]{3}/g, "")
       // Remove excessive whitespace
-      .replace(/\s+/g, " ")
+      .replace(/[ \t]+/g, " ")
       // Remove common PDF artifacts
       .replace(/[^\x20-\x7E\n\r]/g, "")
       // Normalize line breaks
@@ -142,6 +144,9 @@ function cleanExtractedText(text: string): string {
       .replace(/\r/g, "\n")
       // Remove multiple consecutive newlines
       .replace(/\n{3,}/g, "\n\n")
+      .split("\n")
+      .map((line) => line.trim())
+      .join("\n")
       .trim()
   );
 }
@@ -159,15 +164,22 @@ export async function extractTextFromDOCX(base64Data: string): Promise<string> {
     // For production, you would use a proper DOCX parser
     // For now, we'll extract what we can from the XML content
 
-    const text = extractDOCXText(bytes);
+    const zipText = await extractDOCXTextFromZip(bytes);
+    const cleanedZip = cleanExtractedText(zipText);
+    let cleaned = cleanedZip;
 
-    if (!text || text.trim().length < 50) {
+    if (!cleaned || cleaned.length === 0) {
+      const rawText = extractDOCXTextRaw(bytes);
+      cleaned = cleanExtractedText(rawText);
+    }
+
+    if (!cleaned || cleaned.trim().length === 0) {
       throw new Error(
         "Could not extract meaningful text from DOCX. The file may be corrupted or empty.",
       );
     }
 
-    return cleanExtractedText(text);
+    return cleaned;
   } catch (error) {
     console.error("DOCX extraction error:", error);
     throw new Error(
@@ -176,7 +188,85 @@ export async function extractTextFromDOCX(base64Data: string): Promise<string> {
   }
 }
 
-function extractDOCXText(docxBytes: Uint8Array): string {
+async function extractDOCXTextFromZip(docxBytes: Uint8Array): Promise<string> {
+  try {
+    const zip = await JSZip.loadAsync(docxBytes);
+    const xmlFiles = Object.keys(zip.files)
+      .filter((name) =>
+        /^word\/(document|header\d+|footer\d+|footnotes|endnotes)\.xml$/i.test(
+          name,
+        ),
+      )
+      .sort((a, b) => {
+        if (a === "word/document.xml") return -1;
+        if (b === "word/document.xml") return 1;
+        return a.localeCompare(b);
+      });
+
+    const textChunks: string[] = [];
+    for (const name of xmlFiles) {
+      const file = zip.file(name);
+      if (!file) continue;
+      const xml = await file.async("string");
+      if (!xml) continue;
+      const extracted = extractDocxTextFromXml(xml);
+      if (extracted) textChunks.push(extracted);
+    }
+
+    return textChunks.join(" ").trim();
+  } catch (error) {
+    console.warn("DOCX zip extraction failed, falling back to raw scan:", error);
+    return "";
+  }
+}
+
+function extractDocxTextFromXml(xml: string): string {
+  const paragraphs: string[] = [];
+  const paragraphRegex = /<w:p[\s\S]*?<\/w:p>/g;
+  let paragraphMatch: RegExpExecArray | null;
+  while ((paragraphMatch = paragraphRegex.exec(xml)) !== null) {
+    const paragraphXml = paragraphMatch[0];
+    const textMatches: string[] = [];
+    const wordTextRegex = /<w:t[^>]*>(.*?)<\/w:t>/gs;
+    let textMatch: RegExpExecArray | null;
+    while ((textMatch = wordTextRegex.exec(paragraphXml)) !== null) {
+      const text = textMatch[1];
+      if (text && text.trim()) {
+        textMatches.push(decodeXmlEntities(text.trim()));
+      }
+    }
+    const paragraphText = textMatches.join(" ").replace(/\s+/g, " ").trim();
+    if (paragraphText) {
+      paragraphs.push(paragraphText);
+    }
+  }
+
+  if (paragraphs.length > 0) {
+    return paragraphs.join("\n");
+  }
+
+  const fallbackMatches: string[] = [];
+  const wordTextRegex = /<w:t[^>]*>(.*?)<\/w:t>/gs;
+  let match: RegExpExecArray | null;
+  while ((match = wordTextRegex.exec(xml)) !== null) {
+    const text = match[1];
+    if (text && text.trim()) {
+      fallbackMatches.push(decodeXmlEntities(text.trim()));
+    }
+  }
+  return fallbackMatches.join(" ").replace(/\s+/g, " ").trim();
+}
+
+function decodeXmlEntities(value: string): string {
+  return value
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, "\"")
+    .replace(/&#39;/g, "'");
+}
+
+function extractDOCXTextRaw(docxBytes: Uint8Array): string {
   // Convert bytes to string for searching
   const decoder = new TextDecoder("utf-8", { fatal: false });
   const docxString = decoder.decode(docxBytes);

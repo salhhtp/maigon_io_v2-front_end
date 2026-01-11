@@ -255,11 +255,18 @@ function buildClauseDigestForPrompt(clauses: ClauseExtraction[]): ClauseDigestSu
   if (!clauses.length) {
     return { summary: "Clause digest unavailable.", total: 0 };
   }
+  const maxExcerpt = 420;
+  const headChars = 240;
+  const tailChars = 160;
   const lines = clauses.map((clause) => {
     const heading = clause.title || clause.clauseId || "Clause";
     const category = clause.category ? clause.category : "general";
     const snippetSource = clause.originalText || clause.normalizedText || "";
-    const snippet = snippetSource.replace(/\s+/g, " ").slice(0, 320);
+    const cleaned = snippetSource.replace(/\s+/g, " ").trim();
+    const snippet =
+      cleaned.length > maxExcerpt
+        ? `${cleaned.slice(0, headChars)} ... ${cleaned.slice(-tailChars)}`
+        : cleaned;
     const locationHint =
       clause.location?.section ||
       clause.location?.clauseNumber ||

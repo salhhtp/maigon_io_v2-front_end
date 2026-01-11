@@ -156,6 +156,14 @@ export const STRUCTURAL_TOKENS = new Set([
   "certify",
   "compelled",
   "disclosure",
+  "disclosures",
+  "permit",
+  "permitted",
+  "allow",
+  "allowed",
+  "approval",
+  "approved",
+  "release",
   "license",
   "ownership",
   "ip",
@@ -163,6 +171,15 @@ export const STRUCTURAL_TOKENS = new Set([
   "use",
   "need",
   "know",
+  "knowledge",
+  "prior",
+  "public",
+  "domain",
+  "exclusion",
+  "exclude",
+  "excluded",
+  "exception",
+  "exceptions",
   "residual",
   "unmarked",
   "governing",
@@ -181,6 +198,17 @@ export const STRUCTURAL_TOKENS = new Set([
   "solicit",
   "compete",
   "noncompete",
+]);
+
+const HEADING_PRIORITY_TOKENS = new Set([
+  "definition",
+  "remedies",
+  "remedy",
+  "governing",
+  "jurisdiction",
+  "termination",
+  "survival",
+  "miscellaneous",
 ]);
 
 const STRUCTURAL_SYNONYMS: Record<string, string[]> = {
@@ -244,12 +272,46 @@ const STRUCTURAL_SYNONYMS: Record<string, string[]> = {
   injunction: ["injunctive", "injunction"],
   remedies: ["remedy", "remedies"],
   remedy: ["remedy", "remedies"],
+  permit: ["permit", "permitted", "allow", "allowed", "authorize", "authorise"],
+  permitted: [
+    "permit",
+    "permitted",
+    "allow",
+    "allowed",
+    "authorized",
+    "authorised",
+    "approved",
+    "approval",
+    "release",
+    "lawful",
+    "lawfully",
+  ],
+  allow: ["allow", "allowed", "permit", "permitted", "authorized", "authorised"],
+  allowed: ["allow", "allowed", "permit", "permitted", "authorized", "authorised"],
+  approval: ["approval", "approved", "authorize", "authorise"],
+  approved: ["approval", "approved", "authorize", "authorise", "release"],
+  release: ["release", "released", "approval", "approved"],
+  exclusion: ["exclusion", "exclude", "excluded", "exception", "exceptions"],
+  exclude: ["exclude", "excluded", "exclusion", "exception", "exceptions"],
+  excluded: ["exclude", "excluded", "exclusion", "exception", "exceptions"],
+  exception: ["exception", "exceptions", "exclude", "excluded", "exclusion"],
+  exceptions: ["exception", "exceptions", "exclude", "excluded", "exclusion"],
+  prior: ["prior", "previous", "preexisting", "pre-existing"],
+  public: ["public", "publicly"],
+  knowledge: ["knowledge", "known"],
 };
 
 function tokenVariants(token: string): string[] {
   const variants = STRUCTURAL_SYNONYMS[token];
   if (!variants || variants.length === 0) return [token];
   return [token, ...variants];
+}
+
+export function isStructuralToken(token: string): boolean {
+  if (STRUCTURAL_TOKENS.has(token)) return true;
+  return Object.keys(STRUCTURAL_SYNONYMS).some((key) =>
+    tokenVariants(key).includes(token),
+  );
 }
 
 function requiredStructuralHits(structuralTokens: string[]): number {
@@ -324,6 +386,7 @@ const MISSING_EVIDENCE_MARKERS = [
 const DEFAULT_EXCERPT_LENGTH = 320;
 const MIN_MATCH_SCORE = 0.18;
 const MIN_HEADING_SCORE = 0.3;
+const STRONG_HEADING_SCORE = 0.7;
 
 export function normalizeForMatch(value: string): string {
   if (!value) return "";
@@ -561,10 +624,16 @@ export function resolveClauseMatch(options: {
   const topText = textCandidates[0];
   const headingScore = topHeading?.score ?? 0;
   const textScore = topText?.score ?? 0;
+  const hasHeadingReference = Boolean(headingQuery?.trim());
   const shouldPreferHeading =
     topHeading &&
     headingScore >= MIN_HEADING_SCORE &&
-    (!topText || textScore < MIN_MATCH_SCORE || headingScore >= textScore + 0.08);
+    (!topText ||
+      textScore < MIN_MATCH_SCORE ||
+      headingScore >= textScore + 0.08 ||
+      (hasHeadingReference &&
+        headingScore >= STRONG_HEADING_SCORE &&
+        headingScore >= textScore - 0.05));
   const preferredCandidate = shouldPreferHeading
     ? topHeading
     : topText ?? bestCandidate;
@@ -631,6 +700,29 @@ export function buildEvidenceExcerpt(options: {
     typeof options.anchorText === "string" ? options.anchorText.trim() : "";
   if (anchorText) {
     const clauseLower = clauseText.toLowerCase();
+    const anchorTokens = tokenizeForMatch(anchorText);
+    const structuralTokens = anchorTokens.filter((token) =>
+      isStructuralToken(token),
+    );
+    const nonStructuralTokens = anchorTokens
+      .filter((token) => !isStructuralToken(token))
+      .sort((a, b) => b.length - a.length);
+    const prioritizedTokens = [...structuralTokens, ...nonStructuralTokens];
+
+    for (const token of prioritizedTokens) {
+      const variants = isStructuralToken(token)
+        ? tokenVariants(token)
+        : [token];
+      for (const variant of variants) {
+        const index = clauseLower.indexOf(variant.toLowerCase());
+        if (index >= 0) {
+          const start = Math.max(0, index - Math.floor(maxLength * 0.4));
+          const end = Math.min(clauseText.length, start + maxLength);
+          return clauseText.slice(start, end);
+        }
+      }
+    }
+
     const anchorLower = anchorText.toLowerCase();
     const anchorSeed = anchorLower.slice(0, Math.min(anchorLower.length, 64));
     const index = clauseLower.indexOf(anchorSeed);
@@ -888,7 +980,7 @@ export function bindProposedEditsToClauses(options: {
       .join(" ");
     const editTokens = tokenizeForMatch(editSignal);
     const editStructuralTokens = editTokens.filter((token) =>
-      STRUCTURAL_TOKENS.has(token),
+      isStructuralToken(token),
     );
 
     const currentId =
@@ -904,25 +996,24 @@ export function bindProposedEditsToClauses(options: {
       const structuralMismatch =
         editStructuralTokens.length > 0 &&
         !hasStructuralMatch(editStructuralTokens, clauseTokens);
-      if (!structuralMismatch) {
-        const anchorText =
-          typeof edit.anchorText === "string" ? edit.anchorText : "";
-        const anchorSeed = isMissingEvidenceMarker(anchorText) ? "" : anchorText;
-        const nextAnchor = clauseText
-          ? normalizeAnchorText(anchorSeed, clauseText)
-          : anchorText;
-        const anchorMatches = nextAnchor && clauseText
-          ? checkEvidenceMatchAgainstClause(nextAnchor, clauseText).matched
-          : false;
-        const nextIntent =
-          edit.intent === "replace" && !anchorMatches ? "insert" : edit.intent;
-        return {
-          ...edit,
-          clauseId: canonical,
-          anchorText: nextAnchor,
-          intent: nextIntent ?? edit.intent,
-        };
-      }
+      const anchorText =
+        typeof edit.anchorText === "string" ? edit.anchorText : "";
+      const anchorSeed = isMissingEvidenceMarker(anchorText) ? "" : anchorText;
+      const nextAnchor = clauseText
+        ? normalizeAnchorText(anchorSeed, clauseText)
+        : anchorText;
+      const anchorMatches = nextAnchor && clauseText
+        ? checkEvidenceMatchAgainstClause(nextAnchor, clauseText).matched
+        : false;
+      let nextIntent = edit.intent;
+      if (structuralMismatch) nextIntent = "insert";
+      if (nextIntent === "replace" && !anchorMatches) nextIntent = "insert";
+      return {
+        ...edit,
+        clauseId: canonical,
+        anchorText: nextAnchor,
+        intent: nextIntent ?? edit.intent,
+      };
     }
 
     const anchorText =
@@ -953,13 +1044,13 @@ export function bindProposedEditsToClauses(options: {
         const issueStructuralMismatch =
           editStructuralTokens.length > 0 &&
           !hasStructuralMatch(editStructuralTokens, clauseTokens);
-        if (!issueStructuralMismatch) {
-          const issueAnchor =
-            bestIssue.clauseReference?.excerpt ??
-            bestIssue.clauseReference?.heading ??
-            anchorText;
-          const anchorSeed = isMissingEvidenceMarker(issueAnchor) ? "" : issueAnchor;
-          const nextAnchor = clauseText
+      if (!issueStructuralMismatch) {
+        const issueAnchor =
+          bestIssue.clauseReference?.excerpt ??
+          bestIssue.clauseReference?.heading ??
+          anchorText;
+        const anchorSeed = isMissingEvidenceMarker(issueAnchor) ? "" : issueAnchor;
+        const nextAnchor = clauseText
             ? normalizeAnchorText(anchorSeed, clauseText)
             : issueAnchor ?? anchorText;
           const anchorMatches = nextAnchor && clauseText
@@ -1001,11 +1092,30 @@ export function bindProposedEditsToClauses(options: {
         const clauseText = boundClause
           ? boundClause.originalText ?? boundClause.normalizedText ?? boundClause.title ?? ""
           : "";
+        const clauseTokens = tokenizeForMatch(clauseText);
+        const structuralMismatch =
+          editStructuralTokens.length > 0 &&
+          !hasStructuralMatch(editStructuralTokens, clauseTokens);
+        if (structuralMismatch) {
+          return {
+            ...edit,
+            clauseId: undefined,
+            anchorText: anchorText && !isMissingEvidenceMarker(anchorText)
+              ? anchorText
+              : "Not present in contract",
+            intent: "insert",
+          };
+        }
         const anchorSeed = isMissingEvidenceMarker(anchorText) ? "" : anchorText;
         const nextAnchor = clauseText
           ? normalizeAnchorText(anchorSeed, clauseText)
           : anchorText;
-        return { ...edit, clauseId: canonical, anchorText: nextAnchor };
+        const anchorMatches = nextAnchor && clauseText
+          ? checkEvidenceMatchAgainstClause(nextAnchor, clauseText).matched
+          : false;
+        const nextIntent =
+          edit.intent === "replace" && !anchorMatches ? "insert" : edit.intent;
+        return { ...edit, clauseId: canonical, anchorText: nextAnchor, intent: nextIntent };
       }
     }
 
@@ -1015,6 +1125,7 @@ export function bindProposedEditsToClauses(options: {
       anchorText: anchorText && !isMissingEvidenceMarker(anchorText)
         ? anchorText
         : "Not present in contract",
+      intent: "insert",
     };
   });
 }
@@ -1029,7 +1140,7 @@ export function findRequirementMatch(
   }
   const requirementTokens = tokenizeForMatch(requirement);
   const structuralTokens = requirementTokens.filter((token) =>
-    STRUCTURAL_TOKENS.has(token),
+    isStructuralToken(token),
   );
   const matchTokens =
     structuralTokens.length > 0 ? structuralTokens : requirementTokens;
@@ -1084,7 +1195,21 @@ export function findRequirementMatch(
       const passesStructure =
         structuralTokens.length === 0 ||
         hasStructuralMatch(structuralTokens, clauseTokens);
-      if (passesStructure && topHeading.score >= bestScore + 0.08) {
+      const preferHeading = requirementTokens.some((token) =>
+        HEADING_PRIORITY_TOKENS.has(token),
+      );
+      const preferDefinitionHeading =
+        requirementTokens.includes("definition") &&
+        normalizeForMatch(headingClause.title ?? "").includes(
+          "confidential information",
+        );
+      const headingThreshold = preferHeading
+        ? Math.max(MIN_HEADING_SCORE, bestScore - 0.05)
+        : bestScore + 0.08;
+      if (
+        passesStructure &&
+        (topHeading.score >= headingThreshold || preferDefinitionHeading)
+      ) {
         const coverage = coverageWithSynonyms(matchTokens, clauseTokens);
         const hits = countTokenMatches(matchTokens, clauseTokens);
         bestScore = topHeading.score;
@@ -1199,24 +1324,102 @@ export function buildRetrievedClauseContext(options: {
   const seen = new Set<string>();
 
   for (const anchor of anchors) {
-    const candidates = rankClauseCandidates(anchor, clauses, "text")
-      .slice(0, maxPerAnchor)
-      .filter((candidate) => candidate.score >= MIN_MATCH_SCORE);
+    const headingCandidates = rankClauseCandidates(anchor, clauses, "heading");
+    const textCandidates = rankClauseCandidates(anchor, clauses, "text");
+    const topHeading = headingCandidates[0];
+    const topText = textCandidates[0];
+    const anchorTokens = tokenizeForMatch(anchor);
+    const anchorStructuralTokens = anchorTokens.filter((token) =>
+      isStructuralToken(token),
+    );
+    const forceHeading =
+      anchorTokens.some((token) => HEADING_PRIORITY_TOKENS.has(token)) &&
+      topHeading &&
+      topHeading.score >= MIN_HEADING_SCORE;
+    const preferHeading =
+      topHeading &&
+      topHeading.score >= MIN_HEADING_SCORE &&
+      (!topText || topHeading.score >= topText.score + 0.08);
+
+    let candidates = mergeCandidates([
+      ...textCandidates,
+      ...headingCandidates,
+    ]).filter((candidate) => candidate.score >= MIN_MATCH_SCORE);
+
+    if (forceHeading || preferHeading) {
+      if (topHeading) {
+        const alreadyIncluded = candidates.some(
+          (candidate) =>
+            normalizeClauseId(candidate.clauseId) ===
+            normalizeClauseId(topHeading.clauseId),
+        );
+        if (!alreadyIncluded) {
+          candidates = [topHeading, ...candidates];
+        } else {
+          candidates = candidates.sort((a, b) => {
+            if (
+              normalizeClauseId(a.clauseId) ===
+              normalizeClauseId(topHeading.clauseId)
+            ) {
+              return -1;
+            }
+            if (
+              normalizeClauseId(b.clauseId) ===
+              normalizeClauseId(topHeading.clauseId)
+            ) {
+              return 1;
+            }
+            return b.score - a.score;
+          });
+        }
+      }
+    }
+
+    if (forceHeading && topHeading) {
+      candidates = candidates.filter(
+        (candidate) =>
+          normalizeClauseId(candidate.clauseId) ===
+          normalizeClauseId(topHeading.clauseId),
+      );
+    }
+
+    candidates = candidates.slice(0, Math.max(maxPerAnchor * 2, maxPerAnchor));
+    const minClauseLength = anchorTokens.length >= 2 ? 80 : 0;
+    let addedForAnchor = 0;
+
+    const canUseClause = (clauseText: string, clauseTokens: string[]) => {
+      if (minClauseLength > 0 && clauseText.length < minClauseLength) {
+        return false;
+      }
+      if (
+        anchorStructuralTokens.length > 0 &&
+        !hasStructuralMatch(anchorStructuralTokens, clauseTokens)
+      ) {
+        return false;
+      }
+      return true;
+    };
 
     for (const candidate of candidates) {
       if (snippets.length >= maxTotal) break;
-      if (seen.has(candidate.clauseId)) continue;
+      const seenKey = `${anchor}::${candidate.clauseId}`;
+      if (seen.has(seenKey)) continue;
       const clause = clauses.find((entry) =>
         normalizeClauseId(getClauseIdentifier(entry)) ===
           normalizeClauseId(candidate.clauseId)
       );
       if (!clause) continue;
+      const clauseText =
+        clause.originalText ??
+        clause.normalizedText ??
+        clause.title ??
+        "";
+      const clauseTokens = tokenizeForMatch(clauseText);
+      if (!canUseClause(clauseText, clauseTokens)) {
+        continue;
+      }
       const excerpt = buildEvidenceExcerpt({
-        clauseText:
-          clause.originalText ??
-          clause.normalizedText ??
-          clause.title ??
-          "",
+        clauseText,
         anchorText: anchor,
         maxLength: excerptLength,
       });
@@ -1226,7 +1429,42 @@ export function buildRetrievedClauseContext(options: {
         anchor,
         excerpt,
       });
-      seen.add(candidate.clauseId);
+      seen.add(seenKey);
+      addedForAnchor += 1;
+      if (addedForAnchor >= maxPerAnchor) break;
+    }
+    if (addedForAnchor === 0 && candidates.length > 0) {
+      const fallbackCandidate = candidates[0];
+      const seenKey = `${anchor}::${fallbackCandidate.clauseId}`;
+      if (!seen.has(seenKey)) {
+        const clause = clauses.find((entry) =>
+          normalizeClauseId(getClauseIdentifier(entry)) ===
+            normalizeClauseId(fallbackCandidate.clauseId)
+        );
+        if (clause) {
+          const clauseText =
+            clause.originalText ??
+            clause.normalizedText ??
+            clause.title ??
+            "";
+          const clauseTokens = tokenizeForMatch(clauseText);
+          if (!canUseClause(clauseText, clauseTokens)) {
+            continue;
+          }
+          const excerpt = buildEvidenceExcerpt({
+            clauseText,
+            anchorText: anchor,
+            maxLength: excerptLength,
+          });
+          snippets.push({
+            clauseId: fallbackCandidate.clauseId,
+            title: clause.title ?? fallbackCandidate.clauseId,
+            anchor,
+            excerpt,
+          });
+          seen.add(seenKey);
+        }
+      }
     }
     if (snippets.length >= maxTotal) break;
   }
@@ -1254,13 +1492,37 @@ function similarityForText(a: string, b: string): number {
   return jaccardSimilarity(tokensA, tokensB);
 }
 
+function isMissingClauseId(value?: string | null): boolean {
+  const normalized = normalizeClauseId(value ?? "");
+  if (!normalized) return true;
+  return (
+    normalized.startsWith("missing") ||
+    normalized.startsWith("issue-clause") ||
+    normalized.startsWith("unbound")
+  );
+}
+
 export function dedupeIssues(issues: IssueLike[]): IssueLike[] {
   const buckets = new Map<string, IssueLike[]>();
   issues.forEach((issue) => {
     const clauseId = issue.clauseReference?.clauseId ?? "unbound";
-    const bucket = buckets.get(clauseId) ?? [];
+    const missingClause =
+      isMissingClauseId(clauseId) ||
+      isMissingEvidenceMarker(issue.clauseReference?.excerpt);
+    let bucketKey = normalizeClauseId(clauseId) || clauseId;
+    if (missingClause) {
+      const keySource =
+        issue.id ??
+        issue.title ??
+        issue.category ??
+        issue.clauseReference?.heading ??
+        "";
+      const normalizedKey = normalizeForMatch(keySource).replace(/\s+/g, "-");
+      bucketKey = normalizedKey ? `missing:${normalizedKey}` : "missing";
+    }
+    const bucket = buckets.get(bucketKey) ?? [];
     bucket.push(issue);
-    buckets.set(clauseId, bucket);
+    buckets.set(bucketKey, bucket);
   });
 
   const deduped: IssueLike[] = [];

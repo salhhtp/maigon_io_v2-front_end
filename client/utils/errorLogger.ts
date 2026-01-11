@@ -66,13 +66,29 @@ export function logError(prefix: string, error: unknown, context?: Record<string
  * Create a user-friendly error message
  */
 export function createUserFriendlyMessage(error: unknown, defaultMessage = 'An unexpected error occurred'): string {
+  const isDirectMessage = error instanceof Error || typeof error === 'string';
   const errorDetails = extractErrorDetails(error);
-  
-  // Return the error message if it's user-friendly, otherwise use default
-  if (errorDetails.message && !errorDetails.message.includes('undefined') && errorDetails.message.length < 200) {
-    return errorDetails.message;
+
+  if (isDirectMessage) {
+    if (errorDetails.message && !errorDetails.message.includes('undefined') && errorDetails.message.length < 200) {
+      return errorDetails.message;
+    }
+    return defaultMessage;
   }
-  
+
+  if (error && typeof error === 'object') {
+    const errorObj = error as { userMessage?: unknown; friendlyMessage?: unknown };
+    const candidate =
+      typeof errorObj.userMessage === 'string'
+        ? errorObj.userMessage
+        : typeof errorObj.friendlyMessage === 'string'
+          ? errorObj.friendlyMessage
+          : '';
+    if (candidate && candidate.length < 200) {
+      return candidate;
+    }
+  }
+
   return defaultMessage;
 }
 
