@@ -5,6 +5,7 @@ import {
   checkEvidenceMatch,
   checkEvidenceMatchAgainstClause,
   findRequirementMatch,
+  hasStructuralMatch,
   isMissingEvidenceMarker,
   matchClauseToText as matchClauseToTextWithDebug,
   normalizeForMatch,
@@ -47,6 +48,65 @@ const looksNegativeEvidence = (value: string) => {
   const normalized = normalizeForMatch(value);
   if (!normalized) return false;
   return NEGATIVE_EVIDENCE_MARKERS.some((marker) => normalized.includes(marker));
+};
+const getClauseKey = (clause: ClauseExtraction) =>
+  clause.clauseId ?? clause.id ?? clause.title ?? "";
+const findClauseByEvidence = (
+  evidence: string | undefined,
+  clauses: ClauseExtraction[],
+): ClauseExtraction | null => {
+  if (!evidence) return null;
+  const evidenceKey = normalizeForMatch(evidence);
+  if (!evidenceKey) return null;
+  return (
+    clauses.find((clause) => {
+      const idKey = normalizeForMatch(getClauseKey(clause));
+      const titleKey = normalizeForMatch(clause.title ?? "");
+      return idKey === evidenceKey || titleKey === evidenceKey;
+    }) ?? null
+  );
+};
+const findClauseBySignals = (
+  signals: string[],
+  clauses: ClauseExtraction[],
+  content: string,
+): ClauseExtraction | null => {
+  if (!signals.length) return null;
+  const scoreByClause = new Map<
+    string,
+    { clause: ClauseExtraction; hits: number; score: number }
+  >();
+  signals.forEach((signal) => {
+    const match = findRequirementMatch(signal, clauses, content);
+    if (!match.met || !match.evidence) return;
+    const clause = findClauseByEvidence(match.evidence, clauses);
+    if (!clause) return;
+    const key = normalizeForMatch(getClauseKey(clause));
+    const entry = scoreByClause.get(key) ?? {
+      clause,
+      hits: 0,
+      score: 0,
+    };
+    entry.hits += 1;
+    entry.score += match.score;
+    scoreByClause.set(key, entry);
+  });
+  let best: { clause: ClauseExtraction; hits: number; score: number } | null =
+    null;
+  scoreByClause.forEach((entry) => {
+    if (!best) {
+      best = entry;
+      return;
+    }
+    if (entry.hits > best.hits) {
+      best = entry;
+      return;
+    }
+    if (entry.hits === best.hits && entry.score > best.score) {
+      best = entry;
+    }
+  });
+  return best?.clause ?? null;
 };
 
 const similarityForText = (a: string, b: string) => {
@@ -167,6 +227,13 @@ export function enhanceReportWithClauses(
 
   const issuesWithEvidence = report.issuesToAddress.map((issue, index) => {
     const fallbackText = `${issue.title} ${issue.recommendation ?? ""}`.trim();
+    const issueSignal = `${issue.title ?? ""} ${issue.category ?? ""} ${
+      issue.recommendation ?? ""
+    }`.trim();
+    const issueTokens = tokenizeForMatch(issueSignal || fallbackText);
+    const issueStructuralTokens = issueTokens.filter((token) =>
+      STRUCTURAL_TOKENS.has(token),
+    );
     const existingReference = issue.clauseReference ?? {
       clauseId: "",
       heading: undefined,
@@ -185,6 +252,7 @@ export function enhanceReportWithClauses(
           matchResult.confidence >= MIN_ISSUE_CONFIDENCE),
     );
     let match = acceptedMatch ? matchResult.match : null;
+    let issueStructuralMismatch = false;
 
     const existingClauseId =
       typeof existingReference.clauseId === "string"
@@ -224,6 +292,53 @@ export function enhanceReportWithClauses(
         matchResult = reMatch;
         acceptedMatch = reAccepted;
         match = reAccepted ? reMatch.match : null;
+        if (match && issueStructuralTokens.length > 0) {
+          const reClauseText =
+            match.originalText ?? match.normalizedText ?? match.title ?? "";
+          const reClauseTokens = tokenizeForMatch(reClauseText);
+          if (!hasStructuralMatch(issueStructuralTokens, reClauseTokens)) {
+            match = null;
+            acceptedMatch = false;
+            issueStructuralMismatch = true;
+          }
+        }
+      }
+    }
+    if (match && issueStructuralTokens.length > 0) {
+      const clauseText =
+        match.originalText ?? match.normalizedText ?? match.title ?? "";
+      const clauseTokens = tokenizeForMatch(clauseText);
+      const structuralMismatch = !hasStructuralMatch(
+        issueStructuralTokens,
+        clauseTokens,
+      );
+      if (structuralMismatch) {
+        issueStructuralMismatch = true;
+        trustExistingClauseId = false;
+        const reMatch = resolveClauseMatch({
+          clauseReference: null,
+          fallbackText: issueSignal || fallbackText,
+          clauses: clauseCandidates,
+        });
+        const reAccepted = Boolean(
+          reMatch.match &&
+            (reMatch.method === "heading" ||
+              reMatch.confidence >= MIN_ISSUE_CONFIDENCE),
+        );
+        matchResult = reMatch;
+        acceptedMatch = reAccepted;
+        match = reAccepted ? reMatch.match : null;
+        if (match && issueStructuralTokens.length > 0) {
+          const reClauseText =
+            match.originalText ?? match.normalizedText ?? match.title ?? "";
+          const reClauseTokens = tokenizeForMatch(reClauseText);
+          if (hasStructuralMatch(issueStructuralTokens, reClauseTokens)) {
+            issueStructuralMismatch = false;
+          } else {
+            match = null;
+            acceptedMatch = false;
+          }
+        }
       }
     }
 
@@ -259,10 +374,15 @@ export function enhanceReportWithClauses(
       : "";
 
     const currentExcerpt =
-      preferredExcerpt ||
-      (existingReference?.excerpt && existingReference.excerpt.trim().length > 0
-        ? existingReference.excerpt
-        : "");
+      !issueStructuralMismatch
+        ? preferredExcerpt ||
+          (existingReference?.excerpt &&
+              existingReference.excerpt.trim().length > 0
+            ? existingReference.excerpt
+            : "")
+        : isMissingEvidenceMarker(existingReference?.excerpt)
+        ? existingReference?.excerpt ?? ""
+        : "";
     const clauseText = match
       ? match.originalText ?? match.normalizedText ?? match.title ?? ""
       : "";
@@ -387,7 +507,49 @@ export function enhanceReportWithClauses(
           matchResult.method === "heading" ||
           matchResult.confidence >= MIN_CRITERIA_CONFIDENCE),
     );
-    const match = acceptedMatch ? matchResult.match : null;
+    let match = acceptedMatch ? matchResult.match : null;
+    const requiredSignals = requiredSignalsById.get(criterion.id) ?? [];
+    let clauseText = match
+      ? match.originalText ?? match.normalizedText ?? match.title ?? ""
+      : "";
+    const titleTokens = tokenizeForMatch(criterion.title ?? "");
+    const structuralTokens = titleTokens.filter((token) =>
+      STRUCTURAL_TOKENS.has(token),
+    );
+    if (structuralTokens.length > 0 && match) {
+      const clauseTokens = tokenizeForMatch(clauseText);
+      if (!hasStructuralMatch(structuralTokens, clauseTokens)) {
+        const signalClause = findClauseBySignals(
+          requiredSignals,
+          clauseCandidates,
+          content,
+        );
+        match = signalClause ?? null;
+        clauseText = match
+          ? match.originalText ?? match.normalizedText ?? match.title ?? ""
+          : "";
+      }
+    } else if (!match && requiredSignals.length > 0) {
+      const signalClause = findClauseBySignals(
+        requiredSignals,
+        clauseCandidates,
+        content,
+      );
+      if (signalClause) {
+        match = signalClause;
+        clauseText =
+          match.originalText ?? match.normalizedText ?? match.title ?? "";
+      }
+    }
+    const clauseTokens = tokenizeForMatch(clauseText);
+    const structuralMismatch =
+      structuralTokens.length > 0 &&
+      Boolean(match) &&
+      !hasStructuralMatch(structuralTokens, clauseTokens);
+    if (structuralMismatch) {
+      match = null;
+      clauseText = "";
+    }
     const fallbackExcerpt = match
       ? buildEvidenceExcerpt({
         clauseText:
@@ -398,20 +560,11 @@ export function enhanceReportWithClauses(
         anchorText: criterion.evidence ?? criterion.title,
       })
       : "";
-    const clauseText = match
-      ? match.originalText ?? match.normalizedText ?? match.title ?? ""
-      : "";
-    const clauseTokens = tokenizeForMatch(clauseText);
-    const titleTokens = tokenizeForMatch(criterion.title ?? "");
-    const structuralTokens = titleTokens.filter((token) =>
-      STRUCTURAL_TOKENS.has(token),
-    );
-    const structuralMismatch =
-      structuralTokens.length > 0 &&
-      !structuralTokens.some((token) => clauseTokens.includes(token));
 
     const currentEvidence =
-      typeof criterion.evidence === "string" && criterion.evidence.trim().length > 0
+      !structuralMismatch &&
+        typeof criterion.evidence === "string" &&
+        criterion.evidence.trim().length > 0
         ? criterion.evidence
         : fallbackExcerpt;
 
@@ -446,7 +599,6 @@ export function enhanceReportWithClauses(
     const negativeDescription =
       looksNegativeEvidence(criterion.description ?? "") ||
       looksNegativeEvidence(criterion.title ?? "");
-    const requiredSignals = requiredSignalsById.get(criterion.id) ?? [];
     const missingSignals = requiredSignals.filter((signal) =>
       !findRequirementMatch(signal, clauseCandidates, content).met
     );
@@ -740,15 +892,43 @@ function findMatchingCriterion(
   return criteria.find((criterion) => issueMatchesCriterion(issue, criterion));
 }
 
+function isDraftIssue(issue: AnalysisReport["issuesToAddress"][number]) {
+  const id = normalizeIssueKey(issue.id ?? "");
+  const category = normalizeIssueKey(issue.category ?? "");
+  if (id.startsWith("ISSUE_EDIT_")) return true;
+  if (category.includes("DRAFT UPDATE")) return true;
+  if (Array.isArray(issue.tags)) {
+    return issue.tags.some((tag) => normalizeIssueKey(tag).startsWith("EDIT_"));
+  }
+  return false;
+}
+
 function filterIssuesByCriteria(
   issues: AnalysisReport["issuesToAddress"],
   criteria: AnalysisReport["criteriaMet"],
 ): AnalysisReport["issuesToAddress"] {
   if (!issues.length || !criteria.length) return issues;
-  return issues.filter((issue) => {
+  const filtered = issues.filter((issue) => {
     const matched = findMatchingCriterion(issue, criteria);
     if (!matched) return true;
     return !matched.met;
+  });
+  const nonDraftIssues = filtered.filter((issue) => !isDraftIssue(issue));
+  return filtered.filter((issue) => {
+    if (!isDraftIssue(issue)) return true;
+    const hasNonDraftMatch = nonDraftIssues.some((other) => {
+      const titleSimilarity = similarityForText(
+        issue.title ?? "",
+        other.title ?? "",
+      );
+      if (titleSimilarity >= 0.35) return true;
+      const clauseMatch =
+        normalizeForMatch(issue.clauseReference?.clauseId ?? "") &&
+        normalizeForMatch(issue.clauseReference?.clauseId ?? "") ===
+          normalizeForMatch(other.clauseReference?.clauseId ?? "");
+      return clauseMatch;
+    });
+    return !hasNonDraftMatch;
   });
 }
 

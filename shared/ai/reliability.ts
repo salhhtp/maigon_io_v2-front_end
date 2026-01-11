@@ -139,13 +139,21 @@ export const STRUCTURAL_TOKENS = new Set([
   "termination",
   "survival",
   "remedies",
+  "remedy",
   "injunctive",
+  "injunction",
   "relief",
   "specific",
   "performance",
   "return",
   "destruction",
   "destroy",
+  "backup",
+  "backups",
+  "archive",
+  "archives",
+  "certificate",
+  "certify",
   "compelled",
   "disclosure",
   "license",
@@ -167,9 +175,126 @@ export const STRUCTURAL_TOKENS = new Set([
   "cap",
   "limitation",
   "notice",
+  "notify",
   "protective",
   "order",
+  "solicit",
+  "compete",
+  "noncompete",
 ]);
+
+const STRUCTURAL_SYNONYMS: Record<string, string[]> = {
+  compelled: [
+    "compel",
+    "required",
+    "require",
+    "law",
+    "legal",
+    "court",
+    "subpoena",
+    "regulator",
+    "regulatory",
+    "order",
+    "process",
+    "demand",
+  ],
+  disclosure: ["disclose", "disclosed", "disclosing", "disclosures"],
+  return: ["return", "returned", "returning"],
+  destruction: ["destroy", "destroyed", "destroying", "destruction"],
+  backup: [
+    "backups",
+    "archive",
+    "archives",
+    "storage",
+    "medium",
+    "media",
+    "cloud",
+    "computer",
+    "copies",
+    "copy",
+  ],
+  backups: [
+    "backup",
+    "archive",
+    "archives",
+    "storage",
+    "medium",
+    "media",
+    "cloud",
+    "computer",
+    "copies",
+    "copy",
+  ],
+  archive: ["archives", "backup", "backups", "storage", "media"],
+  certificate: ["certify", "certification", "certificate"],
+  certify: ["certify", "certification", "certificate"],
+  residual: ["memory", "retained", "unaided"],
+  unmarked: ["marked", "marking", "designated", "declared", "label", "identified"],
+  license: ["licence", "licensed", "licensing"],
+  ownership: ["owner", "owned", "ownership", "transfer"],
+  term: ["duration", "period"],
+  survival: ["survive", "survival"],
+  solicit: ["solicit", "solicitation"],
+  compete: ["compete", "competition", "competitive", "noncompete"],
+  notice: ["notify", "notification", "prompt", "promptly"],
+  notify: ["notice", "notification", "prompt", "promptly"],
+  protective: ["protect", "protection", "protective"],
+  order: ["order", "orders"],
+  injunctive: ["injunction", "injunctive"],
+  injunction: ["injunctive", "injunction"],
+  remedies: ["remedy", "remedies"],
+  remedy: ["remedy", "remedies"],
+};
+
+function tokenVariants(token: string): string[] {
+  const variants = STRUCTURAL_SYNONYMS[token];
+  if (!variants || variants.length === 0) return [token];
+  return [token, ...variants];
+}
+
+export function hasStructuralMatch(
+  structuralTokens: string[],
+  clauseTokens: string[],
+): boolean {
+  if (!structuralTokens.length) return true;
+  if (!clauseTokens.length) return false;
+  const clauseSet = new Set(clauseTokens);
+  return structuralTokens.some((token) =>
+    tokenVariants(token).some((variant) => clauseSet.has(variant))
+  );
+}
+
+function tokenMatchesClause(
+  token: string,
+  clauseTokenSet: Set<string>,
+): boolean {
+  if (STRUCTURAL_TOKENS.has(token)) {
+    return tokenVariants(token).some((variant) => clauseTokenSet.has(variant));
+  }
+  return clauseTokenSet.has(token);
+}
+
+function countTokenMatches(
+  requirementTokens: string[],
+  clauseTokens: string[],
+): number {
+  if (!requirementTokens.length || !clauseTokens.length) return 0;
+  const clauseSet = new Set(clauseTokens);
+  let hits = 0;
+  requirementTokens.forEach((token) => {
+    if (tokenMatchesClause(token, clauseSet)) hits += 1;
+  });
+  return hits;
+}
+
+function coverageWithSynonyms(
+  requirementTokens: string[],
+  clauseTokens: string[],
+): number {
+  if (!requirementTokens.length) return 0;
+  const hits = countTokenMatches(requirementTokens, clauseTokens);
+  return hits / requirementTokens.length;
+}
 
 const MISSING_EVIDENCE_MARKERS = [
   "evidence not found",
@@ -628,6 +753,34 @@ function scoreAnchorToIssue(anchor: string, issue: IssueLike): number {
   return scoreTextSimilarity(anchor, candidate).score;
 }
 
+function scoreEditToIssue(edit: ProposedEditLike, issue: IssueLike): number {
+  const editText = [
+    edit.id,
+    edit.intent,
+    edit.rationale,
+    edit.proposedText,
+    edit.anchorText,
+  ]
+    .filter(Boolean)
+    .join(" ");
+  const issueText = [
+    issue.id,
+    issue.title,
+    issue.category,
+    issue.recommendation,
+  ]
+    .filter(Boolean)
+    .join(" ");
+  let score = scoreTextSimilarity(editText, issueText).score;
+  if (edit.id && Array.isArray(issue.tags)) {
+    const tagMatch = issue.tags.some(
+      (tag) => normalizeForMatch(tag) === normalizeForMatch(edit.id ?? ""),
+    );
+    if (tagMatch) score = Math.max(score, 0.7);
+  }
+  return score;
+}
+
 export function bindProposedEditsToClauses(options: {
   proposedEdits: ProposedEditLike[];
   issues: IssueLike[];
@@ -680,6 +833,19 @@ export function bindProposedEditsToClauses(options: {
 
   return proposedEdits.map((edit, index) => {
     if (!edit || typeof edit !== "object") return edit;
+    const editSignal = [
+      edit.proposedText,
+      edit.rationale,
+      edit.id,
+      edit.intent,
+    ]
+      .filter(Boolean)
+      .join(" ");
+    const editTokens = tokenizeForMatch(editSignal);
+    const editStructuralTokens = editTokens.filter((token) =>
+      STRUCTURAL_TOKENS.has(token),
+    );
+
     const currentId =
       typeof edit.clauseId === "string" ? edit.clauseId.trim() : "";
     const normalizedCurrentId = normalizeClauseId(currentId);
@@ -689,48 +855,88 @@ export function bindProposedEditsToClauses(options: {
       const clauseText = boundClause
         ? boundClause.originalText ?? boundClause.normalizedText ?? boundClause.title ?? ""
         : "";
-      const anchorText =
-        typeof edit.anchorText === "string" ? edit.anchorText : "";
-      const anchorSeed = isMissingEvidenceMarker(anchorText) ? "" : anchorText;
-      const nextAnchor = clauseText
-        ? normalizeAnchorText(anchorSeed, clauseText)
-        : anchorText;
-      return { ...edit, clauseId: canonical, anchorText: nextAnchor };
+      const clauseTokens = tokenizeForMatch(clauseText);
+      const structuralMismatch =
+        editStructuralTokens.length > 0 &&
+        !hasStructuralMatch(editStructuralTokens, clauseTokens);
+      if (!structuralMismatch) {
+        const anchorText =
+          typeof edit.anchorText === "string" ? edit.anchorText : "";
+        const anchorSeed = isMissingEvidenceMarker(anchorText) ? "" : anchorText;
+        const nextAnchor = clauseText
+          ? normalizeAnchorText(anchorSeed, clauseText)
+          : anchorText;
+        const anchorMatches = nextAnchor && clauseText
+          ? checkEvidenceMatchAgainstClause(nextAnchor, clauseText).matched
+          : false;
+        const nextIntent =
+          edit.intent === "replace" && !anchorMatches ? "insert" : edit.intent;
+        return {
+          ...edit,
+          clauseId: canonical,
+          anchorText: nextAnchor,
+          intent: nextIntent ?? edit.intent,
+        };
+      }
     }
+
     const anchorText =
       typeof edit.anchorText === "string" ? edit.anchorText.trim() : "";
-    if (anchorText) {
-      let bestIssue: IssueLike | null = null;
-      let bestScore = 0;
-      issues.forEach((issue) => {
-        const score = scoreAnchorToIssue(anchorText, issue);
-        if (score > bestScore) {
-          bestScore = score;
-          bestIssue = issue;
-        }
-      });
-      if (bestIssue && bestScore >= MIN_MATCH_SCORE) {
-        const boundId = issueClauseMap.get(bestIssue);
-        if (boundId) {
-          const normalizedBound = normalizeClauseId(boundId);
-          const boundClause = clauseById.get(normalizedBound);
-          const clauseText = boundClause
-            ? boundClause.originalText ??
-              boundClause.normalizedText ??
-              boundClause.title ??
-              ""
-            : "";
-          const anchorSeed = isMissingEvidenceMarker(anchorText) ? "" : anchorText;
-          const nextAnchor = clauseText
-            ? normalizeAnchorText(anchorSeed, clauseText)
-            : anchorText;
-          return { ...edit, clauseId: boundId, anchorText: nextAnchor };
-        }
+    let bestIssue: IssueLike | null = null;
+    let bestScore = 0;
+    issues.forEach((issue) => {
+      const anchorScore = anchorText ? scoreAnchorToIssue(anchorText, issue) : 0;
+      const editScore = scoreEditToIssue(edit, issue);
+      const score = Math.max(anchorScore, editScore);
+      if (score > bestScore) {
+        bestScore = score;
+        bestIssue = issue;
       }
+    });
+    if (bestIssue && bestScore >= MIN_MATCH_SCORE) {
+      const boundId = issueClauseMap.get(bestIssue);
+      if (boundId) {
+        const normalizedBound = normalizeClauseId(boundId);
+        const boundClause = clauseById.get(normalizedBound);
+        const clauseText = boundClause
+          ? boundClause.originalText ??
+            boundClause.normalizedText ??
+            boundClause.title ??
+            ""
+          : "";
+        const issueAnchor =
+          bestIssue.clauseReference?.excerpt ??
+          bestIssue.clauseReference?.heading ??
+          anchorText;
+        const anchorSeed = isMissingEvidenceMarker(issueAnchor) ? "" : issueAnchor;
+        const nextAnchor = clauseText
+          ? normalizeAnchorText(anchorSeed, clauseText)
+          : issueAnchor ?? anchorText;
+        const anchorMatches = nextAnchor && clauseText
+          ? checkEvidenceMatchAgainstClause(nextAnchor, clauseText).matched
+          : false;
+        const boundMissing =
+          isMissingEvidenceMarker(bestIssue.clauseReference?.excerpt) ||
+          normalizeForMatch(boundId).startsWith("missing");
+        let nextIntent = edit.intent;
+        if (boundMissing) nextIntent = "insert";
+        if (nextIntent === "replace" && !anchorMatches) nextIntent = "insert";
+        return {
+          ...edit,
+          clauseId: boundId,
+          anchorText: nextAnchor,
+          intent: nextIntent ?? edit.intent,
+        };
+      }
+    }
 
+    const fallbackQuery = [anchorText, editSignal, edit.id]
+      .filter(Boolean)
+      .join(" ");
+    if (fallbackQuery) {
       const clauseMatch = resolveClauseMatch({
         clauseReference: null,
-        fallbackText: anchorText,
+        fallbackText: fallbackQuery,
         clauses,
       });
       const matchedId = clauseMatch.match
@@ -773,9 +979,11 @@ export function findRequirementMatch(
   const structuralTokens = requirementTokens.filter((token) =>
     STRUCTURAL_TOKENS.has(token),
   );
+  const matchTokens =
+    structuralTokens.length > 0 ? structuralTokens : requirementTokens;
   const minCoverage =
-    requirementTokens.length <= 3 ? 0.5 : 0.35;
-  const minHits = requirementTokens.length >= 4 ? 2 : 1;
+    matchTokens.length <= 3 ? 0.5 : 0.35;
+  const minHits = matchTokens.length >= 4 ? 2 : 1;
   let bestScore = 0;
   let bestCoverage = 0;
   let bestHits = 0;
@@ -788,17 +996,13 @@ export function findRequirementMatch(
     const clauseTokens = tokenizeForMatch(clauseText);
     if (
       structuralTokens.length > 0 &&
-      !structuralTokens.some((token) => clauseTokens.includes(token))
+      !hasStructuralMatch(structuralTokens, clauseTokens)
     ) {
       continue;
     }
     const { score } = scoreTextSimilarity(requirement, clauseText);
-    const coverage = queryCoverageScore(requirementTokens, clauseTokens);
-    const clauseTokenSet = new Set(clauseTokens);
-    let hits = 0;
-    requirementTokens.forEach((token) => {
-      if (clauseTokenSet.has(token)) hits += 1;
-    });
+    const coverage = coverageWithSynonyms(matchTokens, clauseTokens);
+    const hits = countTokenMatches(matchTokens, clauseTokens);
     if (score > bestScore) {
       bestScore = score;
       bestCoverage = coverage;
@@ -822,14 +1026,10 @@ export function findRequirementMatch(
       const clauseTokens = tokenizeForMatch(clauseText);
       const passesStructure =
         structuralTokens.length === 0 ||
-        structuralTokens.some((token) => clauseTokens.includes(token));
+        hasStructuralMatch(structuralTokens, clauseTokens);
       if (passesStructure && topHeading.score >= bestScore + 0.08) {
-        const coverage = queryCoverageScore(requirementTokens, clauseTokens);
-        const clauseTokenSet = new Set(clauseTokens);
-        let hits = 0;
-        requirementTokens.forEach((token) => {
-          if (clauseTokenSet.has(token)) hits += 1;
-        });
+        const coverage = coverageWithSynonyms(matchTokens, clauseTokens);
+        const hits = countTokenMatches(matchTokens, clauseTokens);
         bestScore = topHeading.score;
         bestCoverage = coverage;
         bestHits = hits;

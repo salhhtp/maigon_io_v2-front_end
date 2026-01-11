@@ -194,6 +194,44 @@ describe("Reliability harness", () => {
     expect(emptyCoverage.coverageScore).toBe(0);
   });
 
+  it("matches structural requirements with synonyms", () => {
+    const clauses = [
+      {
+        id: "exceptions",
+        clauseId: "exceptions",
+        title: "Exceptions",
+        originalText:
+          "If the Receiving Party is required by law or court order to disclose Confidential Information, it shall promptly notify the Discloser and seek a protective order before disclosure.",
+        normalizedText:
+          "If the Receiving Party is required by law or court order to disclose Confidential Information, it shall promptly notify the Discloser and seek a protective order before disclosure.",
+      },
+      {
+        id: "return-destruction",
+        clauseId: "return-destruction",
+        title: "Return/Destruction",
+        originalText:
+          "Upon request, the Receiving Party shall return or destroy all Confidential Information, including backups and archives, and certify destruction in writing.",
+        normalizedText:
+          "Upon request, the Receiving Party shall return or destroy all Confidential Information, including backups and archives, and certify destruction in writing.",
+      },
+    ];
+    const content = clauses.map((clause) => clause.originalText).join(" ");
+
+    const compelled = findRequirementMatch(
+      "Compelled disclosure prompt notice protective order",
+      clauses,
+      content,
+    );
+    expect(compelled.met).toBe(true);
+
+    const returnDestroy = findRequirementMatch(
+      "Return/Destroy obligations backups certificate",
+      clauses,
+      content,
+    );
+    expect(returnDestroy.met).toBe(true);
+  });
+
   it("binds proposed edits to stable clause IDs using issue anchors", () => {
     const ndaContent = readFixture("NDA_Sample.txt");
     const ndaClauses = extractClausesFromSample(ndaContent);
