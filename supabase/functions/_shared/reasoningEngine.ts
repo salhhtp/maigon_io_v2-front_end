@@ -1101,7 +1101,7 @@ function runHeuristicCritique(
     });
     coverage.anchorCoverage.forEach((anchor) => {
       if (!anchor.met) {
-        notes.push(`No coverage found for "${anchor}" requirement.`);
+        notes.push(`No coverage found for "${anchor.anchor}" requirement.`);
       }
     });
     if (coverage.coverageScore < 0.85) {

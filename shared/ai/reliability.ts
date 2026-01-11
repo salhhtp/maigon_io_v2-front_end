@@ -187,6 +187,16 @@ function jaccardSimilarity(a: string[], b: string[]): number {
   return union === 0 ? 0 : intersection / union;
 }
 
+function queryCoverageScore(queryTokens: string[], candidateTokens: string[]): number {
+  if (!queryTokens.length || !candidateTokens.length) return 0;
+  const candidateSet = new Set(candidateTokens);
+  let hits = 0;
+  queryTokens.forEach((token) => {
+    if (candidateSet.has(token)) hits += 1;
+  });
+  return hits / queryTokens.length;
+}
+
 function buildNgrams(value: string, n = 4): Set<string> {
   const normalized = normalizeForMatch(value).replace(/\s+/g, "");
   if (!normalized) return new Set();
@@ -219,7 +229,10 @@ function scoreTextSimilarity(query: string, candidate: string): {
   }
   const tokensQuery = tokenizeForMatch(query);
   const tokensCandidate = tokenizeForMatch(candidate);
-  const tokenScore = jaccardSimilarity(tokensQuery, tokensCandidate);
+  const tokenScore = Math.max(
+    jaccardSimilarity(tokensQuery, tokensCandidate),
+    queryCoverageScore(tokensQuery, tokensCandidate),
+  );
   const ngramScore = ngramSimilarity(query, candidate);
   if (tokenScore >= ngramScore) {
     return { score: tokenScore, method: "text" };
@@ -444,6 +457,39 @@ export function buildEvidenceExcerpt(options: {
   return clauseText.slice(0, maxLength);
 }
 
+function normalizeAnchorText(
+  anchorText: string,
+  clauseText: string,
+  maxLength = 160,
+): string {
+  const trimmed = anchorText.trim();
+  const clauseSource = clauseText ?? "";
+  if (!clauseSource.trim()) return trimmed;
+  const candidates: string[] = [];
+  if (trimmed) candidates.push(trimmed);
+  const arrowIndex = trimmed.lastIndexOf("->");
+  if (arrowIndex >= 0) {
+    const candidate = trimmed.slice(arrowIndex + 2).trim();
+    if (candidate) candidates.push(candidate);
+  }
+  const unicodeArrowIndex = trimmed.lastIndexOf("→");
+  if (unicodeArrowIndex >= 0) {
+    const candidate = trimmed.slice(unicodeArrowIndex + 1).trim();
+    if (candidate) candidates.push(candidate);
+  }
+  for (const candidate of candidates) {
+    if (candidate && clauseSource.includes(candidate)) {
+      return candidate;
+    }
+  }
+  const excerpt = buildEvidenceExcerpt({
+    clauseText: clauseSource,
+    anchorText: trimmed,
+    maxLength,
+  });
+  return excerpt || trimmed;
+}
+
 export function checkEvidenceMatch(
   excerpt: string,
   content: string,
@@ -549,12 +595,16 @@ export function bindProposedEditsToClauses(options: {
   if (!proposedEdits.length) return proposedEdits;
 
   const clauseIdMap = new Map<string, string>();
+  const clauseById = new Map<string, ClauseExtractionLike>();
   clauses.forEach((clause) => {
     const clauseId = getClauseIdentifier(clause);
     const normalized = normalizeClauseId(clauseId);
     if (!normalized) return;
     if (!clauseIdMap.has(normalized)) {
       clauseIdMap.set(normalized, clauseId ?? normalized);
+    }
+    if (!clauseById.has(normalized)) {
+      clauseById.set(normalized, clause);
     }
   });
   const clauseIds = new Set(clauseIdMap.keys());
@@ -593,7 +643,16 @@ export function bindProposedEditsToClauses(options: {
     const normalizedCurrentId = normalizeClauseId(currentId);
     if (normalizedCurrentId && clauseIds.has(normalizedCurrentId)) {
       const canonical = clauseIdMap.get(normalizedCurrentId) ?? currentId;
-      return { ...edit, clauseId: canonical };
+      const boundClause = clauseById.get(normalizedCurrentId);
+      const clauseText = boundClause
+        ? boundClause.originalText ?? boundClause.normalizedText ?? boundClause.title ?? ""
+        : "";
+      const anchorText =
+        typeof edit.anchorText === "string" ? edit.anchorText : "";
+      const nextAnchor = clauseText
+        ? normalizeAnchorText(anchorText, clauseText)
+        : anchorText;
+      return { ...edit, clauseId: canonical, anchorText: nextAnchor };
     }
     const anchorText =
       typeof edit.anchorText === "string" ? edit.anchorText.trim() : "";
@@ -625,11 +684,22 @@ export function bindProposedEditsToClauses(options: {
       const normalizedMatched = normalizeClauseId(matchedId);
       if (normalizedMatched && clauseIds.has(normalizedMatched)) {
         const canonical = clauseIdMap.get(normalizedMatched) ?? matchedId;
-        return { ...edit, clauseId: canonical };
+        const boundClause = clauseById.get(normalizedMatched);
+        const clauseText = boundClause
+          ? boundClause.originalText ?? boundClause.normalizedText ?? boundClause.title ?? ""
+          : "";
+        const nextAnchor = clauseText
+          ? normalizeAnchorText(anchorText, clauseText)
+          : anchorText;
+        return { ...edit, clauseId: canonical, anchorText: nextAnchor };
       }
     }
 
-    return { ...edit, clauseId: undefined };
+    return {
+      ...edit,
+      clauseId: undefined,
+      anchorText: anchorText || "Not present in contract",
+    };
   });
 }
 

@@ -239,6 +239,63 @@ describe("Reliability harness", () => {
     expect(bound[0].clauseId).toBe(clauseId);
   });
 
+  it("normalizes anchor text to an exact clause excerpt", () => {
+    const clauses = [
+      {
+        id: "term-and-termination",
+        clauseId: "term-and-termination",
+        title: "term and termination",
+        originalText:
+          "This Agreement enters into force upon signing and will be valid indefinitely.",
+        normalizedText:
+          "This Agreement enters into force upon signing and will be valid indefinitely.",
+      },
+    ];
+    const proposedEdits = [
+      {
+        id: "edit-term",
+        clauseId: "term-and-termination",
+        anchorText:
+          "term and termination (term and termination) -> This Agreement enters into force upon signing and will be valid indefinitely.",
+        proposedText: "Replace term.",
+        intent: "replace",
+      },
+    ];
+
+    const bound = bindProposedEditsToClauses({
+      proposedEdits,
+      issues: [],
+      clauses,
+    });
+
+    expect(bound[0].anchorText).toBe(
+      "This Agreement enters into force upon signing and will be valid indefinitely.",
+    );
+  });
+
+  it("matches short query signals within long clauses", () => {
+    const clauses = [
+      {
+        id: "confidentiality",
+        clauseId: "confidentiality",
+        title: "Confidentiality Undertakings",
+        originalText:
+          "The Receiving Party shall not use any Confidential Information for any purpose other than the Project and shall apply sufficient security measures and degree of care.",
+        normalizedText:
+          "The Receiving Party shall not use any Confidential Information for any purpose other than the Project and shall apply sufficient security measures and degree of care.",
+      },
+    ];
+
+    const match = resolveClauseMatch({
+      clauseReference: null,
+      fallbackText: "Purpose/use limitation",
+      clauses,
+    });
+
+    expect(match.match?.clauseId).toBe("confidentiality");
+    expect(match.confidence).toBeGreaterThan(0.15);
+  });
+
   it("verifies evidence against the matched clause text", () => {
     const ndaContent = readFixture("NDA_Sample.txt");
     const ndaClauses = extractClausesFromSample(ndaContent);
