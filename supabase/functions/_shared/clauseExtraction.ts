@@ -258,6 +258,18 @@ export function enhanceReportWithClauses(
     string,
     { clauseId: string; heading?: string | null; excerpt: string }
   > = {};
+  const isMissingLocationHint = (
+    locationHint: ClauseExtraction["location"] | undefined | null,
+  ) => {
+    if (!locationHint) return true;
+    const section = `${locationHint.section ?? ""}`.toLowerCase();
+    const clauseNumber = `${locationHint.clauseNumber ?? ""}`.toLowerCase();
+    return (
+      section.includes("not present") ||
+      clauseNumber.startsWith("missing") ||
+      clauseNumber.startsWith("unbound")
+    );
+  };
 
   const issuesWithEvidence = report.issuesToAddress.map((issue, index) => {
     const fallbackText = `${issue.title} ${issue.recommendation ?? ""}`.trim();
@@ -444,6 +456,13 @@ export function enhanceReportWithClauses(
       } else {
         nextExcerpt = "Not present in contract";
       }
+    } else if (
+      match &&
+      clauseText &&
+      preferredExcerpt &&
+      isMissingEvidenceMarker(currentExcerpt)
+    ) {
+      nextExcerpt = preferredExcerpt;
     } else if (match && clauseText) {
       const clauseEvidenceResult = checkEvidenceMatchAgainstClause(
         currentExcerpt,
@@ -493,15 +512,27 @@ export function enhanceReportWithClauses(
       ...issue,
       clauseReference: {
         clauseId: stableClauseId,
-        heading: match?.title ?? existingReference?.heading,
+        heading:
+          match?.title ??
+          (isMissingLocationHint(existingReference?.locationHint)
+            ? existingReference?.heading
+            : existingReference?.heading),
         excerpt: nextExcerpt,
-        locationHint: existingReference?.locationHint ??
-          match?.location ?? {
-            page: null,
-            paragraph: null,
-            section: match?.title ?? (match ? null : "Not present in contract"),
-            clauseNumber: matchedClauseId ?? null,
-          },
+        locationHint:
+          match && isMissingLocationHint(existingReference?.locationHint)
+            ? match?.location ?? {
+                page: null,
+                paragraph: null,
+                section: match?.title ?? null,
+                clauseNumber: matchedClauseId ?? null,
+              }
+            : existingReference?.locationHint ??
+              match?.location ?? {
+                page: null,
+                paragraph: null,
+                section: match?.title ?? (match ? null : "Not present in contract"),
+                clauseNumber: matchedClauseId ?? null,
+              },
       },
     };
     const excerptKey = normalizeForMatch(updatedIssue.clauseReference?.excerpt ?? "");
@@ -747,8 +778,9 @@ export function enhanceReportWithClauses(
     criteriaWithEvidence,
     issuesFiltered,
   );
-  const metOnlyCriteria = criteriaAlignedWithIssues.filter((criterion) =>
-    Boolean(criterion.met)
+  const metOnlyCriteria = criteriaAlignedWithIssues.filter(
+    (criterion) =>
+      Boolean(criterion.met) && !optionalCriteriaIds.has(criterion.id),
   );
 
   const recomputeStats = (

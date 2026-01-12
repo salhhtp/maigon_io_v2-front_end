@@ -1038,7 +1038,7 @@ export function bindProposedEditsToClauses(options: {
         bestIssue = issue;
       }
     });
-  if (bestIssue && bestScore >= MIN_MATCH_SCORE) {
+    if (bestIssue && bestScore >= MIN_MATCH_SCORE) {
       const boundId = issueClauseMap.get(bestIssue);
       if (boundId) {
         const normalizedBound = normalizeClauseId(boundId);
@@ -1053,22 +1053,23 @@ export function bindProposedEditsToClauses(options: {
         const issueStructuralMismatch =
           editStructuralTokens.length > 0 &&
           !hasStructuralMatch(editStructuralTokens, clauseTokens);
-      if (!issueStructuralMismatch) {
         const issueAnchor =
           bestIssue.clauseReference?.excerpt ??
           bestIssue.clauseReference?.heading ??
           anchorText;
         const anchorSeed = isMissingEvidenceMarker(issueAnchor) ? "" : issueAnchor;
         const nextAnchor = clauseText
-            ? normalizeAnchorText(anchorSeed, clauseText)
-            : issueAnchor ?? anchorText;
-          const anchorMatches = nextAnchor && clauseText
-            ? checkEvidenceMatchAgainstClause(nextAnchor, clauseText).matched
-            : false;
+          ? normalizeAnchorText(anchorSeed, clauseText)
+          : issueAnchor ?? anchorText;
+        const anchorMatches = nextAnchor && clauseText
+          ? checkEvidenceMatchAgainstClause(nextAnchor, clauseText).matched
+          : false;
+        if (!issueStructuralMismatch || anchorMatches) {
           const boundMissing =
             isMissingEvidenceMarker(bestIssue.clauseReference?.excerpt) ||
             normalizeForMatch(boundId).startsWith("missing");
           let nextIntent = edit.intent;
+          if (issueStructuralMismatch) nextIntent = "insert";
           if (boundMissing) nextIntent = "insert";
           if (nextIntent === "replace" && !anchorMatches) nextIntent = "insert";
           return {
@@ -1105,7 +1106,14 @@ export function bindProposedEditsToClauses(options: {
         const structuralMismatch =
           editStructuralTokens.length > 0 &&
           !hasStructuralMatch(editStructuralTokens, clauseTokens);
-        if (structuralMismatch) {
+        const anchorSeed = isMissingEvidenceMarker(anchorText) ? "" : anchorText;
+        const nextAnchor = clauseText
+          ? normalizeAnchorText(anchorSeed, clauseText)
+          : anchorText;
+        const anchorMatches = nextAnchor && clauseText
+          ? checkEvidenceMatchAgainstClause(nextAnchor, clauseText).matched
+          : false;
+        if (structuralMismatch && !anchorMatches) {
           return {
             ...edit,
             clauseId: undefined,
@@ -1115,13 +1123,14 @@ export function bindProposedEditsToClauses(options: {
             intent: "insert",
           };
         }
-        const anchorSeed = isMissingEvidenceMarker(anchorText) ? "" : anchorText;
-        const nextAnchor = clauseText
-          ? normalizeAnchorText(anchorSeed, clauseText)
-          : anchorText;
-        const anchorMatches = nextAnchor && clauseText
-          ? checkEvidenceMatchAgainstClause(nextAnchor, clauseText).matched
-          : false;
+        if (structuralMismatch && anchorMatches) {
+          return {
+            ...edit,
+            clauseId: canonical,
+            anchorText: nextAnchor,
+            intent: "insert",
+          };
+        }
         const nextIntent =
           edit.intent === "replace" && !anchorMatches ? "insert" : edit.intent;
         return { ...edit, clauseId: canonical, anchorText: nextAnchor, intent: nextIntent };
