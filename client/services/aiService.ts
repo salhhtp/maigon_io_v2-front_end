@@ -64,10 +64,14 @@ export interface ContractAnalysisRequest {
   model?: AIModel;
   userId: string;
   filename?: string;
+  fileType?: string;
+  fileName?: string;
   documentFormat?: string;
   ingestionId?: string;
   ingestionWarnings?: unknown;
   classification?: any;
+  async?: boolean;
+  responseId?: string;
   selectedSolution?: {
     id?: string;
     key?: string;
@@ -335,10 +339,12 @@ class AIService {
       customSolution?.aiModel ||
       AIModel.OPENAI_GPT5_PRO;
     const model = ensureGpt5Model(requestedModel, { defaultTier: "pro" });
+    const originalContent =
+      typeof request.content === "string" ? request.content : "";
+    const requestContent = request.ingestionId ? "" : originalContent;
 
     // Validate request before sending: allow empty content if ingestionId is provided
-    const hasContent =
-      typeof request.content === "string" && request.content.trim().length > 0;
+    const hasContent = requestContent.trim().length > 0;
     if (!hasContent && !request.ingestionId) {
       throw new Error("Cannot analyze empty contract content");
     }
@@ -355,33 +361,35 @@ class AIService {
       });
 
     try {
-        console.log("🔗 Calling Supabase Edge Function for AI analysis...", {
-          model,
-          reviewType: request.reviewType,
-          contractType: request.contractType,
-        contentLength: request.content.length,
+      console.log("🔗 Calling Supabase Edge Function for AI analysis...", {
+        model,
+        reviewType: request.reviewType,
+        contractType: request.contractType,
+        contentLength: requestContent.length,
         ingestionId: request.ingestionId,
         hasClassification: !!(request as any).classification,
       });
 
       // Prepare the request body with all necessary data
       // First, ensure all properties are serializable
+      const useAsync = request.async ?? true;
       const requestBody: any = {
-        content: request.content,
+        content: requestContent,
         reviewType: request.reviewType,
         model,
         customSolution,
         contractType: request.contractType,
         perspective: request.perspective,
         perspectiveLabel: request.perspectiveLabel,
-        fileType: (request as any).fileType,
-        fileName: (request as any).fileName,
+        fileType: request.fileType,
+        fileName: request.fileName,
         filename: request.filename,
         documentFormat: request.documentFormat,
-        classification: (request as any).classification,
+        classification: request.classification,
         ingestionId: request.ingestionId,
         ingestionWarnings: request.ingestionWarnings,
         selectedSolution: request.selectedSolution,
+        async: useAsync,
       };
 
       // Log the full request body for debugging (with content truncated)
@@ -427,7 +435,7 @@ class AIService {
         new Date(session.expires_at! * 1000).toISOString(),
       );
 
-      const { data, error } = await this.invokeEdgeFunctionWithRetry(
+      let { data, error } = await this.invokeEdgeFunctionWithRetry(
         requestBody,
         request.reviewType,
         session.access_token ?? null,
@@ -465,39 +473,53 @@ class AIService {
         const errorMsg = "No data returned from Edge Function";
         console.error("❌", errorMsg);
         throw new Error("No data returned from AI service");
-        }
+      }
 
-        // Validate the response structure
-        if (typeof data !== "object") {
-          throw new Error("Invalid response format from AI service");
-        }
+      if (
+        useAsync &&
+        typeof (data as any).responseId === "string" &&
+        typeof (data as any).status === "string" &&
+        (data as any).status !== "completed"
+      ) {
+        data = await this.pollAsyncAnalysis(
+          requestBody,
+          (data as any).responseId as string,
+          session.access_token ?? null,
+          request.reviewType,
+        );
+      }
 
-        if (!data.score && data.score !== 0) {
-          console.warn("⚠️ Response missing score, using default");
-          data.score = 75; // Default score
-        }
+      // Validate the response structure
+      if (typeof data !== "object") {
+        throw new Error("Invalid response format from AI service");
+      }
 
-        if (!data.confidence && data.confidence !== 0) {
-          console.warn("⚠️ Response missing confidence, using default");
-          data.confidence = 0.8; // Default confidence
-        }
+      if (!data.score && data.score !== 0) {
+        console.warn("⚠️ Response missing score, using default");
+        data.score = 75; // Default score
+      }
 
-        console.log("✅ Edge Function call successful:", {
-          hasData: !!data,
-          score: data.score,
-          confidence: data.confidence,
-          hasRecommendations: !!(
-            data.recommendations && data.recommendations.length > 0
-          ),
-        });
+      if (!data.confidence && data.confidence !== 0) {
+        console.warn("⚠️ Response missing confidence, using default");
+        data.confidence = 0.8; // Default confidence
+      }
 
-        return data;
+      console.log("✅ Edge Function call successful:", {
+        hasData: !!data,
+        score: data.score,
+        confidence: data.confidence,
+        hasRecommendations: !!(
+          data.recommendations && data.recommendations.length > 0
+        ),
+      });
+
+      return data;
     } catch (error) {
       const errorInfo = extractErrorDetails(error, {
         model,
         reviewType: request.reviewType,
         contractType: request.contractType,
-        contentLength: request.content.length,
+        contentLength: requestContent.length,
       });
 
       console.error(
@@ -653,6 +675,72 @@ class AIService {
     }
 
     throw new Error("Edge Function invocation exhausted retries");
+  }
+
+  private async pollAsyncAnalysis(
+    requestBody: any,
+    responseId: string,
+    accessToken: string | null,
+    reviewType: string,
+  ) {
+    const maxWaitMs = 10 * 60 * 1000;
+    const startedAt = Date.now();
+    let waitMs = 3000;
+    let attempt = 0;
+
+    while (Date.now() - startedAt < maxWaitMs) {
+      attempt += 1;
+      await wait(waitMs);
+      const pollBody = {
+        ...requestBody,
+        responseId,
+        async: true,
+      };
+      const { data, error } = await this.invokeEdgeFunctionWithRetry(
+        pollBody,
+        reviewType,
+        accessToken,
+      );
+
+      if (error) {
+        const message = this.formatEdgeErrorMessage(error);
+        throw new Error(
+          message || "Async analysis poll failed with Edge Function error.",
+        );
+      }
+
+      if (!data || typeof data !== "object") {
+        throw new Error("Async analysis poll returned empty response.");
+      }
+
+      const status =
+        typeof (data as any).status === "string"
+          ? (data as any).status
+          : "completed";
+      if (status === "completed") {
+        return data;
+      }
+      if (status === "failed" || status === "incomplete") {
+        throw new Error(`Async analysis failed with status ${status}.`);
+      }
+      const pollAfterMs =
+        typeof (data as any).pollAfterMs === "number"
+          ? (data as any).pollAfterMs
+          : null;
+      waitMs = Math.min(
+        Math.max(pollAfterMs ?? waitMs + 1000, 2000),
+        10000,
+      );
+
+      logger.contractAction("AI analysis polling", undefined, {
+        reviewType,
+        attempt,
+        waitMs,
+        status,
+      });
+    }
+
+    throw new Error("Async analysis timed out while waiting for completion.");
   }
 
   private async manualInvokeEdgeFunction(

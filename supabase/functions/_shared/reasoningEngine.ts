@@ -692,6 +692,37 @@ interface ReasoningContext {
   clauseSetWeak?: boolean;
 }
 
+type ReasoningMode = "full" | "compact" | "ultra";
+
+type ReasoningSession = {
+  model: string;
+  tier: ModelTier;
+  playbookKey: PlaybookKey;
+  playbook: ContractPlaybook;
+  usePlaybookCoverage: boolean;
+  buildPrompts: (mode: ReasoningMode) => { systemPrompt: string; userPrompt: string };
+  buildRequestPayload: (
+    systemPrompt: string,
+    promptText: string,
+    format:
+      | typeof jsonSchemaFormat
+      | typeof jsonSchemaFormatCompact
+      | typeof jsonSchemaFormatUltra,
+    options?: { effort?: "low" | "medium" | "high"; maxTokens?: number | null },
+  ) => Record<string, unknown>;
+};
+
+type AsyncReasoningStatus =
+  | {
+      status: "completed";
+      responseId: string;
+      result: ReasoningResult;
+    }
+  | {
+      status: string;
+      responseId: string;
+    };
+
 interface ReasoningResult {
   report: AnalysisReport;
   raw: unknown;
@@ -2029,9 +2060,7 @@ function normaliseDraftMetadataPayload(
   };
 }
 
-export async function runReasoningAnalysis(
-  context: ReasoningContext,
-): Promise<ReasoningResult> {
+function createReasoningSession(context: ReasoningContext): ReasoningSession {
   if (!OPENAI_API_KEY) {
     throw new Error("OPENAI_API_KEY is not configured");
   }
@@ -2063,7 +2092,7 @@ export async function runReasoningAnalysis(
     throw new Error("Selected model does not support structured responses API.");
   }
 
-  const buildPrompts = (mode: "full" | "compact" | "ultra") => {
+  const buildPrompts = (mode: ReasoningMode) => {
     const compact = mode !== "full";
     const systemPrompt = buildSystemPrompt(
       playbook.displayName,
@@ -2097,17 +2126,179 @@ export async function runReasoningAnalysis(
     max_output_tokens: options?.maxTokens ?? MAX_OUTPUT_TOKENS ?? undefined,
   });
 
+  return {
+    model,
+    tier,
+    playbookKey,
+    playbook,
+    usePlaybookCoverage,
+    buildPrompts,
+    buildRequestPayload,
+  };
+}
+
+function buildCoreReportFromPayload(
+  payload: unknown,
+  context: ReasoningContext,
+  session: ReasoningSession,
+): AnalysisReport {
+  const content = extractResponsesContent(payload);
+  const parsed = JSON.parse(content);
+  if (parsed && typeof parsed === "object") {
+    applyOptionalSectionDefaults(parsed as Record<string, unknown>);
+  }
+  const report = validateAnalysisReport(parsed);
+  report.generalInformation.reportExpiry = normaliseReportExpiry(
+    report.generalInformation.reportExpiry,
+  );
+  const tokenUsage = normaliseTokenUsage(payload, true);
+  const { notes: critiqueNotes, coverage, diagnostics } = runHeuristicCritique(
+    report,
+    session.playbookKey,
+    {
+      content: context.content,
+      clauses: context.clauseExtractions ?? null,
+    },
+  );
+  return {
+    ...report,
+    metadata: {
+      ...report.metadata,
+      model: session.model,
+      modelCategory: session.tier,
+      playbookKey: session.playbookKey,
+      classification: {
+        contractType:
+          context.classification?.contractType ??
+          report.metadata?.classification?.contractType,
+        confidence:
+          context.classification?.confidence ??
+          report.metadata?.classification?.confidence,
+      },
+      tokenUsage: tokenUsage ?? report.metadata?.tokenUsage,
+      critiqueNotes,
+      playbookCoverage: coverage ?? report.metadata?.playbookCoverage,
+      playbookCoverageContent: diagnostics.content ?? undefined,
+      playbookCoverageModel: diagnostics.model ?? undefined,
+    },
+  };
+}
+
+async function finalizeReasoningReport(
+  context: ReasoningContext,
+  session: ReasoningSession,
+  coreReport: AnalysisReport,
+  corePayload: unknown,
+): Promise<ReasoningResult> {
+  const baseReport = coreReport;
+  let enhancementSections: EnhancementSections | null = null;
+  let enhancementRaw: unknown = null;
+  let enhancementSource: "ai" | "fallback" = "fallback";
+  let enhancementReason: string | undefined;
+
+  try {
+    if (SKIP_ENHANCEMENTS) {
+      enhancementSections = buildEnhancementFallback(baseReport);
+      enhancementSource = "fallback";
+    } else {
+      const enhancementResult = await generateEnhancementSections(
+        context,
+        baseReport,
+        baseReport.metadata?.model ?? session.model,
+      );
+      enhancementSections = enhancementResult.sections;
+      enhancementRaw = enhancementResult.raw;
+      enhancementSource = "ai";
+    }
+  } catch (error) {
+    enhancementReason =
+      error instanceof Error ? error.message : String(error);
+    enhancementSections = buildEnhancementFallback(baseReport);
+  }
+
+  const appliedEnhancements =
+    enhancementSections ?? buildEnhancementFallback(baseReport);
+
+  const finalReport = mergeEnhancements(baseReport, appliedEnhancements, {
+    source: enhancementSource,
+    reason: enhancementReason,
+  });
+  const clauseAlignedReport = enhanceReportWithClauses(finalReport, {
+    clauses: context.clauseExtractions ?? null,
+    content: context.content,
+    playbook: session.playbook,
+  });
+  const boundEdits = bindProposedEditsToClauses({
+    proposedEdits: clauseAlignedReport.proposedEdits,
+    issues: clauseAlignedReport.issuesToAddress,
+    clauses:
+      context.clauseExtractions ??
+      clauseAlignedReport.clauseExtractions ??
+      [],
+  });
+  const clauseAlignedReportWithEdits: AnalysisReport = {
+    ...clauseAlignedReport,
+    proposedEdits: boundEdits,
+  };
+  const dedupedReport: AnalysisReport = {
+    ...clauseAlignedReportWithEdits,
+    issuesToAddress: dedupeIssues(clauseAlignedReportWithEdits.issuesToAddress),
+    proposedEdits: dedupeProposedEdits(clauseAlignedReportWithEdits.proposedEdits),
+  };
+
+  const scoringResult = computeRuleBasedScore(
+    dedupedReport,
+    session.usePlaybookCoverage ? session.playbook : null,
+    {
+      content: context.content,
+      clauses:
+        context.clauseExtractions ?? clauseAlignedReport.clauseExtractions,
+    },
+  );
+  const scoredReport: AnalysisReport = {
+    ...dedupedReport,
+    generalInformation: {
+      ...dedupedReport.generalInformation,
+      complianceScore: scoringResult.score,
+    },
+    metadata: {
+      ...dedupedReport.metadata,
+      playbookCoverage:
+        scoringResult.coverage ??
+        dedupedReport.metadata?.playbookCoverage,
+      scoreSource: "rule_based",
+      scoreBreakdown: scoringResult.breakdown,
+    } as AnalysisReport["metadata"],
+  };
+
+  return {
+    report: scoredReport,
+    raw: {
+      stageOne: corePayload,
+      stageTwo: enhancementRaw,
+    },
+    model: session.model,
+    tier: session.tier,
+  };
+}
+
+export async function runReasoningAnalysis(
+  context: ReasoningContext,
+): Promise<ReasoningResult> {
+  const session = createReasoningSession(context);
+  const { model, tier } = session;
+
   let lastError: unknown = null;
   let corePayload: unknown = null;
   let coreReport: AnalysisReport | null = null;
 
   const isTightTimeout = REQUEST_TIMEOUT_MS <= 45000;
   const maxAttempts = 3;
-  let mode: "full" | "compact" | "ultra" = isTightTimeout ? "compact" : "full";
+  let mode: ReasoningMode = isTightTimeout ? "compact" : "full";
 
   for (let attemptIndex = 0; attemptIndex < maxAttempts; attemptIndex += 1) {
     const isLastAttempt = attemptIndex === maxAttempts - 1;
-    const { systemPrompt, userPrompt } = buildPrompts(mode);
+    const { systemPrompt, userPrompt } = session.buildPrompts(mode);
     const compactMaxTokens =
       MAX_OUTPUT_TOKENS !== null && MAX_OUTPUT_TOKENS !== undefined
         ? Math.min(MAX_OUTPUT_TOKENS, 6000)
@@ -2130,7 +2321,7 @@ export async function runReasoningAnalysis(
         : mode === "compact"
           ? compactMaxTokens
           : MAX_OUTPUT_TOKENS ?? undefined;
-    const requestPayload = buildRequestPayload(
+    const requestPayload = session.buildRequestPayload(
       systemPrompt,
       userPrompt,
       format,
@@ -2216,47 +2407,7 @@ export async function runReasoningAnalysis(
     }
 
     try {
-      const content = extractResponsesContent(payload);
-      const parsed = JSON.parse(content);
-      if (parsed && typeof parsed === "object") {
-        applyOptionalSectionDefaults(parsed as Record<string, unknown>);
-      }
-      const report = validateAnalysisReport(parsed);
-      report.generalInformation.reportExpiry = normaliseReportExpiry(
-        report.generalInformation.reportExpiry,
-      );
-      const tokenUsage = normaliseTokenUsage(payload, true);
-      const { notes: critiqueNotes, coverage, diagnostics } = runHeuristicCritique(
-        report,
-        playbookKey,
-        {
-          content: context.content,
-          clauses: context.clauseExtractions ?? null,
-        },
-      );
-      const enrichedReport: AnalysisReport = {
-        ...report,
-        metadata: {
-          ...report.metadata,
-          model,
-          modelCategory: tier,
-          playbookKey,
-          classification: {
-            contractType:
-              context.classification?.contractType ??
-              report.metadata?.classification?.contractType,
-            confidence:
-              context.classification?.confidence ??
-              report.metadata?.classification?.confidence,
-          },
-          tokenUsage: tokenUsage ?? report.metadata?.tokenUsage,
-          critiqueNotes,
-          playbookCoverage: coverage ?? report.metadata?.playbookCoverage,
-          playbookCoverageContent: diagnostics.content ?? undefined,
-          playbookCoverageModel: diagnostics.model ?? undefined,
-        },
-      };
-      coreReport = enrichedReport;
+      coreReport = buildCoreReportFromPayload(payload, context, session);
       corePayload = payload;
       break;
     } catch (error) {
@@ -2275,95 +2426,129 @@ export async function runReasoningAnalysis(
     }
     throw new Error("Failed to generate core analysis report.");
   }
+  return finalizeReasoningReport(context, session, coreReport, corePayload);
+}
 
-  const baseReport = coreReport;
-  let enhancementSections: EnhancementSections | null = null;
-  let enhancementRaw: unknown = null;
-  let enhancementSource: "ai" | "fallback" = "fallback";
-  let enhancementReason: string | undefined;
+export async function startReasoningAnalysis(
+  context: ReasoningContext,
+): Promise<{
+  responseId: string;
+  status: string;
+  mode: ReasoningMode;
+  model: string;
+  tier: ModelTier;
+}> {
+  const session = createReasoningSession(context);
+  const isTightTimeout = REQUEST_TIMEOUT_MS <= 45000;
+  const mode: ReasoningMode = isTightTimeout ? "compact" : "full";
+  const { systemPrompt, userPrompt } = session.buildPrompts(mode);
+  const compactMaxTokens =
+    MAX_OUTPUT_TOKENS !== null && MAX_OUTPUT_TOKENS !== undefined
+      ? Math.min(MAX_OUTPUT_TOKENS, 6000)
+      : 6000;
+  const ultraMaxTokens =
+    MAX_OUTPUT_TOKENS !== null && MAX_OUTPUT_TOKENS !== undefined
+      ? Math.min(MAX_OUTPUT_TOKENS, 3000)
+      : 3000;
+  const format =
+    mode === "ultra"
+      ? jsonSchemaFormatUltra
+      : mode === "compact"
+        ? jsonSchemaFormatCompact
+        : jsonSchemaFormat;
+  const effort = mode === "full" ? "medium" : "low";
+  const maxTokens =
+    mode === "ultra"
+      ? ultraMaxTokens
+      : mode === "compact"
+        ? compactMaxTokens
+        : MAX_OUTPUT_TOKENS ?? undefined;
 
-  try {
-    if (SKIP_ENHANCEMENTS) {
-      enhancementSections = buildEnhancementFallback(baseReport);
-      enhancementSource = "fallback";
-    } else {
-      const enhancementResult = await generateEnhancementSections(
-        context,
-        baseReport,
-        baseReport.metadata?.model ?? model,
-      );
-      enhancementSections = enhancementResult.sections;
-      enhancementRaw = enhancementResult.raw;
-      enhancementSource = "ai";
-    }
-  } catch (error) {
-    enhancementReason =
-      error instanceof Error ? error.message : String(error);
-    enhancementSections = buildEnhancementFallback(baseReport);
+  const requestPayload = {
+    ...session.buildRequestPayload(systemPrompt, userPrompt, format, {
+      effort,
+      maxTokens,
+    }),
+    background: true,
+  };
+
+  const response = await fetch(OPENAI_RESPONSES_API_BASE, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${OPENAI_API_KEY}`,
+    },
+    body: JSON.stringify(requestPayload),
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.text();
+    throw new Error(
+      `OpenAI reasoning error (${session.model}): ${response.status} ${response.statusText} ${errorBody}`,
+    );
   }
 
-  const appliedEnhancements =
-    enhancementSections ?? buildEnhancementFallback(baseReport);
+  const payload = await response.json();
+  const responseId =
+    typeof payload?.id === "string"
+      ? payload.id
+      : typeof payload?.response_id === "string"
+        ? payload.response_id
+        : typeof payload?.responseId === "string"
+          ? payload.responseId
+          : null;
+  if (!responseId) {
+    throw new Error("OpenAI response did not include an id for async polling.");
+  }
 
-  const finalReport = mergeEnhancements(baseReport, appliedEnhancements, {
-    source: enhancementSource,
-    reason: enhancementReason,
-  });
-  const clauseAlignedReport = enhanceReportWithClauses(finalReport, {
-    clauses: context.clauseExtractions ?? null,
-    content: context.content,
-    playbook,
-  });
-  const boundEdits = bindProposedEditsToClauses({
-    proposedEdits: clauseAlignedReport.proposedEdits,
-    issues: clauseAlignedReport.issuesToAddress,
-    clauses:
-      context.clauseExtractions ??
-      clauseAlignedReport.clauseExtractions ??
-      [],
-  });
-  const clauseAlignedReportWithEdits: AnalysisReport = {
-    ...clauseAlignedReport,
-    proposedEdits: boundEdits,
-  };
-  const dedupedReport: AnalysisReport = {
-    ...clauseAlignedReportWithEdits,
-    issuesToAddress: dedupeIssues(clauseAlignedReportWithEdits.issuesToAddress),
-    proposedEdits: dedupeProposedEdits(clauseAlignedReportWithEdits.proposedEdits),
-  };
-
-  const scoringResult = computeRuleBasedScore(
-    dedupedReport,
-    usePlaybookCoverage ? playbook : null,
-    {
-      content: context.content,
-      clauses:
-        context.clauseExtractions ?? clauseAlignedReport.clauseExtractions,
-    },
-  );
-  const scoredReport: AnalysisReport = {
-    ...dedupedReport,
-    generalInformation: {
-      ...dedupedReport.generalInformation,
-      complianceScore: scoringResult.score,
-    },
-    metadata: {
-      ...dedupedReport.metadata,
-      playbookCoverage:
-        scoringResult.coverage ??
-        dedupedReport.metadata?.playbookCoverage,
-      scoreSource: "rule_based",
-      scoreBreakdown: scoringResult.breakdown,
-    } as AnalysisReport["metadata"],
-  };
+  const status =
+    typeof payload?.status === "string" ? payload.status : "in_progress";
 
   return {
-    report: scoredReport,
-    raw: {
-      stageOne: corePayload,
-      stageTwo: enhancementRaw,
-    },
-    model,
-    tier,
+    responseId,
+    status,
+    mode,
+    model: session.model,
+    tier: session.tier,
   };
+}
+
+export async function pollReasoningAnalysis(
+  context: ReasoningContext,
+  responseId: string,
+): Promise<AsyncReasoningStatus> {
+  const session = createReasoningSession(context);
+  const response = await fetch(
+    `${OPENAI_RESPONSES_API_BASE}/${responseId}`,
+    {
+      headers: {
+        Authorization: `Bearer ${OPENAI_API_KEY}`,
+      },
+    },
+  );
+
+  if (!response.ok) {
+    const errorBody = await response.text();
+    throw new Error(
+      `OpenAI reasoning poll error (${session.model}): ${response.status} ${response.statusText} ${errorBody}`,
+    );
+  }
+
+  const payload = await response.json();
+  const status =
+    typeof payload?.status === "string" ? payload.status : "completed";
+
+  if (status !== "completed") {
+    return { status, responseId };
+  }
+
+  const coreReport = buildCoreReportFromPayload(payload, context, session);
+  const result = await finalizeReasoningReport(
+    context,
+    session,
+    coreReport,
+    payload,
+  );
+
+  return { status: "completed", responseId, result };
 }

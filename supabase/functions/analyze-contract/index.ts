@@ -8,7 +8,11 @@ import {
   generateFallbackAnalysis,
   type FallbackAnalysisContext,
 } from "../_shared/fallback-analysis.ts";
-import { runReasoningAnalysis } from "../_shared/reasoningEngine.ts";
+import {
+  runReasoningAnalysis,
+  startReasoningAnalysis,
+  pollReasoningAnalysis,
+} from "../_shared/reasoningEngine.ts";
 import type { AnalysisReport, ClauseExtraction } from "../_shared/reviewSchema.ts";
 import {
   createClient,
@@ -54,6 +58,8 @@ interface AnalysisRequest {
   ingestionId?: string;
   reviewType: string;
   model: string;
+  async?: boolean;
+  responseId?: string;
   perspective?: string;
   perspectiveLabel?: string;
   customSolution?: any;
@@ -1460,7 +1466,7 @@ serve(async (req) => {
     }
 
     try {
-      const reasoningResult = await runReasoningAnalysis({
+      const reasoningContext = {
         content: processedContent,
         reviewType: request.reviewType,
         classification: request.classification,
@@ -1473,7 +1479,61 @@ serve(async (req) => {
         clauseDigest,
         clauseExtractions: clauseSeed,
         clauseSetWeak: clauseQuality.isWeak,
-      });
+      };
+
+      const responseId =
+        typeof request.responseId === "string" && request.responseId.trim().length > 0
+          ? request.responseId.trim()
+          : "";
+
+      if (responseId) {
+        const pollResult = await pollReasoningAnalysis(
+          reasoningContext,
+          responseId,
+        );
+        if (pollResult.status !== "completed") {
+          return new Response(
+            JSON.stringify({
+              status: pollResult.status,
+              responseId: pollResult.responseId,
+              pollAfterMs: 3000,
+            }),
+            {
+              status: 202,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            },
+          );
+        }
+
+        const responsePayload = buildLegacyResponse(pollResult.result.report, {
+          classification: request.classification,
+          contractType: resolvedContractType,
+          reviewType: request.reviewType,
+          modelTier,
+        });
+
+        return new Response(JSON.stringify(responsePayload), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      if (request.async === true) {
+        const startResult = await startReasoningAnalysis(reasoningContext);
+        return new Response(
+          JSON.stringify({
+            status: startResult.status ?? "in_progress",
+            responseId: startResult.responseId,
+            pollAfterMs: 3000,
+          }),
+          {
+            status: 202,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
+        );
+      }
+
+      const reasoningResult = await runReasoningAnalysis(reasoningContext);
 
       const responsePayload = buildLegacyResponse(reasoningResult.report, {
         classification: request.classification,
