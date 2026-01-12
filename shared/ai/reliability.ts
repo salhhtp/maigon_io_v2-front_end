@@ -301,10 +301,19 @@ const STRUCTURAL_SYNONYMS: Record<string, string[]> = {
   knowledge: ["knowledge", "known"],
 };
 
-function tokenVariants(token: string): string[] {
-  const variants = STRUCTURAL_SYNONYMS[token];
-  if (!variants || variants.length === 0) return [token];
-  return [token, ...variants];
+export function tokenVariants(token: string): string[] {
+  const direct = STRUCTURAL_SYNONYMS[token];
+  if (direct && direct.length > 0) {
+    return [token, ...direct];
+  }
+  const fallbackKey = Object.keys(STRUCTURAL_SYNONYMS).find((key) =>
+    STRUCTURAL_SYNONYMS[key]?.includes(token),
+  );
+  if (fallbackKey) {
+    const fallbackVariants = STRUCTURAL_SYNONYMS[fallbackKey] ?? [];
+    return Array.from(new Set([token, fallbackKey, ...fallbackVariants]));
+  }
+  return [token];
 }
 
 export function isStructuralToken(token: string): boolean {

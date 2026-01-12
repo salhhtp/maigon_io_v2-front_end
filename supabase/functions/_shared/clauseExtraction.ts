@@ -11,6 +11,7 @@ import {
   matchClauseToText as matchClauseToTextWithDebug,
   normalizeForMatch,
   resolveClauseMatch,
+  tokenVariants,
   tokenizeForMatch,
 } from "../../../shared/ai/reliability.ts";
 
@@ -138,11 +139,30 @@ const buildCriterionId = (
   return `${baseKey.slice(0, 64 - suffix.length)}${suffix}`;
 };
 
+const isAnchorRedundant = (
+  anchor: string,
+  criticalTitles: string[],
+): boolean => {
+  const anchorTokens = tokenizeForMatch(anchor);
+  if (!anchorTokens.length) return false;
+  const anchorSet = new Set(anchorTokens);
+  return criticalTitles.some((criticalTitle) => {
+    const criticalTokens = tokenizeForMatch(criticalTitle);
+    if (!criticalTokens.length) return false;
+    const matched = criticalTokens.filter((token) =>
+      tokenVariants(token).some((variant) => anchorSet.has(variant)),
+    );
+    const coverage = matched.length / criticalTokens.length;
+    return coverage >= 0.8;
+  });
+};
+
 const buildCriteriaFromPlaybook = (playbook: ContractPlaybook) => {
   const criteria: AnalysisReport["criteriaMet"] = [];
   const requirementsById = new Map<string, string[]>();
   const usedIds = new Map<string, number>();
   const optionalCriteriaIds = new Set<string>();
+  const criticalTitles = playbook.criticalClauses.map((clause) => clause.title);
 
   playbook.criticalClauses.forEach((clause, index) => {
     const id = buildCriterionId(
@@ -173,7 +193,10 @@ const buildCriteriaFromPlaybook = (playbook: ContractPlaybook) => {
     if (existingTitles.has(titleKey)) return;
     const id = buildCriterionId(anchor, usedIds, `ANCHOR_${index + 1}`);
     requirementsById.set(id, [anchor]);
-    if (OPTIONAL_ANCHOR_PATTERN.test(anchor)) {
+    if (
+      OPTIONAL_ANCHOR_PATTERN.test(anchor) ||
+      isAnchorRedundant(anchor, criticalTitles)
+    ) {
       optionalCriteriaIds.add(id);
     }
     criteria.push({
@@ -518,8 +541,12 @@ export function enhanceReportWithClauses(
 
   const criteriaWithEvidence = baseCriteria.map((criterion) => {
     const fallbackText = `${criterion.title} ${criterion.description ?? ""}`.trim();
+    const headingReference =
+      typeof criterion.title === "string" && criterion.title.trim().length > 0
+        ? { heading: criterion.title }
+        : null;
     const matchResult = resolveClauseMatch({
-      clauseReference: null,
+      clauseReference: headingReference,
       fallbackText,
       clauses: clauseCandidates,
     });
@@ -576,6 +603,26 @@ export function enhanceReportWithClauses(
       match = null;
       clauseText = "";
     }
+    const signalResults = requiredSignals.map((signal) =>
+      findRequirementMatch(signal, clauseCandidates, content),
+    );
+    const missingSignals = optionalCriterion
+      ? []
+      : requiredSignals.filter((signal, index) => !signalResults[index]?.met);
+    const matchedSignals = requiredSignals.filter(
+      (signal, index) => signalResults[index]?.met,
+    );
+    const hasMatchedSignals =
+      requiredSignals.length === 0 ? Boolean(match) : matchedSignals.length > 0;
+    const hasStrongMatch =
+      Boolean(match) &&
+      (matchResult.method === "heading" || matchResult.method === "id");
+    if (!optionalCriterion && requiredSignals.length > 0) {
+      if (!hasMatchedSignals && !hasStrongMatch) {
+        match = null;
+        clauseText = "";
+      }
+    }
     const fallbackExcerpt = match
       ? buildEvidenceExcerpt({
         clauseText:
@@ -625,13 +672,12 @@ export function enhanceReportWithClauses(
     const negativeDescription =
       looksNegativeEvidence(criterion.description ?? "") ||
       looksNegativeEvidence(criterion.title ?? "");
-    const missingSignals = optionalCriterion
-      ? []
-      : requiredSignals.filter((signal) =>
-        !findRequirementMatch(signal, clauseCandidates, content).met
-      );
     const meetsRequiredSignals =
       optionalCriterion || missingSignals.length === 0;
+    const nextDescription =
+      !optionalCriterion && missingSignals.length > 0
+        ? `Must include: ${missingSignals.join("; ")}`
+        : criterion.description;
 
     if (evidenceMatched) {
       criteriaEvidenceStats.matched += 1;
@@ -670,6 +716,7 @@ export function enhanceReportWithClauses(
       : criterion.met;
     return {
       ...criterion,
+      description: nextDescription,
       evidence: nextEvidence,
       met: nextMet,
     };
@@ -816,28 +863,51 @@ function alignCriteriaWithIssues(
   return criteriaCopy;
 }
 
-function issueMatchesCriterion(
+function scoreIssueCriterionMatch(
   issue: AnalysisReport["issuesToAddress"][number],
   criterion: AnalysisReport["criteriaMet"][number],
-) {
+): number {
   const criterionId = normalizeIssueKey(criterion.id);
   const criterionTitle = normalizeTitleKey(criterion.title ?? "");
   const issueTitle = normalizeTitleKey(issue.title ?? "");
-  const issueId = normalizeIssueKey(issue.id);
-  if (issueId === criterionId) return true;
-  if (issueId.includes(criterionId) || criterionId.includes(issueId)) return true;
-  if (issueTitle && issueTitle === criterionTitle) return true;
+  const rawIssueId = normalizeIssueKey(issue.id ?? "");
+  const issueId = rawIssueId.replace(/^ISSUE_/, "");
+  let score = 0;
+
+  if (issueId === criterionId) score = Math.max(score, 100 + criterionId.length);
+  if (issueId.startsWith(`${criterionId}_`)) {
+    score = Math.max(score, 90 + criterionId.length);
+  } else if (issueId.includes(criterionId)) {
+    score = Math.max(score, 70 + criterionId.length);
+  }
+  if (issueTitle && issueTitle === criterionTitle) {
+    score = Math.max(score, 85 + criterionTitle.length);
+  } else if (issueTitle && criterionTitle && issueTitle.includes(criterionTitle)) {
+    score = Math.max(score, 60 + criterionTitle.length);
+  }
   if (Array.isArray(issue.tags)) {
     const tags = issue.tags.map((tag) => normalizeIssueKey(tag));
-    if (tags.includes(criterionId)) return true;
+    if (tags.includes(criterionId)) {
+      score = Math.max(score, 95 + criterionId.length);
+    }
   }
   const checklistIds = new Set<string>();
   extractChecklistIds(issue.id ?? "").forEach((id) => checklistIds.add(id));
   (issue.tags ?? []).forEach((tag) => {
     extractChecklistIds(tag ?? "").forEach((id) => checklistIds.add(id));
   });
-  if (checklistIds.has(criterionId)) return true;
-  return false;
+  if (checklistIds.has(criterionId)) {
+    score = Math.max(score, 88 + criterionId.length);
+  }
+
+  return score;
+}
+
+function issueMatchesCriterion(
+  issue: AnalysisReport["issuesToAddress"][number],
+  criterion: AnalysisReport["criteriaMet"][number],
+) {
+  return scoreIssueCriterionMatch(issue, criterion) > 0;
 }
 
 function backfillIssuesFromCriteria(
@@ -850,17 +920,25 @@ function backfillIssuesFromCriteria(
   criteria.forEach((criterion) => {
     if (optionalCriteriaIds.has(criterion.id)) return;
     if (criterion.met) return;
-    const hasIssue = nextIssues.some((issue) =>
-      issueMatchesCriterion(issue, criterion)
-    );
+    const hasIssue = nextIssues.some((issue) => {
+      const match = findMatchingCriterion(issue, criteria);
+      return match?.id === criterion.id;
+    });
     if (hasIssue) return;
 
     const fallbackText = `${criterion.title} ${criterion.description ?? ""}`.trim();
-    const matchResult = resolveClauseMatch({
-      clauseReference: null,
-      fallbackText,
-      clauses,
-    });
+    const criterionEvidence =
+      typeof criterion.evidence === "string" ? criterion.evidence.trim() : "";
+    const shouldAttemptMatch =
+      Boolean(fallbackText) &&
+      !isMissingEvidenceMarker(criterionEvidence);
+    const matchResult = shouldAttemptMatch
+      ? resolveClauseMatch({
+          clauseReference: null,
+          fallbackText,
+          clauses,
+        })
+      : { match: null, confidence: 0, method: "none", candidates: [] };
     const match = matchResult.match;
     const clauseText = match
       ? match.originalText ?? match.normalizedText ?? match.title ?? ""
@@ -906,7 +984,16 @@ function findMatchingCriterion(
   issue: AnalysisReport["issuesToAddress"][number],
   criteria: AnalysisReport["criteriaMet"],
 ) {
-  return criteria.find((criterion) => issueMatchesCriterion(issue, criterion));
+  let best: AnalysisReport["criteriaMet"][number] | undefined;
+  let bestScore = 0;
+  criteria.forEach((criterion) => {
+    const score = scoreIssueCriterionMatch(issue, criterion);
+    if (score > bestScore) {
+      bestScore = score;
+      best = criterion;
+    }
+  });
+  return bestScore > 0 ? best : undefined;
 }
 
 function isDraftIssue(issue: AnalysisReport["issuesToAddress"][number]) {

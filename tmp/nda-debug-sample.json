@@ -1,0 +1,161 @@
+{
+  "meta": {
+    "file": "/Users/salihhatipoglu/Desktop/maigon_io_v2_front_end_fresh/test_documents/NDA_Sample.txt",
+    "extractor": "edge",
+    "extractorRequested": "edge",
+    "playbookKey": "non_disclosure_agreement",
+    "playbookTitle": "Non-Disclosure Agreement",
+    "contentLength": 9203,
+    "clauseCount": 2
+  },
+  "clauseDigest": {
+    "summary": "1. [mutual-non-disclosure-agreement | confidential_information] MUTUAL NON-DISCLOSURE AGREEMENT (MUTUAL NON-DISCLOSURE AGREEMENT) -> This Mutual Non-Disclosure Agreement (\"Agreement\") is entered into as of January 15, 2024 (\"Effective Date\") by and between: TechVentures Inc., a Delaware corporation with offices at 123 Innovation Drive, San Francisco, CA 94105 (\"Party A\") AND Global Solutions Ltd., a United Kingdom private limited company with offices at 456 Tech Park, London EC1A 1BB (\"Party B\") (Each a \"Party\" and collectively the \"Parties\")\n2. [recitals | confidential_information] RECITALS (RECITALS) -> WHEREAS, the Parties wish to explore a business opportunity of mutual interest and benefit (the \"Purpose\"), which may involve the disclosure of Confidential Information; WHEREAS, each Party agrees to protect the confidentiality of any Confi ... tive Officer Date: January 15, 2024 GLOBAL SOLUTIONS LTD. By: _______________________________ Name: James Wilson Title: Managing Director Date: January 15, 2024",
+    "total": 2,
+    "categoryCounts": {
+      "confidential_information": 2
+    }
+  },
+  "retrievedExcerpts": {
+    "summary": "1. (Definition of Confidential Information) [recitals] RECITALS -> ties wish to explore a business opportunity of mutual interest and benefit (the \"Purpose\"), which may involve the disclosure of Confidential Information; WHEREAS, each Party agrees to protect the confidentiality of any Confidential Information disclosed by the other Party; NOW, THEREFORE, in consideration of the mutual\n2. (Return/Destroy obligations) [recitals] RECITALS -> d herein; (b) The Receiving Party remains responsible for any breach of this Agreement by its Representatives. 3. OWNERSHIP AND RETURN OF CONFIDENTIAL INFORMATION 3.1 All Confidential Information remains the sole property of the Disclosing Party. No license or other rights in the Confidential Information are granted he\n3. (Term & survival) [recitals] RECITALS -> e granted hereby, except the limited right to use it for the Purpose. 3.2 Upon written request by the Disclosing Party, or upon termination of this Agreement, the Receiving Party shall: (a) Promptly return or destroy all Confidential Information in any form, including all copies, notes, and derivatives; (b) Provide wri\n4. (Definition & exclusions) [recitals] RECITALS -> rty; NOW, THEREFORE, in consideration of the mutual covenants and agreements contained herein, the Parties agree as follows: 1. DEFINITION OF CONFIDENTIAL INFORMATION 1.1 \"Confidential Information\" means any information disclosed by one Party (the \"Disclosing Party\") to the other Party (the \"Receiving Party\"), whether \n5. (Remedies) [recitals] RECITALS -> remain trade secrets under applicable law; (b) Information relating to customer data shall remain confidential indefinitely. 6. REMEDIES 6.1 Each Party acknowledges that monetary damages may be inadequate to compensate for a breach of this Agreement and that the Disclosing Party shall be entitled to seek equitable reli\n6. (Exclusions for prior knowledge & public domain) [recitals] RECITALS -> eloped by the Receiving Party without use of or reference to the Confidential Information; (d) Was known to the Receiving Party prior to disclosure by the Disclosing Party, as evidenced by written records; or (e) Is required to be disclosed by law, regulation, or court order, provided that the Receiving Party provides \n7. (Injunctive relief) [recitals] RECITALS -> o compensate for a breach of this Agreement and that the Disclosing Party shall be entitled to seek equitable relief, including injunction and specific performance, in addition to all other remedies available at law or in equity. 6.2 The Receiving Party shall indemnify and hold harmless the Disclosing Party from any lo\n8. (Specific performance language) [recitals] RECITALS -> s, financial information, forecasts, customer lists, supplier information, pricing strategies, and marketing plans; (c) Product specifications, designs, development plans, and research data; (d) Any information marked as \"Confidential,\" \"Proprietary,\" or with a similar designation; (e) Any information that would reason",
+    "snippets": [
+      {
+        "clauseId": "recitals",
+        "title": "RECITALS",
+        "anchor": "Definition of Confidential Information",
+        "excerpt": "ties wish to explore a business opportunity of mutual interest and benefit (the \"Purpose\"), which may involve the disclosure of Confidential Information; WHEREAS, each Party agrees to protect the confidentiality of any Confidential Information disclosed by the other Party; NOW, THEREFORE, in consideration of the mutual"
+      },
+      {
+        "clauseId": "recitals",
+        "title": "RECITALS",
+        "anchor": "Return/Destroy obligations",
+        "excerpt": "d herein; (b) The Receiving Party remains responsible for any breach of this Agreement by its Representatives. 3. OWNERSHIP AND RETURN OF CONFIDENTIAL INFORMATION 3.1 All Confidential Information remains the sole property of the Disclosing Party. No license or other rights in the Confidential Information are granted he"
+      },
+      {
+        "clauseId": "recitals",
+        "title": "RECITALS",
+        "anchor": "Term & survival",
+        "excerpt": "e granted hereby, except the limited right to use it for the Purpose. 3.2 Upon written request by the Disclosing Party, or upon termination of this Agreement, the Receiving Party shall: (a) Promptly return or destroy all Confidential Information in any form, including all copies, notes, and derivatives; (b) Provide wri"
+      },
+      {
+        "clauseId": "recitals",
+        "title": "RECITALS",
+        "anchor": "Definition & exclusions",
+        "excerpt": "rty; NOW, THEREFORE, in consideration of the mutual covenants and agreements contained herein, the Parties agree as follows: 1. DEFINITION OF CONFIDENTIAL INFORMATION 1.1 \"Confidential Information\" means any information disclosed by one Party (the \"Disclosing Party\") to the other Party (the \"Receiving Party\"), whether "
+      },
+      {
+        "clauseId": "recitals",
+        "title": "RECITALS",
+        "anchor": "Remedies",
+        "excerpt": "remain trade secrets under applicable law; (b) Information relating to customer data shall remain confidential indefinitely. 6. REMEDIES 6.1 Each Party acknowledges that monetary damages may be inadequate to compensate for a breach of this Agreement and that the Disclosing Party shall be entitled to seek equitable reli"
+      },
+      {
+        "clauseId": "recitals",
+        "title": "RECITALS",
+        "anchor": "Exclusions for prior knowledge & public domain",
+        "excerpt": "eloped by the Receiving Party without use of or reference to the Confidential Information; (d) Was known to the Receiving Party prior to disclosure by the Disclosing Party, as evidenced by written records; or (e) Is required to be disclosed by law, regulation, or court order, provided that the Receiving Party provides "
+      },
+      {
+        "clauseId": "recitals",
+        "title": "RECITALS",
+        "anchor": "Injunctive relief",
+        "excerpt": "o compensate for a breach of this Agreement and that the Disclosing Party shall be entitled to seek equitable relief, including injunction and specific performance, in addition to all other remedies available at law or in equity. 6.2 The Receiving Party shall indemnify and hold harmless the Disclosing Party from any lo"
+      },
+      {
+        "clauseId": "recitals",
+        "title": "RECITALS",
+        "anchor": "Specific performance language",
+        "excerpt": "s, financial information, forecasts, customer lists, supplier information, pricing strategies, and marketing plans; (c) Product specifications, designs, development plans, and research data; (d) Any information marked as \"Confidential,\" \"Proprietary,\" or with a similar designation; (e) Any information that would reason"
+      }
+    ]
+  },
+  "coverage": {
+    "coverageScore": 0.67,
+    "criticalClauses": [
+      {
+        "title": "Definition & exclusions",
+        "met": false,
+        "evidence": "RECITALS",
+        "missingMustInclude": [
+          "Clear residual knowledge stance"
+        ]
+      },
+      {
+        "title": "Remedies",
+        "met": true,
+        "evidence": "RECITALS",
+        "missingMustInclude": []
+      }
+    ],
+    "anchorCoverage": [
+      {
+        "anchor": "Definition of Confidential Information",
+        "met": true,
+        "evidence": "RECITALS"
+      },
+      {
+        "anchor": "Permitted disclosures",
+        "met": false
+      },
+      {
+        "anchor": "Return/Destroy obligations",
+        "met": true,
+        "evidence": "RECITALS"
+      },
+      {
+        "anchor": "Term & survival",
+        "met": true,
+        "evidence": "RECITALS"
+      }
+    ]
+  },
+  "missingAnchors": [
+    "Permitted disclosures"
+  ],
+  "missingCriticalClauses": [
+    "Definition & exclusions"
+  ],
+  "clauses": [
+    {
+      "id": "mutual-non-disclosure-agreement",
+      "clauseId": "mutual-non-disclosure-agreement",
+      "title": "MUTUAL NON-DISCLOSURE AGREEMENT",
+      "category": "confidential_information",
+      "originalText": "This Mutual Non-Disclosure Agreement (\"Agreement\") is entered into as of January 15, 2024 (\"Effective Date\") by and between: TechVentures Inc., a Delaware corporation with offices at 123 Innovation Drive, San Francisco, CA 94105 (\"Party A\") AND Global Solutions Ltd., a United Kingdom private limited company with offices at 456 Tech Park, London EC1A 1BB (\"Party B\") (Each a \"Party\" and collectively the \"Parties\")",
+      "normalizedText": "This Mutual Non-Disclosure Agreement (\"Agreement\") is entered into as of January 15, 2024 (\"Effective Date\") by and between: TechVentures Inc., a Delaware corporation with offices at 123 Innovation Drive, San Francisco, CA 94105 (\"Party A\")",
+      "location": {
+        "page": null,
+        "paragraph": null,
+        "section": "MUTUAL NON-DISCLOSURE AGREEMENT",
+        "clauseNumber": null
+      },
+      "references": [
+        "segment 1"
+      ],
+      "metadata": {
+        "source": "segment-parser",
+        "contractType": "non_disclosure_agreement"
+      }
+    },
+    {
+      "id": "recitals",
+      "clauseId": "recitals",
+      "title": "RECITALS",
+      "category": "confidential_information",
+      "originalText": "WHEREAS, the Parties wish to explore a business opportunity of mutual interest and benefit (the \"Purpose\"), which may involve the disclosure of Confidential Information; WHEREAS, each Party agrees to protect the confidentiality of any Confidential Information disclosed by the other Party; NOW, THEREFORE, in consideration of the mutual covenants and agreements contained herein, the Parties agree as follows: 1. DEFINITION OF CONFIDENTIAL INFORMATION 1.1 \"Confidential Information\" means any information disclosed by one Party (the \"Disclosing Party\") to the other Party (the \"Receiving Party\"), whether orally, in writing, or by inspection of tangible objects, including but not limited to: (a) Trade secrets, know-how, inventions, techniques, processes, algorithms, software programs, schematics, and other technical information; (b) Business plans, financial information, forecasts, customer lists, supplier information, pricing strategies, and marketing plans; (c) Product specifications, designs, development plans, and research data; (d) Any information marked as \"Confidential,\" \"Proprietary,\" or with a similar designation; (e) Any information that would reasonably be considered confidential given the nature of the information and circumstances of disclosure. 1.2 Confidential Information does not include information that: (a) Is or becomes publicly available through no breach of this Agreement by the Receiving Party; (b) Is rightfully received by the Receiving Party from a third party without breach of any confidentiality obligation; (c) Is independently developed by the Receiving Party without use of or reference to the Confidential Information; (d) Was known to the Receiving Party prior to disclosure by the Disclosing Party, as evidenced by written records; or (e) Is required to be disclosed by law, regulation, or court order, provided that the Receiving Party provides prompt notice to the Disclosing Party and cooperates in seeking protective measures. 2. OBLIGATIONS OF RECEIVING PARTY 2.1 The Receiving Party agrees to: (a) Hold all Confidential Information in strict confidence; (b) Use the Confidential Information solely for the Purpose and for no other purpose; (c) Not disclose the Confidential Information to any third party without the prior written consent of the Disclosing Party; (d) Restrict access to the Confidential Information to employees, contractors, and advisors who have a legitimate need to know and who have been informed of the confidential nature of such information; (e) Protect the Confidential Information using the same degree of care that it uses to protect its own confidential information, but in no event less than reasonable care; (f) Not reverse engineer, disassemble, or decompile any prototypes, software, or other tangible objects that embody the Confidential Information. 2.2 The Receiving Party may disclose Confidential Information to its employees, officers, directors, agents, consultants, and professional advisors (collectively, \"Representatives\") who need to know such information for the Purpose, provided that: (a) Such Representatives are bound by written confidentiality obligations no less restrictive than those contained herein; (b) The Receiving Party remains responsible for any breach of this Agreement by its Representatives. 3. OWNERSHIP AND RETURN OF CONFIDENTIAL INFORMATION 3.1 All Confidential Information remains the sole property of the Disclosing Party. No license or other rights in the Confidential Information are granted hereby, except the limited right to use it for the Purpose. 3.2 Upon written request by the Disclosing Party, or upon termination of this Agreement, the Receiving Party shall: (a) Promptly return or destroy all Confidential Information in any form, including all copies, notes, and derivatives; (b) Provide written certification of such return or destruction within thirty (30) days; (c) Permanently delete all electronic copies of Confidential Information from its systems, including backup systems. 3.3 Notwithstanding Section 3.2, the Receiving Party may retain one copy of the Confidential Information solely for archival purposes and to ensure compliance with its legal obligations, subject to the continuing confidentiality obligations herein. 4. NO OBLIGATION TO DISCLOSE OR ENTER INTO FURTHER AGREEMENTS 4.1 Neither Party is obligated to disclose any Confidential Information to the other Party. 4.2 Neither Party is obligated to enter into any further agreement or business relationship with the other Party. 4.3 Each Party may terminate discussions regarding the Purpose at any time without liability. 5. TERM AND TERMINATION 5.1 This Agreement shall commence on the Effective Date and continue for a period of three (3) years, unless earlier terminated by either Party upon thirty (30) days' prior written notice to the other Party. 5.2 The obligations of confidentiality set forth in this Agreement shall survive termination and shall remain in effect for five (5) years from the date of disclosure of the Confidential Information, except that: (a) Trade secrets shall remain confidential for as long as they remain trade secrets under applicable law; (b) Information relating to customer data shall remain confidential indefinitely. 6. REMEDIES 6.1 Each Party acknowledges that monetary damages may be inadequate to compensate for a breach of this Agreement and that the Disclosing Party shall be entitled to seek equitable relief, including injunction and specific performance, in addition to all other remedies available at law or in equity. 6.2 The Receiving Party shall indemnify and hold harmless the Disclosing Party from any losses, damages, costs, or expenses (including reasonable attorneys' fees) arising from any breach of this Agreement by the Receiving Party or its Representatives. 7. REPRESENTATIONS AND WARRANTIES 7.1 Each Party represents and warrants that: (a) It has the full right, power, and authority to enter into this Agreement; (b) The execution and performance of this Agreement does not conflict with any other agreement or obligation to which it is a party; (c) It will comply with all applicable laws and regulations in connection with this Agreement. 8. LIMITATION OF LIABILITY 8.1 NEITHER PARTY MAKES ANY REPRESENTATION OR WARRANTY, EXPRESS OR IMPLIED, AS TO THE ACCURACY OR COMPLETENESS OF THE CONFIDENTIAL INFORMATION. 8.2 NEITHER PARTY SHALL BE LIABLE FOR ANY INDIRECT, INCIDENTAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES ARISING OUT OF OR RELATED TO THIS AGREEMENT. 9. GENERAL PROVISIONS 9.1 Governing Law: This Agreement shall be governed by and construed in accordance with the laws of the State of California, without regard to its conflicts of law principles. 9.2 Jurisdiction: Any disputes arising out of or relating to this Agreement shall be subject to the exclusive jurisdiction of the state and federal courts located in San Francisco County, California. 9.3 Entire Agreement: This Agreement constitutes the entire agreement between the Parties with respect to the subject matter hereof and supersedes all prior agreements and understandings. 9.4 Amendment: This Agreement may be amended only by a written instrument signed by both Parties. 9.5 Waiver: No waiver of any provision of this Agreement shall be effective unless in writing and signed by the Party against whom such waiver is sought to be enforced. 9.6 Severability: If any provision of this Agreement is held to be invalid or unenforceable, the remaining provisions shall continue in full force and effect. 9.7 Assignment: Neither Party may assign this Agreement without the prior written consent of the other Party, except that either Party may assign this Agreement to a successor in connection with a merger, acquisition, or sale of all or substantially all of its assets. 9.8 Notices: All notices under this Agreement shall be in writing and delivered by email, certified mail, or courier to the addresses set forth above or such other addresses as may be designated in writing. 9.9 Counterparts: This Agreement may be executed in counterparts, each of which shall be deemed an original and all of which together shall constitute one and the same instrument. 9.10 Force Majeure: Neither Party shall be liable for any failure or delay in performance due to causes beyond its reasonable control. IN WITNESS WHEREOF, the Parties have executed this Mutual Non-Disclosure Agreement as of the Effective Date. TECHVENTURES INC. By: _______________________________ Name: Sarah Chen Title: Chief Executive Officer Date: January 15, 2024 GLOBAL SOLUTIONS LTD. By: _______________________________ Name: James Wilson Title: Managing Director Date: January 15, 2024",
+      "normalizedText": "WHEREAS, the Parties wish to explore a business opportunity of mutual interest and benefit (the \"Purpose\"), which may involve the disclosure of Confidential Information; WHEREAS, each Party agrees to protect the confidentiality of any Confi",
+      "location": {
+        "page": null,
+        "paragraph": null,
+        "section": "RECITALS",
+        "clauseNumber": null
+      },
+      "references": [
+        "segment 2"
+      ],
+      "metadata": {
+        "source": "segment-parser",
+        "contractType": "non_disclosure_agreement"
+      }
+    }
+  ]
+}
