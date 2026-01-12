@@ -357,7 +357,7 @@ function tokenMatchesClause(
   token: string,
   clauseTokenSet: Set<string>,
 ): boolean {
-  if (STRUCTURAL_TOKENS.has(token)) {
+  if (isStructuralToken(token)) {
     return tokenVariants(token).some((variant) => clauseTokenSet.has(variant));
   }
   return clauseTokenSet.has(token);
@@ -875,15 +875,16 @@ function scoreAnchorToIssue(anchor: string, issue: IssueLike): number {
 }
 
 function scoreEditToIssue(edit: ProposedEditLike, issue: IssueLike): number {
-  const editText = [
+  const editParts = [
     edit.id,
     edit.intent,
     edit.rationale,
     edit.proposedText,
-    edit.anchorText,
-  ]
-    .filter(Boolean)
-    .join(" ");
+  ].filter(Boolean);
+  if (editParts.length === 0 && edit.anchorText) {
+    editParts.push(edit.anchorText);
+  }
+  const editText = editParts.join(" ");
   const issueText = [
     issue.id,
     issue.title,
@@ -1017,6 +1018,41 @@ export function bindProposedEditsToClauses(options: {
       let nextIntent = edit.intent;
       if (structuralMismatch) nextIntent = "insert";
       if (nextIntent === "replace" && !anchorMatches) nextIntent = "insert";
+      if ((structuralMismatch || !anchorMatches) && editSignal.trim()) {
+        const altMatch = resolveClauseMatch({
+          clauseReference: null,
+          fallbackText: editSignal,
+          clauses,
+        });
+        const altId = altMatch.match
+          ? getClauseIdentifier(altMatch.match)
+          : null;
+        const normalizedAlt = normalizeClauseId(altId);
+        const canRebind =
+          normalizedAlt &&
+          normalizedAlt !== normalizedCurrentId &&
+          altMatch.confidence >= MIN_MATCH_SCORE + 0.08;
+        if (canRebind) {
+          const altClause = clauseById.get(normalizedAlt);
+          const altText = altClause
+            ? altClause.originalText ?? altClause.normalizedText ?? altClause.title ?? ""
+            : "";
+          const altAnchor = altText
+            ? normalizeAnchorText(anchorSeed, altText)
+            : anchorText;
+          const altAnchorMatches = altText
+            ? checkEvidenceMatchAgainstClause(altAnchor, altText).matched
+            : false;
+          if (altAnchorMatches || altMatch.method === "heading") {
+            return {
+              ...edit,
+              clauseId: clauseIdMap.get(normalizedAlt) ?? altId ?? canonical,
+              anchorText: altAnchor,
+              intent: "insert",
+            };
+          }
+        }
+      }
       return {
         ...edit,
         clauseId: canonical,
@@ -1027,17 +1063,30 @@ export function bindProposedEditsToClauses(options: {
 
     const anchorText =
       typeof edit.anchorText === "string" ? edit.anchorText.trim() : "";
-    let bestIssue: IssueLike | null = null;
-    let bestScore = 0;
+    let bestEditIssue: IssueLike | null = null;
+    let bestEditScore = 0;
+    let bestAnchorIssue: IssueLike | null = null;
+    let bestAnchorScore = 0;
     issues.forEach((issue) => {
       const anchorScore = anchorText ? scoreAnchorToIssue(anchorText, issue) : 0;
+      if (anchorScore > bestAnchorScore) {
+        bestAnchorScore = anchorScore;
+        bestAnchorIssue = issue;
+      }
       const editScore = scoreEditToIssue(edit, issue);
-      const score = Math.max(anchorScore, editScore);
-      if (score > bestScore) {
-        bestScore = score;
-        bestIssue = issue;
+      if (editScore > bestEditScore) {
+        bestEditScore = editScore;
+        bestEditIssue = issue;
       }
     });
+    const useEditMatch =
+      bestEditIssue !== null && bestEditScore >= MIN_MATCH_SCORE;
+    const useAnchorMatch =
+      !useEditMatch &&
+      bestAnchorIssue !== null &&
+      bestAnchorScore >= MIN_MATCH_SCORE;
+    const bestIssue = useEditMatch ? bestEditIssue : bestAnchorIssue;
+    const bestScore = useEditMatch ? bestEditScore : bestAnchorScore;
     if (bestIssue && bestScore >= MIN_MATCH_SCORE) {
       const boundId = issueClauseMap.get(bestIssue);
       if (boundId) {

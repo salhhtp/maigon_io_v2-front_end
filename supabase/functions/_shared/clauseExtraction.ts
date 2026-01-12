@@ -162,6 +162,7 @@ const buildCriteriaFromPlaybook = (playbook: ContractPlaybook) => {
   const requirementsById = new Map<string, string[]>();
   const usedIds = new Map<string, number>();
   const optionalCriteriaIds = new Set<string>();
+  const criticalCriteriaIds = new Set<string>();
   const criticalTitles = playbook.criticalClauses.map((clause) => clause.title);
 
   playbook.criticalClauses.forEach((clause, index) => {
@@ -170,6 +171,7 @@ const buildCriteriaFromPlaybook = (playbook: ContractPlaybook) => {
       usedIds,
       `CRITICAL_${index + 1}`,
     );
+    criticalCriteriaIds.add(id);
     requirementsById.set(
       id,
       clause.mustInclude?.length ? clause.mustInclude : [clause.title],
@@ -208,7 +210,12 @@ const buildCriteriaFromPlaybook = (playbook: ContractPlaybook) => {
     });
   });
 
-  return { criteria, requirementsById, optionalCriteriaIds };
+  return {
+    criteria,
+    requirementsById,
+    optionalCriteriaIds,
+    criticalCriteriaIds,
+  };
 };
 
 export function matchClauseToText(
@@ -237,6 +244,8 @@ export function enhanceReportWithClauses(
     playbookCriteria?.requirementsById ?? new Map<string, string[]>();
   const optionalCriteriaIds =
     playbookCriteria?.optionalCriteriaIds ?? new Set<string>();
+  const criticalCriteriaIds =
+    playbookCriteria?.criticalCriteriaIds ?? new Set<string>();
   const issueEvidenceStats = {
     total: report.issuesToAddress.length,
     matched: 0,
@@ -758,6 +767,7 @@ export function enhanceReportWithClauses(
     issuesWithNormalizedEvidence,
     clauseCandidates,
     optionalCriteriaIds,
+    criticalCriteriaIds,
   );
 
   if (issuesBackfilledFromCriteria.length === 0) {
@@ -774,9 +784,14 @@ export function enhanceReportWithClauses(
     optionalCriteriaIds,
   );
 
+  const issuesWithRationaleFix = rewriteCompelledDisclosureRationale(
+    issuesFiltered,
+    clauseCandidates,
+  );
+
   const criteriaAlignedWithIssues = alignCriteriaWithIssues(
     criteriaWithEvidence,
-    issuesFiltered,
+    issuesWithRationaleFix,
   );
   const metOnlyCriteria = criteriaAlignedWithIssues.filter(
     (criterion) =>
@@ -840,7 +855,7 @@ export function enhanceReportWithClauses(
   return {
     ...report,
     clauseExtractions: clauseCandidates,
-    issuesToAddress: issuesFiltered,
+    issuesToAddress: issuesWithRationaleFix,
     criteriaMet: metOnlyCriteria,
     metadata: nextMetadata as AnalysisReport["metadata"],
   };
@@ -947,6 +962,7 @@ function backfillIssuesFromCriteria(
   issues: AnalysisReport["issuesToAddress"],
   clauses: ClauseExtraction[],
   optionalCriteriaIds: Set<string>,
+  criticalCriteriaIds: Set<string>,
 ): AnalysisReport["issuesToAddress"] {
   const nextIssues = [...issues];
   criteria.forEach((criterion) => {
@@ -961,9 +977,10 @@ function backfillIssuesFromCriteria(
     const fallbackText = `${criterion.title} ${criterion.description ?? ""}`.trim();
     const criterionEvidence =
       typeof criterion.evidence === "string" ? criterion.evidence.trim() : "";
+    const isCriticalCriterion = criticalCriteriaIds.has(criterion.id);
     const shouldAttemptMatch =
       Boolean(fallbackText) &&
-      !isMissingEvidenceMarker(criterionEvidence);
+      (!isMissingEvidenceMarker(criterionEvidence) || isCriticalCriterion);
     const matchResult = shouldAttemptMatch
       ? resolveClauseMatch({
           clauseReference: null,
@@ -1037,6 +1054,77 @@ function isDraftIssue(issue: AnalysisReport["issuesToAddress"][number]) {
     return issue.tags.some((tag) => normalizeIssueKey(tag).startsWith("EDIT_"));
   }
   return false;
+}
+
+function isCompelledDisclosureIssue(
+  issue: AnalysisReport["issuesToAddress"][number],
+): boolean {
+  const combined = [
+    issue.title,
+    issue.category,
+    issue.id,
+    ...(issue.tags ?? []),
+  ]
+    .filter(Boolean)
+    .join(" ");
+  const normalized = normalizeForMatch(combined);
+  if (!normalized) return false;
+  if (normalized.includes("compelled disclosure")) return true;
+  return normalized.includes("compelled") && normalized.includes("disclosure");
+}
+
+function hasPromptNoticeEvidence(value: string): boolean {
+  const normalized = normalizeForMatch(value);
+  if (!normalized) return false;
+  const hasPrompt = normalized.includes("prompt");
+  const hasNotice =
+    normalized.includes("notice") ||
+    normalized.includes("notify") ||
+    normalized.includes("notification");
+  return hasPrompt && hasNotice;
+}
+
+function mentionsDisclosureLimit(value: string): boolean {
+  const normalized = normalizeForMatch(value);
+  if (!normalized) return false;
+  if (
+    normalized.includes("limit") ||
+    normalized.includes("minimiz") ||
+    normalized.includes("minimis") ||
+    normalized.includes("restrict") ||
+    normalized.includes("narrow")
+  ) {
+    return true;
+  }
+  return normalized.includes("protective order");
+}
+
+function rewriteCompelledDisclosureRationale(
+  issues: AnalysisReport["issuesToAddress"],
+  clauses: ClauseExtraction[],
+): AnalysisReport["issuesToAddress"] {
+  return issues.map((issue) => {
+    if (!isCompelledDisclosureIssue(issue)) return issue;
+    if (mentionsDisclosureLimit(issue.rationale ?? "")) return issue;
+    let evidenceText = issue.clauseReference?.excerpt ?? "";
+    if (!evidenceText || isMissingEvidenceMarker(evidenceText)) {
+      const clauseId = issue.clauseReference?.clauseId ?? "";
+      if (clauseId) {
+        const normalizedId = normalizeForMatch(clauseId);
+        const clause = clauses.find((entry) =>
+          normalizeForMatch(getClauseKey(entry)) === normalizedId
+        );
+        evidenceText =
+          clause?.originalText ?? clause?.normalizedText ?? clause?.title ?? "";
+      }
+    }
+    if (!hasPromptNoticeEvidence(evidenceText)) return issue;
+    return {
+      ...issue,
+      rationale:
+        "Prompt notice is present, but the clause does not require limiting or minimizing compelled disclosure (for example, seeking a protective order or narrowing scope).",
+    };
+  });
 }
 
 function filterIssuesByCriteria(
