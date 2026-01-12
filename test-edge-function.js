@@ -52,11 +52,64 @@ of execution.
 This Agreement shall be governed by the laws of the State of California.
 `.trim();
 
+const TERM_BINDING_CONTRACT = `
+NON-DISCLOSURE AGREEMENT
+
+This Non-Disclosure Agreement (the "Agreement") is entered into as of January 1, 2025
+between Company A ("Disclosing Party") and Company B ("Receiving Party").
+
+1. CONFIDENTIAL INFORMATION
+The Discloser agrees to disclose Confidential Information to the Receiving Party
+for the purpose of evaluating a potential business relationship.
+
+2. OBLIGATIONS
+The Receiving Party agrees to keep all Confidential Information strictly confidential
+and use it solely for the agreed purpose.
+
+3. TERM AND TERMINATION
+This Agreement enters into force upon signing and will be valid indefinitely.
+`.trim();
+
+const normalizeForTest = (value) => {
+  if (!value) return "";
+  return value
+    .toString()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+};
+
+const isMissingMarker = (value) => {
+  const normalized = normalizeForTest(value);
+  if (!normalized) return false;
+  return (
+    normalized.includes("not present") ||
+    normalized.includes("evidence not found") ||
+    normalized.includes("missing")
+  );
+};
+
+const findIssueBySignals = (issues, signals) => {
+  return issues.find((issue) => {
+    const haystack = [
+      issue.id,
+      issue.title,
+      issue.category,
+      ...(issue.tags ?? []),
+    ]
+      .filter(Boolean)
+      .join(" ");
+    const normalized = normalizeForTest(haystack);
+    return signals.every((signal) => normalized.includes(signal));
+  });
+};
+
 async function testEdgeFunction() {
   console.log("🧪 Testing analyze-contract Edge Function...\n");
 
   const testCases = [
     {
+      key: "full_summary",
       name: "Full Summary Analysis",
       payload: {
         content: TEST_CONTRACT,
@@ -67,6 +120,7 @@ async function testEdgeFunction() {
       },
     },
     {
+      key: "risk_assessment",
       name: "Risk Assessment",
       payload: {
         content: TEST_CONTRACT,
@@ -77,6 +131,7 @@ async function testEdgeFunction() {
       },
     },
     {
+      key: "compliance_score",
       name: "Compliance Score",
       payload: {
         content: TEST_CONTRACT,
@@ -86,9 +141,36 @@ async function testEdgeFunction() {
         fileName: "test-nda.txt",
       },
     },
+    {
+      key: "term_binding",
+      name: "Term Binding Check",
+      payload: {
+        content: TERM_BINDING_CONTRACT,
+        reviewType: "full_summary",
+        model: "openai-gpt-4",
+        contractType: "nda",
+        fileName: "test-nda-term-binding.txt",
+      },
+    },
   ];
 
-  for (const testCase of testCases) {
+  const requestedCases = (process.env.EDGE_TEST_CASES ?? "")
+    .split(",")
+    .map((value) => normalizeForTest(value))
+    .filter(Boolean);
+  const activeCases =
+    requestedCases.length > 0
+      ? testCases.filter((testCase) => {
+          const key = normalizeForTest(
+            testCase.key ?? testCase.payload.reviewType ?? testCase.name,
+          );
+          return requestedCases.some((requested) =>
+            key === requested || key.includes(requested),
+          );
+        })
+      : testCases;
+
+  for (const testCase of activeCases) {
     console.log(`\n📋 Test: ${testCase.name}`);
     console.log("─".repeat(60));
 
@@ -174,6 +256,65 @@ async function testEdgeFunction() {
           "❌ Summary contains XML/XMP metadata - PDF parser needs fixing",
         );
         console.error("Sample:", summaryText.substring(0, 200));
+      }
+
+      const issues =
+        Array.isArray(result.issues)
+          ? result.issues
+          : result?.structured_report?.issuesToAddress ?? [];
+      if (issues.length > 0) {
+        const clauseExtractions = Array.isArray(
+          result?.structured_report?.clauseExtractions,
+        )
+          ? result.structured_report.clauseExtractions
+          : [];
+        if (clauseExtractions.length === 0) {
+          console.log(
+            "⚠️  No clause extractions returned; skipping binding checks",
+          );
+        } else {
+          const termIssue = findIssueBySignals(issues, ["term", "survival"]);
+          if (termIssue) {
+            const clauseRef = termIssue.clauseReference ?? {};
+            const clauseId = normalizeForTest(clauseRef.clauseId);
+            const heading = normalizeForTest(clauseRef.heading);
+            if (isMissingMarker(clauseRef.excerpt) || isMissingMarker(clauseId)) {
+              validationErrors.push(
+                "Term/survival issue is still marked as missing instead of binding to a term clause.",
+              );
+            } else if (
+              !clauseId.includes("term") &&
+              !heading.includes("term")
+            ) {
+              validationErrors.push(
+                "Term/survival issue did not bind to a term-related clause.",
+              );
+            } else {
+              console.log("✅ Term/survival issue bound to a term clause");
+            }
+          } else {
+            console.log("⚠️  Term/survival issue not found; skip binding check");
+          }
+
+          const remediesIssue = findIssueBySignals(issues, ["remed"]);
+          if (remediesIssue) {
+            const clauseRef = remediesIssue.clauseReference ?? {};
+            const clauseId = normalizeForTest(clauseRef.clauseId);
+            if (
+              !isMissingMarker(clauseRef.excerpt) &&
+              clauseId &&
+              !clauseId.startsWith("missing")
+            ) {
+              validationErrors.push(
+                "Remedies issue is bound to a clause despite no remedies language in the test contract.",
+              );
+            } else {
+              console.log("✅ Remedies issue left unbound as expected");
+            }
+          } else {
+            console.log("⚠️  Remedies issue not found; skip binding check");
+          }
+        }
       }
 
       if (validationErrors.length > 0) {

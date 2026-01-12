@@ -25,6 +25,9 @@ const OPTIONAL_ANCHOR_PATTERN = /\bif (applicable|relevant)\b/i;
 const MIN_ISSUE_CONFIDENCE = 0.2;
 const MIN_CRITERIA_CONFIDENCE = 0.2;
 const DUPLICATE_EXCERPT_MIN_CONFIDENCE = 0.35;
+const REBIND_MIN_COVERAGE = 0.3;
+const REBIND_SCORE_DELTA = 0.15;
+const HEADING_REBIND_MIN_COVERAGE = 0.4;
 const NEGATIVE_EVIDENCE_MARKERS = [
   "no clause",
   "not present",
@@ -123,6 +126,60 @@ const similarityForText = (a: string, b: string) => {
   });
   const union = new Set([...setA, ...setB]).size;
   return union === 0 ? 0 : intersection / union;
+};
+
+const buildClauseMatchText = (clause: ClauseExtraction) =>
+  [clause.title, clause.originalText, clause.normalizedText]
+    .filter(Boolean)
+    .join(" ")
+    .trim();
+
+const buildClauseHeadingText = (clause: ClauseExtraction) =>
+  [
+    clause.title,
+    clause.location?.section,
+    clause.clauseId,
+    clause.id,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .trim();
+
+const tokenCoverageWithVariants = (
+  tokens: string[],
+  clauseTokens: string[],
+): number => {
+  if (!tokens.length || !clauseTokens.length) return 0;
+  const clauseSet = new Set(clauseTokens);
+  let hits = 0;
+  tokens.forEach((token) => {
+    if (tokenVariants(token).some((variant) => clauseSet.has(variant))) {
+      hits += 1;
+    }
+  });
+  return hits / tokens.length;
+};
+
+const findBestClauseByCoverage = (
+  tokens: string[],
+  clauses: ClauseExtraction[],
+  options?: { headingOnly?: boolean },
+): { clause: ClauseExtraction; score: number } | null => {
+  if (!tokens.length) return null;
+  let best: { clause: ClauseExtraction; score: number } | null = null;
+  clauses.forEach((clause) => {
+    const clauseText = options?.headingOnly
+      ? buildClauseHeadingText(clause)
+      : buildClauseMatchText(clause);
+    if (!clauseText) return;
+    const clauseTokens = tokenizeForMatch(clauseText);
+    const score = tokenCoverageWithVariants(tokens, clauseTokens);
+    if (score <= 0) return;
+    if (!best || score > best.score) {
+      best = { clause, score };
+    }
+  });
+  return best;
 };
 
 const buildCriterionId = (
@@ -233,7 +290,10 @@ export function enhanceReportWithClauses(
     playbook?: ContractPlaybook | null;
   },
 ): AnalysisReport {
-  const clauseCandidates = options.clauses ?? [];
+  const clauseCandidates =
+    options.clauses && options.clauses.length > 0
+      ? options.clauses
+      : report.clauseExtractions ?? [];
   const content = options.content ?? "";
   const normalizedContent = normalizeForMatch(content);
   const playbookCriteria = options.playbook
@@ -435,6 +495,70 @@ export function enhanceReportWithClauses(
           }
         }
       }
+    }
+
+    const issueMatchTokens = issueStructuralTokens.length > 0
+      ? issueStructuralTokens
+      : issueTokens;
+    const hasMissingEvidence =
+      isMissingEvidenceMarker(existingReference?.excerpt ?? "") ||
+      existingClauseKey.startsWith("missing") ||
+      existingClauseKey.startsWith("unbound");
+    const currentClauseText = match ? buildClauseMatchText(match) : "";
+    const currentCoverage =
+      currentClauseText && issueMatchTokens.length > 0
+        ? tokenCoverageWithVariants(
+          issueMatchTokens,
+          tokenizeForMatch(currentClauseText),
+        )
+        : 0;
+    const bestCoverageMatch = issueMatchTokens.length > 0
+      ? findBestClauseByCoverage(issueMatchTokens, clauseCandidates)
+      : null;
+    const headingCoverageMatch =
+      isCriticalIssue && hasMissingEvidence && issueMatchTokens.length > 0
+        ? findBestClauseByCoverage(issueMatchTokens, clauseCandidates, {
+          headingOnly: true,
+        })
+        : null;
+    const shouldRebindByCoverage = Boolean(
+      bestCoverageMatch &&
+        bestCoverageMatch.score >= REBIND_MIN_COVERAGE &&
+        (!match ||
+          currentCoverage < REBIND_MIN_COVERAGE ||
+          bestCoverageMatch.score >= currentCoverage + REBIND_SCORE_DELTA),
+    );
+    const shouldRebindByHeading = Boolean(
+      !shouldRebindByCoverage &&
+        headingCoverageMatch &&
+        headingCoverageMatch.score >= HEADING_REBIND_MIN_COVERAGE &&
+        (!match || currentCoverage < REBIND_MIN_COVERAGE),
+    );
+    if (shouldRebindByCoverage || shouldRebindByHeading) {
+      const rebindCandidate = shouldRebindByCoverage
+        ? bestCoverageMatch!
+        : headingCoverageMatch!;
+      const rebindMethod = shouldRebindByHeading ? "heading" : "text";
+      match = rebindCandidate.clause;
+      matchResult = {
+        match,
+        confidence: rebindCandidate.score,
+        method: rebindMethod,
+        candidates: matchResult.candidates,
+      };
+      acceptedMatch = true;
+      issueStructuralMismatch = false;
+      trustExistingClauseId = false;
+    } else if (
+      isCriticalIssue &&
+      match &&
+      issueMatchTokens.length > 0 &&
+      currentCoverage < REBIND_MIN_COVERAGE
+    ) {
+      match = null;
+      acceptedMatch = false;
+      issueStructuralMismatch = true;
+      trustExistingClauseId = false;
     }
 
     const matchedClauseId = match?.clauseId ?? match?.id ?? null;
