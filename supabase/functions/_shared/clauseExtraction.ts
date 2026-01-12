@@ -295,6 +295,27 @@ export function enhanceReportWithClauses(
       excerpt: undefined,
       locationHint: undefined,
     };
+    const matchedCriticalCriterion =
+      criticalCriteriaIds.size > 0 && baseCriteria.length > 0
+        ? findMatchingCriterion(issue, baseCriteria)
+        : undefined;
+    const isCriticalIssue = Boolean(
+      matchedCriticalCriterion &&
+        criticalCriteriaIds.has(matchedCriticalCriterion.id),
+    );
+    const existingClauseKey = normalizeForMatch(existingReference?.clauseId ?? "");
+    const allowCriticalStructuralMismatch =
+      isCriticalIssue &&
+      (isMissingEvidenceMarker(existingReference?.excerpt ?? "") ||
+        existingClauseKey.startsWith("missing") ||
+        existingClauseKey.startsWith("unbound"));
+    const canIgnoreStructuralMismatch = (
+      method: string,
+      confidence: number,
+    ) =>
+      allowCriticalStructuralMismatch &&
+      (method === "heading" || method === "id" ||
+        confidence >= MIN_ISSUE_CONFIDENCE + 0.1);
     let matchResult = resolveClauseMatch({
       clauseReference: issue.clauseReference ?? null,
       fallbackText,
@@ -360,7 +381,14 @@ export function enhanceReportWithClauses(
           const reClauseText =
             match.originalText ?? match.normalizedText ?? match.title ?? "";
           const reClauseTokens = tokenizeForMatch(reClauseText);
-          if (!hasStructuralMatch(issueStructuralTokens, reClauseTokens)) {
+          const structuralMismatch = !hasStructuralMatch(
+            issueStructuralTokens,
+            reClauseTokens,
+          );
+          if (
+            structuralMismatch &&
+            !canIgnoreStructuralMismatch(reMatch.method, reMatch.confidence)
+          ) {
             match = null;
             acceptedMatch = false;
             issueStructuralMismatch = true;
@@ -376,7 +404,10 @@ export function enhanceReportWithClauses(
         issueStructuralTokens,
         clauseTokens,
       );
-      if (structuralMismatch) {
+      if (
+        structuralMismatch &&
+        !canIgnoreStructuralMismatch(matchResult.method, matchResult.confidence)
+      ) {
         issueStructuralMismatch = true;
         trustExistingClauseId = false;
         const reMatch = resolveClauseMatch({
@@ -1096,7 +1127,7 @@ function mentionsDisclosureLimit(value: string): boolean {
   ) {
     return true;
   }
-  return normalized.includes("protective order");
+  return false;
 }
 
 function rewriteCompelledDisclosureRationale(
@@ -1106,23 +1137,25 @@ function rewriteCompelledDisclosureRationale(
   return issues.map((issue) => {
     if (!isCompelledDisclosureIssue(issue)) return issue;
     if (mentionsDisclosureLimit(issue.rationale ?? "")) return issue;
-    let evidenceText = issue.clauseReference?.excerpt ?? "";
-    if (!evidenceText || isMissingEvidenceMarker(evidenceText)) {
-      const clauseId = issue.clauseReference?.clauseId ?? "";
-      if (clauseId) {
-        const normalizedId = normalizeForMatch(clauseId);
-        const clause = clauses.find((entry) =>
+    const clauseId = issue.clauseReference?.clauseId ?? "";
+    const normalizedId = normalizeForMatch(clauseId);
+    const clause = normalizedId
+      ? clauses.find((entry) =>
           normalizeForMatch(getClauseKey(entry)) === normalizedId
-        );
-        evidenceText =
-          clause?.originalText ?? clause?.normalizedText ?? clause?.title ?? "";
-      }
-    }
-    if (!hasPromptNoticeEvidence(evidenceText)) return issue;
+        )
+      : undefined;
+    const clauseText =
+      clause?.originalText ?? clause?.normalizedText ?? clause?.title ?? "";
+    const evidenceText = issue.clauseReference?.excerpt ?? "";
+    const combinedEvidence = [evidenceText, clauseText]
+      .filter(Boolean)
+      .join(" ");
+    if (!hasPromptNoticeEvidence(combinedEvidence)) return issue;
+    if (mentionsDisclosureLimit(combinedEvidence)) return issue;
     return {
       ...issue,
       rationale:
-        "Prompt notice is present, but the clause does not require limiting or minimizing compelled disclosure (for example, seeking a protective order or narrowing scope).",
+        "Prompt notice is present, but the clause does not require limiting or minimizing compelled disclosure (for example, disclosing only the minimum legally required information).",
     };
   });
 }

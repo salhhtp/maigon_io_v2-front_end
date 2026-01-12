@@ -1053,6 +1053,58 @@ export function bindProposedEditsToClauses(options: {
           }
         }
       }
+
+      if (editTokens.length >= 3 && editSignal.trim()) {
+        const currentCandidateText = boundClause
+          ? `${boundClause.title ?? ""} ${clauseText}`.trim()
+          : clauseText;
+        const currentScore = currentCandidateText
+          ? scoreTextSimilarity(editSignal, currentCandidateText).score
+          : 0;
+        const altMatch = resolveClauseMatch({
+          clauseReference: null,
+          fallbackText: editSignal,
+          clauses,
+        });
+        const altId = altMatch.match
+          ? getClauseIdentifier(altMatch.match)
+          : null;
+        const normalizedAlt = normalizeClauseId(altId);
+        const canRebindByText =
+          normalizedAlt &&
+          normalizedAlt !== normalizedCurrentId &&
+          altMatch.confidence >=
+            Math.max(MIN_MATCH_SCORE + 0.12, currentScore + 0.12);
+        if (canRebindByText) {
+          const altClause = clauseById.get(normalizedAlt);
+          const altText = altClause
+            ? altClause.originalText ?? altClause.normalizedText ?? altClause.title ?? ""
+            : "";
+          const rebindAnchorSeed =
+            anchorSeed || editSignal;
+          const altAnchor = altText
+            ? normalizeAnchorText(rebindAnchorSeed, altText)
+            : anchorText;
+          const altAnchorMatches = altText
+            ? checkEvidenceMatchAgainstClause(altAnchor, altText).matched
+            : false;
+          const altClauseTokens = tokenizeForMatch(altText);
+          const altStructuralMismatch =
+            editStructuralTokens.length > 0 &&
+            !hasStructuralMatch(editStructuralTokens, altClauseTokens);
+          let rebindIntent = edit.intent;
+          if (altStructuralMismatch) rebindIntent = "insert";
+          if (rebindIntent === "replace" && !altAnchorMatches) {
+            rebindIntent = "insert";
+          }
+          return {
+            ...edit,
+            clauseId: clauseIdMap.get(normalizedAlt) ?? altId ?? canonical,
+            anchorText: altAnchor,
+            intent: rebindIntent ?? edit.intent,
+          };
+        }
+      }
       return {
         ...edit,
         clauseId: canonical,
