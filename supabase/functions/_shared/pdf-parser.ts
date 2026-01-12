@@ -1,4 +1,4 @@
-import JSZip from "https://esm.sh/jszip@3.10.1?target=deno";
+import { unzipSync, strFromU8 } from "https://esm.sh/fflate@0.8.1?target=deno";
 
 /**
  * Real PDF text extraction for contract analysis
@@ -190,8 +190,8 @@ export async function extractTextFromDOCX(base64Data: string): Promise<string> {
 
 async function extractDOCXTextFromZip(docxBytes: Uint8Array): Promise<string> {
   try {
-    const zip = await JSZip.loadAsync(docxBytes);
-    const xmlFiles = Object.keys(zip.files)
+    const zipEntries = unzipSync(docxBytes);
+    const xmlFiles = Object.keys(zipEntries)
       .filter((name) =>
         /^word\/(document|header\d+|footer\d+|footnotes|endnotes)\.xml$/i.test(
           name,
@@ -205,9 +205,9 @@ async function extractDOCXTextFromZip(docxBytes: Uint8Array): Promise<string> {
 
     const textChunks: string[] = [];
     for (const name of xmlFiles) {
-      const file = zip.file(name);
+      const file = zipEntries[name];
       if (!file) continue;
-      const xml = await file.async("string");
+      const xml = strFromU8(file);
       if (!xml) continue;
       const extracted = extractDocxTextFromXml(xml);
       if (extracted) textChunks.push(extracted);
