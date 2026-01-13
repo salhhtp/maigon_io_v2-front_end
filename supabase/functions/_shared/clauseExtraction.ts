@@ -345,10 +345,11 @@ export function enhanceReportWithClauses(
     const issueSignal = `${issue.title ?? ""} ${issue.category ?? ""} ${
       issue.recommendation ?? ""
     }`.trim();
+    const issueStructuralSeed = `${issue.title ?? ""} ${issue.category ?? ""}`.trim();
     const issueTokens = tokenizeForMatch(issueSignal || fallbackText);
-    const issueStructuralTokens = issueTokens.filter((token) =>
-      isStructuralToken(token),
-    );
+    const issueStructuralTokens = tokenizeForMatch(
+      issueStructuralSeed || issueSignal || fallbackText,
+    ).filter((token) => isStructuralToken(token));
     const existingReference = issue.clauseReference ?? {
       clauseId: "",
       heading: undefined,
@@ -559,6 +560,16 @@ export function enhanceReportWithClauses(
       acceptedMatch = false;
       issueStructuralMismatch = true;
       trustExistingClauseId = false;
+    }
+
+    if (match && isRemediesIssue(issue)) {
+      const clauseText = buildClauseMatchText(match);
+      if (!clauseSupportsRemedies(match, clauseText)) {
+        match = null;
+        acceptedMatch = false;
+        issueStructuralMismatch = true;
+        trustExistingClauseId = false;
+      }
     }
 
     const matchedClauseId = match?.clauseId ?? match?.id ?? null;
@@ -1209,6 +1220,46 @@ function isDraftIssue(issue: AnalysisReport["issuesToAddress"][number]) {
     return issue.tags.some((tag) => normalizeIssueKey(tag).startsWith("EDIT_"));
   }
   return false;
+}
+
+function isRemediesIssue(issue: AnalysisReport["issuesToAddress"][number]): boolean {
+  const combined = [
+    issue.title,
+    issue.category,
+    issue.id,
+    ...(issue.tags ?? []),
+  ]
+    .filter(Boolean)
+    .join(" ");
+  const normalized = normalizeForMatch(combined);
+  if (!normalized) return false;
+  if (normalized.includes("remedies") || normalized.includes("remedy")) return true;
+  if (normalized.includes("injunctive")) return true;
+  if (normalized.includes("specific performance")) return true;
+  if (normalized.includes("injunction")) return true;
+  return normalized.includes("equitable relief");
+}
+
+function clauseSupportsRemedies(
+  clause: ClauseExtraction,
+  clauseText: string,
+): boolean {
+  const headingText = buildClauseHeadingText(clause);
+  const normalizedHeading = normalizeForMatch(headingText);
+  const normalizedText = normalizeForMatch(clauseText);
+  const headingSignals =
+    normalizedHeading.includes("remedies") ||
+    normalizedHeading.includes("remedy");
+  const hasInjunctive =
+    normalizedText.includes("injunctive") ||
+    normalizedText.includes("injunction");
+  const hasSpecificPerformance =
+    normalizedText.includes("specific performance") ||
+    (normalizedText.includes("specific") && normalizedText.includes("performance"));
+  const hasEquitableRelief =
+    normalizedText.includes("equitable relief") ||
+    (normalizedText.includes("equitable") && normalizedText.includes("relief"));
+  return headingSignals || hasInjunctive || hasSpecificPerformance || hasEquitableRelief;
 }
 
 function isCompelledDisclosureIssue(

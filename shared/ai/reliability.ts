@@ -259,6 +259,7 @@ const STRUCTURAL_SYNONYMS: Record<string, string[]> = {
   residual: ["memory", "retained", "unaided"],
   unmarked: ["marked", "marking", "designated", "declared", "label", "identified"],
   license: ["licence", "licensed", "licensing"],
+  ip: ["intellectual", "intellectual-property"],
   ownership: ["owner", "owned", "ownership", "transfer"],
   term: ["duration", "period"],
   survival: ["survive", "survival"],
@@ -923,6 +924,32 @@ function isPlaceholderEdit(edit: ProposedEditLike): boolean {
   return isPlaceholderText(proposedText);
 }
 
+function getEditContent(edit: ProposedEditLike): string {
+  if (typeof edit.proposedText === "string" && edit.proposedText.trim()) {
+    return edit.proposedText.trim();
+  }
+  const updatedText =
+    typeof edit.updatedText === "string" ? edit.updatedText.trim() : "";
+  if (updatedText) return updatedText;
+  const rationale =
+    typeof edit.rationale === "string" ? edit.rationale.trim() : "";
+  if (rationale) return rationale;
+  return typeof edit.anchorText === "string" ? edit.anchorText.trim() : "";
+}
+
+function extractEditHeadingHint(text: string): string | null {
+  const trimmed = text.trim();
+  if (!trimmed) return null;
+  const directHeading = trimmed.match(/^["“]?([A-Z][A-Za-z0-9 &/\\-]{2,80})["”]?\s*[:.]\s/);
+  if (directHeading?.[1]) {
+    return directHeading[1].trim();
+  }
+  if (/^["“]?confidential information["”]?\s+shall\s+mean/i.test(trimmed)) {
+    return "Confidential Information";
+  }
+  return null;
+}
+
 export function bindProposedEditsToClauses(options: {
   proposedEdits: ProposedEditLike[];
   issues: IssueLike[];
@@ -980,6 +1007,7 @@ export function bindProposedEditsToClauses(options: {
 
   return filteredEdits.map((edit, index) => {
     if (!edit || typeof edit !== "object") return edit;
+    const editContent = getEditContent(edit);
     const editSignal = [
       edit.proposedText,
       edit.rationale,
@@ -988,7 +1016,7 @@ export function bindProposedEditsToClauses(options: {
     ]
       .filter(Boolean)
       .join(" ");
-    const editTokens = tokenizeForMatch(editSignal);
+    const editTokens = tokenizeForMatch(editContent || editSignal);
     const editStructuralTokens = editTokens.filter((token) =>
       isStructuralToken(token),
     );
@@ -1018,10 +1046,11 @@ export function bindProposedEditsToClauses(options: {
       let nextIntent = edit.intent;
       if (structuralMismatch) nextIntent = "insert";
       if (nextIntent === "replace" && !anchorMatches) nextIntent = "insert";
-      if ((structuralMismatch || !anchorMatches) && editSignal.trim()) {
+      const rebindQuery = editContent || editSignal;
+      if ((structuralMismatch || !anchorMatches) && rebindQuery.trim()) {
         const altMatch = resolveClauseMatch({
           clauseReference: null,
-          fallbackText: editSignal,
+          fallbackText: rebindQuery,
           clauses,
         });
         const altId = altMatch.match
@@ -1037,8 +1066,9 @@ export function bindProposedEditsToClauses(options: {
           const altText = altClause
             ? altClause.originalText ?? altClause.normalizedText ?? altClause.title ?? ""
             : "";
+          const altAnchorSeed = editContent || anchorSeed || rebindQuery;
           const altAnchor = altText
-            ? normalizeAnchorText(anchorSeed, altText)
+            ? normalizeAnchorText(altAnchorSeed, altText)
             : anchorText;
           const altAnchorMatches = altText
             ? checkEvidenceMatchAgainstClause(altAnchor, altText).matched
@@ -1054,16 +1084,16 @@ export function bindProposedEditsToClauses(options: {
         }
       }
 
-      if (editTokens.length >= 3 && editSignal.trim()) {
+      if (editTokens.length >= 3 && rebindQuery.trim()) {
         const currentCandidateText = boundClause
           ? `${boundClause.title ?? ""} ${clauseText}`.trim()
           : clauseText;
         const currentScore = currentCandidateText
-          ? scoreTextSimilarity(editSignal, currentCandidateText).score
+          ? scoreTextSimilarity(rebindQuery, currentCandidateText).score
           : 0;
         const altMatch = resolveClauseMatch({
           clauseReference: null,
-          fallbackText: editSignal,
+          fallbackText: rebindQuery,
           clauses,
         });
         const altId = altMatch.match
@@ -1081,7 +1111,7 @@ export function bindProposedEditsToClauses(options: {
             ? altClause.originalText ?? altClause.normalizedText ?? altClause.title ?? ""
             : "";
           const rebindAnchorSeed =
-            anchorSeed || editSignal;
+            editContent || rebindQuery;
           const altAnchor = altText
             ? normalizeAnchorText(rebindAnchorSeed, altText)
             : anchorText;
@@ -1102,6 +1132,38 @@ export function bindProposedEditsToClauses(options: {
             clauseId: clauseIdMap.get(normalizedAlt) ?? altId ?? canonical,
             anchorText: altAnchor,
             intent: rebindIntent ?? edit.intent,
+          };
+        }
+      }
+
+      const headingHint = extractEditHeadingHint(editContent);
+      if (headingHint) {
+        const hintMatch = resolveClauseMatch({
+          clauseReference: { heading: headingHint },
+          fallbackText: editContent,
+          clauses,
+        });
+        const hintId = hintMatch.match
+          ? getClauseIdentifier(hintMatch.match)
+          : null;
+        const normalizedHint = normalizeClauseId(hintId);
+        if (
+          normalizedHint &&
+          normalizedHint !== normalizedCurrentId &&
+          hintMatch.confidence >= STRONG_HEADING_SCORE
+        ) {
+          const hintClause = clauseById.get(normalizedHint);
+          const hintText = hintClause
+            ? hintClause.originalText ?? hintClause.normalizedText ?? hintClause.title ?? ""
+            : "";
+          const hintAnchor = hintText
+            ? normalizeAnchorText(editContent || anchorSeed, hintText)
+            : anchorText;
+          return {
+            ...edit,
+            clauseId: clauseIdMap.get(normalizedHint) ?? hintId ?? canonical,
+            anchorText: hintAnchor,
+            intent: "insert",
           };
         }
       }

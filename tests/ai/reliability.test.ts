@@ -342,6 +342,90 @@ describe("Reliability harness", () => {
     );
   });
 
+  it("rebinds definition edits to the definition clause when anchor text is elsewhere", () => {
+    const clauses = [
+      {
+        id: "confidential-information",
+        clauseId: "confidential-information",
+        title: "Confidential Information",
+        originalText:
+          "Confidential Information means any information disclosed by the Discloser.",
+        normalizedText:
+          "Confidential Information means any information disclosed by the Discloser.",
+      },
+      {
+        id: "receiving-party",
+        clauseId: "receiving-party",
+        title: "Obligations of Receiving Party",
+        originalText:
+          "The Receiving Party shall not disclose Confidential Information to third parties.",
+        normalizedText:
+          "The Receiving Party shall not disclose Confidential Information to third parties.",
+      },
+    ];
+    const proposedEdits = [
+      {
+        id: "edit-definition",
+        clauseId: "receiving-party",
+        anchorText:
+          "The Receiving Party shall not disclose Confidential Information to third parties.",
+        proposedText:
+          "Confidential Information shall mean any information marked or designated as confidential.",
+        intent: "insert",
+      },
+    ];
+
+    const bound = bindProposedEditsToClauses({
+      proposedEdits,
+      issues: [],
+      clauses,
+    });
+
+    expect(bound[0].clauseId).toBe("confidential-information");
+  });
+
+  it("rebinds remedies edits to a remedies clause over compelled-disclosure text", () => {
+    const clauses = [
+      {
+        id: "exceptions",
+        clauseId: "exceptions",
+        title: "Exceptions",
+        originalText:
+          "If disclosure is required by law, the Receiving Party shall notify Discloser and assist in seeking a protective order or other appropriate remedy.",
+        normalizedText:
+          "If disclosure is required by law, the Receiving Party shall notify Discloser and assist in seeking a protective order or other appropriate remedy.",
+      },
+      {
+        id: "remedies",
+        clauseId: "remedies",
+        title: "Remedies",
+        originalText:
+          "The Discloser may seek injunctive relief and specific performance for any breach.",
+        normalizedText:
+          "The Discloser may seek injunctive relief and specific performance for any breach.",
+      },
+    ];
+    const proposedEdits = [
+      {
+        id: "edit-remedies",
+        clauseId: "exceptions",
+        anchorText:
+          "assist in seeking a protective order or other appropriate remedy",
+        proposedText:
+          "Remedies. The Discloser shall have the right to seek injunctive relief and specific performance in addition to other remedies.",
+        intent: "insert",
+      },
+    ];
+
+    const bound = bindProposedEditsToClauses({
+      proposedEdits,
+      issues: [],
+      clauses,
+    });
+
+    expect(bound[0].clauseId).toBe("remedies");
+  });
+
   it("replaces missing anchor text when a clause match exists", () => {
     const clauses = [
       {
