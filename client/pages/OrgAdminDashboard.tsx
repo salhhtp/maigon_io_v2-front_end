@@ -104,7 +104,7 @@ const OrgAdminDashboard: React.FC = () => {
   }, [canView, isLoading, isLoggedIn, navigate, user]);
 
   const [memberFilter, setMemberFilter] = useState("");
-  const [showAllQuickSolutions, setShowAllQuickSolutions] = useState(false);
+  //const [showAllQuickSolutions, setShowAllQuickSolutions] = useState(false);
   const [orgCustomSolutions, setOrgCustomSolutions] = useState<CustomSolution[]>([]);
   const [loadingOrgSolutions, setLoadingOrgSolutions] = useState(false);
 
@@ -250,7 +250,7 @@ const OrgAdminDashboard: React.FC = () => {
     [navigate, organizationId, user?.isMaigonAdmin],
   );
 
-  const allQuickSolutions = useMemo(
+  /*const allQuickSolutions = useMemo(
     () =>
       Object.entries(SOLUTION_DISPLAY_NAMES).map(([key, name]) => ({
         key: key as SolutionKey,
@@ -259,11 +259,11 @@ const OrgAdminDashboard: React.FC = () => {
         icon: <Layers className="w-5 h-5 text-[#9A7C7C]" />,
       })),
     [],
-  );
+  );*/
 
-  const visibleQuickSolutions = showAllQuickSolutions
+  /*const visibleQuickSolutions = showAllQuickSolutions
     ? allQuickSolutions
-    : quickAccessSolutions;
+    : quickAccessSolutions;*/
 
   const filteredMembers = useMemo(() => {
     const members = membersQuery.data ?? [];
@@ -453,7 +453,7 @@ const OrgAdminDashboard: React.FC = () => {
           )}
         </div>
 
-        <section className="bg-gradient-to-br from-[#FDF1F1] via-[#F9E8E8] to-[#FDEDEA] border border-[#E8CACA] rounded-2xl p-6 space-y-4 shadow-sm">
+        {/* <section className="bg-gradient-to-br from-[#FDF1F1] via-[#F9E8E8] to-[#FDEDEA] border border-[#E8CACA] rounded-2xl p-6 space-y-4 shadow-sm">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-xs uppercase tracking-[0.2em] text-[#9A7C7C]">
@@ -513,7 +513,7 @@ const OrgAdminDashboard: React.FC = () => {
               </button>
             ))}
           </div>
-        </section>
+        </section> */}
 
         <section className="bg-white border border-[#E8DDDD] rounded-2xl p-6 space-y-4 shadow-sm">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
