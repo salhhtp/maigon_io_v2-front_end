@@ -408,13 +408,6 @@ const OrgAdminDashboard: React.FC = () => {
               {overview ? " • Updated moments ago" : ""}
             </p>
           </div>
-          {organizationLogoUrl ? (
-            <img
-              src={organizationLogoUrl}
-              alt={`${user?.organization?.name ?? "Organization"} logo`}
-              className="h-12 w-12 object-contain rounded-lg border border-[#E8DDDD] bg-white"
-            />
-          ) : null}
             <div className="flex items-center gap-2">
               <Button
                 variant="outline"
