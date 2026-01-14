@@ -212,6 +212,8 @@ const HEADING_PRIORITY_TOKENS = new Set([
 ]);
 
 const STRUCTURAL_SYNONYMS: Record<string, string[]> = {
+  governing: ["governed", "govern", "governs"],
+  governed: ["governing", "govern", "governs"],
   compelled: [
     "compel",
     "required",
@@ -261,7 +263,8 @@ const STRUCTURAL_SYNONYMS: Record<string, string[]> = {
   license: ["licence", "licensed", "licensing"],
   ip: ["intellectual", "intellectual-property"],
   ownership: ["owner", "owned", "ownership", "transfer"],
-  term: ["duration", "period"],
+  term: ["duration", "period", "expiry", "expiration", "expires", "expire"],
+  termination: ["terminate", "terminated", "terminates", "terminating"],
   survival: ["survive", "survival"],
   solicit: ["solicit", "solicitation"],
   compete: ["compete", "competition", "competitive", "noncompete"],
@@ -937,17 +940,231 @@ function getEditContent(edit: ProposedEditLike): string {
   return typeof edit.anchorText === "string" ? edit.anchorText.trim() : "";
 }
 
-function extractEditHeadingHint(text: string): string | null {
+type EditHeadingHint = {
+  heading: string;
+  strength: "strong" | "weak";
+};
+
+type ClauseSupportCheck = (
+  clause: ClauseExtractionLike,
+  clauseText: string,
+) => boolean;
+
+function extractEditHeadingHint(text: string): EditHeadingHint | null {
   const trimmed = text.trim();
   if (!trimmed) return null;
-  const directHeading = trimmed.match(/^["“]?([A-Z][A-Za-z0-9 &/\\-]{2,80})["”]?\s*[:.]\s/);
+  const directHeading = trimmed.match(
+    /^["“]?([A-Z][A-Za-z0-9 &/\\-]{2,80})["”]?\s*[:.]\s/,
+  );
   if (directHeading?.[1]) {
-    return directHeading[1].trim();
+    return { heading: directHeading[1].trim(), strength: "strong" };
   }
   if (/^["“]?confidential information["”]?\s+shall\s+mean/i.test(trimmed)) {
-    return "Confidential Information";
+    return { heading: "Confidential Information", strength: "strong" };
+  }
+  if (/^exceptions\s*(->|:)/i.test(trimmed)) {
+    return { heading: "Exceptions", strength: "strong" };
   }
   return null;
+}
+
+function clauseHasDefinitionSignals(value: string): boolean {
+  const normalized = normalizeForMatch(value);
+  if (!normalized.includes("confidential information")) return false;
+  if (normalized.includes("shall mean")) return true;
+  if (normalized.includes("definition")) return true;
+  if (normalized.includes("means")) return true;
+  return normalized.includes("shall not include") || normalized.includes("does not include");
+}
+
+function clauseHasReceivingPartyObligation(value: string): boolean {
+  const normalized = normalizeForMatch(value);
+  return (
+    normalized.includes("receiving party shall") ||
+    normalized.includes("receiving party must") ||
+    normalized.includes("receiving party hereby undertakes") ||
+    normalized.includes("receiving party agrees") ||
+    normalized.includes("recipient shall")
+  );
+}
+
+function clauseSupportsUseLimitation(
+  clause: ClauseExtractionLike,
+  clauseText: string,
+): boolean {
+  const normalized = normalizeForMatch(
+    `${clause.title ?? ""} ${clauseText}`,
+  );
+  const hasObligation = clauseHasReceivingPartyObligation(normalized);
+  const hasUsePurpose =
+    normalized.includes("purpose") ||
+    normalized.includes("use") ||
+    normalized.includes("need to know") ||
+    normalized.includes("disclose") ||
+    normalized.includes("divulge");
+  return hasObligation && hasUsePurpose;
+}
+
+function clauseSupportsReturnDestruction(
+  clause: ClauseExtractionLike,
+  clauseText: string,
+): boolean {
+  const normalized = normalizeForMatch(
+    `${clause.title ?? ""} ${clauseText}`,
+  );
+  const hasConfidential = normalized.includes("confidential information");
+  const hasReturn = normalized.includes("return");
+  const hasDestroy =
+    normalized.includes("destroy") || normalized.includes("destruction");
+  return hasConfidential && (hasReturn || hasDestroy);
+}
+
+function clauseSupportsTermSurvival(
+  clause: ClauseExtractionLike,
+  clauseText: string,
+): boolean {
+  const normalized = normalizeForMatch(
+    `${clause.title ?? ""} ${clauseText}`,
+  );
+  return (
+    normalized.includes("term") ||
+    normalized.includes("termination") ||
+    normalized.includes("survival") ||
+    normalized.includes("expires") ||
+    normalized.includes("duration")
+  );
+}
+
+function clauseSupportsRemediesEdit(
+  clause: ClauseExtractionLike,
+  clauseText: string,
+): boolean {
+  const normalized = normalizeForMatch(
+    `${clause.title ?? ""} ${clauseText}`,
+  );
+  if (normalized.includes("remedies") || normalized.includes("remedy")) {
+    return true;
+  }
+  if (normalized.includes("injunctive") || normalized.includes("injunction")) {
+    return true;
+  }
+  return normalized.includes("specific performance") ||
+    (normalized.includes("specific") && normalized.includes("performance"));
+}
+
+function clauseSupportsIpEdit(
+  clause: ClauseExtractionLike,
+  clauseText: string,
+): boolean {
+  const normalized = normalizeForMatch(
+    `${clause.title ?? ""} ${clauseText}`,
+  );
+  return (
+    normalized.includes("intellectual property") ||
+    normalized.includes("license") ||
+    normalized.includes("licence") ||
+    normalized.includes("patent") ||
+    normalized.includes("copyright") ||
+    normalized.includes("trademark") ||
+    normalized.includes("ownership")
+  );
+}
+
+function clauseSupportsCompelledDisclosure(
+  clause: ClauseExtractionLike,
+  clauseText: string,
+): boolean {
+  const normalized = normalizeForMatch(
+    `${clause.title ?? ""} ${clauseText}`,
+  );
+  if (normalized.includes("required by law")) return true;
+  if (normalized.includes("court order")) return true;
+  if (normalized.includes("regulator") || normalized.includes("regulatory")) {
+    return true;
+  }
+  return normalized.includes("subpoena") ||
+    (normalized.includes("disclose") && normalized.includes("law"));
+}
+
+function getEditSupportCheck(editContent: string): ClauseSupportCheck | null {
+  const normalized = normalizeForMatch(editContent ?? "");
+  if (!normalized) return null;
+  if (
+    normalized.includes("confidential information") &&
+    (normalized.includes("shall mean") ||
+      normalized.includes("means") ||
+      normalized.includes("definition"))
+  ) {
+    return (clause, clauseText) =>
+      clauseHasDefinitionSignals(`${clause.title ?? ""} ${clauseText}`);
+  }
+  if (
+    normalized.includes("injunctive") ||
+    normalized.includes("specific performance") ||
+    normalized.includes("remedies")
+  ) {
+    return clauseSupportsRemediesEdit;
+  }
+  if (
+    normalized.includes("return") ||
+    normalized.includes("destroy") ||
+    normalized.includes("destruction")
+  ) {
+    return clauseSupportsReturnDestruction;
+  }
+  if (
+    normalized.includes("term") ||
+    normalized.includes("termination") ||
+    normalized.includes("survival")
+  ) {
+    return clauseSupportsTermSurvival;
+  }
+  if (
+    normalized.includes("need to know") ||
+    normalized.includes("purpose") ||
+    normalized.includes("use limitation") ||
+    normalized.includes("receiving party hereby undertakes") ||
+    normalized.includes("receiving party shall")
+  ) {
+    return clauseSupportsUseLimitation;
+  }
+  if (
+    normalized.includes("license") ||
+    normalized.includes("licence") ||
+    normalized.includes("intellectual property") ||
+    normalized.includes("ownership")
+  ) {
+    return clauseSupportsIpEdit;
+  }
+  if (
+    normalized.includes("compelled") ||
+    normalized.includes("required by law") ||
+    normalized.includes("court order") ||
+    normalized.includes("regulator")
+  ) {
+    return clauseSupportsCompelledDisclosure;
+  }
+  return null;
+}
+
+function findBestSupportedClause(
+  editContent: string,
+  clauses: ClauseExtractionLike[],
+  supportCheck: ClauseSupportCheck,
+): { clause: ClauseExtractionLike; score: number } | null {
+  let best: { clause: ClauseExtractionLike; score: number } | null = null;
+  clauses.forEach((clause) => {
+    const clauseText =
+      clause.originalText ?? clause.normalizedText ?? clause.title ?? "";
+    if (!clauseText) return;
+    if (!supportCheck(clause, clauseText)) return;
+    const candidateText = `${clause.title ?? ""} ${clauseText}`.trim();
+    const { score } = scoreTextSimilarity(editContent, candidateText);
+    if (!best || score > best.score) {
+      best = { clause, score };
+    }
+  });
+  return best;
 }
 
 export function bindProposedEditsToClauses(options: {
@@ -1139,7 +1356,7 @@ export function bindProposedEditsToClauses(options: {
       const headingHint = extractEditHeadingHint(editContent);
       if (headingHint) {
         const hintMatch = resolveClauseMatch({
-          clauseReference: { heading: headingHint },
+          clauseReference: { heading: headingHint.heading },
           fallbackText: editContent,
           clauses,
         });
@@ -1147,10 +1364,12 @@ export function bindProposedEditsToClauses(options: {
           ? getClauseIdentifier(hintMatch.match)
           : null;
         const normalizedHint = normalizeClauseId(hintId);
+        const hintThreshold =
+          headingHint.strength === "strong" ? MIN_HEADING_SCORE : STRONG_HEADING_SCORE;
         if (
           normalizedHint &&
           normalizedHint !== normalizedCurrentId &&
-          hintMatch.confidence >= STRONG_HEADING_SCORE
+          hintMatch.confidence >= hintThreshold
         ) {
           const hintClause = clauseById.get(normalizedHint);
           const hintText = hintClause
@@ -1163,6 +1382,51 @@ export function bindProposedEditsToClauses(options: {
             ...edit,
             clauseId: clauseIdMap.get(normalizedHint) ?? hintId ?? canonical,
             anchorText: hintAnchor,
+            intent: "insert",
+          };
+        }
+      }
+      const supportCheck = getEditSupportCheck(editContent || editSignal);
+      if (supportCheck && boundClause) {
+        const supports = supportCheck(boundClause, clauseText);
+        if (!supports) {
+          const supported = findBestSupportedClause(
+            editContent || editSignal,
+            clauses,
+            supportCheck,
+          );
+          const supportedId = supported?.clause
+            ? getClauseIdentifier(supported.clause)
+            : null;
+          const normalizedSupported = normalizeClauseId(supportedId);
+          if (
+            supported &&
+            normalizedSupported &&
+            normalizedSupported !== normalizedCurrentId &&
+            supported.score >= MIN_MATCH_SCORE
+          ) {
+            const supportedClause = supported.clause;
+            const supportedText =
+              supportedClause.originalText ??
+              supportedClause.normalizedText ??
+              supportedClause.title ??
+              "";
+            const supportedAnchor = supportedText
+              ? normalizeAnchorText(editContent || anchorSeed, supportedText)
+              : anchorText;
+            return {
+              ...edit,
+              clauseId: clauseIdMap.get(normalizedSupported) ?? supportedId ?? canonical,
+              anchorText: supportedAnchor,
+              intent: "insert",
+            };
+          }
+          return {
+            ...edit,
+            clauseId: undefined,
+            anchorText: anchorText && !isMissingEvidenceMarker(anchorText)
+              ? anchorText
+              : "Not present in contract",
             intent: "insert",
           };
         }

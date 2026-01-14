@@ -182,6 +182,30 @@ const findBestClauseByCoverage = (
   return best;
 };
 
+const findBestClauseByCoverageWithSupport = (
+  tokens: string[],
+  clauses: ClauseExtraction[],
+  supportCheck: (clause: ClauseExtraction, clauseText: string) => boolean,
+  options?: { headingOnly?: boolean },
+): { clause: ClauseExtraction; score: number } | null => {
+  if (!tokens.length) return null;
+  let best: { clause: ClauseExtraction; score: number } | null = null;
+  clauses.forEach((clause) => {
+    const clauseText = options?.headingOnly
+      ? buildClauseHeadingText(clause)
+      : buildClauseMatchText(clause);
+    if (!clauseText) return;
+    if (!supportCheck(clause, clauseText)) return;
+    const clauseTokens = tokenizeForMatch(clauseText);
+    const score = tokenCoverageWithVariants(tokens, clauseTokens);
+    if (score <= 0) return;
+    if (!best || score > best.score) {
+      best = { clause, score };
+    }
+  });
+  return best;
+};
+
 const buildCriterionId = (
   value: string,
   used: Map<string, number>,
@@ -562,13 +586,34 @@ export function enhanceReportWithClauses(
       trustExistingClauseId = false;
     }
 
-    if (match && isRemediesIssue(issue)) {
-      const clauseText = buildClauseMatchText(match);
-      if (!clauseSupportsRemedies(match, clauseText)) {
-        match = null;
-        acceptedMatch = false;
-        issueStructuralMismatch = true;
-        trustExistingClauseId = false;
+    const supportCheck = getIssueSupportCheck(issue);
+    if (supportCheck) {
+      const currentClauseText = match ? buildClauseMatchText(match) : "";
+      const supportsCurrent =
+        match && currentClauseText ? supportCheck(match, currentClauseText) : false;
+      if (!supportsCurrent && issueMatchTokens.length > 0) {
+        const supportedMatch = findBestClauseByCoverageWithSupport(
+          issueMatchTokens,
+          clauseCandidates,
+          supportCheck,
+        );
+        if (supportedMatch && supportedMatch.score >= REBIND_MIN_COVERAGE) {
+          match = supportedMatch.clause;
+          matchResult = {
+            match,
+            confidence: supportedMatch.score,
+            method: "text",
+            candidates: matchResult.candidates,
+          };
+          acceptedMatch = true;
+          issueStructuralMismatch = false;
+          trustExistingClauseId = false;
+        } else if (match) {
+          match = null;
+          acceptedMatch = false;
+          issueStructuralMismatch = true;
+          trustExistingClauseId = false;
+        }
       }
     }
 
@@ -1083,6 +1128,9 @@ function scoreIssueCriterionMatch(
   const criterionId = normalizeIssueKey(criterion.id);
   const criterionTitle = normalizeTitleKey(criterion.title ?? "");
   const issueTitle = normalizeTitleKey(issue.title ?? "");
+  const issueCategory = normalizeTitleKey(issue.category ?? "");
+  const issueRecommendation = normalizeTitleKey(issue.recommendation ?? "");
+  const issueRationale = normalizeTitleKey(issue.rationale ?? "");
   const rawIssueId = normalizeIssueKey(issue.id ?? "");
   const issueId = rawIssueId.replace(/^ISSUE_/, "");
   let score = 0;
@@ -1097,6 +1145,32 @@ function scoreIssueCriterionMatch(
     score = Math.max(score, 85 + criterionTitle.length);
   } else if (issueTitle && criterionTitle && issueTitle.includes(criterionTitle)) {
     score = Math.max(score, 60 + criterionTitle.length);
+  }
+  if (issueCategory && issueCategory === criterionTitle) {
+    score = Math.max(score, 82 + criterionTitle.length);
+  } else if (
+    issueCategory &&
+    criterionTitle &&
+    issueCategory.includes(criterionTitle)
+  ) {
+    score = Math.max(score, 58 + criterionTitle.length);
+  }
+  if (
+    issueRecommendation &&
+    criterionTitle &&
+    issueRecommendation.includes(criterionTitle)
+  ) {
+    score = Math.max(score, 52 + criterionTitle.length);
+  }
+  if (issueRationale && criterionTitle && issueRationale.includes(criterionTitle)) {
+    score = Math.max(score, 50 + criterionTitle.length);
+  }
+  const similarity = similarityForText(
+    `${issueTitle} ${issueCategory} ${issueRecommendation}`,
+    criterionTitle,
+  );
+  if (similarity >= 0.45) {
+    score = Math.max(score, 55 + Math.round(similarity * 20));
   }
   if (Array.isArray(issue.tags)) {
     const tags = issue.tags.map((tag) => normalizeIssueKey(tag));
@@ -1222,16 +1296,37 @@ function isDraftIssue(issue: AnalysisReport["issuesToAddress"][number]) {
   return false;
 }
 
-function isRemediesIssue(issue: AnalysisReport["issuesToAddress"][number]): boolean {
-  const combined = [
+function buildIssueSignalText(
+  issue: AnalysisReport["issuesToAddress"][number],
+): string {
+  return [
     issue.title,
     issue.category,
     issue.id,
     ...(issue.tags ?? []),
+    issue.recommendation,
   ]
     .filter(Boolean)
     .join(" ");
-  const normalized = normalizeForMatch(combined);
+}
+
+function normalizeIssueSignals(
+  issue: AnalysisReport["issuesToAddress"][number],
+): string {
+  return normalizeForMatch(buildIssueSignalText(issue));
+}
+
+function issueHasTokens(
+  issue: AnalysisReport["issuesToAddress"][number],
+  tokens: string[],
+): boolean {
+  const normalized = normalizeIssueSignals(issue);
+  if (!normalized) return false;
+  return tokens.every((token) => normalized.includes(token));
+}
+
+function isRemediesIssue(issue: AnalysisReport["issuesToAddress"][number]): boolean {
+  const normalized = normalizeIssueSignals(issue);
   if (!normalized) return false;
   if (normalized.includes("remedies") || normalized.includes("remedy")) return true;
   if (normalized.includes("injunctive")) return true;
@@ -1262,21 +1357,239 @@ function clauseSupportsRemedies(
   return headingSignals || hasInjunctive || hasSpecificPerformance || hasEquitableRelief;
 }
 
+function isUseLimitationIssue(
+  issue: AnalysisReport["issuesToAddress"][number],
+): boolean {
+  const normalized = normalizeIssueSignals(issue);
+  if (!normalized) return false;
+  if (normalized.includes("use limitation")) return true;
+  if (normalized.includes("need to know") || normalized.includes("need-to-know")) {
+    return true;
+  }
+  return normalized.includes("purpose") && normalized.includes("use");
+}
+
+function clauseSupportsUseLimitation(
+  clause: ClauseExtraction,
+  clauseText: string,
+): boolean {
+  const normalized = normalizeForMatch(
+    `${clause.title ?? ""} ${clauseText}`,
+  );
+  const hasReceivingPartyObligation =
+    normalized.includes("receiving party shall") ||
+    normalized.includes("receiving party must") ||
+    normalized.includes("receiving party hereby undertakes") ||
+    normalized.includes("receiving party agrees") ||
+    normalized.includes("recipient shall");
+  if (!hasReceivingPartyObligation) return false;
+  return (
+    normalized.includes("use") ||
+    normalized.includes("purpose") ||
+    normalized.includes("need to know") ||
+    normalized.includes("disclose") ||
+    normalized.includes("divulge")
+  );
+}
+
+function isDefinitionIssue(
+  issue: AnalysisReport["issuesToAddress"][number],
+): boolean {
+  const normalized = normalizeIssueSignals(issue);
+  if (!normalized) return false;
+  if (normalized.includes("definition")) return true;
+  if (normalized.includes("confidential information")) return true;
+  if (normalized.includes("exclusion") || normalized.includes("exclusions")) return true;
+  if (normalized.includes("residual")) return true;
+  return normalized.includes("unmarked");
+}
+
+function clauseSupportsDefinition(
+  clause: ClauseExtraction,
+  clauseText: string,
+): boolean {
+  const normalized = normalizeForMatch(
+    `${clause.title ?? ""} ${clauseText}`,
+  );
+  if (!normalized.includes("confidential information")) return false;
+  if (normalized.includes("shall mean") || normalized.includes("means")) return true;
+  if (normalized.includes("definition")) return true;
+  if (normalized.includes("shall not include") || normalized.includes("does not include")) {
+    return true;
+  }
+  return normalized.includes("exception") || normalized.includes("exclude");
+}
+
+function isTermSurvivalIssue(
+  issue: AnalysisReport["issuesToAddress"][number],
+): boolean {
+  const normalized = normalizeIssueSignals(issue);
+  if (!normalized) return false;
+  if (normalized.includes("term")) return true;
+  if (normalized.includes("survival")) return true;
+  return normalized.includes("termination");
+}
+
+function clauseSupportsTermSurvival(
+  clause: ClauseExtraction,
+  clauseText: string,
+): boolean {
+  const normalized = normalizeForMatch(
+    `${clause.title ?? ""} ${clauseText}`,
+  );
+  return (
+    normalized.includes("term") ||
+    normalized.includes("termination") ||
+    normalized.includes("survival") ||
+    normalized.includes("expires") ||
+    normalized.includes("duration")
+  );
+}
+
+function isReturnDestructionIssue(
+  issue: AnalysisReport["issuesToAddress"][number],
+): boolean {
+  const normalized = normalizeIssueSignals(issue);
+  if (!normalized) return false;
+  if (normalized.includes("return") || normalized.includes("destroy")) return true;
+  if (normalized.includes("destruction") || normalized.includes("backup")) return true;
+  return normalized.includes("certificate");
+}
+
+function clauseSupportsReturnDestruction(
+  clause: ClauseExtraction,
+  clauseText: string,
+): boolean {
+  const normalized = normalizeForMatch(
+    `${clause.title ?? ""} ${clauseText}`,
+  );
+  const hasConfidential = normalized.includes("confidential information");
+  const hasReturn = normalized.includes("return");
+  const hasDestroy =
+    normalized.includes("destroy") || normalized.includes("destruction");
+  const hasBackup =
+    normalized.includes("backup") || normalized.includes("archive");
+  return hasConfidential && (hasReturn || hasDestroy || hasBackup);
+}
+
+function isIpIssue(issue: AnalysisReport["issuesToAddress"][number]): boolean {
+  const normalized = normalizeIssueSignals(issue);
+  if (!normalized) return false;
+  if (normalized.includes("intellectual property")) return true;
+  if (normalized.includes("ip")) return true;
+  if (normalized.includes("license") || normalized.includes("licence")) return true;
+  return normalized.includes("ownership");
+}
+
+function clauseSupportsIp(
+  clause: ClauseExtraction,
+  clauseText: string,
+): boolean {
+  const normalized = normalizeForMatch(
+    `${clause.title ?? ""} ${clauseText}`,
+  );
+  return (
+    normalized.includes("intellectual property") ||
+    normalized.includes("license") ||
+    normalized.includes("licence") ||
+    normalized.includes("patent") ||
+    normalized.includes("copyright") ||
+    normalized.includes("trademark") ||
+    normalized.includes("ownership")
+  );
+}
+
+function isGoverningLawIssue(
+  issue: AnalysisReport["issuesToAddress"][number],
+): boolean {
+  const normalized = normalizeIssueSignals(issue);
+  if (!normalized) return false;
+  if (normalized.includes("governing law")) return true;
+  if (normalized.includes("jurisdiction")) return true;
+  if (normalized.includes("dispute resolution")) return true;
+  if (normalized.includes("arbitration")) return true;
+  return normalized.includes("governing") && normalized.includes("law");
+}
+
+function clauseSupportsGoverningLaw(
+  clause: ClauseExtraction,
+  clauseText: string,
+): boolean {
+  const normalized = normalizeForMatch(
+    `${clause.title ?? ""} ${clauseText}`,
+  );
+  if (normalized.includes("governing law")) return true;
+  if (normalized.includes("governed by")) return true;
+  if (normalized.includes("jurisdiction")) return true;
+  if (normalized.includes("court")) return true;
+  return normalized.includes("arbitration");
+}
+
 function isCompelledDisclosureIssue(
   issue: AnalysisReport["issuesToAddress"][number],
 ): boolean {
-  const combined = [
-    issue.title,
-    issue.category,
-    issue.id,
-    ...(issue.tags ?? []),
-  ]
-    .filter(Boolean)
-    .join(" ");
-  const normalized = normalizeForMatch(combined);
+  const normalized = normalizeIssueSignals(issue);
   if (!normalized) return false;
   if (normalized.includes("compelled disclosure")) return true;
+  if (normalized.includes("legal process")) return true;
+  if (normalized.includes("subpoena")) return true;
+  if (normalized.includes("court order")) return true;
   return normalized.includes("compelled") && normalized.includes("disclosure");
+}
+
+function clauseSupportsCompelledDisclosure(
+  clause: ClauseExtraction,
+  clauseText: string,
+): boolean {
+  const normalized = normalizeForMatch(
+    `${clause.title ?? ""} ${clauseText}`,
+  );
+  if (normalized.includes("required by law")) return true;
+  if (normalized.includes("court order")) return true;
+  if (normalized.includes("regulator") || normalized.includes("regulatory")) {
+    return true;
+  }
+  return normalized.includes("subpoena") ||
+    (normalized.includes("disclose") && normalized.includes("law"));
+}
+
+function isMarkingNoticeIssue(
+  issue: AnalysisReport["issuesToAddress"][number],
+): boolean {
+  const normalized = normalizeIssueSignals(issue);
+  if (!normalized) return false;
+  if (normalized.includes("marking")) return true;
+  if (normalized.includes("reasonable notice")) return true;
+  return normalized.includes("unmarked");
+}
+
+function clauseSupportsMarkingNotice(
+  clause: ClauseExtraction,
+  clauseText: string,
+): boolean {
+  const normalized = normalizeForMatch(
+    `${clause.title ?? ""} ${clauseText}`,
+  );
+  if (!normalized.includes("confidential")) return false;
+  if (normalized.includes("mark") || normalized.includes("designate")) return true;
+  return normalized.includes("notice") || normalized.includes("reasonable");
+}
+
+function getIssueSupportCheck(
+  issue: AnalysisReport["issuesToAddress"][number],
+):
+  | ((clause: ClauseExtraction, clauseText: string) => boolean)
+  | null {
+  if (isRemediesIssue(issue)) return clauseSupportsRemedies;
+  if (isUseLimitationIssue(issue)) return clauseSupportsUseLimitation;
+  if (isDefinitionIssue(issue)) return clauseSupportsDefinition;
+  if (isTermSurvivalIssue(issue)) return clauseSupportsTermSurvival;
+  if (isReturnDestructionIssue(issue)) return clauseSupportsReturnDestruction;
+  if (isCompelledDisclosureIssue(issue)) return clauseSupportsCompelledDisclosure;
+  if (isIpIssue(issue)) return clauseSupportsIp;
+  if (isGoverningLawIssue(issue)) return clauseSupportsGoverningLaw;
+  if (isMarkingNoticeIssue(issue)) return clauseSupportsMarkingNotice;
+  return null;
 }
 
 function hasPromptNoticeEvidence(value: string): boolean {

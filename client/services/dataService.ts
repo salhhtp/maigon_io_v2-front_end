@@ -1244,7 +1244,7 @@ export class DataService {
           : undefined;
 
       // Force fast model for analysis
-      const normalizedModel = AIModel.OPENAI_GPT5;
+      const normalizedModel = AIModel.OPENAI_GPT5_PRO;
 
       const analysisRequest = {
         // Keep content to avoid empty payload; server will prefer ingestionId if provided
