@@ -218,7 +218,14 @@ class AIService {
 
         // Ensure ingestion artifacts are ready (text/digest) when an ingestionId is provided
         if (request.ingestionId) {
-          await this.ensureIngestionReady(request.ingestionId);
+          await this.measureAsync(
+            "ai.ingestion_ready",
+            () => this.ensureIngestionReady(request.ingestionId),
+            {
+              context: { ingestionId: request.ingestionId },
+              warnMs: 20000,
+            },
+          );
         }
 
         // Get or create custom solution if provided
@@ -231,9 +238,22 @@ class AIService {
         }
 
         // Call the appropriate AI service with retries for different models
-        const result = await this.callAIService(
-          { ...request, model: enforcedModel },
-          customSolution,
+        const result = await this.measureAsync(
+          "ai.call_service",
+          () =>
+            this.callAIService(
+              { ...request, model: enforcedModel },
+              customSolution,
+            ),
+          {
+            context: {
+              reviewType: request.reviewType,
+              contractType: request.contractType,
+              model: enforcedModel,
+              ingestionId: request.ingestionId,
+            },
+            warnMs: 45000,
+          },
         );
 
         const processingTime = (performance.now() - startTime) / 1000;
@@ -435,10 +455,24 @@ class AIService {
         new Date(session.expires_at! * 1000).toISOString(),
       );
 
-      let { data, error } = await this.invokeEdgeFunctionWithRetry(
-        requestBody,
-        request.reviewType,
-        session.access_token ?? null,
+      let { data, error } = await this.measureAsync(
+        "ai.edge.invoke",
+        () =>
+          this.invokeEdgeFunctionWithRetry(
+            requestBody,
+            request.reviewType,
+            session.access_token ?? null,
+          ),
+        {
+          context: {
+            reviewType: request.reviewType,
+            model,
+            async: useAsync,
+            ingestionId: request.ingestionId,
+            contentLength: requestContent.length,
+          },
+          warnMs: 45000,
+        },
       );
 
       console.log("📥 Edge Function response:", {
@@ -481,11 +515,22 @@ class AIService {
         typeof (data as any).status === "string" &&
         (data as any).status !== "completed"
       ) {
-        data = await this.pollAsyncAnalysis(
-          requestBody,
-          (data as any).responseId as string,
-          session.access_token ?? null,
-          request.reviewType,
+        data = await this.measureAsync(
+          "ai.edge.poll",
+          () =>
+            this.pollAsyncAnalysis(
+              requestBody,
+              (data as any).responseId as string,
+              session.access_token ?? null,
+              request.reviewType,
+            ),
+          {
+            context: {
+              reviewType: request.reviewType,
+              responseId: (data as any).responseId as string,
+            },
+            warnMs: 60000,
+          },
         );
       }
 
@@ -616,6 +661,7 @@ class AIService {
     const baseBackoffMs = 1500;
 
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      const attemptStart = this.getNowMs();
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -625,6 +671,16 @@ class AIService {
           signal: controller.signal,
         });
         clearTimeout(timeoutId);
+        logger.performance(
+          "ai.edge.invoke_attempt",
+          Math.round(this.getNowMs() - attemptStart),
+          {
+            reviewType,
+            attempt,
+            via: "supabase",
+            timedOut: false,
+          },
+        );
         return response;
       } catch (error) {
         clearTimeout(timeoutId);
@@ -632,6 +688,16 @@ class AIService {
         const isAbort = (error as any)?.name === "AbortError";
         const transient = isAbort || isFunctionsFetchError(error);
         const attemptInfo = { attempt, maxAttempts, reviewType };
+        logger.performance(
+          "ai.edge.invoke_attempt",
+          Math.round(this.getNowMs() - attemptStart),
+          {
+            reviewType,
+            attempt,
+            via: "supabase",
+            timedOut: isAbort,
+          },
+        );
 
         logError(
           transient
@@ -644,6 +710,11 @@ class AIService {
         const isLastAttempt = attempt === maxAttempts;
 
         if (transient && isLastAttempt && supabaseFunctionsUrl) {
+          logger.warn("Edge Function fallback to direct HTTP", {
+            reviewType,
+            attempt,
+            timeoutMs,
+          });
           try {
             return await this.manualInvokeEdgeFunction(
               requestBody,
@@ -687,6 +758,11 @@ class AIService {
     const startedAt = Date.now();
     let waitMs = 3000;
     let attempt = 0;
+    logger.contractAction("AI analysis async polling started", undefined, {
+      reviewType,
+      responseId,
+      maxWaitMs,
+    });
 
     while (Date.now() - startedAt < maxWaitMs) {
       attempt += 1;
@@ -696,10 +772,13 @@ class AIService {
         responseId,
         async: true,
       };
-      const { data, error } = await this.invokeEdgeFunctionWithRetry(
-        pollBody,
-        reviewType,
-        accessToken,
+      const { data, error } = await this.measureAsync(
+        "ai.edge.poll_attempt",
+        () => this.invokeEdgeFunctionWithRetry(pollBody, reviewType, accessToken),
+        {
+          context: { reviewType, responseId, attempt },
+          warnMs: 15000,
+        },
       );
 
       if (error) {
@@ -737,9 +816,17 @@ class AIService {
         attempt,
         waitMs,
         status,
+        responseId,
+        elapsedMs: Date.now() - startedAt,
       });
     }
 
+    logger.warn("AI analysis polling timed out", {
+      reviewType,
+      responseId,
+      maxWaitMs,
+      elapsedMs: Date.now() - startedAt,
+    });
     throw new Error("Async analysis timed out while waiting for completion.");
   }
 
@@ -756,6 +843,7 @@ class AIService {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
+    const start = this.getNowMs();
     try {
       const response = await fetch(endpoint, {
         method: "POST",
@@ -777,6 +865,11 @@ class AIService {
       const data = await response.json();
       return { data, error: null as any };
     } finally {
+      logger.performance(
+        "ai.edge.manual_invoke",
+        Math.round(this.getNowMs() - start),
+        { timeoutMs },
+      );
       clearTimeout(timeoutId);
     }
   }
@@ -786,11 +879,17 @@ class AIService {
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s guard
+      const startedAt = this.getNowMs();
       const { error } = await supabase.functions.invoke("ingest-contract", {
         body: { ingestionId },
         signal: controller.signal,
       });
       clearTimeout(timeoutId);
+      logger.performance(
+        "ai.ingestion_invoke",
+        Math.round(this.getNowMs() - startedAt),
+        { ingestionId },
+      );
       if (error) {
         logError(
           "Ingestion warmup failed",
@@ -804,6 +903,37 @@ class AIService {
         error instanceof Error ? error : new Error(String(error)),
         { ingestionId },
       );
+    }
+  }
+
+  private getNowMs(): number {
+    return typeof performance !== "undefined" ? performance.now() : Date.now();
+  }
+
+  private async measureAsync<T>(
+    label: string,
+    task: () => Promise<T>,
+    options?: { context?: Record<string, unknown>; warnMs?: number },
+  ): Promise<T> {
+    const start = this.getNowMs();
+    let status: "success" | "error" = "success";
+
+    try {
+      return await task();
+    } catch (error) {
+      status = "error";
+      throw error;
+    } finally {
+      const durationMs = Math.round(this.getNowMs() - start);
+      logger.performance(label, durationMs, { ...options?.context, status });
+
+      if (options?.warnMs && durationMs >= options.warnMs) {
+        logger.warn(`Slow step: ${label}`, {
+          ...options?.context,
+          durationMs,
+          thresholdMs: options.warnMs,
+        });
+      }
     }
   }
 

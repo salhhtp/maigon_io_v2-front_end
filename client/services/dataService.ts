@@ -367,18 +367,30 @@ export class DataService {
         );
         console.log("🤖 Classifying contract type...");
 
-        classification = await contractClassificationService.classifyContract(
-          contractData.content,
-          contractData.file_name,
+        classification = await this.measureAsync(
+          "workflow.classification",
+          () =>
+            contractClassificationService.classifyContract(
+              contractData.content,
+              contractData.file_name,
+              {
+                solutionKey:
+                  typeof contractData.selected_solution_key === "string"
+                    ? contractData.selected_solution_key
+                    : typeof contractData.selected_solution_id === "string"
+                      ? contractData.selected_solution_id
+                      : typeof contractData.selected_solution_title === "string"
+                        ? contractData.selected_solution_title
+                        : null,
+              },
+            ),
           {
-            solutionKey:
-              typeof contractData.selected_solution_key === "string"
-                ? contractData.selected_solution_key
-                : typeof contractData.selected_solution_id === "string"
-                  ? contractData.selected_solution_id
-                  : typeof contractData.selected_solution_title === "string"
-                    ? contractData.selected_solution_title
-                    : null,
+            context: {
+              reviewType,
+              ingestionId: contractData.ingestion_id,
+              filename: contractData.file_name,
+            },
+            warnMs: 4000,
           },
         );
 
@@ -415,13 +427,24 @@ export class DataService {
       if (contractData.ingestion_id || contractData.content) {
         emitProgress("clause_extraction", 28);
         try {
-          const clauseResult = await clauseExtractionService.ensureClauses({
-            ingestionId: contractData.ingestion_id,
-            content: contractData.content,
-            contractType: classification?.contractType,
-            filename: contractData.file_name,
-            forceRefresh: true,
-          });
+          const clauseResult = await this.measureAsync(
+            "workflow.clause_extraction",
+            () =>
+              clauseExtractionService.ensureClauses({
+                ingestionId: contractData.ingestion_id,
+                content: contractData.content,
+                contractType: classification?.contractType,
+                filename: contractData.file_name,
+                forceRefresh: true,
+              }),
+            {
+              context: {
+                ingestionId: contractData.ingestion_id,
+                contractType: classification?.contractType,
+              },
+              warnMs: 6000,
+            },
+          );
           contractData.clause_extractions = clauseResult.clauses;
           logger.contractAction("clause_extraction_completed", undefined, {
             clauseCount: clauseResult.clauses.length,
@@ -526,23 +549,35 @@ export class DataService {
       let resolvedUserId: string | null = null;
       let lastCreationError: unknown = null;
 
-      for (const candidateUserId of userIdCandidates) {
+      for (const [attemptIndex, candidateUserId] of userIdCandidates.entries()) {
         try {
-          const created = await ContractsService.createContract({
-            title: contractData.title,
-            content: contractData.content,
-            content_html: contractData.content_html ?? null,
-            file_name: contractData.file_name,
-            file_size: contractData.file_size,
-            user_id: candidateUserId,
-            custom_solution_id:
-              customSolutionId ?? contractData.custom_solution_id ?? null,
-            organization_id: organizationId ?? null,
-            metadata: {
-              ...contractMetadata,
-              resolvedOwnerId: candidateUserId,
+          const created = await this.measureAsync(
+            "workflow.contract_create",
+            () =>
+              ContractsService.createContract({
+                title: contractData.title,
+                content: contractData.content,
+                content_html: contractData.content_html ?? null,
+                file_name: contractData.file_name,
+                file_size: contractData.file_size,
+                user_id: candidateUserId,
+                custom_solution_id:
+                  customSolutionId ?? contractData.custom_solution_id ?? null,
+                organization_id: organizationId ?? null,
+                metadata: {
+                  ...contractMetadata,
+                  resolvedOwnerId: candidateUserId,
+                },
+              }),
+            {
+              context: {
+                attempt: attemptIndex + 1,
+                userId: candidateUserId,
+                ingestionId: contractData.ingestion_id,
+              },
+              warnMs: 2000,
             },
-          });
+          );
 
           contract = created;
           resolvedUserId = created?.user_id ?? candidateUserId;
@@ -584,26 +619,42 @@ export class DataService {
 
       const candidateUserIds = userIdCandidates;
 
-      const { userId: activityUserId } =
-        await this.executeWithUserIdFallback(
-          candidateUserIds,
-          "trackContractUpload",
-          async (candidateUserId) =>
-            UserActivitiesService.trackContractUpload(
-              candidateUserId,
-              contract.id,
-              contract.title,
-              {
-                classification: classification,
-                user_profile_id: profileId,
-              },
-            ),
-        );
+      const { userId: activityUserId } = await this.measureAsync(
+        "workflow.track_contract_upload",
+        () =>
+          this.executeWithUserIdFallback(
+            candidateUserIds,
+            "trackContractUpload",
+            async (candidateUserId) =>
+              UserActivitiesService.trackContractUpload(
+                candidateUserId,
+                contract.id,
+                contract.title,
+                {
+                  classification: classification,
+                  user_profile_id: profileId,
+                },
+              ),
+          ),
+        {
+          context: { contractId: contract.id },
+          warnMs: 2000,
+        },
+      );
 
-      await this.executeWithUserIdFallback(
-        [activityUserId, ...candidateUserIds],
-        "trackLogin",
-        async (candidateUserId) => UserActivitiesService.trackLogin(candidateUserId),
+      await this.measureAsync(
+        "workflow.track_login",
+        () =>
+          this.executeWithUserIdFallback(
+            [activityUserId, ...candidateUserIds],
+            "trackLogin",
+            async (candidateUserId) =>
+              UserActivitiesService.trackLogin(candidateUserId),
+          ),
+        {
+          context: { contractId: contract.id },
+          warnMs: 2000,
+        },
       );
 
       console.log("✅ Contract created and activity tracked");
@@ -638,12 +689,25 @@ export class DataService {
           console.log(
             `🔄 Attempting AI analysis (attempt ${retryCount + 1}/${maxRetries + 1})...`,
           );
-          reviewResults = await this.processWithAI(
-            enhancedContractData,
-            reviewType,
-            authUserId,
-            customSolutionId,
-            customSolution,
+          reviewResults = await this.measureAsync(
+            "workflow.ai_analysis_attempt",
+            () =>
+              this.processWithAI(
+                enhancedContractData,
+                reviewType,
+                authUserId,
+                customSolutionId,
+                customSolution,
+              ),
+            {
+              context: {
+                attempt: retryCount + 1,
+                reviewType,
+                contractType: enhancedContractData.contract_type,
+                ingestionId: contractData.ingestion_id,
+              },
+              warnMs: 20000,
+            },
           );
           reviewResults = this.applyCalibration(reviewResults, reviewType, {
             selected_solution_id: contractData.selected_solution_id,
@@ -705,21 +769,30 @@ export class DataService {
           ? Math.max(0, Math.min(1, reviewResults.confidence))
           : undefined;
 
-      const review = await ContractReviewsService.createReview({
-        contract_id: contract.id,
-        user_id: ownerUserId,
-        review_type: reviewType,
-        results: reviewResults,
-        score: normalizedScore,
-        confidence_level: normalizedConfidence,
-        custom_solution_id: customSolutionId ?? contractData.custom_solution_id,
-        model_used:
-          typeof reviewResults?.model_used === "string"
-            ? reviewResults.model_used
-            : undefined,
-        confidence_breakdown:
-          reviewResults?.confidence_breakdown ?? undefined,
-      });
+      const review = await this.measureAsync(
+        "workflow.review_create",
+        () =>
+          ContractReviewsService.createReview({
+            contract_id: contract.id,
+            user_id: ownerUserId,
+            review_type: reviewType,
+            results: reviewResults,
+            score: normalizedScore,
+            confidence_level: normalizedConfidence,
+            custom_solution_id:
+              customSolutionId ?? contractData.custom_solution_id,
+            model_used:
+              typeof reviewResults?.model_used === "string"
+                ? reviewResults.model_used
+                : undefined,
+            confidence_breakdown:
+              reviewResults?.confidence_breakdown ?? undefined,
+          }),
+        {
+          context: { contractId: contract.id, reviewType },
+          warnMs: 2000,
+        },
+      );
 
       const completedAt = new Date().toISOString();
       const workflowLatencyMs = workflowPerfStart !== null
@@ -761,26 +834,42 @@ export class DataService {
       });
 
       // 6. Update user usage statistics
-      const { userId: statsUserId } = await this.executeWithUserIdFallback(
-        candidateUserIds,
-        "trackUsageStats",
-        async (candidateUserId) =>
-          UserUsageStatsService.trackReviewCompletion(
-            candidateUserId,
-            reviewType,
-            1,
+      const { userId: statsUserId } = await this.measureAsync(
+        "workflow.track_usage_stats",
+        () =>
+          this.executeWithUserIdFallback(
+            candidateUserIds,
+            "trackUsageStats",
+            async (candidateUserId) =>
+              UserUsageStatsService.trackReviewCompletion(
+                candidateUserId,
+                reviewType,
+                1,
+              ),
           ),
+        {
+          context: { contractId: contract.id, reviewType },
+          warnMs: 2000,
+        },
       );
 
-      await this.executeWithUserIdFallback(
-        [statsUserId, ...candidateUserIds],
-        "trackReviewCompleted",
-        async (candidateUserId) =>
-          UserActivitiesService.trackReviewCompleted(
-            candidateUserId,
-            contract.id,
-            reviewType,
+      await this.measureAsync(
+        "workflow.track_review_completed",
+        () =>
+          this.executeWithUserIdFallback(
+            [statsUserId, ...candidateUserIds],
+            "trackReviewCompleted",
+            async (candidateUserId) =>
+              UserActivitiesService.trackReviewCompleted(
+                candidateUserId,
+                contract.id,
+                reviewType,
+              ),
           ),
+        {
+          context: { contractId: contract.id, reviewType },
+          warnMs: 2000,
+        },
       );
 
       console.log("✅ Contract processing workflow completed successfully");
@@ -1195,6 +1284,41 @@ export class DataService {
       );
   }
 
+  private static getNowMs(): number {
+    return typeof performance !== "undefined" ? performance.now() : Date.now();
+  }
+
+  private static async measureAsync<T>(
+    label: string,
+    task: () => Promise<T>,
+    options?: {
+      context?: Record<string, unknown>;
+      warnMs?: number;
+    },
+  ): Promise<T> {
+    const start = this.getNowMs();
+    let status: "success" | "error" = "success";
+
+    try {
+      return await task();
+    } catch (error) {
+      status = "error";
+      throw error;
+    } finally {
+      const durationMs = Math.round(this.getNowMs() - start);
+      const context = { ...options?.context, status };
+      logger.performance(label, durationMs, context);
+
+      if (options?.warnMs && durationMs >= options.warnMs) {
+        logger.warn(`Slow step: ${label}`, {
+          ...options?.context,
+          durationMs,
+          thresholdMs: options.warnMs,
+        });
+      }
+    }
+  }
+
   // AI processing with enhanced error handling and classification context
   private static async processWithAI(
     contractData: any,
@@ -1211,7 +1335,14 @@ export class DataService {
         presetCustomSolution ?? null;
       if (!customSolution && customSolutionId) {
         console.log("📋 Resolving custom solution metadata:", customSolutionId);
-        customSolution = await this.fetchCustomSolution(customSolutionId);
+        customSolution = await this.measureAsync(
+          "workflow.custom_solution_fetch",
+          () => this.fetchCustomSolution(customSolutionId),
+          {
+            context: { customSolutionId },
+            warnMs: 2000,
+          },
+        );
         if (!customSolution) {
           console.warn(
             "⚠️ Custom solution metadata unavailable, continuing with default playbook.",
@@ -1274,7 +1405,19 @@ export class DataService {
       });
 
       // Analyze contract with AI
-      const result = await aiService.analyzeContract(analysisRequest);
+      const result = await this.measureAsync(
+        "workflow.ai_analysis_request",
+        () => aiService.analyzeContract(analysisRequest),
+        {
+          context: {
+            reviewType,
+            contractType: analysisRequest.contractType,
+            ingestionId: analysisRequest.ingestionId,
+            model: analysisRequest.model,
+          },
+          warnMs: 20000,
+        },
+      );
 
       console.log("✅ AI analysis completed successfully:", {
         score: result.score,
