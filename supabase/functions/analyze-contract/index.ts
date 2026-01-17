@@ -1222,13 +1222,19 @@ serve(async (req) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
+  const requestId = crypto.randomUUID();
+  const requestStartedAt = Date.now();
   let request: AnalysisRequest | null = null;
   let processedContent = "";
   let fallbackContext: FallbackAnalysisContext | null = null;
   let ingestionRecord: ContractIngestionRecord | null = null;
 
   try {
-    console.log("🚀 Starting contract analysis request...");
+    console.log("🚀 Starting contract analysis request...", {
+      requestId,
+      method: req.method,
+      url: req.url,
+    });
 
     // Parse request body with error handling
     try {
@@ -1237,6 +1243,7 @@ serve(async (req) => {
       const errorMessage =
         parseError instanceof Error ? parseError.message : String(parseError);
       console.error("❌ Failed to parse request JSON:", {
+        requestId,
         error: errorMessage,
         type: parseError instanceof Error ? parseError.name : typeof parseError,
         timestamp: new Date().toISOString(),
@@ -1257,6 +1264,7 @@ serve(async (req) => {
       !request.reviewType
     ) {
       console.error("❌ Missing required fields in request:", {
+        requestId,
         hasContent: !!request?.content,
         hasIngestionId: !!request?.ingestionId,
         hasReviewType: !!request?.reviewType,
@@ -1275,10 +1283,13 @@ serve(async (req) => {
     }
 
     console.log("✅ Request validation passed:", {
+      requestId,
       reviewType: request.reviewType,
       model: request.model,
       contentLength: request.content?.length,
       ingestionId: request.ingestionId,
+      responseId: request.responseId,
+      async: request.async,
       fileType: request.fileType,
       fileName: request.fileName,
     });
@@ -1295,6 +1306,7 @@ serve(async (req) => {
             ? "Extraction requires OCR"
             : "Extraction incomplete";
           console.warn("⚠️ Ingestion missing extracted text", {
+            requestId,
             ingestionId: request.ingestionId,
             status: ingestionRecord.status,
             needsOcr: ingestionRecord.needs_ocr,
@@ -1487,11 +1499,21 @@ serve(async (req) => {
           : "";
 
       if (responseId) {
+        console.log("🔄 Polling async analysis status", {
+          requestId,
+          responseId,
+          reviewType: request.reviewType,
+        });
         const pollResult = await pollReasoningAnalysis(
           reasoningContext,
           responseId,
         );
         if (pollResult.status !== "completed") {
+          console.log("⏳ Async analysis still running", {
+            requestId,
+            responseId: pollResult.responseId,
+            status: pollResult.status,
+          });
           return new Response(
             JSON.stringify({
               status: pollResult.status,
@@ -1505,6 +1527,11 @@ serve(async (req) => {
           );
         }
 
+        console.log("✅ Async analysis completed", {
+          requestId,
+          responseId,
+          durationMs: Date.now() - requestStartedAt,
+        });
         const responsePayload = buildLegacyResponse(pollResult.result.report, {
           classification: request.classification,
           contractType: resolvedContractType,
@@ -1519,7 +1546,21 @@ serve(async (req) => {
       }
 
       if (request.async === true) {
+        console.log("🧭 Starting async analysis", {
+          requestId,
+          reviewType: request.reviewType,
+          modelTier,
+        });
         const startResult = await startReasoningAnalysis(reasoningContext);
+        console.log("⏳ Async analysis accepted", {
+          requestId,
+          responseId: startResult.responseId,
+          status: startResult.status,
+          model: startResult.model,
+          tier: startResult.tier,
+          mode: startResult.mode,
+          durationMs: Date.now() - requestStartedAt,
+        });
         return new Response(
           JSON.stringify({
             status: startResult.status ?? "in_progress",
@@ -1534,6 +1575,12 @@ serve(async (req) => {
       }
 
       const reasoningResult = await runReasoningAnalysis(reasoningContext);
+      console.log("✅ Sync analysis completed", {
+        requestId,
+        reviewType: request.reviewType,
+        modelTier,
+        durationMs: Date.now() - requestStartedAt,
+      });
 
       const responsePayload = buildLegacyResponse(reasoningResult.report, {
         classification: request.classification,
@@ -1553,6 +1600,7 @@ serve(async (req) => {
           : String(analysisError);
 
       console.error("❌ AI provider failed, using fallback analysis:", {
+        requestId,
         message: errorMessage,
         modelTier,
         timestamp: new Date().toISOString(),

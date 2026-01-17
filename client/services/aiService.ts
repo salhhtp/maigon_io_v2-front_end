@@ -525,23 +525,43 @@ class AIService {
           status: (data as any).status,
           pollAfterMs,
         });
-        data = await this.measureAsync(
-          "ai.edge.poll",
-          () =>
-            this.pollAsyncAnalysis(
-              requestBody,
-              (data as any).responseId as string,
-              session.access_token ?? null,
-              request.reviewType,
-            ),
-          {
-            context: {
-              reviewType: request.reviewType,
-              responseId: (data as any).responseId as string,
+        const responseId = (data as any).responseId as string;
+        const maxPollMs = requestBody.ingestionId ? 6 * 60 * 1000 : 10 * 60 * 1000;
+        try {
+          data = await this.measureAsync(
+            "ai.edge.poll",
+            () =>
+              this.pollAsyncAnalysis(
+                requestBody,
+                responseId,
+                session.access_token ?? null,
+                request.reviewType,
+                maxPollMs,
+              ),
+            {
+              context: {
+                reviewType: request.reviewType,
+                responseId,
+                maxPollMs,
+              },
+              warnMs: 60000,
             },
-            warnMs: 60000,
-          },
-        );
+          );
+        } catch (pollError) {
+          const message =
+            pollError instanceof Error ? pollError.message : String(pollError);
+          if (message.toLowerCase().includes("timed out")) {
+            logger.warn("Async analysis timed out, returning fallback", {
+              reviewType: request.reviewType,
+              responseId,
+              maxPollMs,
+            });
+            return buildFallbackResult(
+              `Async analysis timed out (responseId=${responseId}).`,
+            );
+          }
+          throw pollError;
+        }
       }
 
       // Validate the response structure
@@ -770,8 +790,12 @@ class AIService {
     responseId: string,
     accessToken: string | null,
     reviewType: string,
+    maxWaitMsOverride?: number,
   ) {
-    const maxWaitMs = 10 * 60 * 1000;
+    const maxWaitMs =
+      typeof maxWaitMsOverride === "number" && maxWaitMsOverride > 0
+        ? maxWaitMsOverride
+        : 10 * 60 * 1000;
     const startedAt = Date.now();
     let waitMs = 3000;
     let attempt = 0;

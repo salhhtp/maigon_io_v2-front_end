@@ -2439,6 +2439,7 @@ export async function startReasoningAnalysis(
   tier: ModelTier;
 }> {
   const session = createReasoningSession(context);
+  const requestStartedAt = Date.now();
   const isTightTimeout = REQUEST_TIMEOUT_MS <= 45000;
   const mode: ReasoningMode = isTightTimeout ? "compact" : "full";
   const { systemPrompt, userPrompt } = session.buildPrompts(mode);
@@ -2483,6 +2484,16 @@ export async function startReasoningAnalysis(
 
   if (!response.ok) {
     const errorBody = await response.text();
+    console.error("❌ OpenAI async start failed", {
+      model: session.model,
+      tier: session.tier,
+      mode,
+      status: response.status,
+      statusText: response.statusText,
+      requestId: response.headers.get("x-request-id"),
+      processingMs: response.headers.get("openai-processing-ms"),
+      errorBody: errorBody.slice(0, 400),
+    });
     throw new Error(
       `OpenAI reasoning error (${session.model}): ${response.status} ${response.statusText} ${errorBody}`,
     );
@@ -2504,6 +2515,19 @@ export async function startReasoningAnalysis(
   const status =
     typeof payload?.status === "string" ? payload.status : "in_progress";
 
+  console.log("✅ OpenAI async analysis accepted", {
+    responseId,
+    status,
+    model: session.model,
+    tier: session.tier,
+    mode,
+    durationMs: Date.now() - requestStartedAt,
+    requestId: response.headers.get("x-request-id"),
+    processingMs: response.headers.get("openai-processing-ms"),
+    rateLimitRequests: response.headers.get("x-ratelimit-remaining-requests"),
+    rateLimitTokens: response.headers.get("x-ratelimit-remaining-tokens"),
+  });
+
   return {
     responseId,
     status,
@@ -2518,6 +2542,7 @@ export async function pollReasoningAnalysis(
   responseId: string,
 ): Promise<AsyncReasoningStatus> {
   const session = createReasoningSession(context);
+  const requestStartedAt = Date.now();
   const response = await fetch(
     `${OPENAI_RESPONSES_API_BASE}/${responseId}`,
     {
@@ -2529,6 +2554,16 @@ export async function pollReasoningAnalysis(
 
   if (!response.ok) {
     const errorBody = await response.text();
+    console.error("❌ OpenAI poll failed", {
+      responseId,
+      model: session.model,
+      tier: session.tier,
+      status: response.status,
+      statusText: response.statusText,
+      requestId: response.headers.get("x-request-id"),
+      processingMs: response.headers.get("openai-processing-ms"),
+      errorBody: errorBody.slice(0, 400),
+    });
     throw new Error(
       `OpenAI reasoning poll error (${session.model}): ${response.status} ${response.statusText} ${errorBody}`,
     );
@@ -2539,6 +2574,17 @@ export async function pollReasoningAnalysis(
     typeof payload?.status === "string" ? payload.status : "completed";
 
   if (status !== "completed") {
+    console.warn("⏳ OpenAI async status", {
+      responseId,
+      status,
+      model: session.model,
+      tier: session.tier,
+      durationMs: Date.now() - requestStartedAt,
+      requestId: response.headers.get("x-request-id"),
+      processingMs: response.headers.get("openai-processing-ms"),
+      rateLimitRequests: response.headers.get("x-ratelimit-remaining-requests"),
+      rateLimitTokens: response.headers.get("x-ratelimit-remaining-tokens"),
+    });
     return { status, responseId };
   }
 
@@ -2549,6 +2595,15 @@ export async function pollReasoningAnalysis(
     coreReport,
     payload,
   );
+
+  console.log("✅ OpenAI async completed", {
+    responseId,
+    model: session.model,
+    tier: session.tier,
+    durationMs: Date.now() - requestStartedAt,
+    requestId: response.headers.get("x-request-id"),
+    processingMs: response.headers.get("openai-processing-ms"),
+  });
 
   return { status: "completed", responseId, result };
 }
