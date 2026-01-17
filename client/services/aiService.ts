@@ -515,6 +515,16 @@ class AIService {
         typeof (data as any).status === "string" &&
         (data as any).status !== "completed"
       ) {
+        const pollAfterMs =
+          typeof (data as any).pollAfterMs === "number"
+            ? (data as any).pollAfterMs
+            : null;
+        logger.warn("AI analysis running async", {
+          reviewType: request.reviewType,
+          responseId: (data as any).responseId as string,
+          status: (data as any).status,
+          pollAfterMs,
+        });
         data = await this.measureAsync(
           "ai.edge.poll",
           () =>
@@ -699,6 +709,13 @@ class AIService {
           },
         );
 
+        if (isAbort) {
+          logger.warn("Edge Function invocation timed out", {
+            reviewType,
+            attempt,
+            timeoutMs,
+          });
+        }
         logError(
           transient
             ? "Transient Edge Function invocation failure"
@@ -758,6 +775,8 @@ class AIService {
     const startedAt = Date.now();
     let waitMs = 3000;
     let attempt = 0;
+    let lastWarnAt = 0;
+    const warnEveryMs = 120000;
     logger.contractAction("AI analysis async polling started", undefined, {
       reviewType,
       responseId,
@@ -811,14 +830,30 @@ class AIService {
         10000,
       );
 
+      const elapsedMs = Date.now() - startedAt;
       logger.contractAction("AI analysis polling", undefined, {
         reviewType,
         attempt,
         waitMs,
         status,
         responseId,
-        elapsedMs: Date.now() - startedAt,
+        elapsedMs,
       });
+
+      if (
+        elapsedMs >= warnEveryMs &&
+        (lastWarnAt === 0 || elapsedMs - lastWarnAt >= warnEveryMs)
+      ) {
+        logger.warn("AI analysis still processing", {
+          reviewType,
+          responseId,
+          attempt,
+          status,
+          elapsedMs,
+          waitMs,
+        });
+        lastWarnAt = elapsedMs;
+      }
     }
 
     logger.warn("AI analysis polling timed out", {
