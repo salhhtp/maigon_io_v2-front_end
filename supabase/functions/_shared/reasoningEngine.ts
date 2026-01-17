@@ -2526,6 +2526,9 @@ export async function startReasoningAnalysis(
     processingMs: response.headers.get("openai-processing-ms"),
     rateLimitRequests: response.headers.get("x-ratelimit-remaining-requests"),
     rateLimitTokens: response.headers.get("x-ratelimit-remaining-tokens"),
+    createdAt: payload?.created_at ?? null,
+    expiresAt: payload?.expires_at ?? null,
+    statusDetails: payload?.status_details ?? payload?.incomplete_details ?? null,
   });
 
   return {
@@ -2584,6 +2587,10 @@ export async function pollReasoningAnalysis(
       processingMs: response.headers.get("openai-processing-ms"),
       rateLimitRequests: response.headers.get("x-ratelimit-remaining-requests"),
       rateLimitTokens: response.headers.get("x-ratelimit-remaining-tokens"),
+      createdAt: payload?.created_at ?? null,
+      expiresAt: payload?.expires_at ?? null,
+      lastError: payload?.last_error ?? payload?.error ?? null,
+      statusDetails: payload?.status_details ?? payload?.incomplete_details ?? null,
     });
     return { status, responseId };
   }
