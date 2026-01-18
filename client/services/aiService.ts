@@ -361,7 +361,14 @@ class AIService {
     const model = ensureGpt5Model(requestedModel, { defaultTier: "pro" });
     const originalContent =
       typeof request.content === "string" ? request.content : "";
+    const contentLengthForRouting = originalContent.trim().length;
     const requestContent = request.ingestionId ? "" : originalContent;
+    const asyncThreshold =
+      Number(import.meta.env.VITE_AI_ASYNC_MIN_CHARS) || 20000;
+    const defaultAsync =
+      contentLengthForRouting === 0
+        ? true
+        : contentLengthForRouting >= asyncThreshold;
 
     // Validate request before sending: allow empty content if ingestionId is provided
     const hasContent = requestContent.trim().length > 0;
@@ -392,7 +399,9 @@ class AIService {
 
       // Prepare the request body with all necessary data
       // First, ensure all properties are serializable
-      const useAsync = request.async ?? true;
+      const useAsync = typeof request.async === "boolean"
+        ? request.async
+        : defaultAsync;
       const requestBody: any = {
         content: requestContent,
         reviewType: request.reviewType,
@@ -421,6 +430,8 @@ class AIService {
           ? Object.keys(requestBody.classification)
           : null,
         selectedSolution: requestBody.selectedSolution,
+        contentLengthForRouting,
+        asyncThreshold,
       });
 
       // Validate that the request body is JSON-serializable
@@ -556,9 +567,31 @@ class AIService {
               responseId,
               maxPollMs,
             });
-            return buildFallbackResult(
+            const fallback = buildFallbackResult(
               `Async analysis timed out (responseId=${responseId}).`,
             );
+            return {
+              ...fallback,
+              async_status: "pending",
+              async_response_id: responseId,
+              async_last_checked_at: new Date().toISOString(),
+              async_timeout_at: new Date().toISOString(),
+              async_meta: {
+                responseId,
+                reviewType: request.reviewType,
+                ingestionId: request.ingestionId,
+                model,
+                contractType: request.contractType,
+                classification: request.classification ?? null,
+                selectedSolution: request.selectedSolution ?? null,
+                perspective: request.perspective ?? null,
+                perspectiveLabel: request.perspectiveLabel ?? null,
+                fileName: request.fileName ?? request.filename ?? null,
+                fileType: request.fileType ?? null,
+                documentFormat: request.documentFormat ?? null,
+                ingestionWarnings: request.ingestionWarnings ?? null,
+              },
+            };
           }
           throw pollError;
         }
@@ -625,6 +658,76 @@ class AIService {
       }
       throw new Error(errorInfo.message || "AI provider error");
     }
+  }
+
+  async checkAsyncAnalysis(meta: {
+    responseId: string;
+    reviewType: string;
+    ingestionId?: string | null;
+    model?: string | null;
+    contractType?: string | null;
+    classification?: any;
+    selectedSolution?: any;
+    perspective?: string | null;
+    perspectiveLabel?: string | null;
+    fileName?: string | null;
+    fileType?: string | null;
+    documentFormat?: string | null;
+    ingestionWarnings?: unknown;
+  }): Promise<{ status: string; responseId: string; result?: any }> {
+    const {
+      data: { session },
+      error: sessionError,
+    } = await supabase.auth.getSession();
+    if (sessionError || !session) {
+      throw new Error("Authentication required to resume analysis.");
+    }
+
+    const model = ensureGpt5Model(meta.model ?? undefined, {
+      defaultTier: "pro",
+    });
+    const requestBody = {
+      content: "",
+      reviewType: meta.reviewType,
+      model,
+      contractType: meta.contractType ?? undefined,
+      perspective: meta.perspective ?? undefined,
+      perspectiveLabel: meta.perspectiveLabel ?? undefined,
+      fileType: meta.fileType ?? undefined,
+      fileName: meta.fileName ?? undefined,
+      filename: meta.fileName ?? undefined,
+      documentFormat: meta.documentFormat ?? undefined,
+      classification: meta.classification ?? undefined,
+      ingestionId: meta.ingestionId ?? undefined,
+      ingestionWarnings: meta.ingestionWarnings,
+      selectedSolution: meta.selectedSolution ?? undefined,
+      async: true,
+      responseId: meta.responseId,
+    };
+
+    const { data, error } = await this.invokeEdgeFunctionWithRetry(
+      requestBody,
+      meta.reviewType,
+      session.access_token ?? null,
+    );
+    if (error) {
+      const message = this.formatEdgeErrorMessage(error);
+      throw new Error(message || "Async analysis check failed.");
+    }
+
+    if (!data || typeof data !== "object") {
+      throw new Error("Async analysis check returned empty response.");
+    }
+
+    const status =
+      typeof (data as any).status === "string"
+        ? (data as any).status
+        : "completed";
+    if (status !== "completed") {
+      return { status, responseId: meta.responseId };
+    }
+
+    return { status: "completed", responseId: meta.responseId, result: data };
   }
 
   private formatEdgeErrorMessage(error: unknown): string {

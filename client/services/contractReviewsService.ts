@@ -1,8 +1,11 @@
 import { supabase } from "@/lib/supabase";
 import type { Database } from "@/lib/supabase";
+import aiService from "./aiService";
 
 type ContractReview = Database['public']['Tables']['contract_reviews']['Row'];
 type ContractReviewInsert = Database['public']['Tables']['contract_reviews']['Insert'];
+
+const ASYNC_RECHECK_INTERVAL_MS = 5 * 60 * 1000;
 
 export class ContractReviewsService {
   // Get all reviews for a contract
@@ -26,7 +29,104 @@ export class ContractReviewsService {
       .single();
 
     if (error) throw error;
-    return data;
+    return this.maybeResumeAsyncReview(data);
+  }
+
+  private static async maybeResumeAsyncReview(review: ContractReview) {
+    const results = review.results as Record<string, any> | null;
+    const asyncStatus = results?.async_status;
+    const asyncMeta = results?.async_meta as Record<string, any> | undefined;
+    const responseId = asyncMeta?.responseId as string | undefined;
+
+    if (asyncStatus !== "pending" || !responseId) {
+      return review;
+    }
+
+    const lastCheckedRaw = results?.async_last_checked_at;
+    const lastCheckedAt = lastCheckedRaw
+      ? new Date(String(lastCheckedRaw)).getTime()
+      : 0;
+    if (
+      Number.isFinite(lastCheckedAt) &&
+      Date.now() - lastCheckedAt < ASYNC_RECHECK_INTERVAL_MS
+    ) {
+      return review;
+    }
+
+    try {
+      const check = await aiService.checkAsyncAnalysis({
+        responseId,
+        reviewType: asyncMeta?.reviewType ?? review.review_type,
+        ingestionId: asyncMeta?.ingestionId ?? null,
+        model: asyncMeta?.model ?? null,
+        contractType: asyncMeta?.contractType ?? null,
+        classification: asyncMeta?.classification ?? null,
+        selectedSolution: asyncMeta?.selectedSolution ?? null,
+        perspective: asyncMeta?.perspective ?? null,
+        perspectiveLabel: asyncMeta?.perspectiveLabel ?? null,
+        fileName: asyncMeta?.fileName ?? null,
+        fileType: asyncMeta?.fileType ?? null,
+        documentFormat: asyncMeta?.documentFormat ?? null,
+        ingestionWarnings: asyncMeta?.ingestionWarnings,
+      });
+
+      const nowIso = new Date().toISOString();
+      if (check.status === "completed" && check.result) {
+        const nextResults = {
+          ...check.result,
+          async_status: "completed",
+          async_response_id: responseId,
+          async_completed_at: nowIso,
+          async_meta: asyncMeta,
+        };
+        const nextScore =
+          typeof check.result.score === "number"
+            ? Math.round(check.result.score)
+            : review.score ?? null;
+        const nextConfidence =
+          typeof check.result.confidence === "number"
+            ? check.result.confidence
+            : review.confidence_level ?? null;
+        const nextModel =
+          typeof check.result.model_used === "string"
+            ? check.result.model_used
+            : review.model_used ?? null;
+
+        const { data, error } = await supabase
+          .from("contract_reviews")
+          .update({
+            results: nextResults,
+            score: nextScore,
+            confidence_level: nextConfidence,
+            model_used: nextModel,
+          })
+          .eq("id", review.id)
+          .select()
+          .single();
+
+        if (!error && data) {
+          return data;
+        }
+      } else {
+        const nextResults = {
+          ...results,
+          async_status: check.status,
+          async_last_checked_at: nowIso,
+        };
+        await supabase
+          .from("contract_reviews")
+          .update({ results: nextResults })
+          .eq("id", review.id);
+      }
+    } catch (error) {
+      console.warn("Async review resume check failed", {
+        reviewId: review.id,
+        responseId,
+        error,
+      });
+    }
+
+    return review;
   }
 
   // Create a new review
