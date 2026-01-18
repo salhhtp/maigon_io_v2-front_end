@@ -1447,13 +1447,16 @@ function editMatchesTemplate(
   edit: AnalysisReport["proposedEdits"][number],
   template: ClauseTemplate,
 ): boolean {
-  const editText = normalizeMatchText(
-    [edit.id, edit.intent, edit.rationale, edit.proposedText]
-      .filter(Boolean)
-      .join(" "),
-  );
-  const tags = template.tags?.length ? template.tags : [template.title];
-  return tags.some((tag) => editText.includes(normalizeMatchText(tag)));
+  const proposedText = normalizeMatchText(edit.proposedText ?? "");
+  if (!proposedText) return false;
+  const normalizedTitle = normalizeMatchText(template.title);
+  if (normalizedTitle && proposedText.startsWith(normalizedTitle)) {
+    return true;
+  }
+  const templateText = normalizeMatchText(template.text);
+  if (!templateText) return false;
+  const templateSnippet = templateText.slice(0, 140);
+  return templateSnippet ? proposedText.includes(templateSnippet) : false;
 }
 
 function pickAnchorSnippet(text: string, maxLength = 220) {

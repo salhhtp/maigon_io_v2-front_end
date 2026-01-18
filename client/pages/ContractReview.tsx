@@ -1289,6 +1289,53 @@ function resolveClauseEvidenceFromDocument(
   return null;
 }
 
+function resolveFullClauseText({
+  clauseId,
+  clauseTitle,
+  anchorText,
+  clauses,
+}: {
+  clauseId?: string | null;
+  clauseTitle?: string | null;
+  anchorText?: string | null;
+  clauses: ClauseExtraction[];
+}): string | null {
+  if (!clauses.length) return null;
+  const normalizedClauseId = clauseId ? clauseId.toLowerCase() : null;
+  const normalizedTitle = clauseTitle ? normalizeSearchText(clauseTitle) : null;
+
+  if (normalizedClauseId) {
+    const clauseById = clauses.find((clause) => {
+      const clauseKey = clause.clauseId ?? clause.id ?? "";
+      return clauseKey.toLowerCase() === normalizedClauseId;
+    });
+    if (clauseById) {
+      return clauseById.normalizedText ?? clauseById.originalText ?? null;
+    }
+  }
+
+  if (normalizedTitle) {
+    const clauseByTitle = clauses.find((clause) => {
+      if (!clause.title) return false;
+      const clauseTitleNormalized = normalizeSearchText(clause.title);
+      return (
+        clauseTitleNormalized === normalizedTitle ||
+        clauseTitleNormalized.includes(normalizedTitle) ||
+        normalizedTitle.includes(clauseTitleNormalized)
+      );
+    });
+    if (clauseByTitle) {
+      return clauseByTitle.normalizedText ?? clauseByTitle.originalText ?? null;
+    }
+  }
+
+  if (anchorText) {
+    return resolveClauseEvidenceFromSnippet(anchorText, clauses);
+  }
+
+  return null;
+}
+
 function groupDecisionsByClause(
   decisions: NormalizedDecision[],
   clauses: ClauseExtraction[],
@@ -1539,6 +1586,8 @@ function ClausePreview({
   proposedText,
   previousText,
   updatedText,
+  fullPreviousText,
+  fullUpdatedText,
   previewHtml,
   isActive = true,
 }: {
@@ -1547,6 +1596,8 @@ function ClausePreview({
   proposedText: string;
   previousText?: string | null;
   updatedText?: string | null;
+  fullPreviousText?: string | null;
+  fullUpdatedText?: string | null;
   previewHtml?: {
     previous?: string;
     updated?: string;
@@ -1581,6 +1632,21 @@ function ClausePreview({
     if (previousTextForDiff === updatedTextForDiff) return null;
     return computeTokenDiff(previousTextForDiff, updatedTextForDiff);
   }, [previousTextForDiff, updatedTextForDiff]);
+
+  const resolvedFullPreviousText =
+    fullPreviousText && fullPreviousText.trim().length > 0
+      ? fullPreviousText
+      : previousTextForDiff;
+  const resolvedFullUpdatedText =
+    fullUpdatedText && fullUpdatedText.trim().length > 0
+      ? fullUpdatedText
+      : updatedTextForDiff;
+  const highlightOriginal =
+    resolvedFullPreviousText &&
+    previousTextForDiff &&
+    resolvedFullPreviousText !== previousTextForDiff
+      ? previousTextForDiff
+      : null;
 
   const renderDiffColumn = (variant: "original" | "updated") => {
     if (!diffTokens) {
@@ -1661,11 +1727,21 @@ function ClausePreview({
               Review the full clause text below.
             </DialogDescription>
           </DialogHeader>
-          <pre className="whitespace-pre-wrap break-words text-sm text-[#271D1D] bg-[#FDFBFB] border border-[#E8DDDD] rounded-md p-4 max-h-[60vh] overflow-y-auto">
+          {activeModal === "original" && highlightOriginal ? (
+            <div className="rounded-md border border-[#E8DDDD] bg-[#FFF7E6] px-3 py-2 text-xs text-[#7A4B00]">
+              <p className="font-semibold uppercase tracking-wide">
+                Referenced excerpt
+              </p>
+              <p className="text-sm text-[#271D1D] whitespace-pre-wrap">
+                {highlightOriginal}
+              </p>
+            </div>
+          ) : null}
+          <div className="whitespace-pre-wrap break-words text-sm text-[#271D1D] bg-[#FDFBFB] border border-[#E8DDDD] rounded-md p-4 max-h-[60vh] overflow-y-auto">
             {activeModal === "original"
-              ? previousTextForDiff
-              : updatedTextForDiff}
-          </pre>
+              ? renderHighlightedText(resolvedFullPreviousText, highlightOriginal)
+              : resolvedFullUpdatedText}
+          </div>
           <DialogFooter>
             <Button type="button" onClick={() => setActiveModal(null)}>
               Close
@@ -4678,6 +4754,19 @@ const heroNavItems: { id: string; label: string }[] = [
                           item.proposedEdit?.updatedText ??
                           item.proposedEdit?.proposedText ??
                           actionPreviewAnchor;
+                        const fullClauseSource =
+                          fullDocumentClauseExtractions.length > 0
+                            ? fullDocumentClauseExtractions
+                            : resolvedClauseExtractions;
+                        const actionFullOriginal =
+                          item.proposedEdit
+                            ? resolveFullClauseText({
+                                clauseId: item.proposedEdit.clauseId ?? null,
+                                clauseTitle: item.proposedEdit.clauseTitle ?? null,
+                                anchorText: actionPreviewAnchor,
+                                clauses: fullClauseSource,
+                              })
+                            : null;
                         return (
                           <div
                             key={item.id}
@@ -4743,6 +4832,8 @@ const heroNavItems: { id: string; label: string }[] = [
                                     item.proposedEdit.proposedText ??
                                     null
                                   }
+                                  fullPreviousText={actionFullOriginal}
+                                  fullUpdatedText={actionPreviewUpdated}
                                   previewHtml={item.proposedEdit.previewHtml ?? null}
                                   isActive={checked}
                                 />
