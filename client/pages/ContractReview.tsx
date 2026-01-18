@@ -67,6 +67,7 @@ interface ContractData {
   id: string;
   title: string;
   content_html?: string | null;
+  content?: string | null;
   file_name: string;
   file_size: number;
   status: string;
@@ -1116,6 +1117,79 @@ function resolveClauseEvidenceFromSnippet(
   return clauseMatch?.normalizedText ?? clauseMatch?.originalText ?? null;
 }
 
+function escapeRegex(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function resolveClauseEvidenceFromDocument(
+  reference: Issue["clauseReference"] | null | undefined,
+  documentText: string | null,
+): string | null {
+  if (!reference || !documentText) return null;
+  const normalized = documentText.replace(/\r\n/g, "\n");
+  const lines = normalized.split("\n");
+  const clauseNumber = reference.locationHint?.clauseNumber ?? null;
+  const heading = reference.heading ?? null;
+  const excerpt = reference.excerpt ?? null;
+
+  const numberPattern = clauseNumber
+    ? new RegExp(
+        `^\\s*(?:clause\\s+)?${escapeRegex(clauseNumber)}(?=\\s|\\.|:|$)`,
+        "i",
+      )
+    : null;
+  const headingPattern =
+    heading && heading.trim().length > 2
+      ? normalizeSearchText(heading)
+      : null;
+
+  let startIndex = -1;
+  if (numberPattern) {
+    startIndex = lines.findIndex((line) => numberPattern.test(line.trim()));
+  }
+  if (startIndex < 0 && headingPattern) {
+    startIndex = lines.findIndex((line) =>
+      normalizeSearchText(line).includes(headingPattern),
+    );
+  }
+
+  if (startIndex >= 0) {
+    const headingLinePattern = /^(\d+(\.\d+)*)(?:\.)?\s+/;
+    let endIndex = lines.length;
+    for (let i = startIndex + 1; i < lines.length; i += 1) {
+      const line = lines[i].trim();
+      if (!line) continue;
+      if (
+        headingLinePattern.test(line) ||
+        /^[A-Z][A-Z\s\d\W]{3,}$/.test(line)
+      ) {
+        endIndex = i;
+        break;
+      }
+    }
+    const block = lines.slice(startIndex, endIndex).join("\n").trim();
+    if (block.length > 0) {
+      return block;
+    }
+  }
+
+  if (excerpt) {
+    const blocks = normalized
+      .split(/\n{2,}/)
+      .map((block) => block.trim())
+      .filter(Boolean);
+    const normalizedExcerpt = normalizeSearchText(excerpt);
+    const matchedBlock = blocks.find((block) =>
+      normalizeSearchText(block).includes(normalizedExcerpt),
+    );
+    if (matchedBlock) {
+      return matchedBlock;
+    }
+  }
+
+  return null;
+}
+
 function groupDecisionsByClause(
   decisions: NormalizedDecision[],
   clauses: ClauseExtraction[],
@@ -1289,6 +1363,11 @@ function inferClauseImportance(
 function deriveClauseExtractionsFromContent(
   content?: string | null,
   limit = 8,
+  options?: {
+    excerptLength?: number;
+    normalizedLength?: number;
+    includeFullText?: boolean;
+  },
 ): ClauseExtraction[] {
   if (!content) return [];
   const normalized = content.replace(/\r\n/g, "\n");
@@ -1296,6 +1375,12 @@ function deriveClauseExtractionsFromContent(
     .split(/\n{2,}/)
     .map((block) => block.trim())
     .filter((block) => block.length > 80);
+
+  const excerptLength = options?.excerptLength ?? 420;
+  const normalizedLength =
+    options?.includeFullText === true
+      ? null
+      : options?.normalizedLength ?? 800;
 
   const clauses: ClauseExtraction[] = [];
   for (const block of blocks) {
@@ -1313,7 +1398,9 @@ function deriveClauseExtractionsFromContent(
 
     const body = bodyLines.join(" ").trim();
     if (body.length < 60) continue;
-    const excerpt = body.slice(0, 420).trim();
+    const excerpt = body.slice(0, excerptLength).trim();
+    const normalizedText =
+      normalizedLength === null ? body : body.slice(0, normalizedLength);
     const clauseNumberMatch = heading.match(/^(\d+(\.\d+)*)(?:\.)?\s*/);
     const clauseNumber = clauseNumberMatch ? clauseNumberMatch[1] : null;
 
@@ -1323,7 +1410,7 @@ function deriveClauseExtractionsFromContent(
       title: heading || `Clause ${clauses.length + 1}`,
       category: undefined,
       originalText: excerpt,
-      normalizedText: body.slice(0, 800),
+      normalizedText,
       importance: inferClauseImportance(excerpt),
       location: null,
       references: [],
@@ -2217,9 +2304,25 @@ Next step: ${
     return map;
   }, [structuredReport]);
 
+  const fullDocumentText = useMemo(() => {
+    if (typeof contractData?.content === "string" && contractData.content.trim()) {
+      return contractData.content;
+    }
+    if (typeof contractData?.content_html === "string" && contractData.content_html.trim()) {
+      return htmlStringToPlainText(contractData.content_html);
+    }
+    return null;
+  }, [contractData?.content, contractData?.content_html]);
   const parsedClauseExtractions = useMemo(
     () => deriveClauseExtractionsFromContent(contractData?.content ?? null),
     [contractData?.content],
+  );
+  const fullDocumentClauseExtractions = useMemo(
+    () =>
+      deriveClauseExtractionsFromContent(fullDocumentText, 120, {
+        includeFullText: true,
+      }),
+    [fullDocumentText],
   );
   const resolvedClauseExtractions = structuredClauseExtractions.length
     ? structuredClauseExtractions
@@ -2239,6 +2342,9 @@ Next step: ${
               ? [(clause as Record<string, string>).page_reference]
               : [],
         }));
+  const clauseEvidenceSources = fullDocumentClauseExtractions.length
+    ? fullDocumentClauseExtractions
+    : resolvedClauseExtractions;
   const resolvedPlaybookInsights: PlaybookInsight[] =
     structuredPlaybookInsights.length
       ? structuredPlaybookInsights
@@ -3756,9 +3862,13 @@ const heroNavItems: { id: string; label: string }[] = [
                             <div className="px-4 pb-4 space-y-3">
                               {bucket.map((issue) => {
                                 const issueEvidenceText =
+                                  resolveClauseEvidenceFromDocument(
+                                    issue.clauseReference,
+                                    fullDocumentText,
+                                  ) ??
                                   resolveClauseEvidenceText(
                                     issue.clauseReference,
-                                    resolvedClauseExtractions,
+                                    clauseEvidenceSources,
                                   );
                                 const clauseKey =
                                   issue.clauseReference?.heading?.toLowerCase() ??
@@ -3825,10 +3935,15 @@ const heroNavItems: { id: string; label: string }[] = [
                       const criteriaReference = criterion.evidence
                         ? ({ excerpt: criterion.evidence } as Issue["clauseReference"])
                         : null;
-                      const criteriaEvidenceText = resolveClauseEvidenceFromSnippet(
-                        criterion.evidence,
-                        resolvedClauseExtractions,
-                      );
+                      const criteriaEvidenceText =
+                        resolveClauseEvidenceFromDocument(
+                          criteriaReference,
+                          fullDocumentText,
+                        ) ??
+                        resolveClauseEvidenceFromSnippet(
+                          criterion.evidence,
+                          clauseEvidenceSources,
+                        );
                       return (
                         <div
                           key={criterion.id}
