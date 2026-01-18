@@ -1114,11 +1114,74 @@ function resolveClauseEvidenceFromSnippet(
       ? normalizeSearchText(clauseText).includes(normalizedSnippet)
       : false;
   });
-  return clauseMatch?.normalizedText ?? clauseMatch?.originalText ?? null;
+  if (clauseMatch) {
+    return clauseMatch.normalizedText ?? clauseMatch.originalText ?? null;
+  }
+  const tokens = normalizedSnippet
+    .split(/\W+/)
+    .map((token) => token.trim())
+    .filter((token) => token.length >= 5);
+  if (!tokens.length) return null;
+
+  let bestClause: ClauseExtraction | null = null;
+  let bestScore = 0;
+
+  clauses.forEach((clause) => {
+    const clauseText = clause.normalizedText ?? clause.originalText ?? "";
+    if (!clauseText) return;
+    const clauseLower = normalizeSearchText(clauseText);
+    let hitCount = 0;
+    tokens.forEach((token) => {
+      if (clauseLower.includes(token)) hitCount += 1;
+    });
+    if (hitCount > bestScore) {
+      bestScore = hitCount;
+      bestClause = clause;
+    }
+  });
+
+  return bestClause?.normalizedText ?? bestClause?.originalText ?? null;
 }
 
 function escapeRegex(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function renderHighlightedText(text: string, highlight: string | null) {
+  if (!highlight) return text;
+  const trimmed = highlight.trim();
+  if (!trimmed) return text;
+  if (trimmed.length > 600) return text;
+  const lowerText = text.toLowerCase();
+  const lowerHighlight = trimmed.toLowerCase();
+  const segments: React.ReactNode[] = [];
+  let startIndex = 0;
+  let matchIndex = lowerText.indexOf(lowerHighlight, startIndex);
+  let matchCount = 0;
+
+  while (matchIndex >= 0 && matchCount < 6) {
+    if (matchIndex > startIndex) {
+      segments.push(text.slice(startIndex, matchIndex));
+    }
+    const matchEnd = matchIndex + trimmed.length;
+    segments.push(
+      <mark
+        key={`hl-${matchIndex}`}
+        className="bg-yellow-100 text-[#271D1D] rounded px-1"
+      >
+        {text.slice(matchIndex, matchEnd)}
+      </mark>,
+    );
+    startIndex = matchEnd;
+    matchIndex = lowerText.indexOf(lowerHighlight, startIndex);
+    matchCount += 1;
+  }
+
+  if (matchCount === 0) return text;
+  if (startIndex < text.length) {
+    segments.push(text.slice(startIndex));
+  }
+  return segments;
 }
 
 function sliceAroundAnchor(
@@ -1325,6 +1388,10 @@ function ClauseEvidenceBlock({
   const locationLabel = locationParts.join(" · ");
   const modalText = fullText ?? reference.excerpt ?? "";
   const previewText = reference.excerpt ?? fullText ?? "";
+  const highlightText =
+    reference.excerpt && modalText !== reference.excerpt
+      ? reference.excerpt
+      : null;
 
   return (
     <div
@@ -1365,11 +1432,21 @@ function ClauseEvidenceBlock({
                   <DialogDescription>{locationLabel}</DialogDescription>
                 )}
               </DialogHeader>
-              <pre
-                className={`whitespace-pre-wrap break-words text-sm text-[#271D1D] rounded-md p-4 border ${toneStyles.modal} max-h-[60vh] overflow-y-auto`}
+              {highlightText ? (
+                <div className="rounded-md border border-[#E8DDDD] bg-[#FFF7E6] px-3 py-2 text-xs text-[#7A4B00]">
+                  <p className="font-semibold uppercase tracking-wide">
+                    Referenced excerpt
+                  </p>
+                  <p className="text-sm text-[#271D1D] whitespace-pre-wrap">
+                    {highlightText}
+                  </p>
+                </div>
+              ) : null}
+              <div
+                className={`mt-3 whitespace-pre-wrap break-words text-sm text-[#271D1D] rounded-md p-4 border ${toneStyles.modal} max-h-[60vh] overflow-y-auto`}
               >
-                {modalText}
-              </pre>
+                {renderHighlightedText(modalText, highlightText)}
+              </div>
               <DialogFooter>
                 <Button type="button" onClick={() => setIsOpen(false)}>
                   Close
@@ -3969,7 +4046,10 @@ const heroNavItems: { id: string; label: string }[] = [
                   <div className="space-y-3">
                     {structuredCriteria.map((criterion) => {
                       const criteriaReference = criterion.evidence
-                        ? ({ excerpt: criterion.evidence } as Issue["clauseReference"])
+                        ? ({
+                            excerpt: criterion.evidence,
+                            heading: criterion.title,
+                          } as Issue["clauseReference"])
                         : null;
                       const criteriaEvidenceText =
                         resolveClauseEvidenceFromDocument(
