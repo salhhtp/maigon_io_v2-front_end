@@ -99,6 +99,14 @@ type NormalizedDecision = {
   proposedEdit?: ProposedEditPreview | null;
 };
 
+type DecisionGroup = {
+  id: string;
+  title: string;
+  clauseId?: string | null;
+  clause?: ClauseExtraction | null;
+  items: NormalizedDecision[];
+};
+
 type ProposedEditPreview = {
   id: string;
   clauseId?: string | null;
@@ -350,6 +358,15 @@ function formatLabel(value: string) {
     .replace(/[_-]+/g, " ")
     .replace(/\s+/g, " ")
     .replace(/\b\w/g, (match) => match.toUpperCase());
+}
+
+function truncateText(value: string, maxLength: number) {
+  if (value.length <= maxLength) return value;
+  return `${value.slice(0, Math.max(0, maxLength - 3))}...`;
+}
+
+function normalizeSearchText(value: string) {
+  return value.toLowerCase().replace(/\s+/g, " ").trim();
 }
 
 function readString(
@@ -619,6 +636,11 @@ type DiffChunk = {
   lines: string[];
 };
 
+type TokenDiff = {
+  type: "equal" | "added" | "removed";
+  token: string;
+};
+
 function computeLineDiff(original: string, updated: string): DiffChunk[] {
   const oldLines = original.split(/\r?\n/);
   const newLines = updated.split(/\r?\n/);
@@ -676,6 +698,158 @@ function computeLineDiff(original: string, updated: string): DiffChunk[] {
   }
 
   return chunks;
+}
+
+function tokenizeText(value: string): string[] {
+  return value.split(/(\s+)/).filter((token) => token.length > 0);
+}
+
+function computeTokenDiff(original: string, updated: string): TokenDiff[] {
+  const oldTokens = tokenizeText(original);
+  const newTokens = tokenizeText(updated);
+  const m = oldTokens.length;
+  const n = newTokens.length;
+
+  const lcs: number[][] = Array.from({ length: m + 1 }, () =>
+    Array(n + 1).fill(0),
+  );
+
+  for (let i = m - 1; i >= 0; i -= 1) {
+    for (let j = n - 1; j >= 0; j -= 1) {
+      if (oldTokens[i] === newTokens[j]) {
+        lcs[i][j] = lcs[i + 1][j + 1] + 1;
+      } else {
+        lcs[i][j] = Math.max(lcs[i + 1][j], lcs[i][j + 1]);
+      }
+    }
+  }
+
+  const tokens: TokenDiff[] = [];
+  let i = 0;
+  let j = 0;
+
+  const pushToken = (type: TokenDiff["type"], token: string) => {
+    if (!tokens.length || tokens[tokens.length - 1].type !== type) {
+      tokens.push({ type, token });
+    } else {
+      tokens[tokens.length - 1].token += token;
+    }
+  };
+
+  while (i < m && j < n) {
+    if (oldTokens[i] === newTokens[j]) {
+      pushToken("equal", oldTokens[i]);
+      i += 1;
+      j += 1;
+    } else if (lcs[i + 1][j] >= lcs[i][j + 1]) {
+      pushToken("removed", oldTokens[i]);
+      i += 1;
+    } else {
+      pushToken("added", newTokens[j]);
+      j += 1;
+    }
+  }
+
+  while (i < m) {
+    pushToken("removed", oldTokens[i]);
+    i += 1;
+  }
+
+  while (j < n) {
+    pushToken("added", newTokens[j]);
+    j += 1;
+  }
+
+  return tokens;
+}
+
+function renderTokenDiff(
+  tokens: TokenDiff[],
+  variant: "original" | "updated",
+  keyPrefix: string,
+) {
+  return tokens
+    .map((token, index) => {
+      if (variant === "original" && token.type === "added") return null;
+      if (variant === "updated" && token.type === "removed") return null;
+      const className =
+        token.type === "added"
+          ? "bg-emerald-100/80 text-emerald-900 underline decoration-emerald-600 decoration-2 rounded-sm px-0.5"
+          : token.type === "removed"
+            ? "bg-red-100/80 text-red-700 line-through decoration-red-600 decoration-2 rounded-sm px-0.5"
+            : "";
+      return (
+        <span key={`${keyPrefix}-${index}`} className={className}>
+          {token.token || "\u00A0"}
+        </span>
+      );
+    })
+    .filter(Boolean);
+}
+
+function renderTrackedDiffChunks(chunks: DiffChunk[]) {
+  const rows: React.ReactNode[] = [];
+
+  for (let i = 0; i < chunks.length; i += 1) {
+    const chunk = chunks[i];
+    const nextChunk = chunks[i + 1];
+
+    if (chunk.type === "removed" && nextChunk?.type === "added") {
+      const maxLines = Math.max(
+        chunk.lines.length,
+        nextChunk.lines.length,
+      );
+      for (let lineIndex = 0; lineIndex < maxLines; lineIndex += 1) {
+        const removedLine = chunk.lines[lineIndex] ?? "";
+        const addedLine = nextChunk.lines[lineIndex] ?? "";
+        const tokenDiff = computeTokenDiff(removedLine, addedLine);
+        const removedTokens = renderTokenDiff(
+          tokenDiff,
+          "original",
+          `tracked-rm-${i}-${lineIndex}`,
+        );
+        const addedTokens = renderTokenDiff(
+          tokenDiff,
+          "updated",
+          `tracked-add-${i}-${lineIndex}`,
+        );
+        rows.push(
+          <div
+            key={`tracked-pair-${i}-${lineIndex}`}
+            className="space-y-1"
+          >
+            <div className="whitespace-pre-wrap break-words text-red-700">
+              {removedTokens.length ? removedTokens : "\u00A0"}
+            </div>
+            <div className="whitespace-pre-wrap break-words text-emerald-800">
+              {addedTokens.length ? addedTokens : "\u00A0"}
+            </div>
+          </div>,
+        );
+      }
+      i += 1;
+      continue;
+    }
+
+    const chunkClass =
+      chunk.type === "added"
+        ? "bg-emerald-50 text-emerald-800 underline decoration-emerald-600 decoration-2 rounded px-1"
+        : chunk.type === "removed"
+          ? "bg-red-50 text-red-700 line-through decoration-red-600 decoration-2 rounded px-1"
+          : "";
+    chunk.lines.forEach((line, lineIndex) => {
+      rows.push(
+        <div
+          key={`tracked-${chunk.type}-${i}-${lineIndex}`}
+          className={`whitespace-pre-wrap break-words ${chunkClass}`}
+        >
+          {line || "\u00A0"}
+        </div>,
+      );
+    });
+  }
+
+  return rows;
 }
 
 function normalizeLegacyProposedEdit(value: unknown): ProposedEdit | null {
@@ -876,12 +1050,158 @@ function attachFallbackClausePreviews(
   });
 }
 
+function resolveClauseEvidenceText(
+  reference: Issue["clauseReference"] | null | undefined,
+  clauses: ClauseExtraction[],
+): string | null {
+  if (!reference || !clauses.length) return null;
+  const referenceClauseId = reference.clauseId ?? null;
+  const normalizedHeading = reference.heading
+    ? normalizeSearchText(reference.heading)
+    : null;
+  const normalizedExcerpt = reference.excerpt
+    ? normalizeSearchText(reference.excerpt)
+    : null;
+
+  const clauseById = referenceClauseId
+    ? clauses.find((clause) => {
+        const clauseId = clause.clauseId ?? clause.id;
+        return clauseId && referenceClauseId
+          ? clauseId.toLowerCase() === referenceClauseId.toLowerCase()
+          : false;
+      })
+    : null;
+  if (clauseById) {
+    return clauseById.normalizedText ?? clauseById.originalText ?? null;
+  }
+
+  const clauseByHeading = normalizedHeading
+    ? clauses.find((clause) => {
+        if (!clause.title) return false;
+        const clauseTitle = normalizeSearchText(clause.title);
+        return (
+          clauseTitle === normalizedHeading ||
+          clauseTitle.includes(normalizedHeading) ||
+          normalizedHeading.includes(clauseTitle)
+        );
+      })
+    : null;
+  if (clauseByHeading) {
+    return clauseByHeading.normalizedText ?? clauseByHeading.originalText ?? null;
+  }
+
+  const clauseByExcerpt = normalizedExcerpt
+    ? clauses.find((clause) => {
+        const clauseText = clause.normalizedText ?? clause.originalText ?? "";
+        if (!clauseText) return false;
+        return normalizeSearchText(clauseText).includes(normalizedExcerpt);
+      })
+    : null;
+
+  return clauseByExcerpt?.normalizedText ?? clauseByExcerpt?.originalText ?? null;
+}
+
+function resolveClauseEvidenceFromSnippet(
+  snippet: string | null | undefined,
+  clauses: ClauseExtraction[],
+): string | null {
+  if (!snippet || !clauses.length) return null;
+  const normalizedSnippet = normalizeSearchText(snippet);
+  const clauseMatch = clauses.find((clause) => {
+    const clauseText = clause.normalizedText ?? clause.originalText ?? "";
+    return clauseText
+      ? normalizeSearchText(clauseText).includes(normalizedSnippet)
+      : false;
+  });
+  return clauseMatch?.normalizedText ?? clauseMatch?.originalText ?? null;
+}
+
+function groupDecisionsByClause(
+  decisions: NormalizedDecision[],
+  clauses: ClauseExtraction[],
+): DecisionGroup[] {
+  const groups = new Map<string, DecisionGroup>();
+  const order: string[] = [];
+
+  decisions.forEach((decision) => {
+    const clauseId = decision.proposedEdit?.clauseId ?? null;
+    const clauseTitle = decision.proposedEdit?.clauseTitle ?? null;
+    const clauseMatch = clauseId
+      ? clauses.find((clause) => {
+          const clauseKey = clause.clauseId ?? clause.id;
+          return clauseKey && clauseId
+            ? clauseKey.toLowerCase() === clauseId.toLowerCase()
+            : false;
+        })
+      : clauseTitle
+        ? clauses.find((clause) =>
+            clause.title
+              ? normalizeSearchText(clause.title) ===
+                normalizeSearchText(clauseTitle)
+              : false,
+          )
+        : null;
+    const groupKey = clauseId
+      ? `clause:${clauseId}`
+      : clauseTitle
+        ? `title:${clauseTitle.toLowerCase()}`
+        : `item:${decision.id}`;
+    if (!groups.has(groupKey)) {
+      const fallbackTitle =
+        clauseMatch?.title ??
+        clauseTitle ??
+        truncateText(
+          decision.proposedEdit?.anchorText ??
+            decision.description ??
+            decision.id,
+          80,
+        );
+      groups.set(groupKey, {
+        id: groupKey,
+        title: fallbackTitle,
+        clauseId,
+        clause: clauseMatch ?? null,
+        items: [],
+      });
+      order.push(groupKey);
+    }
+    groups.get(groupKey)!.items.push(decision);
+  });
+
+  return order.map((key) => groups.get(key)!);
+}
+
 function ClauseEvidenceBlock({
   reference,
+  fullText,
+  label = "Clause evidence",
+  tone = "primary",
 }: {
   reference?: Issue["clauseReference"] | null;
+  fullText?: string | null;
+  label?: string;
+  tone?: "primary" | "neutral";
 }) {
   if (!reference) return null;
+  const [isOpen, setIsOpen] = useState(false);
+  const toneStyles =
+    tone === "neutral"
+      ? {
+          container: "border-[#E8DDDD] bg-[#FEFBFB]",
+          label: "text-[#6B4F4F]",
+          location: "text-[#9A7C7C]",
+          body: "text-[#271D1D]",
+          link: "text-[#725A5A]",
+          modal: "bg-[#FDFBFB] border-[#E8DDDD]",
+        }
+      : {
+          container: "border-[#DAD7FF] bg-[#F6F5FF]",
+          label: "text-[#4B3F9A]",
+          location: "text-[#6B5FB8]",
+          body: "text-[#241B5B]",
+          link: "text-[#4B3F9A]",
+          modal: "bg-[#FBFAFF] border-[#E6E0FF]",
+        };
   const locationParts: string[] = [];
   if (reference.locationHint?.section) {
     locationParts.push(`Section ${reference.locationHint.section}`);
@@ -893,19 +1213,61 @@ function ClauseEvidenceBlock({
     locationParts.push(`Page ${reference.locationHint.page}`);
   }
   const locationLabel = locationParts.join(" · ");
+  const modalText = fullText ?? reference.excerpt ?? "";
+  const previewText = reference.excerpt ?? fullText ?? "";
 
   return (
-    <div className="mt-3 rounded-md border border-[#DAD7FF] bg-[#F6F5FF] px-3 py-2">
-      <p className="text-xs font-semibold uppercase tracking-wide text-[#4B3F9A]">
-        Clause evidence {reference.heading ? `· ${reference.heading}` : ""}
+    <div
+      className={`mt-3 rounded-md border px-3 py-2 ${toneStyles.container}`}
+    >
+      <p
+        className={`text-xs font-semibold uppercase tracking-wide ${toneStyles.label}`}
+      >
+        {label} {reference.heading ? `· ${reference.heading}` : ""}
       </p>
       {locationLabel && (
-        <p className="text-[11px] text-[#6B5FB8] mb-1">{locationLabel}</p>
-      )}
-      {reference.excerpt ? (
-        <p className="text-sm text-[#241B5B] whitespace-pre-line">
-          {reference.excerpt}
+        <p className={`text-[11px] mb-1 ${toneStyles.location}`}>
+          {locationLabel}
         </p>
+      )}
+      {previewText ? (
+        <p className={`text-sm whitespace-pre-line ${toneStyles.body}`}>
+          {previewText}
+        </p>
+      ) : null}
+      {modalText ? (
+        <>
+          <button
+            type="button"
+            className={`mt-2 text-xs underline ${toneStyles.link}`}
+            onClick={() => setIsOpen(true)}
+          >
+            View full clause
+          </button>
+          <Dialog open={isOpen} onOpenChange={setIsOpen}>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>
+                  {label}
+                  {reference.heading ? ` · ${reference.heading}` : ""}
+                </DialogTitle>
+                {locationLabel && (
+                  <DialogDescription>{locationLabel}</DialogDescription>
+                )}
+              </DialogHeader>
+              <pre
+                className={`whitespace-pre-wrap break-words text-sm text-[#271D1D] rounded-md p-4 border ${toneStyles.modal}`}
+              >
+                {modalText}
+              </pre>
+              <DialogFooter>
+                <Button type="button" onClick={() => setIsOpen(false)}>
+                  Close
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </>
       ) : null}
     </div>
   );
@@ -992,32 +1354,50 @@ function ClausePreview({
   } | null;
   isActive?: boolean;
 }) {
-  const sanitizedPreviousHtml = previewHtml?.previous
-    ? sanitizeContractHtml(previewHtml.previous)
-    : null;
-  const sanitizedUpdatedHtml = previewHtml?.updated
-    ? sanitizeContractHtml(previewHtml.updated)
-    : null;
+  const [activeModal, setActiveModal] = useState<"original" | "updated" | null>(
+    null,
+  );
 
   const resolvedPreviousText =
     previousText ?? anchorText ?? "Not provided yet.";
   const resolvedUpdatedText = updatedText ?? proposedText;
 
-  const renderContent = (
-    html: string | null,
-    fallbackText: string,
-    className: string,
-  ) =>
-    html ? (
-      <div
-        className={`prose prose-sm max-w-none ${className}`}
-        dangerouslySetInnerHTML={{ __html: html }}
-      />
-    ) : (
-      <pre className={`whitespace-pre-wrap break-words ${className}`}>
-        {fallbackText}
+  const previousFromHtml = previewHtml?.previous
+    ? htmlStringToPlainText(previewHtml.previous)
+    : null;
+  const updatedFromHtml = previewHtml?.updated
+    ? htmlStringToPlainText(previewHtml.updated)
+    : null;
+  const previousTextForDiff =
+    previousFromHtml && previousFromHtml.length >= resolvedPreviousText.length
+      ? previousFromHtml
+      : resolvedPreviousText;
+  const updatedTextForDiff =
+    updatedFromHtml && updatedFromHtml.length >= resolvedUpdatedText.length
+      ? updatedFromHtml
+      : resolvedUpdatedText;
+  const diffTokens = useMemo(() => {
+    if (!previousTextForDiff || !updatedTextForDiff) return null;
+    if (previousTextForDiff === updatedTextForDiff) return null;
+    return computeTokenDiff(previousTextForDiff, updatedTextForDiff);
+  }, [previousTextForDiff, updatedTextForDiff]);
+
+  const renderDiffColumn = (variant: "original" | "updated") => {
+    if (!diffTokens) {
+      const fallbackText =
+        variant === "original" ? previousTextForDiff : updatedTextForDiff;
+      return (
+        <pre className="whitespace-pre-wrap break-words rounded bg-[#FDFBFB] p-3 text-sm text-[#271D1D]">
+          {fallbackText}
+        </pre>
+      );
+    }
+    return (
+      <pre className="whitespace-pre-wrap break-words rounded bg-[#FDFBFB] p-3 text-sm text-[#271D1D]">
+        {renderTokenDiff(diffTokens, variant, `preview-${variant}`)}
       </pre>
     );
+  };
 
   return (
     <div
@@ -1035,26 +1415,64 @@ function ClausePreview({
       </div>
       <div className="grid gap-0 md:grid-cols-2">
         <div className="border-b border-[#F1E6E6] px-4 py-3 text-sm text-[#725A5A] md:border-b-0 md:border-r">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#A07F7F]">
-            Original clause
-          </p>
-          {renderContent(
-            sanitizedPreviousHtml,
-            resolvedPreviousText,
-            "rounded bg-red-50/70 p-3 text-sm text-red-900 line-through",
-          )}
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[#A07F7F]">
+              Original clause
+            </p>
+            <button
+              type="button"
+              className="text-[11px] text-[#725A5A] underline"
+              onClick={() => setActiveModal("original")}
+            >
+              View full
+            </button>
+          </div>
+          {renderDiffColumn("original")}
         </div>
         <div className="px-4 py-3 text-sm text-[#725A5A]">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#2C5C4F]">
-            Updated clause
-          </p>
-          {renderContent(
-            sanitizedUpdatedHtml,
-            resolvedUpdatedText,
-            "rounded bg-emerald-50/70 p-3 text-sm text-emerald-900",
-          )}
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[#2C5C4F]">
+              Updated clause
+            </p>
+            <button
+              type="button"
+              className="text-[11px] text-[#725A5A] underline"
+              onClick={() => setActiveModal("updated")}
+            >
+              View full
+            </button>
+          </div>
+          {renderDiffColumn("updated")}
         </div>
       </div>
+      <Dialog
+        open={activeModal !== null}
+        onOpenChange={(open) => {
+          if (!open) setActiveModal(null);
+        }}
+      >
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              {activeModal === "original" ? "Original clause" : "Updated clause"}
+              {clauseTitle ? ` · ${clauseTitle}` : ""}
+            </DialogTitle>
+            <DialogDescription>
+              Review the full clause text below.
+            </DialogDescription>
+          </DialogHeader>
+          <pre className="whitespace-pre-wrap break-words text-sm text-[#271D1D] bg-[#FDFBFB] border border-[#E8DDDD] rounded-md p-4">
+            {activeModal === "original"
+              ? previousTextForDiff
+              : updatedTextForDiff}
+          </pre>
+          <DialogFooter>
+            <Button type="button" onClick={() => setActiveModal(null)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -2157,6 +2575,17 @@ const actionItemEntries = useMemo(
   );
 
   const selectedSuggestionCount = selectedSuggestions.length;
+  const visibleDecisions = useMemo(
+    () =>
+      expandedSections.actions
+        ? combinedDecisions
+        : combinedDecisions.slice(0, 3),
+    [combinedDecisions, expandedSections.actions],
+  );
+  const groupedDecisionEntries = useMemo(
+    () => groupDecisionsByClause(visibleDecisions, resolvedClauseExtractions),
+    [visibleDecisions, resolvedClauseExtractions],
+  );
 
   const topDepartments = useMemo(() => {
     const counts = new Map<string, number>();
@@ -2841,6 +3270,10 @@ const actionItemEntries = useMemo(
     }
     return computeLineDiff(originalPlainText, updatedPlainText);
   }, [originalPlainText, updatedPlainText]);
+  const trackedDiffNodes = useMemo(
+    () => renderTrackedDiffChunks(draftDiffChunks),
+    [draftDiffChunks],
+  );
 
 const handleDraftMissingClause = useCallback((item: string) => {
   setIsAgentOpen(true);
@@ -3322,6 +3755,11 @@ const heroNavItems: { id: string; label: string }[] = [
                           {expanded && (
                             <div className="px-4 pb-4 space-y-3">
                               {bucket.map((issue) => {
+                                const issueEvidenceText =
+                                  resolveClauseEvidenceText(
+                                    issue.clauseReference,
+                                    resolvedClauseExtractions,
+                                  );
                                 const clauseKey =
                                   issue.clauseReference?.heading?.toLowerCase() ??
                                   issue.id?.toLowerCase() ??
@@ -3360,6 +3798,7 @@ const heroNavItems: { id: string; label: string }[] = [
                       </p>
                       <ClauseEvidenceBlock
                         reference={issue.clauseReference}
+                        fullText={issueEvidenceText}
                       />
                   </div>
                 </div>
@@ -3382,32 +3821,38 @@ const heroNavItems: { id: string; label: string }[] = [
                     Criteria Met
                   </h3>
                   <div className="space-y-3">
-                    {structuredCriteria.map((criterion) => (
-                      <div
-                        key={criterion.id}
-                        className="flex items-start gap-3 text-sm text-gray-800 bg-white/70 border border-[#D9F0E4] rounded-md p-3"
-                      >
-                        <CheckCircle className="h-4 w-4 text-emerald-500 mt-0.5" />
-                        <div>
-                          <p className="font-semibold text-[#271D1D]">
-                            {criterion.title}
-                          </p>
-                          <p className="text-gray-600">
-                            {criterion.description}
-                          </p>
-                          {criterion.evidence && (
-                            <div className="mt-2 rounded-md border border-[#E8DDDD] bg-[#FEFBFB] px-3 py-2 text-xs text-[#6B4F4F]">
-                              <p className="font-semibold uppercase tracking-wide">
-                                Clause evidence
-                              </p>
-                              <p className="text-sm text-[#271D1D]">
-                                {criterion.evidence}
-                              </p>
-                            </div>
-                          )}
+                    {structuredCriteria.map((criterion) => {
+                      const criteriaReference = criterion.evidence
+                        ? ({ excerpt: criterion.evidence } as Issue["clauseReference"])
+                        : null;
+                      const criteriaEvidenceText = resolveClauseEvidenceFromSnippet(
+                        criterion.evidence,
+                        resolvedClauseExtractions,
+                      );
+                      return (
+                        <div
+                          key={criterion.id}
+                          className="flex items-start gap-3 text-sm text-gray-800 bg-white/70 border border-[#D9F0E4] rounded-md p-3"
+                        >
+                          <CheckCircle className="h-4 w-4 text-emerald-500 mt-0.5" />
+                          <div>
+                            <p className="font-semibold text-[#271D1D]">
+                              {criterion.title}
+                            </p>
+                            <p className="text-gray-600">
+                              {criterion.description}
+                            </p>
+                            {criteriaReference && (
+                              <ClauseEvidenceBlock
+                                reference={criteriaReference}
+                                fullText={criteriaEvidenceText}
+                                tone="neutral"
+                              />
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -3971,100 +4416,122 @@ const heroNavItems: { id: string; label: string }[] = [
                 )}
               </div>
               <div className="space-y-3">
-                {(expandedSections.actions
-                  ? combinedDecisions
-                  : combinedDecisions.slice(0, 3)
-                ).map((item) => {
-                  const severityStyle = getSeverityStyle(item.severity);
-                  const checked = suggestionSelection[item.id] !== false;
-                  const actionPreviewAnchor =
-                    item.proposedEdit?.previousText ??
-                    item.proposedEdit?.anchorText ??
-                    "Current clause text";
-                  const actionPreviewUpdated =
-                    item.proposedEdit?.updatedText ??
-                    item.proposedEdit?.proposedText ??
-                    actionPreviewAnchor;
-                  return (
-                    <div
-                      key={item.id}
-                      className="rounded-lg border border-orange-100 bg-orange-50 p-4"
-                    >
-                      <div className="flex flex-wrap items-start justify-between gap-2">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span
-                            className={`inline-flex items-center gap-2 rounded-full px-2.5 py-0.5 text-xs font-medium ${severityStyle.badge}`}
-                          >
-                            <span
-                              className={`h-2 w-2 rounded-full ${severityStyle.dot}`}
-                            ></span>
-                            {severityStyle.label}
-                          </span>
-                          {item.category && (
-                            <span className="inline-flex items-center rounded-full bg-white px-2.5 py-0.5 text-xs font-medium text-orange-700">
-                              {formatLabel(item.category)}
-                            </span>
-                          )}
-                        </div>
-                        <label
-                          htmlFor={`suggestion-${item.id}`}
-                          className="flex items-center gap-2 text-xs text-[#725A5A]"
-                        >
-                          <Checkbox
-                            id={`suggestion-${item.id}`}
-                            checked={checked}
-                            onCheckedChange={(value) =>
-                              handleSuggestionSelection(item.id, value === true)
-                            }
-                          />
-                          Include in draft
-                        </label>
-                      </div>
-                      <div className="mt-3 flex items-start gap-3">
-                        <AlertTriangle className="mt-1 h-5 w-5 flex-shrink-0 text-orange-600" />
-                        <div className="space-y-1">
-                          <p className="text-sm font-semibold text-[#271D1D]">
-                            {item.proposedEdit?.clauseTitle ||
-                              item.proposedEdit?.anchorText ||
-                              item.title ||
-                              "Action item"}
-                          </p>
-                          <p className="text-sm text-gray-700">{item.description}</p>
-                        </div>
-                      </div>
-                      {item.proposedEdit ? (
-                        <div className="mt-3 space-y-2">
-                          <ClausePreview
-                            clauseTitle={item.proposedEdit.clauseTitle}
-                            anchorText={actionPreviewAnchor}
-                            proposedText={actionPreviewUpdated}
-                            previousText={
-                              item.proposedEdit.previousText ??
-                              item.proposedEdit.anchorText ??
-                              null
-                            }
-                            updatedText={
-                              item.proposedEdit.updatedText ??
-                              item.proposedEdit.proposedText ??
-                              null
-                            }
-                            previewHtml={item.proposedEdit.previewHtml ?? null}
-                            isActive={checked}
-                          />
-                          {!checked && (
-                            <p className="text-xs text-[#9A7C7C]">
-                              Turn on “Include in draft” to apply this change in the generated document.
-                            </p>
-                          )}
-                        </div>
-                      ) : (
-                        <p className="mt-3 text-xs text-[#9A7C7C]">
-                          Preview unavailable for this action, but it will still be described in the draft summary.
+                {groupedDecisionEntries.map((group) => (
+                  <div
+                    key={group.id}
+                    className="rounded-xl border border-[#F3E9E9] bg-white p-4 shadow-sm"
+                  >
+                    <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                      <div>
+                        <p className="text-xs uppercase tracking-wide text-[#725A5A]">
+                          Clause group
                         </p>
-                      )}
+                        <p className="text-sm font-semibold text-[#271D1D]">
+                          {group.title}
+                        </p>
+                      </div>
+                      <span className="text-xs text-[#725A5A]">
+                        {group.items.length} edit
+                        {group.items.length === 1 ? "" : "s"}
+                      </span>
                     </div>
-                  );
-                })}
+                    <div className="space-y-3">
+                      {group.items.map((item) => {
+                        const severityStyle = getSeverityStyle(item.severity);
+                        const checked = suggestionSelection[item.id] !== false;
+                        const actionPreviewAnchor =
+                          item.proposedEdit?.previousText ??
+                          item.proposedEdit?.anchorText ??
+                          "Current clause text";
+                        const actionPreviewUpdated =
+                          item.proposedEdit?.updatedText ??
+                          item.proposedEdit?.proposedText ??
+                          actionPreviewAnchor;
+                        return (
+                          <div
+                            key={item.id}
+                            className="rounded-lg border border-orange-100 bg-orange-50 p-4"
+                          >
+                            <div className="flex flex-wrap items-start justify-between gap-2">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span
+                                  className={`inline-flex items-center gap-2 rounded-full px-2.5 py-0.5 text-xs font-medium ${severityStyle.badge}`}
+                                >
+                                  <span
+                                    className={`h-2 w-2 rounded-full ${severityStyle.dot}`}
+                                  ></span>
+                                  {severityStyle.label}
+                                </span>
+                                {item.category && (
+                                  <span className="inline-flex items-center rounded-full bg-white px-2.5 py-0.5 text-xs font-medium text-orange-700">
+                                    {formatLabel(item.category)}
+                                  </span>
+                                )}
+                              </div>
+                              <label
+                                htmlFor={`suggestion-${item.id}`}
+                                className="flex items-center gap-2 text-xs text-[#725A5A]"
+                              >
+                                <Checkbox
+                                  id={`suggestion-${item.id}`}
+                                  checked={checked}
+                                  onCheckedChange={(value) =>
+                                    handleSuggestionSelection(item.id, value === true)
+                                  }
+                                />
+                                Include in draft
+                              </label>
+                            </div>
+                            <div className="mt-3 flex items-start gap-3">
+                              <AlertTriangle className="mt-1 h-5 w-5 flex-shrink-0 text-orange-600" />
+                              <div className="space-y-1">
+                                <p className="text-sm font-semibold text-[#271D1D]">
+                                  {item.proposedEdit?.clauseTitle ||
+                                    item.proposedEdit?.anchorText ||
+                                    item.title ||
+                                    "Action item"}
+                                </p>
+                                <p className="text-sm text-gray-700">
+                                  {item.description}
+                                </p>
+                              </div>
+                            </div>
+                            {item.proposedEdit ? (
+                              <div className="mt-3 space-y-2">
+                                <ClausePreview
+                                  clauseTitle={item.proposedEdit.clauseTitle}
+                                  anchorText={actionPreviewAnchor}
+                                  proposedText={actionPreviewUpdated}
+                                  previousText={
+                                    item.proposedEdit.previousText ??
+                                    item.proposedEdit.anchorText ??
+                                    null
+                                  }
+                                  updatedText={
+                                    item.proposedEdit.updatedText ??
+                                    item.proposedEdit.proposedText ??
+                                    null
+                                  }
+                                  previewHtml={item.proposedEdit.previewHtml ?? null}
+                                  isActive={checked}
+                                />
+                                {!checked && (
+                                  <p className="text-xs text-[#9A7C7C]">
+                                    Turn on “Include in draft” to apply this change in the generated document.
+                                  </p>
+                                )}
+                              </div>
+                            ) : (
+                              <p className="mt-3 text-xs text-[#9A7C7C]">
+                                Preview unavailable for this action, but it will still be described in the draft summary.
+                              </p>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           )}
@@ -4222,28 +4689,8 @@ const heroNavItems: { id: string; label: string }[] = [
                 Tracked changes
               </div>
               {draftDiffChunks.length > 0 ? (
-                <div className="p-4 text-base leading-relaxed text-[#271D1D]">
-                  {draftDiffChunks.map((chunk, chunkIndex) => {
-                    const chunkClass =
-                      chunk.type === "added"
-                        ? "bg-emerald-50 text-emerald-800 underline decoration-emerald-600 decoration-2 rounded px-1"
-                        : chunk.type === "removed"
-                          ? "bg-red-50 text-red-700 line-through decoration-red-600 decoration-2 rounded px-1"
-                          : "";
-                    return chunk.lines.flatMap((line, lineIndex) => [
-                      <span
-                        key={`track-${chunkIndex}-${lineIndex}`}
-                        className={`whitespace-pre-wrap ${chunkClass}`}
-                      >
-                        {line || "\u00A0"}
-                      </span>,
-                      lineIndex < chunk.lines.length - 1 ? (
-                        <br key={`br-${chunkIndex}-${lineIndex}`} />
-                      ) : (
-                        " "
-                      ),
-                    ]);
-                  })}
+                <div className="p-4 text-base leading-relaxed text-[#271D1D] space-y-1">
+                  {trackedDiffNodes}
                 </div>
               ) : previewUpdatedHtml ? (
                 <div
