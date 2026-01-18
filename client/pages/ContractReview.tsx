@@ -1121,6 +1121,22 @@ function escapeRegex(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+function sliceAroundAnchor(
+  text: string,
+  anchor: string,
+  windowSize: number,
+): string | null {
+  const normalizedText = text.toLowerCase();
+  const normalizedAnchor = anchor.trim().toLowerCase();
+  if (!normalizedAnchor) return null;
+  const searchAnchor = normalizedAnchor.slice(0, 200);
+  const matchIndex = normalizedText.indexOf(searchAnchor);
+  if (matchIndex < 0) return null;
+  const start = Math.max(0, matchIndex - windowSize);
+  const end = Math.min(text.length, matchIndex + searchAnchor.length + windowSize);
+  return text.slice(start, end).trim();
+}
+
 function resolveClauseEvidenceFromDocument(
   reference: Issue["clauseReference"] | null | undefined,
   documentText: string | null,
@@ -1131,6 +1147,7 @@ function resolveClauseEvidenceFromDocument(
   const clauseNumber = reference.locationHint?.clauseNumber ?? null;
   const heading = reference.heading ?? null;
   const excerpt = reference.excerpt ?? null;
+  const maxLength = 5000;
 
   const numberPattern = clauseNumber
     ? new RegExp(
@@ -1155,19 +1172,34 @@ function resolveClauseEvidenceFromDocument(
 
   if (startIndex >= 0) {
     const headingLinePattern = /^(\d+(\.\d+)*)(?:\.)?\s+/;
+    const isHeadingBoundary = (line: string) => {
+      const trimmed = line.trim();
+      if (!trimmed) return false;
+      const isNumbered = headingLinePattern.test(trimmed);
+      const isUppercase = /^[A-Z][A-Z\s\d\W]{3,}$/.test(trimmed);
+      const looksLikeTitle =
+        trimmed.length <= 80 &&
+        trimmed.split(/\s+/).length <= 12 &&
+        !/[.!?]$/.test(trimmed) &&
+        /^[A-Z][A-Za-z0-9\s/&()\-:]+$/.test(trimmed);
+      return isNumbered || isUppercase || looksLikeTitle;
+    };
     let endIndex = lines.length;
     for (let i = startIndex + 1; i < lines.length; i += 1) {
       const line = lines[i].trim();
       if (!line) continue;
-      if (
-        headingLinePattern.test(line) ||
-        /^[A-Z][A-Z\s\d\W]{3,}$/.test(line)
-      ) {
+      if (isHeadingBoundary(line)) {
         endIndex = i;
         break;
       }
     }
-    const block = lines.slice(startIndex, endIndex).join("\n").trim();
+    let block = lines.slice(startIndex, endIndex).join("\n").trim();
+    if (block.length > maxLength) {
+      const anchor =
+        excerpt || heading || (clauseNumber ? `Clause ${clauseNumber}` : "");
+      const sliced = anchor ? sliceAroundAnchor(block, anchor, 2000) : null;
+      block = sliced || block.slice(0, maxLength).trim();
+    }
     if (block.length > 0) {
       return block;
     }
@@ -1183,7 +1215,11 @@ function resolveClauseEvidenceFromDocument(
       normalizeSearchText(block).includes(normalizedExcerpt),
     );
     if (matchedBlock) {
-      return matchedBlock;
+      if (matchedBlock.length <= maxLength) {
+        return matchedBlock;
+      }
+      const sliced = sliceAroundAnchor(matchedBlock, excerpt, 2000);
+      return sliced || matchedBlock.slice(0, maxLength).trim();
     }
   }
 
@@ -1330,7 +1366,7 @@ function ClauseEvidenceBlock({
                 )}
               </DialogHeader>
               <pre
-                className={`whitespace-pre-wrap break-words text-sm text-[#271D1D] rounded-md p-4 border ${toneStyles.modal}`}
+                className={`whitespace-pre-wrap break-words text-sm text-[#271D1D] rounded-md p-4 border ${toneStyles.modal} max-h-[60vh] overflow-y-auto`}
               >
                 {modalText}
               </pre>
@@ -1548,7 +1584,7 @@ function ClausePreview({
               Review the full clause text below.
             </DialogDescription>
           </DialogHeader>
-          <pre className="whitespace-pre-wrap break-words text-sm text-[#271D1D] bg-[#FDFBFB] border border-[#E8DDDD] rounded-md p-4">
+          <pre className="whitespace-pre-wrap break-words text-sm text-[#271D1D] bg-[#FDFBFB] border border-[#E8DDDD] rounded-md p-4 max-h-[60vh] overflow-y-auto">
             {activeModal === "original"
               ? previousTextForDiff
               : updatedTextForDiff}
