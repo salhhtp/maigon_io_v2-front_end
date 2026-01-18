@@ -12,6 +12,7 @@ export interface ContractPlaybook {
   displayName: string;
   description: string;
   regulatoryFocus: string[];
+  clauseTemplates: ClauseTemplate[];
   criticalClauses: Array<{
     title: string;
     mustInclude: string[];
@@ -22,6 +23,14 @@ export interface ContractPlaybook {
   clauseAnchors: string[];
 }
 
+export type ClauseTemplate = {
+  id: string;
+  title: string;
+  text: string;
+  insertionAnchors: string[];
+  tags?: string[];
+};
+
 const createPlaybook = (
   overrides: Partial<ContractPlaybook> & Pick<ContractPlaybook, "key">,
 ): ContractPlaybook => ({
@@ -29,6 +38,7 @@ const createPlaybook = (
   displayName: overrides.displayName ?? overrides.key,
   description: overrides.description ?? "",
   regulatoryFocus: overrides.regulatoryFocus ?? [],
+  clauseTemplates: overrides.clauseTemplates ?? [],
   criticalClauses: overrides.criticalClauses ?? [],
   draftingTone:
     overrides.draftingTone ??
@@ -140,6 +150,99 @@ export const CONTRACT_PLAYBOOKS: Record<PlaybookKey, ContractPlaybook> = {
     description:
       "Protects confidential information with balanced carve-outs and survivals.",
     regulatoryFocus: ["Uniform Trade Secrets Act", "EU Trade Secrets Directive"],
+    clauseTemplates: [
+      {
+        id: "nda-remedies",
+        title: "Remedies",
+        tags: ["remedies", "injunctive", "specific performance", "equitable relief"],
+        insertionAnchors: ["Confidential Information", "Exceptions", "MISCELLANEOUS"],
+        text:
+          "Remedies. The Discloser may seek injunctive relief and specific performance to prevent or cure any unauthorized use or disclosure of Confidential Information, in addition to any other remedies available at law or in equity. Remedies are cumulative, and the availability of damages does not limit equitable relief.",
+      },
+      {
+        id: "nda-marking-notice",
+        title: "Marking and reasonable notice",
+        tags: ["marking", "reasonable notice", "unmarked", "confidentiality"],
+        insertionAnchors: [
+          "Confidential Information",
+          "Definition of Confidential Information",
+          "Exceptions",
+        ],
+        text:
+          "Marking and notice. Confidential Information should be marked as confidential when disclosed in writing or electronic form. Oral or visual disclosures are Confidential Information if identified as confidential at the time of disclosure or confirmed in writing within 30 days. Unmarked information is Confidential Information when a reasonable person would understand the circumstances to indicate confidentiality.",
+      },
+      {
+        id: "nda-residual-knowledge",
+        title: "Residual knowledge",
+        tags: ["residual knowledge", "residual", "memory"],
+        insertionAnchors: [
+          "Confidential Information",
+          "Exceptions",
+          "Purpose/use limitation",
+        ],
+        text:
+          "Residual knowledge. The Receiving Party's obligations apply regardless of any residual knowledge retained in unaided memory. Residual knowledge does not authorize use or disclosure of Confidential Information or derivative information.",
+      },
+      {
+        id: "nda-use-limitation",
+        title: "Use limitation and need-to-know",
+        tags: ["use limitation", "purpose", "need-to-know", "need to know"],
+        insertionAnchors: [
+          "The Receiving Party hereby undertakes",
+          "Confidential Information",
+        ],
+        text:
+          "Use limitation and need-to-know. The Receiving Party shall use Confidential Information solely for the Purpose and disclose it only to personnel, contractors, or Affiliates with a need to know and who are bound by confidentiality obligations at least as protective as this Agreement. The Receiving Party shall not disclose Confidential Information to any third party without the Discloser's prior written consent, except as required by law.",
+      },
+      {
+        id: "nda-liability-cap",
+        title: "Limitation of liability",
+        tags: ["liability", "caps", "carve-outs", "limitation"],
+        insertionAnchors: ["MISCELLANEOUS", "Governing law", "Term and termination"],
+        text:
+          "Limitation of liability. Except for breaches of confidentiality, misuse of Confidential Information, willful misconduct, or infringement of intellectual property rights, each party's aggregate liability arising out of this Agreement is limited to the greater of USD 100,000 or the total fees paid (if any) under this Agreement. Neither party is liable for indirect, consequential, special, or punitive damages to the maximum extent permitted by law.",
+      },
+      {
+        id: "nda-export-control",
+        title: "Export control and sanctions",
+        tags: ["export control", "sanctions", "restricted party", "restricted end use"],
+        insertionAnchors: ["MISCELLANEOUS", "Governing law"],
+        text:
+          "Export control and sanctions. Each party shall comply with applicable export control and sanctions laws. The Receiving Party shall not export, re-export, or transfer Confidential Information to any prohibited person or destination and shall not use it for any prohibited end use.",
+      },
+      {
+        id: "nda-non-solicit",
+        title: "Non-solicitation",
+        tags: ["non-solicit", "noncompete", "non compete", "non-solicitation"],
+        insertionAnchors: ["MISCELLANEOUS"],
+        text:
+          "Non-solicitation. During the term of this Agreement and for 12 months thereafter, neither party will knowingly solicit for employment any employee of the other party who had material involvement with the Project, except through general advertisements not targeted to such employees.",
+      },
+      {
+        id: "nda-ip-no-license",
+        title: "No license",
+        tags: ["no license", "license", "intellectual property", "ip ownership"],
+        insertionAnchors: ["No Binding Commitments", "Confidential Information"],
+        text:
+          "No license. All Confidential Information and related intellectual property remain the property of the Discloser. No license or transfer is granted or implied except the limited right to use Confidential Information for the Purpose.",
+      },
+      {
+        id: "nda-term-survival",
+        title: "Term and survival",
+        tags: ["term", "survival", "trade secret", "fixed term"],
+        insertionAnchors: ["Term and termination", "term and termination"],
+        text:
+          "Term and survival. This Agreement remains in effect for 2 years for Confidential Information that is not a trade secret. Obligations for trade secrets survive for so long as the information remains a trade secret under applicable law. Obligations that by their nature should survive, including confidentiality and return or destruction, survive termination.",
+      },
+      {
+        id: "nda-governing-law",
+        title: "Governing law and disputes",
+        tags: ["governing law", "dispute resolution", "jurisdiction", "venue"],
+        insertionAnchors: ["MISCELLANEOUS"],
+        text:
+          "Governing law and disputes. This Agreement is governed by the laws of the Discloser's jurisdiction of incorporation, without regard to conflict of laws rules. The parties submit to the exclusive jurisdiction of the courts located in that jurisdiction for any dispute arising out of or relating to this Agreement.",
+      },
+    ],
     clauseAnchors: [
       "Definition of Confidential Information",
       "Marking vs reasonable notice for confidentiality",

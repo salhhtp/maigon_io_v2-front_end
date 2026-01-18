@@ -2,6 +2,7 @@ import {
   resolvePlaybook,
   type PlaybookKey,
   type ContractPlaybook,
+  type ClauseTemplate,
   CONTRACT_PLAYBOOKS,
 } from "./playbooks.ts";
 import {
@@ -827,6 +828,7 @@ function buildSystemPrompt(
     "Use legal reasoning, cite regulatory frameworks, and flag negotiation levers.",
     "Ground every observation in the retrieved excerpts or clause digest provided. Do not infer missing language from general knowledge.",
     "If a clause is not present in the provided excerpts, mark it as \"Not present in contract\" and propose language only when clearly missing.",
+    "When a clause is missing, use the provided playbook clause templates as the baseline and produce an insert proposed edit anchored to the closest relevant clause excerpt.",
     "For each checklist/anchor item in the playbook, emit a finding (met/missing/attention) and include an issue for anything missing or ambiguous.",
     compact
       ? "If output length is constrained, group similar findings and keep each item concise."
@@ -836,6 +838,12 @@ function buildSystemPrompt(
   ]
     .filter(Boolean)
     .join(" ");
+}
+
+function truncateTemplateText(value: string, maxLength = 520) {
+  const trimmed = value.trim();
+  if (trimmed.length <= maxLength) return trimmed;
+  return `${trimmed.slice(0, maxLength)}...`;
 }
 
 function buildUserPrompt(
@@ -929,12 +937,26 @@ function buildUserPrompt(
     return `Retrieved clause excerpts (matched to playbook anchors):\n${retrieved.summary}`;
   })();
 
+  const templateSection = (() => {
+    if (!playbook.clauseTemplates?.length) return null;
+    const limit = compact ? 6 : 12;
+    const entries = playbook.clauseTemplates.slice(0, limit).map((template, index) => {
+      const anchors = template.insertionAnchors?.length
+        ? template.insertionAnchors.join("; ")
+        : "closest relevant clause";
+      const text = truncateTemplateText(template.text, compact ? 360 : 520);
+      return `${index + 1}. ${template.title} | Insert near: ${anchors}\nText: ${text}`;
+    });
+    return `Clause templates (use as base text when clauses are missing):\n${entries.join("\n")}`;
+  })();
+
   return [
     metadataSections,
     playbookSection,
     clauseDigestSection,
     extractionNotice,
     clauseContextSection,
+    templateSection,
   ]
     .filter(Boolean)
     .join("\n\n");
@@ -953,7 +975,7 @@ function buildJsonSchemaDescription(
     "- contractSummary: { contractName, filename, parties[], agreementDirection, purpose, verbalInformationCovered, contractPeriod, governingLaw, jurisdiction }",
     "- issuesToAddress: Issues with id, title, severity, recommendation, rationale, clauseReference { clauseId, heading, excerpt, locationHint }. Excerpt must quote or paraphrase the retrieved clause excerpts or clause digest. If a clause is missing, state \"Not present in contract\" in excerpt and location.",
     "- criteriaMet: Checklist items with id, title, description, met, evidence.",
-    "- proposedEdits: Each edit with id, clauseId, anchorText, proposedText, intent, rationale. Anchor text must be an exact excerpt from the extracted clause text provided. Proposed text = fully rewritten clause or paragraph ready to paste into the contract. Intent must be insert|replace|remove.",
+    "- proposedEdits: Each edit with id, clauseId, anchorText, proposedText, intent, rationale. Anchor text must be an exact excerpt from the extracted clause text provided (for inserts, pick the closest relevant clause excerpt where the new clause should be placed). Proposed text = fully rewritten clause or paragraph ready to paste into the contract. Intent must be insert|replace|remove.",
     "- metadata: model + classification + token usage + critique notes.",
     "Do not include previewHtml/previousText/updatedText/applyByDefault; these are derived later.",
     "Optional sections (playbookInsights, clauseExtractions, similarityAnalysis, deviationInsights, actionItems, draftMetadata) should be omitted unless explicitly requested.",
@@ -1371,6 +1393,187 @@ function normaliseProposedEditContent(payload: Record<string, unknown>) {
     }
     return record;
   });
+}
+
+const MISSING_CLAUSE_MARKERS = [
+  "not present in contract",
+  "not present",
+  "evidence not found",
+  "missing clause",
+];
+
+function normalizeMatchText(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function issueSignals(issue: AnalysisReport["issuesToAddress"][number]) {
+  return [
+    issue.id,
+    issue.title,
+    issue.category,
+    issue.recommendation,
+    ...(issue.tags ?? []),
+  ]
+    .filter(Boolean)
+    .join(" ");
+}
+
+function isMissingClauseIssue(
+  issue: AnalysisReport["issuesToAddress"][number],
+): boolean {
+  const excerpt = normalizeMatchText(
+    issue.clauseReference?.excerpt ?? "",
+  );
+  const clauseId = normalizeMatchText(
+    issue.clauseReference?.clauseId ?? "",
+  );
+  if (clauseId.startsWith("missing")) return true;
+  return MISSING_CLAUSE_MARKERS.some((marker) => excerpt.includes(marker));
+}
+
+function templateMatchesIssue(
+  template: ClauseTemplate,
+  issueText: string,
+): boolean {
+  const normalizedIssue = normalizeMatchText(issueText);
+  const tags = template.tags?.length ? template.tags : [template.title];
+  return tags.some((tag) => normalizedIssue.includes(normalizeMatchText(tag)));
+}
+
+function editMatchesTemplate(
+  edit: AnalysisReport["proposedEdits"][number],
+  template: ClauseTemplate,
+): boolean {
+  const editText = normalizeMatchText(
+    [edit.id, edit.intent, edit.rationale, edit.proposedText]
+      .filter(Boolean)
+      .join(" "),
+  );
+  const tags = template.tags?.length ? template.tags : [template.title];
+  return tags.some((tag) => editText.includes(normalizeMatchText(tag)));
+}
+
+function pickAnchorSnippet(text: string, maxLength = 220) {
+  const trimmed = text.trim();
+  if (!trimmed) return "";
+  return trimmed.length > maxLength ? trimmed.slice(0, maxLength) : trimmed;
+}
+
+function resolveInsertionAnchor(
+  template: ClauseTemplate,
+  clauses: ClauseExtraction[],
+): { clauseId: string; anchorText: string } | null {
+  const anchors = template.insertionAnchors ?? [];
+  for (const anchor of anchors) {
+    const normalizedAnchor = normalizeMatchText(anchor);
+    const match = clauses.find((clause) => {
+      const haystack = normalizeMatchText(
+        [
+          clause.title ?? "",
+          clause.clauseId ?? "",
+          clause.location?.section ?? "",
+        ]
+          .filter(Boolean)
+          .join(" "),
+      );
+      return haystack.includes(normalizedAnchor);
+    });
+    if (match?.originalText) {
+      return {
+        clauseId: match.clauseId ?? match.id ?? template.id,
+        anchorText: pickAnchorSnippet(match.originalText),
+      };
+    }
+  }
+  if (clauses.length > 0 && clauses[0]?.originalText) {
+    return {
+      clauseId: clauses[0].clauseId ?? clauses[0].id ?? template.id,
+      anchorText: pickAnchorSnippet(clauses[0].originalText),
+    };
+  }
+  return null;
+}
+
+function applyTemplateContext(
+  templateText: string,
+  report: AnalysisReport,
+): string {
+  let text = templateText;
+  const governingLaw = report.contractSummary?.governingLaw ?? "";
+  const jurisdiction = report.contractSummary?.jurisdiction ?? "";
+  if (governingLaw) {
+    text = text.replace(
+      "the Discloser's jurisdiction of incorporation",
+      governingLaw,
+    );
+  }
+  if (jurisdiction) {
+    text = text.replace(
+      "courts located in that jurisdiction",
+      `courts located in ${jurisdiction}`,
+    );
+  }
+  return text;
+}
+
+function backfillMissingClauseEdits(
+  report: AnalysisReport,
+  playbook: ContractPlaybook,
+  clauses: ClauseExtraction[] | null,
+): AnalysisReport {
+  const templates = playbook.clauseTemplates ?? [];
+  if (!templates.length) return report;
+
+  const clauseList = clauses ?? [];
+  const existingEdits = report.proposedEdits ?? [];
+  const missingIssues = report.issuesToAddress.filter(isMissingClauseIssue);
+  if (missingIssues.length === 0) return report;
+
+  const additions: AnalysisReport["proposedEdits"] = [];
+
+  missingIssues.forEach((issue, index) => {
+    const issueText = issueSignals(issue);
+    const template = templates.find((item) =>
+      templateMatchesIssue(item, issueText),
+    );
+    if (!template) return;
+    if (existingEdits.some((edit) => editMatchesTemplate(edit, template))) {
+      return;
+    }
+    const anchor = resolveInsertionAnchor(template, clauseList);
+    if (!anchor || !anchor.anchorText) {
+      console.warn("⚠️ Missing insertion anchor for template", {
+        templateId: template.id,
+        issueId: issue.id,
+      });
+      return;
+    }
+    const proposedText = applyTemplateContext(template.text, report);
+    additions.push({
+      id: `AUTO-${issue.id ?? `missing-${index + 1}`}`,
+      clauseId: anchor.clauseId,
+      anchorText: anchor.anchorText,
+      proposedText,
+      intent: "insert",
+      rationale:
+        issue.recommendation ??
+        issue.rationale ??
+        `Insert ${template.title} clause.`,
+    });
+  });
+
+  if (additions.length === 0) return report;
+  console.info("🧩 Backfilled missing-clause edits", {
+    count: additions.length,
+    playbook: playbook.displayName,
+  });
+  return {
+    ...report,
+    proposedEdits: [...existingEdits, ...additions],
+  };
 }
 
 type PlaybookCoverageSummary = {
@@ -2228,16 +2431,21 @@ async function finalizeReasoningReport(
     content: context.content,
     playbook: session.playbook,
   });
+  const reportWithMissingEdits = backfillMissingClauseEdits(
+    clauseAlignedReport,
+    session.playbook,
+    context.clauseExtractions ?? clauseAlignedReport.clauseExtractions ?? [],
+  );
   const boundEdits = bindProposedEditsToClauses({
-    proposedEdits: clauseAlignedReport.proposedEdits,
-    issues: clauseAlignedReport.issuesToAddress,
+    proposedEdits: reportWithMissingEdits.proposedEdits,
+    issues: reportWithMissingEdits.issuesToAddress,
     clauses:
       context.clauseExtractions ??
-      clauseAlignedReport.clauseExtractions ??
+      reportWithMissingEdits.clauseExtractions ??
       [],
   });
   const clauseAlignedReportWithEdits: AnalysisReport = {
-    ...clauseAlignedReport,
+    ...reportWithMissingEdits,
     proposedEdits: boundEdits,
   };
   const dedupedReport: AnalysisReport = {
