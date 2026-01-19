@@ -819,10 +819,10 @@ function renderTrackedDiffChunks(chunks: DiffChunk[]) {
             key={`tracked-pair-${i}-${lineIndex}`}
             className="space-y-1"
           >
-            <div className="whitespace-pre-wrap break-words text-red-700">
+            <div className="whitespace-pre-wrap break-words text-[#271D1D]">
               {removedTokens.length ? removedTokens : "\u00A0"}
             </div>
-            <div className="whitespace-pre-wrap break-words text-emerald-800">
+            <div className="whitespace-pre-wrap break-words text-[#271D1D]">
               {addedTokens.length ? addedTokens : "\u00A0"}
             </div>
           </div>,
@@ -1147,33 +1147,63 @@ function escapeRegex(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+function resolveHighlightCandidate(
+  fullText: string,
+  excerpt: string | null,
+): string | null {
+  if (!excerpt) return null;
+  const trimmed = excerpt.trim().replace(/\s+/g, " ");
+  if (!trimmed) return null;
+  if (!fullText) return trimmed;
+  const candidates = [
+    trimmed,
+    trimmed.slice(0, 240).trim(),
+    trimmed.split(/[.;]/)[0]?.trim(),
+    trimmed.split(",").slice(0, 2).join(",").trim(),
+  ].filter((value, index, list) => {
+    if (!value || value.length < 12) return false;
+    return list.indexOf(value) === index;
+  });
+  const lowerText = fullText.toLowerCase();
+  for (const candidate of candidates) {
+    if (lowerText.includes(candidate.toLowerCase())) {
+      return candidate;
+    }
+  }
+  return candidates[0] ?? null;
+}
+
 function renderHighlightedText(text: string, highlight: string | null) {
   if (!highlight) return text;
-  const trimmed = highlight.trim();
+  const trimmed = highlight.trim().replace(/\s+/g, " ");
   if (!trimmed) return text;
-  if (trimmed.length > 600) return text;
-  const lowerText = text.toLowerCase();
-  const lowerHighlight = trimmed.toLowerCase();
+  const highlightSource = trimmed.length > 600
+    ? trimmed.slice(0, 200).trim()
+    : trimmed;
+  const tokens = highlightSource.split(" ").filter(Boolean);
+  if (!tokens.length) return text;
+  const pattern = tokens.map((token) => escapeRegex(token)).join("\\s+");
+  const regex = new RegExp(pattern, "ig");
   const segments: React.ReactNode[] = [];
   let startIndex = 0;
-  let matchIndex = lowerText.indexOf(lowerHighlight, startIndex);
+  let match = regex.exec(text);
   let matchCount = 0;
 
-  while (matchIndex >= 0 && matchCount < 6) {
-    if (matchIndex > startIndex) {
-      segments.push(text.slice(startIndex, matchIndex));
+  while (match && matchCount < 6) {
+    if (match.index > startIndex) {
+      segments.push(text.slice(startIndex, match.index));
     }
-    const matchEnd = matchIndex + trimmed.length;
+    const matchEnd = match.index + match[0].length;
     segments.push(
       <mark
-        key={`hl-${matchIndex}`}
+        key={`hl-${match.index}`}
         className="bg-yellow-100 text-[#271D1D] rounded px-1"
       >
-        {text.slice(matchIndex, matchEnd)}
+        {text.slice(match.index, matchEnd)}
       </mark>,
     );
     startIndex = matchEnd;
-    matchIndex = lowerText.indexOf(lowerHighlight, startIndex);
+    match = regex.exec(text);
     matchCount += 1;
   }
 
@@ -1287,6 +1317,26 @@ function resolveClauseEvidenceFromDocument(
   }
 
   return null;
+}
+
+function resolveClauseEvidenceFullText(options: {
+  reference: Issue["clauseReference"] | null | undefined;
+  documentText: string | null;
+  clauses: ClauseExtraction[];
+}): string | null {
+  const { reference, documentText, clauses } = options;
+  if (!reference) return null;
+  const fromDocument = resolveClauseEvidenceFromDocument(reference, documentText);
+  const fromClauses = resolveFullClauseText({
+    clauseId: reference.clauseId ?? null,
+    clauseTitle: reference.heading ?? null,
+    anchorText: reference.excerpt ?? null,
+    clauses,
+  });
+  if (fromClauses && (!fromDocument || fromClauses.length > fromDocument.length)) {
+    return fromClauses;
+  }
+  return fromDocument ?? fromClauses;
 }
 
 function resolveFullClauseText({
@@ -1433,11 +1483,12 @@ function ClauseEvidenceBlock({
     locationParts.push(`Page ${reference.locationHint.page}`);
   }
   const locationLabel = locationParts.join(" · ");
-  const modalText = fullText ?? reference.excerpt ?? "";
-  const previewText = reference.excerpt ?? fullText ?? "";
+  const excerptText = reference.excerpt?.trim() ?? "";
+  const modalText = fullText ?? excerptText ?? "";
+  const previewText = excerptText || fullText || "";
   const highlightText =
-    reference.excerpt && modalText !== reference.excerpt
-      ? reference.excerpt
+    modalText && excerptText
+      ? resolveHighlightCandidate(modalText, excerptText)
       : null;
 
   return (
@@ -1479,13 +1530,13 @@ function ClauseEvidenceBlock({
                   <DialogDescription>{locationLabel}</DialogDescription>
                 )}
               </DialogHeader>
-              {highlightText ? (
+              {excerptText ? (
                 <div className="rounded-md border border-[#E8DDDD] bg-[#FFF7E6] px-3 py-2 text-xs text-[#7A4B00]">
                   <p className="font-semibold uppercase tracking-wide">
                     Referenced excerpt
                   </p>
                   <p className="text-sm text-[#271D1D] whitespace-pre-wrap">
-                    {highlightText}
+                    {excerptText}
                   </p>
                 </div>
               ) : null}
@@ -1642,10 +1693,8 @@ function ClausePreview({
       ? fullUpdatedText
       : updatedTextForDiff;
   const highlightOriginal =
-    resolvedFullPreviousText &&
-    previousTextForDiff &&
-    resolvedFullPreviousText !== previousTextForDiff
-      ? previousTextForDiff
+    resolvedFullPreviousText && previousTextForDiff
+      ? resolveHighlightCandidate(resolvedFullPreviousText, previousTextForDiff)
       : null;
 
   const renderDiffColumn = (variant: "original" | "updated") => {
@@ -4050,11 +4099,12 @@ const heroNavItems: { id: string; label: string }[] = [
                           {expanded && (
                             <div className="px-4 pb-4 space-y-3">
                               {bucket.map((issue) => {
-                                const issueEvidenceText =
-                                  resolveClauseEvidenceFromDocument(
-                                    issue.clauseReference,
-                                    fullDocumentText,
-                                  ) ??
+                                const issueFullText =
+                                  resolveClauseEvidenceFullText({
+                                    reference: issue.clauseReference,
+                                    documentText: fullDocumentText,
+                                    clauses: clauseEvidenceSources,
+                                  }) ??
                                   resolveClauseEvidenceText(
                                     issue.clauseReference,
                                     clauseEvidenceSources,
@@ -4097,7 +4147,7 @@ const heroNavItems: { id: string; label: string }[] = [
                       </p>
                       <ClauseEvidenceBlock
                         reference={issue.clauseReference}
-                        fullText={issueEvidenceText}
+                        fullText={issueFullText}
                       />
                   </div>
                 </div>
@@ -4127,11 +4177,12 @@ const heroNavItems: { id: string; label: string }[] = [
                             heading: criterion.title,
                           } as Issue["clauseReference"])
                         : null;
-                      const criteriaEvidenceText =
-                        resolveClauseEvidenceFromDocument(
-                          criteriaReference,
-                          fullDocumentText,
-                        ) ??
+                      const criteriaFullText =
+                        resolveClauseEvidenceFullText({
+                          reference: criteriaReference,
+                          documentText: fullDocumentText,
+                          clauses: clauseEvidenceSources,
+                        }) ??
                         resolveClauseEvidenceFromSnippet(
                           criterion.evidence,
                           clauseEvidenceSources,
@@ -4152,7 +4203,7 @@ const heroNavItems: { id: string; label: string }[] = [
                             {criteriaReference && (
                               <ClauseEvidenceBlock
                                 reference={criteriaReference}
-                                fullText={criteriaEvidenceText}
+                                fullText={criteriaFullText}
                                 tone="neutral"
                               />
                             )}

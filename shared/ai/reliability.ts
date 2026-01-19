@@ -1224,6 +1224,23 @@ export function bindProposedEditsToClauses(options: {
 
   return filteredEdits.map((edit, index) => {
     if (!edit || typeof edit !== "object") return edit;
+    const rawAnchorText =
+      typeof edit.anchorText === "string" ? edit.anchorText.trim() : "";
+    const rawPreviousText =
+      typeof edit.previousText === "string" ? edit.previousText.trim() : "";
+    const intent =
+      typeof edit.intent === "string" ? edit.intent.toLowerCase() : "";
+    const missingAnchor = isMissingEvidenceMarker(
+      rawPreviousText || rawAnchorText,
+    );
+    if (intent.includes("insert") && missingAnchor) {
+      return {
+        ...edit,
+        clauseId: undefined,
+        anchorText: rawPreviousText || rawAnchorText || "Not present in contract",
+        intent: "insert",
+      };
+    }
     const editContent = getEditContent(edit);
     const editSignal = [
       edit.proposedText,

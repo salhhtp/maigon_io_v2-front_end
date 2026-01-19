@@ -207,10 +207,16 @@ function applyEditsToHtml(
       }
 
       const insertionHtml = `<p>${formattedInsert}</p>`;
+      const shouldAppendToEnd =
+        !targetNode && !edit.originalText && !edit.clauseReference;
       if (targetNode) {
         $(targetNode.element).after(insertionHtml);
         matched.push(resolvedId);
         lastTarget = $(targetNode.element).next().get(0) ?? null;
+      } else if (shouldAppendToEnd) {
+        $("body").append(insertionHtml);
+        matched.push(resolvedId);
+        lastTarget = $("body").children().last().get(0) ?? null;
       } else if (lastTarget) {
         $(lastTarget).after(insertionHtml);
         matched.push(resolvedId);

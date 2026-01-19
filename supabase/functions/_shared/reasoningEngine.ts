@@ -828,7 +828,7 @@ function buildSystemPrompt(
     "Use legal reasoning, cite regulatory frameworks, and flag negotiation levers.",
     "Ground every observation in the retrieved excerpts or clause digest provided. Do not infer missing language from general knowledge.",
     "If a clause is not present in the provided excerpts, mark it as \"Not present in contract\" and propose language only when clearly missing.",
-    "When a clause is missing, use the provided playbook clause templates as the baseline and produce an insert proposed edit anchored to the closest relevant clause excerpt.",
+    "When a clause is missing, use the provided playbook clause templates as the baseline and produce an insert proposed edit with anchorText set to \"Not present in contract\"; include a suggested insertion location in the rationale (e.g., \"insert near Miscellaneous\").",
     "For each checklist/anchor item in the playbook, emit a finding (met/missing/attention) and include an issue for anything missing or ambiguous.",
     compact
       ? "If output length is constrained, group similar findings and keep each item concise."
@@ -975,7 +975,7 @@ function buildJsonSchemaDescription(
     "- contractSummary: { contractName, filename, parties[], agreementDirection, purpose, verbalInformationCovered, contractPeriod, governingLaw, jurisdiction }",
     "- issuesToAddress: Issues with id, title, severity, recommendation, rationale, clauseReference { clauseId, heading, excerpt, locationHint }. Excerpt must quote or paraphrase the retrieved clause excerpts or clause digest. If a clause is missing, state \"Not present in contract\" in excerpt and location.",
     "- criteriaMet: Checklist items with id, title, description, met, evidence.",
-    "- proposedEdits: Each edit with id, clauseId, anchorText, proposedText, intent, rationale. Anchor text must be an exact excerpt from the extracted clause text provided (for inserts, pick the closest relevant clause excerpt where the new clause should be placed). Proposed text = fully rewritten clause or paragraph ready to paste into the contract. Intent must be insert|replace|remove.",
+    "- proposedEdits: Each edit with id, clauseId, anchorText, proposedText, intent, rationale. Anchor text must be an exact excerpt from the extracted clause text provided; for missing-clause inserts use the literal \"Not present in contract\" and include insertion guidance in the rationale. Proposed text = fully rewritten clause or paragraph ready to paste into the contract. Intent must be insert|replace|remove.",
     "- metadata: model + classification + token usage + critique notes.",
     "Do not include previewHtml/previousText/updatedText/applyByDefault; these are derived later.",
     "Optional sections (playbookInsights, clauseExtractions, similarityAnalysis, deviationInsights, actionItems, draftMetadata) should be omitted unless explicitly requested.",
@@ -1547,24 +1547,25 @@ function backfillMissingClauseEdits(
       return;
     }
     const anchor = resolveInsertionAnchor(template, clauseList);
-    if (!anchor || !anchor.anchorText) {
-      console.warn("⚠️ Missing insertion anchor for template", {
-        templateId: template.id,
-        issueId: issue.id,
-      });
-      return;
-    }
     const proposedText = applyTemplateContext(template.text, report);
+    const insertionHint =
+      anchor?.clauseId ??
+      (template.insertionAnchors?.length ? template.insertionAnchors[0] : null);
+    const rationale =
+      issue.recommendation ??
+      issue.rationale ??
+      `Insert ${template.title} clause.`;
     additions.push({
       id: `AUTO-${issue.id ?? `missing-${index + 1}`}`,
-      clauseId: anchor.clauseId,
-      anchorText: anchor.anchorText,
+      clauseId: `missing-${issue.id ?? template.id ?? index + 1}`,
+      anchorText: "Not present in contract",
       proposedText,
       intent: "insert",
-      rationale:
-        issue.recommendation ??
-        issue.rationale ??
-        `Insert ${template.title} clause.`,
+      rationale: insertionHint
+        ? `${rationale} Suggested insertion near ${insertionHint}.`
+        : rationale,
+      previousText: "Not present in contract",
+      updatedText: proposedText,
     });
   });
 
