@@ -1175,6 +1175,20 @@ export function bindProposedEditsToClauses(options: {
   const { proposedEdits, issues, clauses } = options;
   if (!proposedEdits.length) return proposedEdits;
 
+  const missingIssueIds = new Set<string>();
+  issues.forEach((issue) => {
+    const issueId = typeof issue.id === "string" ? issue.id.toLowerCase() : "";
+    if (!issueId) return;
+    const clauseId = normalizeClauseId(issue.clauseReference?.clauseId ?? "");
+    const hasMissingEvidence =
+      clauseId.startsWith("missing") ||
+      clauseId.startsWith("unbound") ||
+      isMissingEvidenceMarker(issue.clauseReference?.excerpt ?? "");
+    if (hasMissingEvidence) {
+      missingIssueIds.add(issueId);
+    }
+  });
+
   const filteredEdits = proposedEdits.filter(
     (edit) => edit && typeof edit === "object" && !isPlaceholderEdit(edit),
   );
@@ -1233,7 +1247,16 @@ export function bindProposedEditsToClauses(options: {
     const missingAnchor = isMissingEvidenceMarker(
       rawPreviousText || rawAnchorText,
     );
-    if (intent.includes("insert") && missingAnchor) {
+    const editId = typeof edit.id === "string" ? edit.id : "";
+    const normalizedEditId = editId.toLowerCase();
+    const editClauseId =
+      typeof edit.clauseId === "string" ? edit.clauseId : "";
+    const normalizedEditClauseId = normalizeClauseId(editClauseId);
+    const isAutoMissingEdit =
+      normalizedEditId.startsWith("auto-") ||
+      normalizedEditClauseId.startsWith("missing") ||
+      missingIssueIds.has(normalizedEditId);
+    if (intent.includes("insert") && missingAnchor && isAutoMissingEdit) {
       return {
         ...edit,
         clauseId: undefined,

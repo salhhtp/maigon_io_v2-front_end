@@ -1347,13 +1347,35 @@ function enforceProposedEditClauseBindings(payload: Record<string, unknown>) {
 
 function normaliseProposedEditContent(payload: Record<string, unknown>) {
   if (!Array.isArray(payload.proposedEdits)) return;
+
+  const stripEmbeddedJson = (value: string) => {
+    const match = value.match(
+      /(?:\{|,)\s*\"(?:id|intent|clauseId|anchorText|proposedText|rationale)\"\s*:/,
+    );
+    if (match?.index !== undefined && match.index > 0) {
+      return value.slice(0, match.index).trim();
+    }
+    return value.trim();
+  };
+
   payload.proposedEdits = payload.proposedEdits.map((entry) => {
     if (!entry || typeof entry !== "object") return entry;
     const record = entry as Record<string, unknown>;
     const proposedText =
-      typeof record.proposedText === "string" ? record.proposedText : "";
+      typeof record.proposedText === "string"
+        ? stripEmbeddedJson(record.proposedText)
+        : "";
+    if (typeof record.proposedText === "string") {
+      record.proposedText = proposedText;
+    }
     const previousText =
       typeof record.previousText === "string" ? record.previousText : "";
+    if (typeof record.updatedText === "string") {
+      record.updatedText = stripEmbeddedJson(record.updatedText);
+    }
+    if (typeof record.rationale === "string") {
+      record.rationale = stripEmbeddedJson(record.rationale);
+    }
 
     const needsRewrite = (value: unknown) =>
       typeof value !== "string" ||
