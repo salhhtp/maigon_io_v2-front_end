@@ -13,8 +13,6 @@ import {
   AlertTriangle,
   Download,
   RefreshCw,
-  ShieldCheck,
-  Layers,
   CreditCard,
   Loader2,
   X,
@@ -26,6 +24,7 @@ import MobileNavigation from "@/components/MobileNavigation";
 import { useUser } from "@/contexts/SupabaseUserContext";
 import { DataService } from "@/services/dataService";
 import { SOLUTION_DISPLAY_NAMES, type SolutionKey } from "@/utils/solutionMapping";
+import { getSolutionIcon } from "@/utils/solutionIcons";
 import { useToast } from "@/hooks/use-toast";
 import { startPaygCheckout } from "@/services/billingService";
 
@@ -350,19 +349,19 @@ export default function UserDashboard() {
         key: "dpa" as SolutionKey,
         name: SOLUTION_DISPLAY_NAMES.dpa,
         description: "Jump straight into a data processing agreement review.",
-        icon: <ShieldCheck className="w-5 h-5 text-[#9A7C7C]" />,
+        icon: getSolutionIcon("dpa"),
       },
       {
         key: "nda" as SolutionKey,
         name: SOLUTION_DISPLAY_NAMES.nda,
         description: "Assess confidentiality terms and obligations within minutes.",
-        icon: <FileText className="w-5 h-5 text-[#9A7C7C]" />,
+        icon: getSolutionIcon("nda"),
       },
       {
         key: "psa" as SolutionKey,
         name: SOLUTION_DISPLAY_NAMES.psa,
         description: "Review supplier agreements for delivery and liability gaps.",
-        icon: <Layers className="w-5 h-5 text-[#9A7C7C]" />,
+        icon: getSolutionIcon("psa"),
       },
     ],
     [],
@@ -374,7 +373,7 @@ export default function UserDashboard() {
         key: key as SolutionKey,
         name,
         description: "Launch a review tailored to this contract type.",
-        icon: <Layers className="w-5 h-5 text-[#9A7C7C]" />,
+        icon: getSolutionIcon(key as SolutionKey),
       })),
     [],
   );

@@ -23,6 +23,7 @@ import {
   SOLUTION_DISPLAY_NAMES,
   type SolutionKey,
 } from "@/utils/solutionMapping";
+import { getSolutionIcon } from "@/utils/solutionIcons";
 
 const numberFormatter = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 0,
@@ -155,19 +156,19 @@ export default function EnterpriseDashboard() {
         key: "dpa" as SolutionKey,
         name: SOLUTION_DISPLAY_NAMES.dpa,
         description: "Launch a privacy compliance review instantly.",
-        icon: <ShieldCheck className="w-5 h-5 text-[#9A7C7C]" />,
+        icon: getSolutionIcon("dpa"),
       },
       {
         key: "nda" as SolutionKey,
         name: SOLUTION_DISPLAY_NAMES.nda,
         description: "Assess confidentiality obligations for enterprise partners.",
-        icon: <FileText className="w-5 h-5 text-[#9A7C7C]" />,
+        icon: getSolutionIcon("nda"),
       },
       {
         key: "psa" as SolutionKey,
         name: SOLUTION_DISPLAY_NAMES.psa,
         description: "Review supply agreements for delivery & liability gaps.",
-        icon: <Layers className="w-5 h-5 text-[#9A7C7C]" />,
+        icon: getSolutionIcon("psa"),
       },
     ],
     [],
@@ -196,7 +197,7 @@ export default function EnterpriseDashboard() {
         key: key as SolutionKey,
         name,
         description: "Launch a review tailored to this contract type.",
-        icon: <Layers className="w-5 h-5 text-[#9A7C7C]" />,
+        icon: getSolutionIcon(key as SolutionKey),
       })),
     [],
   );

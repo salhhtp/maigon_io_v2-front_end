@@ -7,12 +7,10 @@ import {
   CheckCircle,
   ClipboardList,
   DollarSign,
-  FileText,
   Globe,
   Layers,
   Loader2,
   RefreshCw,
-  ShieldCheck,
   Target,
   TrendingDown,
   TrendingUp,
@@ -25,6 +23,7 @@ import { Button } from "@/components/ui/button";
 import { useUser } from "@/contexts/SupabaseUserContext";
 import { DataService } from "@/services/dataService";
 import { SOLUTION_DISPLAY_NAMES, type SolutionKey } from "@/utils/solutionMapping";
+import { getSolutionIcon } from "@/utils/solutionIcons";
 import type {
   AdminDashboardAnalytics,
   AdminDashboardPlanBreakdownItem,
@@ -766,19 +765,19 @@ export default function Dashboard() {
         key: "dpa" as SolutionKey,
         name: SOLUTION_DISPLAY_NAMES.dpa,
         description: "Jump straight into a data processing agreement review.",
-        icon: <ShieldCheck className="w-5 h-5 text-[#9A7C7C]" />,
+        icon: getSolutionIcon("dpa"),
       },
       {
         key: "nda" as SolutionKey,
         name: SOLUTION_DISPLAY_NAMES.nda,
         description: "Assess confidentiality terms and obligations within minutes.",
-        icon: <FileText className="w-5 h-5 text-[#9A7C7C]" />,
+        icon: getSolutionIcon("nda"),
       },
       {
         key: "psa" as SolutionKey,
         name: SOLUTION_DISPLAY_NAMES.psa,
         description: "Review supplier agreements for delivery and liability gaps.",
-        icon: <Layers className="w-5 h-5 text-[#9A7C7C]" />,
+        icon: getSolutionIcon("psa"),
       },
     ],
     [],
@@ -806,7 +805,7 @@ export default function Dashboard() {
         key: key as SolutionKey,
         name,
         description: "Launch a review tailored to this contract type.",
-        icon: <Layers className="w-5 h-5 text-[#9A7C7C]" />,
+        icon: getSolutionIcon(key as SolutionKey),
       })),
     [],
   );

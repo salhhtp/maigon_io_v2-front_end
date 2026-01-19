@@ -35,9 +35,6 @@ import {
   Activity,
   AlertTriangle,
   Bell,
-  ShieldCheck,
-  Layers,
-  FileText,
   RefreshCw,
   Target,
 } from "lucide-react";
@@ -49,6 +46,7 @@ import {
   SOLUTION_DISPLAY_NAMES,
   type SolutionKey,
 } from "@/utils/solutionMapping";
+import { getSolutionIcon } from "@/utils/solutionIcons";
 import aiService from "@/services/aiService";
 import type { CustomSolution } from "@shared/api";
 
@@ -215,19 +213,19 @@ const OrgAdminDashboard: React.FC = () => {
         key: "dpa" as SolutionKey,
         name: SOLUTION_DISPLAY_NAMES.dpa,
         description: "Launch a privacy compliance review instantly.",
-        icon: <ShieldCheck className="w-5 h-5 text-[#9A7C7C]" />,
+        icon: getSolutionIcon("dpa"),
       },
       {
         key: "nda" as SolutionKey,
         name: SOLUTION_DISPLAY_NAMES.nda,
         description: "Assess confidentiality obligations for partners.",
-        icon: <FileText className="w-5 h-5 text-[#9A7C7C]" />,
+        icon: getSolutionIcon("nda"),
       },
       {
         key: "psa" as SolutionKey,
         name: SOLUTION_DISPLAY_NAMES.psa,
         description: "Review supplier agreements for delivery & liability gaps.",
-        icon: <Layers className="w-5 h-5 text-[#9A7C7C]" />,
+        icon: getSolutionIcon("psa"),
       },
     ],
     [],
@@ -256,7 +254,7 @@ const OrgAdminDashboard: React.FC = () => {
         key: key as SolutionKey,
         name,
         description: "Launch a review tailored to this contract type.",
-        icon: <Layers className="w-5 h-5 text-[#9A7C7C]" />,
+        icon: getSolutionIcon(key as SolutionKey),
       })),
     [],
   );*/
