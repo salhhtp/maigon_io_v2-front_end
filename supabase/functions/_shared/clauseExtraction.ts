@@ -389,6 +389,10 @@ export function enhanceReportWithClauses(
         criticalCriteriaIds.has(matchedCriticalCriterion.id),
     );
     const existingClauseKey = normalizeForMatch(existingReference?.clauseId ?? "");
+    const preserveMissingEvidence =
+      isMissingEvidenceMarker(existingReference?.excerpt ?? "") ||
+      existingClauseKey.startsWith("missing") ||
+      existingClauseKey.startsWith("unbound");
     const allowCriticalStructuralMismatch =
       isCriticalIssue &&
       (isMissingEvidenceMarker(existingReference?.excerpt ?? "") ||
@@ -639,7 +643,7 @@ export function enhanceReportWithClauses(
       }
     }
 
-    const preferredExcerpt = match
+    const preferredExcerpt = !preserveMissingEvidence && match
       ? buildEvidenceExcerpt({
         clauseText:
           match.originalText ??
@@ -694,6 +698,9 @@ export function enhanceReportWithClauses(
     } else if (isMissingEvidenceMarker(currentExcerpt)) {
       nextExcerpt = currentExcerpt;
     }
+    if (preserveMissingEvidence && !nextExcerpt) {
+      nextExcerpt = "Not present in contract";
+    }
 
     const evidenceResult = nextExcerpt
       ? checkEvidenceMatch(nextExcerpt, content)
@@ -728,31 +735,37 @@ export function enhanceReportWithClauses(
       return issue;
     }
 
+    const resolvedHeading = preserveMissingEvidence
+      ? existingReference?.heading ?? null
+      : match?.title ?? existingReference?.heading ?? null;
+    const resolvedLocation = preserveMissingEvidence
+      ? existingReference?.locationHint ?? {
+          page: null,
+          paragraph: null,
+          section: "Not present in contract",
+          clauseNumber: stableClauseId ?? null,
+        }
+      : match && isMissingLocationHint(existingReference?.locationHint)
+        ? match?.location ?? {
+            page: null,
+            paragraph: null,
+            section: match?.title ?? null,
+            clauseNumber: matchedClauseId ?? null,
+          }
+        : existingReference?.locationHint ??
+          match?.location ?? {
+            page: null,
+            paragraph: null,
+            section: match?.title ?? (match ? null : "Not present in contract"),
+            clauseNumber: matchedClauseId ?? null,
+          };
     const updatedIssue = {
       ...issue,
       clauseReference: {
         clauseId: stableClauseId,
-        heading:
-          match?.title ??
-          (isMissingLocationHint(existingReference?.locationHint)
-            ? existingReference?.heading
-            : existingReference?.heading),
+        heading: resolvedHeading,
         excerpt: nextExcerpt,
-        locationHint:
-          match && isMissingLocationHint(existingReference?.locationHint)
-            ? match?.location ?? {
-                page: null,
-                paragraph: null,
-                section: match?.title ?? null,
-                clauseNumber: matchedClauseId ?? null,
-              }
-            : existingReference?.locationHint ??
-              match?.location ?? {
-                page: null,
-                paragraph: null,
-                section: match?.title ?? (match ? null : "Not present in contract"),
-                clauseNumber: matchedClauseId ?? null,
-              },
+        locationHint: resolvedLocation,
       },
     };
     const excerptKey = normalizeForMatch(updatedIssue.clauseReference?.excerpt ?? "");
@@ -1545,12 +1558,14 @@ function clauseSupportsCompelledDisclosure(
     `${clause.title ?? ""} ${clauseText}`,
   );
   if (normalized.includes("required by law")) return true;
+  if (normalized.includes("required to disclose")) return true;
   if (normalized.includes("court order")) return true;
+  if (normalized.includes("competent authority")) return true;
   if (normalized.includes("regulator") || normalized.includes("regulatory")) {
     return true;
   }
-  return normalized.includes("subpoena") ||
-    (normalized.includes("disclose") && normalized.includes("law"));
+  if (normalized.includes("subpoena")) return true;
+  return normalized.includes("required") && normalized.includes("disclose");
 }
 
 function isMarkingNoticeIssue(

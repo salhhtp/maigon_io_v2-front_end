@@ -608,9 +608,13 @@ export function resolveClauseMatch(options: {
     typeof clauseReference?.heading === "string"
       ? clauseReference?.heading
       : null;
-  const excerptQuery =
+  const excerptQueryRaw =
     typeof clauseReference?.excerpt === "string"
       ? clauseReference?.excerpt
+      : null;
+  const excerptQuery =
+    excerptQueryRaw && !isMissingEvidenceMarker(excerptQueryRaw)
+      ? excerptQueryRaw
       : null;
   const fallbackQuery =
     typeof fallbackText === "string" ? fallbackText : null;
@@ -1078,12 +1082,14 @@ function clauseSupportsCompelledDisclosure(
     `${clause.title ?? ""} ${clauseText}`,
   );
   if (normalized.includes("required by law")) return true;
+  if (normalized.includes("required to disclose")) return true;
   if (normalized.includes("court order")) return true;
+  if (normalized.includes("competent authority")) return true;
   if (normalized.includes("regulator") || normalized.includes("regulatory")) {
     return true;
   }
-  return normalized.includes("subpoena") ||
-    (normalized.includes("disclose") && normalized.includes("law"));
+  if (normalized.includes("subpoena")) return true;
+  return normalized.includes("required") && normalized.includes("disclose");
 }
 
 function getEditSupportCheck(editContent: string): ClauseSupportCheck | null {
@@ -1213,6 +1219,13 @@ export function bindProposedEditsToClauses(options: {
   issues.forEach((issue) => {
     const clauseId = issue.clauseReference?.clauseId ?? "";
     const normalizedId = normalizeClauseId(clauseId);
+    const hasMissingEvidence =
+      normalizedId.startsWith("missing") ||
+      normalizedId.startsWith("unbound") ||
+      isMissingEvidenceMarker(issue.clauseReference?.excerpt ?? "");
+    if (hasMissingEvidence) {
+      return;
+    }
     if (normalizedId && clauseIds.has(normalizedId)) {
       issueClauseMap.set(
         issue,
@@ -1506,6 +1519,24 @@ export function bindProposedEditsToClauses(options: {
     const bestIssue = useEditMatch ? bestEditIssue : bestAnchorIssue;
     const bestScore = useEditMatch ? bestEditScore : bestAnchorScore;
     if (bestIssue && bestScore >= MIN_MATCH_SCORE) {
+      const bestIssueClauseId = normalizeClauseId(
+        bestIssue.clauseReference?.clauseId ?? "",
+      );
+      const bestIssueMissing =
+        bestIssueClauseId.startsWith("missing") ||
+        bestIssueClauseId.startsWith("unbound") ||
+        isMissingEvidenceMarker(bestIssue.clauseReference?.excerpt ?? "");
+      if (bestIssueMissing) {
+        const safeAnchor = isMissingEvidenceMarker(anchorText)
+          ? anchorText
+          : "Not present in contract";
+        return {
+          ...edit,
+          clauseId: undefined,
+          anchorText: safeAnchor,
+          intent: "insert",
+        };
+      }
       const boundId = issueClauseMap.get(bestIssue);
       if (boundId) {
         const normalizedBound = normalizeClauseId(boundId);
