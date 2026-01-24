@@ -2,6 +2,7 @@ import type { AnalysisReport, ClauseExtraction } from "./reviewSchema.ts";
 import type { ContractPlaybook } from "./playbooks.ts";
 import {
   buildEvidenceExcerpt,
+  buildUniqueEvidenceExcerpt,
   checkEvidenceMatch,
   checkEvidenceMatchAgainstClause,
   findRequirementMatch,
@@ -206,6 +207,27 @@ const findBestClauseByCoverageWithSupport = (
   return best;
 };
 
+const findBestClauseBySupport = (
+  tokens: string[],
+  clauses: ClauseExtraction[],
+  supportCheck: (clause: ClauseExtraction, clauseText: string) => boolean,
+): { clause: ClauseExtraction; score: number } | null => {
+  let best: { clause: ClauseExtraction; score: number } | null = null;
+  clauses.forEach((clause) => {
+    const clauseText = buildClauseMatchText(clause);
+    if (!clauseText) return;
+    if (!supportCheck(clause, clauseText)) return;
+    const clauseTokens = tokenizeForMatch(clauseText);
+    const score = tokens.length > 0
+      ? tokenCoverageWithVariants(tokens, clauseTokens)
+      : 0;
+    if (!best || score > best.score) {
+      best = { clause, score };
+    }
+  });
+  return best;
+};
+
 const buildCriterionId = (
   value: string,
   used: Map<string, number>,
@@ -351,6 +373,8 @@ export function enhanceReportWithClauses(
     string,
     { clauseId: string; heading?: string | null; excerpt: string }
   > = {};
+  // Track used excerpts per clause to ensure unique evidence across criteria
+  const usedExcerptsByClause = new Map<string, Set<string>>();
   const isMissingLocationHint = (
     locationHint: ClauseExtraction["location"] | undefined | null,
   ) => {
@@ -380,6 +404,7 @@ export function enhanceReportWithClauses(
       excerpt: undefined,
       locationHint: undefined,
     };
+    const supportCheck = getIssueSupportCheck(issue);
     const matchedCriticalCriterion =
       criticalCriteriaIds.size > 0 && baseCriteria.length > 0
         ? findMatchingCriterion(issue, baseCriteria)
@@ -438,8 +463,7 @@ export function enhanceReportWithClauses(
         ? existingReference.excerpt.trim()
         : "";
     if (match && matchResult.method === "id" && existingClauseId) {
-      const clauseText =
-        match.originalText ?? match.normalizedText ?? match.title ?? "";
+      const clauseText = buildClauseMatchText(match);
       const excerptMismatch =
         existingExcerpt &&
         !isMissingEvidenceMarker(existingExcerpt) &&
@@ -467,8 +491,7 @@ export function enhanceReportWithClauses(
         acceptedMatch = reAccepted;
         match = reAccepted ? reMatch.match : null;
         if (match && issueStructuralTokens.length > 0) {
-          const reClauseText =
-            match.originalText ?? match.normalizedText ?? match.title ?? "";
+          const reClauseText = buildClauseMatchText(match);
           const reClauseTokens = tokenizeForMatch(reClauseText);
           const structuralMismatch = !hasStructuralMatch(
             issueStructuralTokens,
@@ -486,8 +509,7 @@ export function enhanceReportWithClauses(
       }
     }
     if (match && issueStructuralTokens.length > 0) {
-      const clauseText =
-        match.originalText ?? match.normalizedText ?? match.title ?? "";
+      const clauseText = buildClauseMatchText(match);
       const clauseTokens = tokenizeForMatch(clauseText);
       const structuralMismatch = !hasStructuralMatch(
         issueStructuralTokens,
@@ -513,8 +535,7 @@ export function enhanceReportWithClauses(
         acceptedMatch = reAccepted;
         match = reAccepted ? reMatch.match : null;
         if (match && issueStructuralTokens.length > 0) {
-          const reClauseText =
-            match.originalText ?? match.normalizedText ?? match.title ?? "";
+          const reClauseText = buildClauseMatchText(match);
           const reClauseTokens = tokenizeForMatch(reClauseText);
           if (hasStructuralMatch(issueStructuralTokens, reClauseTokens)) {
             issueStructuralMismatch = false;
@@ -590,22 +611,34 @@ export function enhanceReportWithClauses(
       trustExistingClauseId = false;
     }
 
-    const supportCheck = getIssueSupportCheck(issue);
     if (supportCheck) {
       const currentClauseText = match ? buildClauseMatchText(match) : "";
       const supportsCurrent =
         match && currentClauseText ? supportCheck(match, currentClauseText) : false;
-      if (!supportsCurrent && issueMatchTokens.length > 0) {
-        const supportedMatch = findBestClauseByCoverageWithSupport(
-          issueMatchTokens,
-          clauseCandidates,
-          supportCheck,
-        );
-        if (supportedMatch && supportedMatch.score >= REBIND_MIN_COVERAGE) {
+      if (!supportsCurrent) {
+        let supportedMatch =
+          issueMatchTokens.length > 0
+            ? findBestClauseByCoverageWithSupport(
+              issueMatchTokens,
+              clauseCandidates,
+              supportCheck,
+            )
+            : null;
+        if (!supportedMatch && preserveMissingEvidence) {
+          supportedMatch = findBestClauseBySupport(
+            issueMatchTokens,
+            clauseCandidates,
+            supportCheck,
+          );
+        }
+        if (
+          supportedMatch &&
+          (supportedMatch.score >= REBIND_MIN_COVERAGE || preserveMissingEvidence)
+        ) {
           match = supportedMatch.clause;
           matchResult = {
             match,
-            confidence: supportedMatch.score,
+            confidence: Math.max(supportedMatch.score, MIN_ISSUE_CONFIDENCE),
             method: "text",
             candidates: matchResult.candidates,
           };
@@ -621,12 +654,24 @@ export function enhanceReportWithClauses(
       }
     }
 
-    const matchedClauseId = match?.clauseId ?? match?.id ?? null;
+    const clauseText = match
+      ? match.originalText ?? match.normalizedText ?? match.title ?? ""
+      : "";
+    const supportsMatchedClause =
+      preserveMissingEvidence &&
+      Boolean(match && clauseText && supportCheck && supportCheck(match, clauseText));
+    const shouldPreserveMissingEvidence =
+      preserveMissingEvidence && !supportsMatchedClause;
+    const matchedClauseId = shouldPreserveMissingEvidence
+      ? null
+      : match?.clauseId ?? match?.id ?? null;
     const missingLabel =
       issue.title ?? issue.category ?? issue.id ?? `issue-${index + 1}`;
     const stableClauseId =
       matchedClauseId ??
-      (trustExistingClauseId && existingClauseId.trim().length > 0
+      (!shouldPreserveMissingEvidence &&
+          trustExistingClauseId &&
+          existingClauseId.trim().length > 0
         ? existingClauseId
         : buildMissingClauseId(missingLabel));
 
@@ -643,14 +688,20 @@ export function enhanceReportWithClauses(
       }
     }
 
-    const preferredExcerpt = !preserveMissingEvidence && match
+    const clauseExcerptSource = match
+      ? match.originalText ??
+        match.normalizedText ??
+        match.title ??
+        ""
+      : "";
+    const excerptAnchor = match
+      ? getIssueExcerptAnchor(issue, clauseExcerptSource)
+      : null;
+    const preferredExcerpt = !shouldPreserveMissingEvidence && match
       ? buildEvidenceExcerpt({
-        clauseText:
-          match.originalText ??
-            match.normalizedText ??
-            match.title ??
-            "",
-        anchorText: existingReference?.excerpt ?? issue.title,
+        clauseText: clauseExcerptSource,
+        anchorText: excerptAnchor?.anchorText ?? existingReference?.excerpt ?? issue.title,
+        maxLength: excerptAnchor?.maxLength,
       })
       : "";
 
@@ -664,10 +715,6 @@ export function enhanceReportWithClauses(
         : isMissingEvidenceMarker(existingReference?.excerpt)
         ? existingReference?.excerpt ?? ""
         : "";
-    const clauseText = match
-      ? match.originalText ?? match.normalizedText ?? match.title ?? ""
-      : "";
-
     let nextExcerpt = currentExcerpt;
     if (!currentExcerpt) {
       if (isMissingEvidenceMarker(existingReference?.excerpt)) {
@@ -698,7 +745,7 @@ export function enhanceReportWithClauses(
     } else if (isMissingEvidenceMarker(currentExcerpt)) {
       nextExcerpt = currentExcerpt;
     }
-    if (preserveMissingEvidence && !nextExcerpt) {
+    if (shouldPreserveMissingEvidence && !nextExcerpt) {
       nextExcerpt = "Not present in contract";
     }
 
@@ -735,10 +782,10 @@ export function enhanceReportWithClauses(
       return issue;
     }
 
-    const resolvedHeading = preserveMissingEvidence
+    const resolvedHeading = shouldPreserveMissingEvidence
       ? existingReference?.heading ?? null
       : match?.title ?? existingReference?.heading ?? null;
-    const resolvedLocation = preserveMissingEvidence
+    const resolvedLocation = shouldPreserveMissingEvidence
       ? existingReference?.locationHint ?? {
           page: null,
           paragraph: null,
@@ -887,14 +934,24 @@ export function enhanceReportWithClauses(
         clauseText = "";
       }
     }
+    // Get clause key for excerpt tracking
+    const matchClauseKey = match
+      ? normalizeForMatch(getClauseKey(match))
+      : "";
+    const existingExcerpts = matchClauseKey
+      ? usedExcerptsByClause.get(matchClauseKey) ?? new Set<string>()
+      : new Set<string>();
+
     const fallbackExcerpt = match
-      ? buildEvidenceExcerpt({
+      ? buildUniqueEvidenceExcerpt({
         clauseText:
           match.originalText ??
             match.normalizedText ??
             match.title ??
             "",
+        criterionId: criterion.id,
         anchorText: criterion.evidence ?? criterion.title,
+        excludeExcerpts: existingExcerpts,
       })
       : "";
 
@@ -960,6 +1017,12 @@ export function enhanceReportWithClauses(
       });
     }
 
+    // Track this excerpt to ensure uniqueness for subsequent criteria
+    if (matchClauseKey && nextEvidence && !isMissingEvidenceMarker(nextEvidence)) {
+      existingExcerpts.add(nextEvidence);
+      usedExcerptsByClause.set(matchClauseKey, existingExcerpts);
+    }
+
     const hasEvidence =
       evidenceMatched &&
       !isMissingEvidenceMarker(nextEvidence) &&
@@ -1008,10 +1071,21 @@ export function enhanceReportWithClauses(
     optionalCriteriaIds,
   );
 
-  const issuesWithRationaleFix = rewriteCompelledDisclosureRationale(
+  const issuesWithDefinitionFix = rewriteDefinitionExclusionIssues(
     issuesFiltered,
     clauseCandidates,
   );
+  const issuesWithRationaleFix = rewriteCompelledDisclosureRationale(
+    issuesWithDefinitionFix,
+    clauseCandidates,
+  );
+  const { playbookInsights: updatedPlaybookInsights, deviationInsights: updatedDeviationInsights } =
+    rewriteDefinitionInsights(
+      issuesWithRationaleFix,
+      report.playbookInsights ?? [],
+      report.deviationInsights ?? [],
+      clauseCandidates,
+    );
 
   const criteriaAlignedWithIssues = alignCriteriaWithIssues(
     criteriaWithEvidence,
@@ -1076,11 +1150,21 @@ export function enhanceReportWithClauses(
     nextMetadata.evidenceDebug = evidenceDebug;
   }
 
+  // Validate and fix contract summary (e.g., contractPeriod, agreementDirection)
+  const validatedSummary = validateAndFixContractSummary(
+    report.contractSummary,
+    clauseCandidates,
+    content,
+  );
+
   return {
     ...report,
+    contractSummary: validatedSummary,
     clauseExtractions: clauseCandidates,
     issuesToAddress: issuesWithRationaleFix,
     criteriaMet: metOnlyCriteria,
+    playbookInsights: updatedPlaybookInsights,
+    deviationInsights: updatedDeviationInsights,
     metadata: nextMetadata as AnalysisReport["metadata"],
   };
 }
@@ -1411,7 +1495,6 @@ function isDefinitionIssue(
   const normalized = normalizeIssueSignals(issue);
   if (!normalized) return false;
   if (normalized.includes("definition")) return true;
-  if (normalized.includes("confidential information")) return true;
   if (normalized.includes("exclusion") || normalized.includes("exclusions")) return true;
   if (normalized.includes("residual")) return true;
   return normalized.includes("unmarked");
@@ -1550,6 +1633,37 @@ function isCompelledDisclosureIssue(
   return normalized.includes("compelled") && normalized.includes("disclosure");
 }
 
+function hasCompelledDisclosureProximity(normalized: string): boolean {
+  if (!normalized) return false;
+  const disclosureKey = "disclos";
+  const compulsionSignals = [
+    "compel",
+    "compelled",
+    "required by law",
+    "required under",
+    "legally required",
+    "court order",
+    "order of a court",
+    "subpoena",
+    "competent authority",
+    "regulator",
+    "regulatory",
+    "legal process",
+    "mandatory",
+  ];
+  let index = normalized.indexOf(disclosureKey);
+  while (index !== -1) {
+    const start = Math.max(0, index - 120);
+    const end = Math.min(normalized.length, index + 120);
+    const window = normalized.slice(start, end);
+    if (compulsionSignals.some((signal) => window.includes(signal))) {
+      return true;
+    }
+    index = normalized.indexOf(disclosureKey, index + disclosureKey.length);
+  }
+  return false;
+}
+
 function clauseSupportsCompelledDisclosure(
   clause: ClauseExtraction,
   clauseText: string,
@@ -1557,15 +1671,7 @@ function clauseSupportsCompelledDisclosure(
   const normalized = normalizeForMatch(
     `${clause.title ?? ""} ${clauseText}`,
   );
-  if (normalized.includes("required by law")) return true;
-  if (normalized.includes("required to disclose")) return true;
-  if (normalized.includes("court order")) return true;
-  if (normalized.includes("competent authority")) return true;
-  if (normalized.includes("regulator") || normalized.includes("regulatory")) {
-    return true;
-  }
-  if (normalized.includes("subpoena")) return true;
-  return normalized.includes("required") && normalized.includes("disclose");
+  return hasCompelledDisclosureProximity(normalized);
 }
 
 function isMarkingNoticeIssue(
@@ -1596,14 +1702,14 @@ function getIssueSupportCheck(
   | ((clause: ClauseExtraction, clauseText: string) => boolean)
   | null {
   if (isRemediesIssue(issue)) return clauseSupportsRemedies;
-  if (isUseLimitationIssue(issue)) return clauseSupportsUseLimitation;
-  if (isDefinitionIssue(issue)) return clauseSupportsDefinition;
-  if (isTermSurvivalIssue(issue)) return clauseSupportsTermSurvival;
-  if (isReturnDestructionIssue(issue)) return clauseSupportsReturnDestruction;
   if (isCompelledDisclosureIssue(issue)) return clauseSupportsCompelledDisclosure;
+  if (isReturnDestructionIssue(issue)) return clauseSupportsReturnDestruction;
+  if (isTermSurvivalIssue(issue)) return clauseSupportsTermSurvival;
   if (isIpIssue(issue)) return clauseSupportsIp;
   if (isGoverningLawIssue(issue)) return clauseSupportsGoverningLaw;
   if (isMarkingNoticeIssue(issue)) return clauseSupportsMarkingNotice;
+  if (isUseLimitationIssue(issue)) return clauseSupportsUseLimitation;
+  if (isDefinitionIssue(issue)) return clauseSupportsDefinition;
   return null;
 }
 
@@ -1631,6 +1737,361 @@ function mentionsDisclosureLimit(value: string): boolean {
     return true;
   }
   return false;
+}
+
+function issueMentionsExclusions(
+  issue: AnalysisReport["issuesToAddress"][number],
+): boolean {
+  const normalized = normalizeIssueSignals(issue);
+  if (!normalized) return false;
+  return (
+    normalized.includes("exclusion") ||
+    normalized.includes("public domain") ||
+    normalized.includes("prior knowledge")
+  );
+}
+
+function clauseHasExclusionSignals(normalized: string): boolean {
+  if (!normalized) return false;
+  return (
+    normalized.includes("exclusion") ||
+    normalized.includes("exclude") ||
+    normalized.includes("shall not include") ||
+    normalized.includes("does not include") ||
+    normalized.includes("not include")
+  );
+}
+
+function clauseHasPriorKnowledge(normalized: string): boolean {
+  if (!normalized) return false;
+  return (
+    normalized.includes("prior") ||
+    normalized.includes("previously known") ||
+    normalized.includes("already known") ||
+    normalized.includes("lawfully known") ||
+    normalized.includes("lawfully in possession")
+  );
+}
+
+function clauseHasPublicDomain(normalized: string): boolean {
+  if (!normalized) return false;
+  return (
+    normalized.includes("public domain") ||
+    normalized.includes("publicly available") ||
+    normalized.includes("publicly known") ||
+    normalized.includes("public")
+  );
+}
+
+function clauseHasResidualKnowledge(normalized: string): boolean {
+  if (!normalized) return false;
+  return normalized.includes("residual") || normalized.includes("unaided memory");
+}
+
+function clauseHasReasonablePersonStandard(normalized: string): boolean {
+  if (!normalized) return false;
+  return (
+    normalized.includes("reasonable person") ||
+    normalized.includes("reasonably")
+  );
+}
+
+function clauseHasUnmarkedHandling(normalized: string): boolean {
+  if (!normalized) return false;
+  return (
+    normalized.includes("unmarked") ||
+    normalized.includes("not marked") ||
+    normalized.includes("without marking") ||
+    normalized.includes("not designated") ||
+    normalized.includes("without designation")
+  );
+}
+
+function excerptHasDefinitionSignals(excerpt: string): boolean {
+  const normalized = normalizeForMatch(excerpt);
+  if (!normalized) return false;
+  return (
+    normalized.includes("confidential information") ||
+    normalized.includes("definition") ||
+    normalized.includes("exclusion")
+  );
+}
+
+type DefinitionGapDetail = {
+  clause: ClauseExtraction;
+  clauseText: string;
+  hasExclusionBlock: boolean;
+  missingExclusions: boolean;
+  missingResidual: boolean;
+  missingUnmarked: boolean;
+  missingParts: string[];
+};
+
+function findDefinitionClause(
+  issue: AnalysisReport["issuesToAddress"][number],
+  clauses: ClauseExtraction[],
+): ClauseExtraction | null {
+  const clauseId = normalizeForMatch(issue.clauseReference?.clauseId ?? "");
+  if (clauseId) {
+    const direct = clauses.find((clause) =>
+      normalizeForMatch(getClauseKey(clause)) === clauseId
+    );
+    if (direct) return direct;
+  }
+  const issueTokens = tokenizeForMatch(buildIssueSignalText(issue));
+  const supported = findBestClauseBySupport(
+    issueTokens,
+    clauses,
+    clauseSupportsDefinition,
+  );
+  return supported?.clause ?? null;
+}
+
+function getDefinitionGapDetail(
+  issue: AnalysisReport["issuesToAddress"][number],
+  clauses: ClauseExtraction[],
+): DefinitionGapDetail | null {
+  if (!isDefinitionIssue(issue)) return null;
+  const clause = findDefinitionClause(issue, clauses);
+  if (!clause) return null;
+  const clauseText =
+    clause.originalText ?? clause.normalizedText ?? clause.title ?? "";
+  const normalized = normalizeForMatch(clauseText);
+  if (!normalized) return null;
+
+  const hasExclusionBlock = clauseHasExclusionSignals(normalized);
+  const hasPrior = clauseHasPriorKnowledge(normalized);
+  const hasPublic = clauseHasPublicDomain(normalized);
+  const hasRequiredExclusions = hasExclusionBlock && hasPrior && hasPublic;
+  const hasResidual = clauseHasResidualKnowledge(normalized);
+  const hasReasonable = clauseHasReasonablePersonStandard(normalized);
+  const hasUnmarked = clauseHasUnmarkedHandling(normalized);
+
+  const missingExclusions = !hasRequiredExclusions;
+  const missingResidual = !hasResidual;
+  const missingUnmarked = !(hasReasonable || hasUnmarked);
+
+  const missingParts: string[] = [];
+  if (missingExclusions) {
+    missingParts.push("exclusions for prior knowledge and public domain");
+  }
+  if (missingResidual) missingParts.push("residual knowledge stance");
+  if (missingUnmarked) {
+    missingParts.push("reasonable-person standard for unmarked information");
+  }
+
+  return {
+    clause,
+    clauseText,
+    hasExclusionBlock,
+    missingExclusions,
+    missingResidual,
+    missingUnmarked,
+    missingParts,
+  };
+}
+
+function buildDefinitionGapSummary(missingParts: string[]): string {
+  if (missingParts.length === 0) return "";
+  const verb = missingParts.length > 1 ? "are" : "is";
+  return `The definition section is present, but ${missingParts.join("; ")} ${verb} not addressed.`;
+}
+
+function getIssueExcerptAnchor(
+  issue: AnalysisReport["issuesToAddress"][number],
+  clauseText: string,
+): { anchorText: string; maxLength?: number } | null {
+  const normalized = normalizeForMatch(clauseText);
+  if (!normalized) return null;
+
+  if (isReturnDestructionIssue(issue)) {
+    if (normalized.includes("return or destruction")) {
+      return { anchorText: "Return or Destruction", maxLength: 240 };
+    }
+    if (normalized.includes("return or destroy")) {
+      return { anchorText: "Return or Destroy", maxLength: 240 };
+    }
+    if (normalized.includes("return") && normalized.includes("destroy")) {
+      return { anchorText: "Return", maxLength: 240 };
+    }
+  }
+
+  if (isCompelledDisclosureIssue(issue)) {
+    if (normalized.includes("mandatory disclosure")) {
+      return { anchorText: "Mandatory Disclosure", maxLength: 240 };
+    }
+    if (normalized.includes("required by law")) {
+      return { anchorText: "required by law", maxLength: 240 };
+    }
+    if (normalized.includes("competent authority")) {
+      return { anchorText: "competent authority", maxLength: 240 };
+    }
+  }
+
+  if (isDefinitionIssue(issue)) {
+    if (normalized.includes("exclusions")) {
+      return { anchorText: "Exclusions", maxLength: 260 };
+    }
+    if (normalized.includes("definition of confidential information")) {
+      return {
+        anchorText: "Definition of Confidential Information",
+        maxLength: 260,
+      };
+    }
+    if (normalized.includes("confidential information means")) {
+      return { anchorText: "Confidential Information means", maxLength: 260 };
+    }
+  }
+
+  return null;
+}
+
+function rewriteDefinitionExclusionIssues(
+  issues: AnalysisReport["issuesToAddress"],
+  clauses: ClauseExtraction[],
+): AnalysisReport["issuesToAddress"] {
+  return issues.map((issue) => {
+    if (!isDefinitionIssue(issue)) return issue;
+    const detail = getDefinitionGapDetail(issue, clauses);
+    if (!detail) return issue;
+    if (
+      !detail.missingExclusions &&
+      !detail.missingResidual &&
+      !detail.missingUnmarked
+    ) {
+      return issue;
+    }
+
+    const needsRewrite =
+      (!detail.missingExclusions && issueMentionsExclusions(issue)) ||
+      looksNegativeEvidence(issue.clauseReference?.excerpt ?? "");
+
+    const nextTitle = needsRewrite && !detail.missingExclusions
+      ? "Definition of Confidential Information missing residual knowledge and unmarked-info standard"
+      : issue.title;
+    const nextRecommendation = needsRewrite
+      ? `Add or clarify: ${detail.missingParts.join("; ")}.`
+      : issue.recommendation;
+    const nextRationale = needsRewrite
+      ? buildDefinitionGapSummary(detail.missingParts)
+      : issue.rationale;
+
+    const clauseIdNormalized = normalizeForMatch(issue.clauseReference?.clauseId ?? "");
+    const needsClauseId =
+      !clauseIdNormalized ||
+      clauseIdNormalized.startsWith("missing") ||
+      clauseIdNormalized.startsWith("unbound");
+    const existingExcerpt = issue.clauseReference?.excerpt ?? "";
+    const excerptNeedsAnchor = existingExcerpt &&
+      !excerptHasDefinitionSignals(existingExcerpt);
+    const shouldUpdateExcerpt =
+      looksNegativeEvidence(existingExcerpt) ||
+      isMissingEvidenceMarker(existingExcerpt) ||
+      excerptNeedsAnchor;
+    const anchorText = detail.hasExclusionBlock
+      ? "Exclusions"
+      : "Confidential Information means";
+
+    const nextClauseReference = issue.clauseReference
+      ? { ...issue.clauseReference }
+      : {
+          clauseId: "",
+          heading: null,
+          excerpt: "",
+          locationHint: null,
+    };
+
+    if (needsClauseId) {
+      nextClauseReference.clauseId = detail.clause.clauseId ?? detail.clause.id ?? nextClauseReference.clauseId;
+      nextClauseReference.heading = detail.clause.title ?? nextClauseReference.heading;
+      nextClauseReference.locationHint = detail.clause.location ?? nextClauseReference.locationHint;
+    }
+    if (shouldUpdateExcerpt) {
+      nextClauseReference.excerpt = buildEvidenceExcerpt({
+        clauseText: detail.clauseText,
+        anchorText,
+      });
+    }
+
+    return {
+      ...issue,
+      title: nextTitle,
+      recommendation: nextRecommendation,
+      rationale: nextRationale,
+      clauseReference: nextClauseReference,
+    };
+  });
+}
+
+function rewriteDefinitionInsights(
+  issues: AnalysisReport["issuesToAddress"],
+  playbookInsights: AnalysisReport["playbookInsights"],
+  deviationInsights: AnalysisReport["deviationInsights"],
+  clauses: ClauseExtraction[],
+): {
+  playbookInsights: AnalysisReport["playbookInsights"];
+  deviationInsights: AnalysisReport["deviationInsights"];
+} {
+  if (!issues.length) {
+    return { playbookInsights, deviationInsights };
+  }
+  const definitionIssue = issues.find((issue) => isDefinitionIssue(issue));
+  if (!definitionIssue) {
+    return { playbookInsights, deviationInsights };
+  }
+  const detail = getDefinitionGapDetail(definitionIssue, clauses);
+  if (!detail || detail.missingParts.length === 0) {
+    return { playbookInsights, deviationInsights };
+  }
+
+  const summary = buildDefinitionGapSummary(detail.missingParts);
+  const recommendation = `Add or clarify: ${detail.missingParts.join("; ")}.`;
+  const definitionId = normalizeIssueKey(definitionIssue.id ?? "");
+  const definitionTitleKey = normalizeForMatch(definitionIssue.title ?? "");
+
+  const updatedPlaybook = playbookInsights.map((insight) => {
+    const insightId = normalizeIssueKey(insight.id ?? "");
+    const insightTitleKey = normalizeForMatch(insight.title ?? "");
+    const matchesId = definitionId && insightId === definitionId;
+    const matchesTitle =
+      insightTitleKey.includes("definition") ||
+      insightTitleKey.includes("exclusion");
+    if (!matchesId && !matchesTitle) return insight;
+    return {
+      ...insight,
+      title: definitionIssue.title ?? insight.title,
+      summary,
+      recommendation,
+      relatedClauseIds: insight.relatedClauseIds?.length
+        ? insight.relatedClauseIds
+        : detail.clause.clauseId
+        ? [detail.clause.clauseId]
+        : insight.relatedClauseIds,
+    };
+  });
+
+  const updatedDeviations = deviationInsights.map((insight) => {
+    const titleKey = normalizeForMatch(insight.title ?? "");
+    const expectedKey = normalizeForMatch(insight.expectedStandard ?? "");
+    const matchesDefinition =
+      titleKey.includes("definition") ||
+      titleKey.includes("exclusion") ||
+      expectedKey.includes("definition");
+    if (!matchesDefinition) return insight;
+    return {
+      ...insight,
+      title: definitionIssue.title ?? insight.title,
+      description: summary || insight.description,
+      observedLanguage: summary || insight.observedLanguage,
+      recommendation,
+      clauseId: insight.clauseId ?? detail.clause.clauseId,
+    };
+  });
+
+  return {
+    playbookInsights: updatedPlaybook,
+    deviationInsights: updatedDeviations,
+  };
 }
 
 function rewriteCompelledDisclosureRationale(
@@ -1763,4 +2224,120 @@ function backfillIssuesFromEdits(
     });
   });
   return nextIssues;
+}
+
+/**
+ * Validates and fixes AI-generated contract summary fields.
+ * Corrects common errors like:
+ * - Missing contract period when it exists in a Term clause
+ * - Misclassified agreement direction (Mutual vs One-way)
+ */
+export function validateAndFixContractSummary(
+  summary: AnalysisReport["contractSummary"],
+  clauses: ClauseExtraction[],
+  content: string,
+): AnalysisReport["contractSummary"] {
+  if (!summary) return summary;
+
+  const fixed = { ...summary };
+
+  // Fix contractPeriod if AI missed it
+  const periodNotSpecified =
+    !fixed.contractPeriod ||
+    fixed.contractPeriod === "Not specified" ||
+    fixed.contractPeriod === "Not verified";
+
+  if (periodNotSpecified) {
+    // Find a term/duration clause
+    const termClause = clauses.find((c) => {
+      const title = normalizeForMatch(c.title ?? "");
+      const category = c.category ?? "";
+      return (
+        /term|duration|period|effective/i.test(title) ||
+        category === "term_and_termination"
+      );
+    });
+
+    if (termClause) {
+      const clauseText = termClause.originalText ?? termClause.normalizedText ?? "";
+      // Extract duration patterns like "[three (3)] years", "three (3) years", "2 years", "12 months"
+      const patterns = [
+        // Handle "[three (3)] years" or "[three (3)] year" with square brackets
+        /\[(\w+)\s*\((\d+)\)\]\s*years?/i,
+        // Handle "three (3) years" without square brackets
+        /(\w+)\s*\((\d+)\)\s*years?/i,
+        // Handle plain "3 years" or "3 (three) years"
+        /(\d+)\s*(?:\([^)]+\))?\s*years?/i,
+        // Handle months: "[twelve (12)] months", "twelve (12) months", "12 months"
+        /\[(\w+)\s*\((\d+)\)\]\s*months?/i,
+        /(\w+)\s*\((\d+)\)\s*months?/i,
+        /(\d+)\s*(?:\([^)]+\))?\s*months?/i,
+      ];
+
+      for (const pattern of patterns) {
+        const match = clauseText.match(pattern);
+        if (match) {
+          // Clean up the match - remove square brackets for cleaner output
+          const period = match[0].trim().replace(/\[|\]/g, "");
+          fixed.contractPeriod = period;
+          break;
+        }
+      }
+    }
+
+    // Fallback: search full content if still not found
+    if (!fixed.contractPeriod || fixed.contractPeriod === "Not specified" || fixed.contractPeriod === "Not verified") {
+      const contentPatterns = [
+        /\[(\w+)\s*\((\d+)\)\]\s*years?/i,
+        /(\w+)\s*\((\d+)\)\s*years?/i,
+        /(\d+)\s*(?:\([^)]+\))?\s*years?/i,
+        /\[(\w+)\s*\((\d+)\)\]\s*months?/i,
+        /(\w+)\s*\((\d+)\)\s*months?/i,
+        /(\d+)\s*(?:\([^)]+\))?\s*months?/i,
+      ];
+      for (const pattern of contentPatterns) {
+        const match = content.match(pattern);
+        if (match) {
+          const period = match[0].trim().replace(/\[|\]/g, "");
+          fixed.contractPeriod = period;
+          break;
+        }
+      }
+    }
+  }
+
+  // Fix agreementDirection if misclassified
+  if (
+    fixed.agreementDirection === "Mutual" ||
+    fixed.agreementDirection === "mutual"
+  ) {
+    const contentLower = content.toLowerCase();
+
+    // One-way indicators (Discloser -> Receiver pattern)
+    const oneWayIndicators = [
+      /disclosing party.*receiving party/i,
+      /receiving party shall.*keep.*confidential/i,
+      /discloser.*receiver/i,
+      /disclosed by.*to the receiving/i,
+    ];
+
+    // Mutual indicators (both parties disclose)
+    const mutualIndicators = [
+      /each party.*disclose/i,
+      /mutual.*disclosure/i,
+      /both parties.*confidential information/i,
+      /either party.*may disclose/i,
+      /each party may disclose.*to the other/i,
+    ];
+
+    const hasOneWay = oneWayIndicators.some((p) => p.test(content));
+    const hasMutual = mutualIndicators.some((p) => p.test(content));
+
+    // Only change if clearly one-way (has one-way indicators without mutual ones)
+    if (hasOneWay && !hasMutual) {
+      fixed.agreementDirection = "One-way (Discloser to Receiver)";
+    }
+  }
+
+  return fixed;
 }

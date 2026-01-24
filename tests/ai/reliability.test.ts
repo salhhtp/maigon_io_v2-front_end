@@ -6,6 +6,7 @@ import { CONTRACT_PLAYBOOKS } from "../../shared/ai/playbooks";
 import {
   bindProposedEditsToClauses,
   buildEvidenceExcerpt,
+  buildUniqueEvidenceExcerpt,
   checkEvidenceMatch,
   checkEvidenceMatchAgainstClause,
   dedupeIssues,
@@ -674,5 +675,123 @@ describe("Reliability harness", () => {
 
     expect(match.match?.clauseId).toBe("clause-a");
     expect(match.method).toBe("heading");
+  });
+
+  describe("buildUniqueEvidenceExcerpt", () => {
+    it("returns unique excerpts when excludeExcerpts is provided", () => {
+      const clauseText =
+        "This Agreement shall remain in effect for three (3) years from the Effective Date. " +
+        "The Receiving Party shall keep all Confidential Information strictly confidential. " +
+        "No license or intellectual property rights are granted under this Agreement.";
+
+      const firstExcerpt = buildUniqueEvidenceExcerpt({
+        clauseText,
+        criterionId: "TERM_SURVIVAL",
+        anchorText: "term survival",
+      });
+
+      const secondExcerpt = buildUniqueEvidenceExcerpt({
+        clauseText,
+        criterionId: "IP_NO_LICENSE",
+        anchorText: "license intellectual property",
+        excludeExcerpts: new Set([firstExcerpt]),
+      });
+
+      // Excerpts should be different when excludeExcerpts is used
+      expect(firstExcerpt).not.toBe(secondExcerpt);
+      // First excerpt should contain term-related content
+      expect(firstExcerpt.toLowerCase()).toMatch(/years|term|effect/);
+      // Second excerpt should contain IP-related content
+      expect(secondExcerpt.toLowerCase()).toMatch(/license|intellectual|rights/);
+    });
+
+    it("uses criterion-specific anchor phrases", () => {
+      const clauseText =
+        "The term of this Agreement is five years. " +
+        "All intellectual property rights remain with the Disclosing Party.";
+
+      const termExcerpt = buildUniqueEvidenceExcerpt({
+        clauseText,
+        criterionId: "TERM_SURVIVAL",
+      });
+
+      const ipExcerpt = buildUniqueEvidenceExcerpt({
+        clauseText,
+        criterionId: "IP_NO_LICENSE",
+      });
+
+      expect(termExcerpt.toLowerCase()).toContain("years");
+      expect(ipExcerpt.toLowerCase()).toContain("intellectual property");
+    });
+  });
+
+  describe("redundant edit filtering", () => {
+    it("filters out edits that suggest adding existing clause content", () => {
+      const clauses = [
+        {
+          id: "term-clause",
+          clauseId: "term-clause",
+          title: "Term and Termination",
+          originalText:
+            "This Agreement shall remain in effect for three (3) years from the Effective Date. " +
+            "Confidentiality obligations shall survive termination.",
+          normalizedText: "Term and termination clause",
+          category: "term_and_termination",
+        },
+      ];
+
+      const proposedEdits = [
+        {
+          id: "PE-4",
+          anchorText: "Not present in contract",
+          proposedText:
+            "Term and survival. This Agreement remains in effect for 2 years. " +
+            "Obligations survive termination.",
+          intent: "insert",
+          rationale: "Add term clause",
+        },
+      ];
+
+      const bound = bindProposedEditsToClauses({
+        proposedEdits,
+        issues: [],
+        clauses,
+      });
+
+      // Edit should be filtered out because term clause already exists
+      expect(bound).toHaveLength(0);
+    });
+
+    it("keeps edits for genuinely missing clauses", () => {
+      const clauses = [
+        {
+          id: "confidentiality",
+          clauseId: "confidentiality",
+          title: "Confidentiality",
+          originalText: "All information shall be kept confidential.",
+          normalizedText: "Confidentiality clause",
+        },
+      ];
+
+      const proposedEdits = [
+        {
+          id: "PE-1",
+          anchorText: "Not present in contract",
+          proposedText:
+            "Remedies. The Discloser may seek injunctive relief and specific performance.",
+          intent: "insert",
+          rationale: "Add remedies clause",
+        },
+      ];
+
+      const bound = bindProposedEditsToClauses({
+        proposedEdits,
+        issues: [],
+        clauses,
+      });
+
+      // Edit should be kept because remedies clause doesn't exist
+      expect(bound).toHaveLength(1);
+    });
   });
 });

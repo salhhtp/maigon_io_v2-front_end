@@ -198,6 +198,12 @@ export const STRUCTURAL_TOKENS = new Set([
   "solicit",
   "compete",
   "noncompete",
+  // Added for compelled disclosure matching
+  "cooperation",
+  "cooperate",
+  "limit",
+  "scope",
+  "minimize",
 ]);
 
 const HEADING_PRIORITY_TOKENS = new Set([
@@ -218,14 +224,12 @@ const STRUCTURAL_SYNONYMS: Record<string, string[]> = {
     "compel",
     "required",
     "require",
-    "law",
-    "legal",
     "court",
     "subpoena",
     "regulator",
     "regulatory",
     "order",
-    "process",
+    "authority",
     "demand",
   ],
   disclosure: ["disclose", "disclosed", "disclosing", "disclosures"],
@@ -270,8 +274,13 @@ const STRUCTURAL_SYNONYMS: Record<string, string[]> = {
   compete: ["compete", "competition", "competitive", "noncompete"],
   notice: ["notify", "notification", "prompt", "promptly"],
   notify: ["notice", "notification", "prompt", "promptly"],
-  protective: ["protect", "protection", "protective"],
+  // Enhanced for compelled disclosure: "protective order" covers limiting/minimizing scope
+  protective: ["protect", "protection", "protective", "limit", "minimize", "scope"],
   order: ["order", "orders"],
+  // Add cooperation synonyms for compelled disclosure requirements
+  cooperation: ["cooperate", "cooperating", "cooperation", "assist", "work with"],
+  cooperate: ["cooperate", "cooperating", "cooperation", "assist", "limit scope"],
+  limit: ["limit", "limiting", "minimize", "restrict", "scope"],
   injunctive: ["injunction", "injunctive"],
   injunction: ["injunctive", "injunction"],
   remedies: ["remedy", "remedies"],
@@ -753,6 +762,165 @@ export function buildEvidenceExcerpt(options: {
   return clauseText.slice(0, maxLength);
 }
 
+/**
+ * Criterion-specific anchor phrases for targeted evidence extraction.
+ * Maps criterion ID patterns to key phrases that should appear in evidence.
+ */
+const CRITERION_ANCHOR_PHRASES: Record<string, string[]> = {
+  TERM_SURVIVAL: ["years", "term", "survival", "remain in effect", "duration", "period"],
+  IP_NO_LICENSE: ["license", "intellectual property", "rights", "no transfer", "ownership"],
+  GOVERNING_LAW: ["governed by", "jurisdiction", "courts", "laws of", "dispute"],
+  USE_LIMITATION: ["purpose", "use", "solely for", "need to know", "restrict"],
+  DEFINITION: ["confidential information", "means", "includes", "definition"],
+  RETURN_DESTRUCTION: ["return", "destroy", "destruction", "certificate", "backup"],
+  COMPELLED_DISCLOSURE: ["required by law", "notify", "cooperate", "court", "authority"],
+  REMEDIES: ["injunctive", "relief", "specific performance", "remedy", "damages"],
+};
+
+/**
+ * Builds an evidence excerpt that avoids already-used excerpts.
+ * Uses criterion-specific anchor phrases when available.
+ */
+export function buildUniqueEvidenceExcerpt(options: {
+  clauseText: string;
+  criterionId?: string | null;
+  anchorText?: string | null;
+  excludeExcerpts?: Set<string>;
+  maxLength?: number;
+}): string {
+  const maxLength = options.maxLength ?? DEFAULT_EXCERPT_LENGTH;
+  const clauseText = (options.clauseText ?? "").replace(/\s+/g, " ").trim();
+  if (!clauseText) return "";
+  if (clauseText.length <= maxLength) return clauseText;
+
+  const excludeExcerpts = options.excludeExcerpts ?? new Set<string>();
+  const clauseLower = clauseText.toLowerCase();
+
+  // Get criterion-specific phrases if available
+  const criterionId = options.criterionId ?? "";
+  const criterionKey = Object.keys(CRITERION_ANCHOR_PHRASES).find(
+    (key) => criterionId.toUpperCase().includes(key)
+  );
+  const criterionPhrases = criterionKey
+    ? CRITERION_ANCHOR_PHRASES[criterionKey]
+    : [];
+
+  // Combine with provided anchor text
+  const anchorText =
+    typeof options.anchorText === "string" ? options.anchorText.trim() : "";
+  const anchorTokens = tokenizeForMatch(anchorText);
+  const structuralTokens = anchorTokens.filter((token) => isStructuralToken(token));
+  const nonStructuralTokens = anchorTokens
+    .filter((token) => !isStructuralToken(token))
+    .sort((a, b) => b.length - a.length);
+
+  // Prioritize: criterion phrases -> structural tokens -> non-structural tokens
+  const prioritizedSearchTerms = [
+    ...criterionPhrases,
+    ...structuralTokens,
+    ...nonStructuralTokens,
+  ];
+
+  // Track positions we've tried to avoid duplicates
+  const triedPositions = new Set<number>();
+
+  for (const searchTerm of prioritizedSearchTerms) {
+    const variants = isStructuralToken(searchTerm)
+      ? tokenVariants(searchTerm)
+      : [searchTerm];
+
+    for (const variant of variants) {
+      let searchStart = 0;
+      while (searchStart < clauseText.length) {
+        const index = clauseLower.indexOf(variant.toLowerCase(), searchStart);
+        if (index < 0) break;
+
+        // Skip if we've already tried this position region
+        const positionKey = Math.floor(index / 50) * 50; // Group by 50-char regions
+        if (triedPositions.has(positionKey)) {
+          searchStart = index + variant.length;
+          continue;
+        }
+        triedPositions.add(positionKey);
+
+        const start = Math.max(0, index - Math.floor(maxLength * 0.4));
+        const end = Math.min(clauseText.length, start + maxLength);
+        const excerpt = clauseText.slice(start, end);
+
+        // Check if this excerpt overlaps significantly with excluded excerpts
+        const normalizedExcerpt = normalizeForMatch(excerpt);
+        let isExcluded = false;
+        for (const excluded of excludeExcerpts) {
+          const normalizedExcluded = normalizeForMatch(excluded);
+          // Check for significant overlap (>60% of characters match)
+          const overlap = computeOverlapRatio(normalizedExcerpt, normalizedExcluded);
+          if (overlap > 0.6) {
+            isExcluded = true;
+            break;
+          }
+        }
+
+        if (!isExcluded) {
+          return excerpt;
+        }
+
+        searchStart = index + variant.length;
+      }
+    }
+  }
+
+  // Fallback: find any non-excluded region
+  for (let start = 0; start < clauseText.length - maxLength; start += Math.floor(maxLength * 0.5)) {
+    const excerpt = clauseText.slice(start, start + maxLength);
+    const normalizedExcerpt = normalizeForMatch(excerpt);
+
+    let isExcluded = false;
+    for (const excluded of excludeExcerpts) {
+      const normalizedExcluded = normalizeForMatch(excluded);
+      if (computeOverlapRatio(normalizedExcerpt, normalizedExcluded) > 0.6) {
+        isExcluded = true;
+        break;
+      }
+    }
+
+    if (!isExcluded) {
+      return excerpt;
+    }
+  }
+
+  // Last resort: return standard excerpt even if duplicate
+  return buildEvidenceExcerpt({
+    clauseText: options.clauseText,
+    anchorText: options.anchorText,
+    maxLength,
+  });
+}
+
+/**
+ * Computes overlap ratio between two normalized strings.
+ */
+function computeOverlapRatio(a: string, b: string): number {
+  if (!a || !b) return 0;
+  const shorter = a.length <= b.length ? a : b;
+  const longer = a.length > b.length ? a : b;
+
+  // Check if shorter is substring of longer
+  if (longer.includes(shorter)) return 1;
+
+  // Count matching characters in sequence
+  let matches = 0;
+  let bIndex = 0;
+  for (let i = 0; i < shorter.length && bIndex < longer.length; i++) {
+    const foundAt = longer.indexOf(shorter[i], bIndex);
+    if (foundAt >= 0) {
+      matches++;
+      bIndex = foundAt + 1;
+    }
+  }
+
+  return matches / shorter.length;
+}
+
 function normalizeAnchorText(
   anchorText: string,
   clauseText: string,
@@ -1173,6 +1341,54 @@ function findBestSupportedClause(
   return best;
 }
 
+/**
+ * Checks if a proposed edit is redundant because a clause already exists
+ * that adequately covers the same topic.
+ */
+function isRedundantEdit(
+  edit: ProposedEditLike,
+  clauses: ClauseExtractionLike[],
+): boolean {
+  const editContent = getEditContent(edit);
+  const editSignal = [edit.proposedText, edit.rationale, edit.id, edit.intent]
+    .filter(Boolean)
+    .join(" ");
+  const fullContent = editContent || editSignal;
+  if (!fullContent) return false;
+
+  // Get the support check function for this edit's topic
+  const supportCheck = getEditSupportCheck(fullContent);
+  if (!supportCheck) return false;
+
+  // Find if any clause supports this topic
+  const supportingClause = clauses.find((clause) => {
+    const clauseText =
+      clause.originalText ?? clause.normalizedText ?? clause.title ?? "";
+    if (!clauseText) return false;
+    return supportCheck(clause, clauseText);
+  });
+
+  if (!supportingClause) return false;
+
+  // Check if the supporting clause has substantial overlap with the edit
+  const clauseText =
+    supportingClause.originalText ??
+    supportingClause.normalizedText ??
+    supportingClause.title ??
+    "";
+  const candidateText = `${supportingClause.title ?? ""} ${clauseText}`.trim();
+  const { score } = scoreTextSimilarity(fullContent, candidateText);
+
+  // If the clause covers >40% of the edit's content, consider it redundant
+  // This threshold is chosen to catch obvious duplicates while allowing
+  // legitimate enhancement suggestions
+  if (score > 0.4) {
+    return true;
+  }
+
+  return false;
+}
+
 export function bindProposedEditsToClauses(options: {
   proposedEdits: ProposedEditLike[];
   issues: IssueLike[];
@@ -1196,7 +1412,12 @@ export function bindProposedEditsToClauses(options: {
   });
 
   const filteredEdits = proposedEdits.filter(
-    (edit) => edit && typeof edit === "object" && !isPlaceholderEdit(edit),
+    (edit) =>
+      edit &&
+      typeof edit === "object" &&
+      !isPlaceholderEdit(edit) &&
+      // Filter out edits that suggest adding something already covered by existing clauses
+      !isRedundantEdit(edit, clauses),
   );
   if (!filteredEdits.length) return [];
 

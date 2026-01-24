@@ -2408,7 +2408,8 @@ function buildCoreReportFromPayload(
       critiqueNotes,
       playbookCoverage: coverage ?? report.metadata?.playbookCoverage,
       playbookCoverageContent: diagnostics.content ?? undefined,
-      playbookCoverageModel: diagnostics.model ?? undefined,
+      // Note: playbookCoverageModel removed to avoid confusion with conflicting scores
+      // Content-based coverage (playbookCoverageContent) is the authoritative source
     },
   };
 }
