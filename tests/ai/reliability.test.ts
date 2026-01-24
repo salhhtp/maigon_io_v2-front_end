@@ -505,40 +505,6 @@ describe("Reliability harness", () => {
     expect(match.met).toBe(false);
   });
 
-  it("rejects termination rights when the clause forbids termination", () => {
-    const clauses = [
-      {
-        id: "term-and-termination",
-        clauseId: "term-and-termination",
-        title: "Term and termination",
-        originalText:
-          "This Agreement cannot be terminated unilaterally by either party.",
-        normalizedText:
-          "This Agreement cannot be terminated unilaterally by either party.",
-      },
-    ];
-    const content = clauses[0].originalText;
-    const match = findRequirementMatch("Termination rights", clauses, content);
-    expect(match.met).toBe(false);
-  });
-
-  it("requires legal trigger signals for compelled disclosure", () => {
-    const clauses = [
-      {
-        id: "whereas",
-        clauseId: "whereas",
-        title: "Whereas",
-        originalText:
-          "The parties may disclose information to support the project discussions.",
-        normalizedText:
-          "The parties may disclose information to support the project discussions.",
-      },
-    ];
-    const content = clauses[0].originalText;
-    const match = findRequirementMatch("Compelled disclosure", clauses, content);
-    expect(match.met).toBe(false);
-  });
-
   it("verifies evidence against the matched clause text", () => {
     const ndaContent = readFixture("NDA_Sample.txt");
     const ndaClauses = extractClausesFromSample(ndaContent);
@@ -600,27 +566,6 @@ describe("Reliability harness", () => {
       },
     ]);
     expect(edits).toHaveLength(1);
-  });
-
-  it("dedupes missing issues across different IDs", () => {
-    const issues = dedupeIssues([
-      {
-        id: "ISS-1",
-        title: "Missing remedies clause",
-        recommendation: "Add a remedies clause.",
-        severity: "medium",
-        clauseReference: { clauseId: "missing-remedies" },
-      },
-      {
-        id: "ISS-2",
-        title: "Remedies missing",
-        recommendation: "Add a remedies clause.",
-        severity: "high",
-        clauseReference: { clauseId: "missing-injunctive" },
-      },
-    ]);
-    expect(issues).toHaveLength(1);
-    expect(issues[0].severity).toBe("high");
   });
 
   it("normalizes invalid report expiry values to ISO dates", () => {

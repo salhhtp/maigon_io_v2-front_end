@@ -105,18 +105,8 @@ export function generateFallbackAnalysis(context: FallbackAnalysisContext) {
   );
 
   return {
-    model_used: structuredReport.metadata?.model ?? FALLBACK_MODEL_NAME,
-    model_tier: "default",
-    fallback_used: true,
-    fallback_reason: enrichedResult.fallback_reason ?? undefined,
-    generated_at: structuredReport.generatedAt,
+    ...enrichedResult,
     structured_report: structuredReport,
-    score: structuredReport.generalInformation.complianceScore,
-    confidence:
-      typeof enrichedResult.confidence === "number"
-        ? enrichedResult.confidence
-        : structuredReport.metadata?.classification?.confidence ?? 0.6,
-    token_usage: structuredReport.metadata?.tokenUsage ?? null,
   };
 }
 

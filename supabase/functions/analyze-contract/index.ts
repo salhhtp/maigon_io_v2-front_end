@@ -1161,19 +1161,59 @@ function buildLegacyResponse(
     modelTier: ModelTier;
   },
 ) {
-  const score = report.generalInformation.complianceScore;
-  const confidence =
-    context.classification?.confidence ??
-    report.metadata?.classification?.confidence ??
-    0.82;
+  const summary =
+    report.contractSummary.purpose ||
+    `Structured ${context.reviewType} analysis generated.`;
+  const keyPoints =
+    report.issuesToAddress.length > 0
+      ? report.issuesToAddress
+          .map((issue) => issue.recommendation)
+          .filter(Boolean)
+          .slice(0, 5)
+      : report.clauseFindings.map((clause) => clause.summary).slice(0, 5);
+
+  const recommendations = report.issuesToAddress.map((issue) => ({
+    id: issue.id,
+    description: issue.recommendation,
+    severity: issue.severity,
+    department: "legal",
+    owner: "Legal",
+    due_timeline: "Before execution",
+    category: issue.title,
+  }));
+
+  const actionItems = report.proposedEdits.map((edit) => ({
+    id: edit.id,
+    description: edit.intent || edit.proposedText.slice(0, 120),
+    severity: edit.applyByDefault ? "high" : "medium",
+    department: "legal",
+    owner: "Legal",
+    due_timeline: "Drafting phase",
+    category: "drafting",
+  }));
+
   return {
     model_used: report.metadata?.model,
     model_tier: context.modelTier,
     fallback_used: false,
     generated_at: report.generatedAt,
+    contract_type: context.contractType,
+    classification_context: context.classification || null,
     structured_report: report,
-    score,
-    confidence,
+    general_information: report.generalInformation,
+    contract_summary: report.contractSummary,
+    issues: report.issuesToAddress,
+    clause_findings: report.clauseFindings,
+    proposed_edits: report.proposedEdits,
+    score: report.generalInformation.complianceScore,
+    confidence:
+      context.classification?.confidence ??
+      report.metadata?.classification?.confidence ??
+      0.82,
+    summary,
+    key_points: keyPoints,
+    recommendations,
+    action_items: actionItems,
     token_usage: report.metadata?.tokenUsage ?? null,
   };
 }

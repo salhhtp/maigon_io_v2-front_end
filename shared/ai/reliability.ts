@@ -341,74 +341,6 @@ function requiredStructuralHits(structuralTokens: string[]): number {
   return 2;
 }
 
-function requiresLegalTrigger(requirement: string): boolean {
-  const normalized = normalizeForMatch(requirement);
-  return normalized.includes("compelled disclosure");
-}
-
-function hasLegalTrigger(clauseText: string): boolean {
-  const normalized = normalizeForMatch(clauseText);
-  if (!normalized) return false;
-  return (
-    normalized.includes("law") ||
-    normalized.includes("court") ||
-    normalized.includes("subpoena") ||
-    normalized.includes("regulator") ||
-    normalized.includes("regulatory") ||
-    normalized.includes("authority") ||
-    normalized.includes("government")
-  );
-}
-
-function isTerminationRightsRequirement(requirement: string): boolean {
-  const normalized = normalizeForMatch(requirement);
-  return normalized.includes("termination rights");
-}
-
-function hasTerminationRightsSignal(clauseText: string): boolean {
-  const normalized = normalizeForMatch(clauseText);
-  if (!normalized) return false;
-  return (
-    normalized.includes("may terminate") ||
-    normalized.includes("right to terminate") ||
-    normalized.includes("terminate upon") ||
-    normalized.includes("terminate on") ||
-    normalized.includes("either party may terminate") ||
-    normalized.includes("termination for cause") ||
-    normalized.includes("termination for convenience")
-  );
-}
-
-function hasTerminationRightsBlocker(clauseText: string): boolean {
-  const normalized = normalizeForMatch(clauseText);
-  if (!normalized) return false;
-  return (
-    normalized.includes("cannot be terminated") ||
-    normalized.includes("may not be terminated") ||
-    normalized.includes("cannot terminate") ||
-    normalized.includes("may not terminate") ||
-    normalized.includes("not be terminated unilaterally") ||
-    normalized.includes("no termination")
-  );
-}
-
-function passesRequirementGuards(
-  requirement: string,
-  clauseText: string,
-): boolean {
-  if (requiresLegalTrigger(requirement) && !hasLegalTrigger(clauseText)) {
-    return false;
-  }
-  if (
-    isTerminationRightsRequirement(requirement) &&
-    hasTerminationRightsBlocker(clauseText) &&
-    !hasTerminationRightsSignal(clauseText)
-  ) {
-    return false;
-  }
-  return true;
-}
-
 function countStructuralMatches(
   structuralTokens: string[],
   clauseTokens: string[],
@@ -1961,9 +1893,6 @@ export function findRequirementMatch(
     const clauseText = `${clause.title ?? ""} ${clause.originalText ?? ""} ${
       clause.normalizedText ?? ""
     }`;
-    if (!passesRequirementGuards(requirement, clauseText)) {
-      continue;
-    }
     const clauseTokens = tokenizeForMatch(clauseText);
     if (
       structuralTokens.length > 0 &&
@@ -1999,34 +1928,32 @@ export function findRequirementMatch(
       const clauseText = `${headingClause.title ?? ""} ${
         headingClause.originalText ?? ""
       } ${headingClause.normalizedText ?? ""}`;
-      if (passesRequirementGuards(requirement, clauseText)) {
-        const clauseTokens = tokenizeForMatch(clauseText);
-        const passesStructure =
-          structuralTokens.length === 0 ||
-          hasStructuralMatch(structuralTokens, clauseTokens);
-        const preferHeading = requirementTokens.some((token) =>
-          HEADING_PRIORITY_TOKENS.has(token),
+      const clauseTokens = tokenizeForMatch(clauseText);
+      const passesStructure =
+        structuralTokens.length === 0 ||
+        hasStructuralMatch(structuralTokens, clauseTokens);
+      const preferHeading = requirementTokens.some((token) =>
+        HEADING_PRIORITY_TOKENS.has(token),
+      );
+      const preferDefinitionHeading =
+        requirementTokens.includes("definition") &&
+        normalizeForMatch(headingClause.title ?? "").includes(
+          "confidential information",
         );
-        const preferDefinitionHeading =
-          requirementTokens.includes("definition") &&
-          normalizeForMatch(headingClause.title ?? "").includes(
-            "confidential information",
-          );
-        const headingThreshold = preferHeading
-          ? Math.max(MIN_HEADING_SCORE, bestScore - 0.05)
-          : bestScore + 0.08;
-        if (
-          passesStructure &&
-          (topHeading.score >= headingThreshold || preferDefinitionHeading)
-        ) {
-          const coverage = coverageWithSynonyms(matchTokens, clauseTokens);
-          const hits = countTokenMatches(matchTokens, clauseTokens);
-          bestScore = topHeading.score;
-          bestCoverage = coverage;
-          bestHits = hits;
-          bestEvidence =
-            headingClause.title ?? getClauseIdentifier(headingClause) ?? undefined;
-        }
+      const headingThreshold = preferHeading
+        ? Math.max(MIN_HEADING_SCORE, bestScore - 0.05)
+        : bestScore + 0.08;
+      if (
+        passesStructure &&
+        (topHeading.score >= headingThreshold || preferDefinitionHeading)
+      ) {
+        const coverage = coverageWithSynonyms(matchTokens, clauseTokens);
+        const hits = countTokenMatches(matchTokens, clauseTokens);
+        bestScore = topHeading.score;
+        bestCoverage = coverage;
+        bestHits = hits;
+        bestEvidence =
+          headingClause.title ?? getClauseIdentifier(headingClause) ?? undefined;
       }
     }
   }
@@ -2045,8 +1972,7 @@ export function findRequirementMatch(
   if (
     normalizedRequirement &&
     normalizedContent &&
-    normalizedContent.includes(normalizedRequirement) &&
-    passesRequirementGuards(requirement, content ?? "")
+    normalizedContent.includes(normalizedRequirement)
   ) {
     return { met: true, evidence: "Contract text", score: MIN_MATCH_SCORE };
   }
@@ -2362,45 +2288,7 @@ export function dedupeIssues(issues: IssueLike[]): IssueLike[] {
     });
     deduped.push(...kept);
   });
-
-  const missingIssues: IssueLike[] = [];
-  const boundIssues: IssueLike[] = [];
-  deduped.forEach((issue) => {
-    const clauseId = issue.clauseReference?.clauseId ?? "unbound";
-    const missing =
-      isMissingClauseId(clauseId) ||
-      isMissingEvidenceMarker(issue.clauseReference?.excerpt);
-    if (missing) {
-      missingIssues.push(issue);
-    } else {
-      boundIssues.push(issue);
-    }
-  });
-
-  const mergedMissing: IssueLike[] = [];
-  missingIssues.forEach((issue) => {
-    const issueText = `${issue.title ?? ""} ${issue.recommendation ?? ""}`.trim();
-    const matchIndex = mergedMissing.findIndex((existing) => {
-      const existingText =
-        `${existing.title ?? ""} ${existing.recommendation ?? ""}`.trim();
-      const similarity = similarityForText(issueText, existingText);
-      return similarity >= 0.82;
-    });
-    if (matchIndex === -1) {
-      mergedMissing.push(issue);
-      return;
-    }
-    const existing = mergedMissing[matchIndex];
-    const existingRank =
-      severityRank[(existing.severity ?? "").toLowerCase()] ?? 0;
-    const nextRank =
-      severityRank[(issue.severity ?? "").toLowerCase()] ?? 0;
-    if (nextRank > existingRank) {
-      mergedMissing[matchIndex] = issue;
-    }
-  });
-
-  return [...boundIssues, ...mergedMissing];
+  return deduped;
 }
 
 export function dedupeProposedEdits(

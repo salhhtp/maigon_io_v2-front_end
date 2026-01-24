@@ -69,50 +69,35 @@ async function getOrCreateAlertPreferences(
   } satisfies OrgAlertPreferences;
 }
 
-function extractMissingClausesFromResult(result: Record<string, unknown>): string[] {
-  const structured =
-    result.structured_report && typeof result.structured_report === "object"
-      ? (result.structured_report as Record<string, unknown>)
-      : result;
-  const coverage =
-    structured.metadata &&
-    typeof structured.metadata === "object" &&
-    (structured.metadata as Record<string, unknown>).playbookCoverage &&
-    typeof (structured.metadata as Record<string, unknown>).playbookCoverage ===
-      "object"
-      ? ((structured.metadata as Record<string, unknown>)
-          .playbookCoverage as Record<string, unknown>)
-      : null;
-  if (coverage) {
-    const missing: string[] = [];
-    const critical = Array.isArray(coverage.criticalClauses)
-      ? (coverage.criticalClauses as Array<Record<string, unknown>>)
-      : [];
-    critical.forEach((clause) => {
-      if (clause.met === false && typeof clause.title === "string") {
-        const missingBits = Array.isArray(clause.missingMustInclude)
-          ? clause.missingMustInclude.join(", ")
-          : "";
-        missing.push(
-          missingBits
-            ? `${clause.title}: Missing elements: ${missingBits}`
-            : `${clause.title}: Missing required language.`,
-        );
-      }
-    });
-    const anchors = Array.isArray(coverage.anchorCoverage)
-      ? (coverage.anchorCoverage as Array<Record<string, unknown>>)
-      : [];
-    anchors.forEach((anchor) => {
-      if (anchor.met === false && typeof anchor.anchor === "string") {
-        missing.push(`Missing: ${anchor.anchor}`);
-      }
-    });
-    if (missing.length > 0) {
-      return missing;
-    }
-  }
+function collectDecisions(
+  payload: unknown,
+  prefix: string,
+  defaultSeverity: string,
+): Array<{ severity: string; description: string }> {
+  if (!Array.isArray(payload)) return [];
+  return payload
+    .map((item, index) => {
+      const data =
+        item && typeof item === "object"
+          ? (item as Record<string, unknown>)
+          : { description: String(item ?? "") };
+      const description =
+        (typeof data.description === "string" && data.description) ||
+        (typeof data.recommendation === "string" && data.recommendation) ||
+        (typeof data.action === "string" && data.action) ||
+        "";
+      const trimmed = description.trim();
+      if (!trimmed) return null;
+      const severityRaw =
+        (typeof data.severity === "string" && data.severity) ||
+        defaultSeverity;
+      const severity = severityRaw.toLowerCase();
+      return { severity, description: trimmed, id: `${prefix}-${index + 1}` };
+    })
+    .filter((item): item is { severity: string; description: string } => !!item);
+}
 
+function extractMissingClausesFromResult(result: Record<string, unknown>): string[] {
   const candidates = [
     result.missing_information,
     result.missing_clauses,
@@ -677,25 +662,32 @@ orgRouter.get("/alerts/summary", async (req, res) => {
       const results = review?.results as Record<string, unknown> | null;
       if (!results) return;
 
-      const structured =
-        results.structured_report && typeof results.structured_report === "object"
-          ? (results.structured_report as Record<string, unknown>)
-          : null;
-      const issues = structured && Array.isArray(structured.issuesToAddress)
-        ? (structured.issuesToAddress as Array<Record<string, unknown>>)
-        : [];
+      const recommendations = collectDecisions(
+        results.recommendations,
+        "rec",
+        "medium",
+      );
+      const strategic = collectDecisions(
+        results.strategic_recommendations,
+        "strat",
+        "medium",
+      );
+      const actionItems = collectDecisions(
+        results.action_items,
+        "act",
+        "high",
+      );
 
-      issues.forEach((issue) => {
-        const severity =
-          typeof issue.severity === "string" ? issue.severity.toLowerCase() : "";
-        if (severity === "critical" || severity === "high") {
+      const combined = [...recommendations, ...strategic, ...actionItems];
+      combined.forEach((item) => {
+        if (item.severity === "critical" || item.severity === "high") {
           highRiskCount += 1;
           highRiskItems.push({
             contractId: review.contract_id ?? null,
             reviewId: review.id,
             title:
               (review.contracts as { title?: string } | null)?.title ?? null,
-            severity,
+            severity: item.severity,
             updatedAt:
               (review.contracts as { updated_at?: string } | null)?.updated_at ??
               review.created_at ?? null,

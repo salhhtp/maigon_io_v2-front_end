@@ -22,50 +22,84 @@ export interface CreateMemberInviteRequest {
   sendEmail?: boolean;
 }
 
-function extractMissingClauses(result: Record<string, unknown>): string[] {
-  const structured =
-    result.structured_report && typeof result.structured_report === "object"
-      ? (result.structured_report as Record<string, unknown>)
-      : result;
-  const coverage =
-    structured.metadata &&
-    typeof structured.metadata === "object" &&
-    (structured.metadata as Record<string, unknown>).playbookCoverage &&
-    typeof (structured.metadata as Record<string, unknown>).playbookCoverage ===
-      "object"
-      ? ((structured.metadata as Record<string, unknown>)
-          .playbookCoverage as Record<string, unknown>)
-      : null;
-  if (coverage) {
-    const missing: string[] = [];
-    const critical = Array.isArray(coverage.criticalClauses)
-      ? (coverage.criticalClauses as Array<Record<string, unknown>>)
-      : [];
-    critical.forEach((clause) => {
-      if (clause.met === false && typeof clause.title === "string") {
-        const missingBits = Array.isArray(clause.missingMustInclude)
-          ? clause.missingMustInclude.join(", ")
-          : "";
-        missing.push(
-          missingBits
-            ? `${clause.title}: Missing elements: ${missingBits}`
-            : `${clause.title}: Missing required language.`,
-        );
-      }
-    });
-    const anchors = Array.isArray(coverage.anchorCoverage)
-      ? (coverage.anchorCoverage as Array<Record<string, unknown>>)
-      : [];
-    anchors.forEach((anchor) => {
-      if (anchor.met === false && typeof anchor.anchor === "string") {
-        missing.push(`Missing: ${anchor.anchor}`);
-      }
-    });
-    if (missing.length > 0) {
-      return missing;
-    }
-  }
+function normalizeLabel(value: string): string {
+  return value
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/\b\w/g, (match) => match.toUpperCase());
+}
 
+interface DecisionEntry {
+  id: string;
+  description: string;
+  severity: string;
+  department: string;
+  owner: string;
+  dueTimeline: string;
+}
+
+function normalizeDecisionEntries(
+  items: unknown[],
+  prefix: string,
+  defaultSeverity: string,
+): DecisionEntry[] {
+  return (items || [])
+    .map((item, index) => {
+      const data =
+        item && typeof item === "object"
+          ? (item as Record<string, unknown>)
+          : { description: String(item ?? "") };
+      const description =
+        (typeof data.description === "string" && data.description) ||
+        (typeof data.recommendation === "string" && data.recommendation) ||
+        (typeof data.action === "string" && data.action) ||
+        "";
+      const trimmedDescription = description.trim();
+      if (!trimmedDescription) {
+        return null;
+      }
+      const severityRaw =
+        (typeof data.severity === "string" && data.severity) ||
+        defaultSeverity;
+      const severity = severityRaw.toLowerCase();
+      const departmentRaw =
+        (typeof data.department === "string" && data.department) ||
+        "general";
+      const department = departmentRaw.toLowerCase();
+      const owner =
+        (typeof data.owner === "string" && data.owner) ||
+        normalizeLabel(department);
+      const dueTimeline =
+        (typeof data.due_timeline === "string" && data.due_timeline) ||
+        (typeof data.timeline === "string" && data.timeline) ||
+        "TBD";
+
+      return {
+        id:
+          (typeof data.id === "string" && data.id) ||
+          `${prefix}-${index + 1}`,
+        description: trimmedDescription,
+        severity,
+        department,
+        owner,
+        dueTimeline,
+      } as DecisionEntry;
+    })
+    .filter((entry): entry is DecisionEntry => Boolean(entry));
+}
+
+function dedupeDecisions(entries: DecisionEntry[]): DecisionEntry[] {
+  const seen = new Set<string>();
+  return entries.filter((entry) => {
+    const signature = `${entry.description}|${entry.owner}`.toLowerCase();
+    if (seen.has(signature)) return false;
+    seen.add(signature);
+    return true;
+  });
+}
+
+function extractMissingClauses(result: Record<string, unknown>): string[] {
   const candidates = [
     result.missing_information,
     result.missing_clauses,
@@ -180,26 +214,29 @@ async function fetchReviewInsights(
       | undefined;
     if (!results) return;
 
-    const structured =
-      results.structured_report && typeof results.structured_report === "object"
-        ? (results.structured_report as Record<string, unknown>)
-        : null;
-    const issues = structured && Array.isArray(structured.issuesToAddress)
-      ? (structured.issuesToAddress as Array<Record<string, unknown>>)
+    const recommendations = Array.isArray(results.recommendations)
+      ? (results.recommendations as unknown[])
       : [];
-    if (issues.length > 0) {
-      issues.forEach((issue) => {
-        const severity =
-          typeof issue.severity === "string"
-            ? issue.severity.toLowerCase()
-            : "default";
-        if (severityBuckets[severity] !== undefined) {
-          severityBuckets[severity] += 1;
-        } else {
-          severityBuckets.default += 1;
-        }
-      });
-    }
+    const strategic = Array.isArray(results.strategic_recommendations)
+      ? (results.strategic_recommendations as unknown[])
+      : [];
+    const actionItems = Array.isArray(results.action_items)
+      ? (results.action_items as unknown[])
+      : [];
+
+    const combined = dedupeDecisions([
+      ...normalizeDecisionEntries(recommendations, "rec", "medium"),
+      ...normalizeDecisionEntries(strategic, "rec", "medium"),
+      ...normalizeDecisionEntries(actionItems, "act", "high"),
+    ]);
+
+    combined.forEach((entry) => {
+      if (severityBuckets[entry.severity] !== undefined) {
+        severityBuckets[entry.severity] += 1;
+      } else {
+        severityBuckets.default += 1;
+      }
+    });
 
     extractMissingClauses(results).forEach((clause) => {
       missingCounts.set(clause, (missingCounts.get(clause) ?? 0) + 1);
