@@ -631,8 +631,18 @@ export function generateFallbackAnalysis(
   );
 
   return {
-    ...enrichedResult,
+    model_used: structuredReport.metadata?.model ?? "maigon-fallback-reliable",
+    model_tier: "default",
+    fallback_used: true,
+    fallback_reason: enrichedResult.fallback_reason ?? undefined,
+    generated_at: structuredReport.generatedAt,
     structured_report: structuredReport,
+    score: structuredReport.generalInformation.complianceScore,
+    confidence:
+      typeof enrichedResult.confidence === "number"
+        ? enrichedResult.confidence
+        : structuredReport.metadata?.classification?.confidence ?? 0.6,
+    token_usage: structuredReport.metadata?.tokenUsage ?? null,
   };
 }
 

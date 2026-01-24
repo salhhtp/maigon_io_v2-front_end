@@ -258,14 +258,32 @@ class AIService {
 
         const processingTime = (performance.now() - startTime) / 1000;
 
-        // Validate result completeness (allow 0 score)
+        const structuredScore =
+          (result as any)?.structured_report?.generalInformation?.complianceScore;
         const parsedScore =
           typeof result.score === "number"
             ? result.score
             : Number(result.score);
-        if (!Number.isFinite(parsedScore)) {
+        const finalScore = Number.isFinite(parsedScore)
+          ? parsedScore
+          : typeof structuredScore === "number"
+            ? structuredScore
+            : NaN;
+        if (!Number.isFinite(finalScore)) {
           throw new Error("Invalid AI response: missing or invalid score");
         }
+
+        const structuredConfidence =
+          (result as any)?.structured_report?.metadata?.classification?.confidence;
+        const parsedConfidence =
+          typeof result.confidence === "number"
+            ? result.confidence
+            : Number(result.confidence);
+        const finalConfidence = Number.isFinite(parsedConfidence)
+          ? parsedConfidence
+          : typeof structuredConfidence === "number"
+            ? structuredConfidence
+            : 0.75;
 
         const analysisResult: AnalysisResult = {
           ...result,
@@ -274,20 +292,15 @@ class AIService {
           model_used: enforcedModel,
           custom_solution_id: customSolution?.id,
           pages: result.pages || 1,
-          confidence:
-            typeof result.confidence === "number"
-              ? result.confidence
-              : Number.isFinite(Number(result.confidence))
-                ? Number(result.confidence)
-                : 0.75,
-          score: parsedScore,
+          confidence: finalConfidence,
+          score: finalScore,
         };
 
         logger.contractAction("AI analysis completed", undefined, {
           reviewType: request.reviewType,
           processingTime,
-          score: parsedScore,
-          confidence: result.confidence,
+          score: finalScore,
+          confidence: finalConfidence,
           userId: request.userId,
           attempt,
           contractType: request.contractType,

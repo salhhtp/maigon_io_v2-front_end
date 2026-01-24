@@ -519,6 +519,8 @@ function normalizeDecisionEntries(
       const dueTimeline =
         (typeof data.due_timeline === "string" && data.due_timeline) ||
         (typeof data.timeline === "string" && data.timeline) ||
+        (typeof data.dueDate === "string" && data.dueDate) ||
+        (typeof data.due_date === "string" && data.due_date) ||
         "TBD";
       const category =
         (typeof data.category === "string" && data.category) || "general";
@@ -552,6 +554,21 @@ function normalizeDecisionEntries(
       } as NormalizedDecision;
     })
     .filter((entry): entry is NormalizedDecision => Boolean(entry));
+}
+
+function buildIssueDecisions(issues: Issue[]): NormalizedDecision[] {
+  if (!issues.length) return [];
+  const items = issues.map((issue, index) => ({
+    id: issue.id || `issue-${index + 1}`,
+    description: issue.recommendation || issue.title,
+    severity: issue.severity || "medium",
+    department: "legal",
+    owner: "Legal",
+    due_timeline: "Before execution",
+    category: issue.title,
+    next_step: issue.recommendation,
+  }));
+  return normalizeDecisionEntries(items, "rec", "medium");
 }
 
 function dedupeDecisions(entries: NormalizedDecision[]): NormalizedDecision[] {
@@ -2114,52 +2131,21 @@ const updatedPlainText = useMemo(() => {
 
   // Export contract data
   const buildExportPayload = () => {
-    const exportSeveritySnapshot = {
-      critical: severitySummary.critical ?? 0,
-      high: severitySummary.high ?? 0,
-      medium: severitySummary.medium ?? 0,
-      low: severitySummary.low ?? 0,
-      total: totalPriorityItems,
-    };
-
     return {
       contract: {
         id: contractData.id,
         title: contractData.title,
         file_name: contractData.file_name,
         file_size: contractData.file_size,
-        generated_at: reviewData.created_at,
+        generated_at:
+          structuredReport?.generatedAt ?? reviewData.created_at,
         perspective: perspectiveKey,
         contract_type: classificationContractType,
         classification_label: classificationLabel,
         classification_sub_type: classificationSubType ?? null,
         classification_source: classificationSourceDisplay,
       },
-      summary: {
-        score,
-        review_type: reviewData.review_type,
-        solution: selectedSolution,
-        solution_alignment: solutionAlignment,
-        next_steps: topNextSteps,
-        missing_information: missingInformation,
-        overview: results.summary,
-        analysis_mode: getReviewTypeDisplay(reviewData.review_type),
-        severity_snapshot: exportSeveritySnapshot,
-        dominant_departments: topDepartments.map(([dept, count]) => ({
-          key: dept,
-          label: getDepartmentStyle(dept).label,
-          count,
-        })),
-        classification: {
-          contractType: classificationContractType,
-          label: classificationLabel,
-          subType: classificationSubType ?? null,
-          source: classificationSourceDisplay,
-        },
-      },
-      clauses: resolvedClauseExtractions,
-      recommendations: normalizedRecommendations,
-      action_items: normalizedActionItems,
+      structured_report: structuredReport,
       agent_edits: acceptedAgentEdits.map((edit) => ({
         id: edit.id,
         clause_reference: edit.clauseReference ?? null,
@@ -2194,18 +2180,28 @@ const updatedPlainText = useMemo(() => {
 
   const exportAsDocx = async () => {
     const payload = buildExportPayload();
-    const severitySnapshot = payload.summary.severity_snapshot;
-    const severityList = severitySnapshot && severitySnapshot.total
+    const exportSeveritySnapshot = severitySnapshot;
+    const severityList = exportSeveritySnapshot && exportSeveritySnapshot.total
       ? ["critical", "high", "medium", "low"]
-          .filter((level) => (severitySnapshot as any)[level] > 0)
+          .filter((level) => (exportSeveritySnapshot as any)[level] > 0)
           .map(
             (level) =>
-              `<li>${formatLabel(level)} issues: ${(severitySnapshot as any)[level]}</li>`,
+              `<li>${formatLabel(level)} issues: ${(exportSeveritySnapshot as any)[level]}</li>`,
           )
           .join("")
       : "";
 
-    const dominantDepartments = payload.summary.dominant_departments || [];
+    const dominantDepartments = topDepartments.map(([dept, count]) => ({
+      key: dept,
+      label: getDepartmentStyle(dept).label,
+      count,
+    }));
+
+    const solutionKey =
+      metadataSolutionKey ||
+      readString(contractMetadataRecord, "selected_solution_key", "selected_solution_id");
+    const solutionLabel =
+      solutionKey ? solutionKeyToDisplayName(solutionKey as SolutionKey) : null;
     const agentEditsHtml = payload.agent_edits && payload.agent_edits.length
       ? `<h2>Approved Agent Edits</h2>${payload.agent_edits
           .map(
@@ -2232,12 +2228,12 @@ const updatedPlainText = useMemo(() => {
       <p><strong>Perspective:</strong> ${getPerspectiveDisplay(perspectiveKey || "general")}</p>
       <p><strong>Generated:</strong> ${new Date(payload.contract.generated_at).toLocaleString()}</p>
       <h2>Executive Summary</h2>
-      <p><strong>Score:</strong> ${payload.summary.score}%</p>
-      <p><strong>Analysis Mode:</strong> ${payload.summary.analysis_mode}</p>
-      ${payload.summary.solution ? `<p><strong>Solution:</strong> ${payload.summary.solution.title || payload.summary.solution.key || payload.summary.solution.id}</p>` : ""}
-      <p>${payload.summary.overview || ""}</p>
+      <p><strong>Score:</strong> ${score}%</p>
+      <p><strong>Analysis Mode:</strong> ${getReviewTypeDisplay(reviewData.review_type)}</p>
+      ${solutionLabel ? `<p><strong>Solution:</strong> ${solutionLabel}</p>` : ""}
+      <p>${summaryPurpose || ""}</p>
       ${
-        severitySnapshot && severitySnapshot.total
+        exportSeveritySnapshot && exportSeveritySnapshot.total
           ? `<h3>Priority Snapshot</h3><ul>${severityList}</ul>`
           : ""
       }
@@ -2252,8 +2248,8 @@ const updatedPlainText = useMemo(() => {
           : ""
       }
       ${
-        payload.summary.next_steps.length
-          ? `<h3>Immediate Next Steps</h3><ol>${payload.summary.next_steps
+        topNextSteps.length
+          ? `<h3>Immediate Next Steps</h3><ol>${topNextSteps
               .map(
                 (step: any) =>
                   `<li>${step.description} (Owner: ${formatLabel(step.owner)}, Due: ${step.dueTimeline})</li>`,
@@ -2262,15 +2258,15 @@ const updatedPlainText = useMemo(() => {
           : ""
       }
       ${
-        payload.summary.missing_information.length
-          ? `<h3>Missing or Unconfirmed Information</h3><ul>${payload.summary.missing_information
+        displayMissingInformation.length
+          ? `<h3>Missing or Unconfirmed Information</h3><ul>${displayMissingInformation
               .map((item: string) => `<li>${item}</li>`)
               .join("")}</ul>`
           : ""
       }
       ${
-        payload.recommendations.length
-          ? `<h2>Recommendations</h2><ul>${payload.recommendations
+        normalizedRecommendations.length
+          ? `<h2>Recommendations</h2><ul>${normalizedRecommendations
               .map(
                 (rec: any) =>
                   `<li><strong>${formatLabel(rec.severity)}</strong> - ${rec.description} (Owner: ${formatLabel(rec.owner)}, Due: ${rec.dueTimeline})</li>`,
@@ -2279,8 +2275,8 @@ const updatedPlainText = useMemo(() => {
           : ""
       }
       ${
-        payload.action_items.length
-          ? `<h2>Action Items</h2><ul>${payload.action_items
+        normalizedActionItems.length
+          ? `<h2>Action Items</h2><ul>${normalizedActionItems
               .map(
                 (item: any) =>
                   `<li><strong>${formatLabel(item.severity)}</strong> - ${item.description} (Owner: ${formatLabel(item.owner)}, Due: ${item.dueTimeline})</li>`,
@@ -2340,11 +2336,10 @@ const updatedPlainText = useMemo(() => {
     const summaryText = `Maigon Contract Analysis
 Document: ${payload.contract.file_name ?? "Untitled"}
 Contract Type: ${payload.contract.classification_label ?? "Not specified"}
-Score: ${payload.summary.score}%
-Mode: ${payload.summary.analysis_mode}
+Score: ${score}%
+Mode: ${getReviewTypeDisplay(reviewData.review_type)}
 Next step: ${
-      payload.summary.next_steps[0]?.description ??
-      "Review recommendations"
+      topNextSteps[0]?.description ?? "Review recommendations"
     }`;
 
     try {
@@ -2481,8 +2476,12 @@ Next step: ${
         : typeof resultsMetadata?.["latency_ms"] === "number"
           ? ((resultsMetadata["latency_ms"] as number) / 1000)
           : null;
+  const reportTimingSeconds =
+    typeof generalInformation?.reviewTimeSeconds === "number"
+      ? generalInformation.reviewTimeSeconds
+      : null;
   const reviewDurationSeconds =
-    derivedTimingSeconds ?? persistedTimingSeconds ?? null;
+    derivedTimingSeconds ?? persistedTimingSeconds ?? reportTimingSeconds ?? null;
   const formattedReviewTime = formatReviewDuration(reviewDurationSeconds);
   const contractMetadata = (contractData?.metadata ?? null) as
     | Record<string, unknown>
@@ -2735,44 +2734,20 @@ Next step: ${
     return lookup;
   }, [structuredProposedEdits]);
   const score =
-    (typeof reviewData.score === "number"
-      ? reviewData.score
-      : typeof results.score === "number"
-        ? results.score
-        : 0) || 0;
+    typeof generalInformation?.complianceScore === "number"
+      ? generalInformation.complianceScore
+      : typeof reviewData.score === "number"
+        ? reviewData.score
+        : 0;
   const contractMetadataRecord = contractData?.metadata
     ? (contractData.metadata as Record<string, unknown>)
     : null;
-  const contractRecord = contractData
-    ? (contractData as unknown as Record<string, unknown>)
-    : null;
-
-  const solutionAlignment =
-    results.solution_alignment || results.solutionAlignment || null;
-  const selectedSolution = results.selected_solution || null;
-
-  const rawRecommendations = [
-    ...(Array.isArray(results.recommendations)
-      ? (results.recommendations as unknown[])
-      : []),
-    ...(Array.isArray(results.strategic_recommendations)
-      ? (results.strategic_recommendations as unknown[])
-      : []),
-  ];
-  const normalizedRecommendations = dedupeDecisions(
-    normalizeDecisionEntries(rawRecommendations, "rec", "medium"),
+  const normalizedRecommendations = useMemo(
+    () => dedupeDecisions(buildIssueDecisions(structuredIssues)),
+    [structuredIssues],
   );
 
-  const rawActionItems: unknown[] =
-    structuredProposedEdits.length > 0
-      ? // If we have proposed edits, ignore legacy/freeform action items and rely solely on the structured edits.
-        []
-      : [
-          ...(Array.isArray(results.action_items)
-            ? (results.action_items as unknown[])
-            : []),
-          ...structuredReportActionItems,
-        ];
+  const rawActionItems: unknown[] = structuredReportActionItems;
 
   const normalizedActionItems = dedupeDecisions([
     ...normalizeDecisionEntries(rawActionItems, "act", "high"),
@@ -2802,33 +2777,35 @@ Next step: ${
     }
     return entry;
   });
-const recommendationEntries = useMemo(
-  () =>
-    attachFallbackClausePreviews(
-      normalizedRecommendations,
-      resolvedClauseExtractions,
-    ),
-  [normalizedRecommendations, resolvedClauseExtractions],
-);
-const actionItemEntries = useMemo(
-  () =>
-    attachFallbackClausePreviews(
-      normalizedActionItems,
-      resolvedClauseExtractions,
-    ),
-  [normalizedActionItems, resolvedClauseExtractions],
-);
-  const missingInformation: string[] = Array.isArray(results.missing_information)
-    ? (results.missing_information as string[])
-    : Array.isArray(results.missing_clauses)
-      ? (results.missing_clauses as string[])
-      : Array.isArray(results.missing_clauses_details)
-        ? (results.missing_clauses_details as string[])
-        : Array.isArray(results.gaps)
-          ? (results.gaps as string[])
-          : Array.isArray(solutionAlignment?.gaps)
-            ? (solutionAlignment?.gaps as string[])
-            : [];
+  const recommendationEntries = useMemo(
+    () =>
+      attachFallbackClausePreviews(
+        normalizedRecommendations,
+        resolvedClauseExtractions,
+      ),
+    [normalizedRecommendations, resolvedClauseExtractions],
+  );
+  const actionItemEntries = useMemo(
+    () =>
+      attachFallbackClausePreviews(
+        normalizedActionItems,
+        resolvedClauseExtractions,
+      ),
+    [normalizedActionItems, resolvedClauseExtractions],
+  );
+  const missingInformation = useMemo(() => {
+    const missing: string[] = [];
+    uncoveredCriticalClauses.forEach((clause) => {
+      const missingBits = clause.missingMustInclude?.length
+        ? `Missing elements: ${clause.missingMustInclude.join(", ")}`
+        : "Missing required language.";
+      missing.push(`${clause.title}: ${missingBits}`);
+    });
+    uncoveredAnchors.forEach((anchor) => {
+      missing.push(`Missing: ${anchor.anchor}`);
+    });
+    return missing;
+  }, [uncoveredAnchors, uncoveredCriticalClauses]);
   const displayMissingInformation = missingInformation.filter((item) => {
     if (typeof item !== "string") return false;
     const normalized = item.trim();
@@ -2854,6 +2831,14 @@ const actionItemEntries = useMemo(
       low: 0,
       default: 0,
     };
+    if (structuredIssues.length > 0) {
+      structuredIssues.forEach((issue) => {
+        const raw = typeof issue.severity === "string" ? issue.severity : "default";
+        const level = SEVERITY_ORDER[raw] !== undefined ? raw : "default";
+        base[level] = (base[level] ?? 0) + 1;
+      });
+      return base;
+    }
     combinedDecisions.forEach((item) => {
       const level = SEVERITY_ORDER[item.severity] !== undefined
         ? item.severity
@@ -2861,7 +2846,7 @@ const actionItemEntries = useMemo(
       base[level] = (base[level] ?? 0) + 1;
     });
     return base;
-  }, [combinedDecisions]);
+  }, [combinedDecisions, structuredIssues]);
 
   const totalPriorityItems = combinedDecisions.length;
 
@@ -3072,10 +3057,7 @@ const actionItemEntries = useMemo(
       }
 
       if (user?.profileId) {
-        const solutionKeyForAnalytics =
-          (selectedSolution &&
-            (selectedSolution.key || selectedSolution.id || null)) ||
-          metadataSolutionKey;
+        const solutionKeyForAnalytics = metadataSolutionKey;
 
         void AnalyticsEventsService.recordMetric({
           user_id: user.profileId,
@@ -3141,7 +3123,6 @@ const actionItemEntries = useMemo(
       reviewData?.id,
       reviewData?.review_type,
       classificationContractType,
-      selectedSolution,
       metadataSolutionKey,
     ],
   );
@@ -4596,11 +4577,6 @@ const heroNavItems: { id: string; label: string }[] = [
               </div>
             )}
 
-            {/* Key Metrics Grid */}
-            {false && results.key_points && (
-              <div />
-            )}
-
             {displayMissingInformation.length > 0 && (
               <div className="mb-8 rounded-lg border border-red-200 bg-red-50 p-6 print:mb-6">
                 <div className="flex items-center justify-between">
@@ -4641,34 +4617,39 @@ const heroNavItems: { id: string; label: string }[] = [
           </div>
 
           {/* Detailed Analysis Results */}
-          {reviewData.review_type === "risk_assessment" && results.risks && (
+          {reviewData.review_type === "risk_assessment" &&
+            structuredIssues.length > 0 && (
             <div className="mb-8 print:mb-6">
               <h2 className="text-xl font-medium text-[#271D1D] mb-4 print:text-lg">
                 Risk Analysis
               </h2>
               <div className="space-y-4">
-                {results.risks.map((risk: any, index: number) => (
+                {structuredIssues.map((issue, index) => (
                   <div
                     key={index}
                     className="border border-gray-200 rounded-lg p-4"
                   >
                     <div className="flex items-center justify-between mb-2">
-                      <h3 className="font-medium text-[#271D1D] capitalize">
-                        {risk.type} Risk
+                      <h3 className="font-medium text-[#271D1D]">
+                        {issue.title}
                       </h3>
                       <span
                         className={`px-2 py-1 rounded text-xs font-medium ${
-                          risk.level === "high"
+                          issue.severity === "critical"
                             ? "bg-red-100 text-red-800"
-                            : risk.level === "medium"
+                            : issue.severity === "high"
+                            ? "bg-red-100 text-red-800"
+                            : issue.severity === "medium"
                               ? "bg-yellow-100 text-yellow-800"
                               : "bg-green-100 text-green-800"
                         }`}
                       >
-                        {risk.level}
+                        {issue.severity}
                       </span>
                     </div>
-                    <p className="text-gray-700 text-sm">{risk.description}</p>
+                    <p className="text-gray-700 text-sm">
+                      {issue.recommendation || issue.rationale}
+                    </p>
                   </div>
                 ))}
               </div>

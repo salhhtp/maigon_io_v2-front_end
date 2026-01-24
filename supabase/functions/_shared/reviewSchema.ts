@@ -199,6 +199,30 @@ const baseReportSchema = z.object({
         })
         .optional(),
       critiqueNotes: z.array(z.string()).optional(),
+      playbookCoverage: z
+        .object({
+          coverageScore: z.number().min(0).max(1).optional(),
+          criticalClauses: z
+            .array(
+              z.object({
+                title: z.string(),
+                met: z.boolean(),
+                evidence: z.string().optional(),
+                missingMustInclude: z.array(z.string()).optional(),
+              }),
+            )
+            .optional(),
+          anchorCoverage: z
+            .array(
+              z.object({
+                anchor: z.string(),
+                met: z.boolean(),
+                evidence: z.string().optional(),
+              }),
+            )
+            .optional(),
+        })
+        .optional(),
     })
     .optional(),
 });

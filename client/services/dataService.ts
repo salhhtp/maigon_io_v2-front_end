@@ -1129,18 +1129,6 @@ export class DataService {
     const solutionProfile =
       scoringProfiles[solutionKeyNormalized] ?? scoringProfiles.default;
 
-    if (
-      solutionContext.selected_solution_id ||
-      solutionContext.selected_solution_key ||
-      solutionContext.selected_solution_title
-    ) {
-      results.selected_solution = {
-        id: solutionContext.selected_solution_id ?? null,
-        key: solutionContext.selected_solution_key ?? null,
-        title: solutionContext.selected_solution_title ?? null,
-      };
-    }
-
     const fallbackUsed =
       results?.fallback_used === true ||
       (typeof results?.fallback_reason === "string" &&
@@ -1153,14 +1141,22 @@ export class DataService {
       ? solutionProfile.fallbackConfidence
       : solutionProfile.baselineConfidence;
 
+    const structuredScore =
+      results?.structured_report?.generalInformation?.complianceScore;
+    const structuredConfidence =
+      results?.structured_report?.metadata?.classification?.confidence;
     const { score, source: scoreSource } = this.normalizeScore(
-      results?.score,
+      results?.score ?? structuredScore,
       defaultScore,
     );
     const { confidence, source: confidenceSource } = this.normalizeConfidence(
-      results?.confidence ?? results?.confidence_level,
+      results?.confidence ?? results?.confidence_level ?? structuredConfidence,
       defaultConfidence,
     );
+
+    if (results?.structured_report?.generalInformation) {
+      results.structured_report.generalInformation.complianceScore = score;
+    }
 
     const calibration = {
       score,
