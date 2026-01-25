@@ -25,6 +25,7 @@ import type {
   AgentDraftJobStatusResponse,
   StorageObjectRef,
 } from "../../shared/api";
+import { LEGAL_LANGUAGE_PROMPT_BLOCK } from "../../shared/legalLanguage";
 import {
   createDraftJob,
   getDraftJobById,
@@ -1166,6 +1167,7 @@ agentRouter.post("/chat", async (req, res) => {
 - Use the supplied clause excerpts and recommendations when crafting edits.
 - Align changes with the contract type and severity indicators.
 - If the user requests an edit that lacks context, ask clarifying questions.
+- ${LEGAL_LANGUAGE_PROMPT_BLOCK}
 - ${buildJsonInstruction()}
 
 Contract Context:
@@ -1496,7 +1498,7 @@ async function composeDraft(
   const systemPrompt =
     `You are Maigon's contract rewriting assistant. Integrate the provided review directives into the base contract while preserving every numbering sequence, heading, table, and styling cue.` +
     ` Use the supplied HTML template as the source of truth—edit only the clauses that require changes and reuse all existing markup for unchanged sections.` +
-    ` Only introduce new clauses when explicitly required by a suggestion. Always return valid JSON matching the provided schema.`;
+    ` Only introduce new clauses when explicitly required by a suggestion. ${LEGAL_LANGUAGE_PROMPT_BLOCK} Always return valid JSON matching the provided schema.`;
 
   const promptSections = [
     `Document title: "${contractTitle ?? "Contract"}"`,

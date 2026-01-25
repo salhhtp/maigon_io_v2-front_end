@@ -4,6 +4,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { CONTRACT_PLAYBOOKS } from "../../shared/ai/playbooks";
 import {
+  assessEditSemanticDrift,
   bindProposedEditsToClauses,
   buildEvidenceExcerpt,
   buildUniqueEvidenceExcerpt,
@@ -261,6 +262,68 @@ describe("Reliability harness", () => {
       content,
     );
     expect(returnDestroy.met).toBe(true);
+  });
+
+  it("flags low-similarity replace edits as potential semantic drift", () => {
+    const clauses = [
+      {
+        id: "payment",
+        clauseId: "payment",
+        title: "Payment Terms",
+        originalText:
+          "The Customer shall pay all undisputed invoices within thirty (30) days of receipt, and late payments shall accrue interest at the statutory rate.",
+        normalizedText:
+          "The Customer shall pay all undisputed invoices within thirty (30) days of receipt, and late payments shall accrue interest at the statutory rate.",
+      },
+    ];
+    const edits = [
+      {
+        id: "edit-payment",
+        clauseId: "payment",
+        anchorText: "pay all undisputed invoices within thirty (30) days",
+        proposedText:
+          "The Receiving Party shall not disclose Confidential Information to any third party and shall use the Confidential Information solely for the permitted Purpose.",
+        intent: "replace",
+        rationale: "Align confidentiality obligations with NDA standards.",
+      },
+    ];
+
+    const alerts = assessEditSemanticDrift({
+      edits,
+      clauses,
+      minSimilarity: 0.3,
+    });
+
+    expect(alerts).toHaveLength(1);
+    expect(alerts[0].editId).toBe("edit-payment");
+  });
+
+  it("ignores insert edits for semantic drift checks", () => {
+    const clauses = [
+      {
+        id: "notices",
+        clauseId: "notices",
+        title: "Notices",
+        originalText:
+          "All notices shall be in writing and delivered to the addresses set forth in this Agreement, unless updated by notice.",
+        normalizedText:
+          "All notices shall be in writing and delivered to the addresses set forth in this Agreement, unless updated by notice.",
+      },
+    ];
+    const edits = [
+      {
+        id: "insert-governing-law",
+        clauseId: "notices",
+        anchorText: "Notices",
+        proposedText:
+          "This Agreement shall be governed by and construed in accordance with the laws of the chosen jurisdiction, without regard to conflicts of law principles.",
+        intent: "insert",
+        rationale: "Add governing law provision.",
+      },
+    ];
+
+    const alerts = assessEditSemanticDrift({ edits, clauses });
+    expect(alerts).toHaveLength(0);
   });
 
   it("binds proposed edits to stable clause IDs using issue anchors", () => {

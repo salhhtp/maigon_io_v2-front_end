@@ -34,7 +34,7 @@ const createPlaybook = (
   criticalClauses: overrides.criticalClauses ?? [],
   draftingTone:
     overrides.draftingTone ??
-    "Authoritative legal expert tone with practical negotiation framing.",
+    "Authoritative legal expert tone with globally recognized legal terminology and standard clause phrasing.",
   negotiationGuidance: overrides.negotiationGuidance ?? [],
   clauseAnchors: overrides.clauseAnchors ?? [],
 });

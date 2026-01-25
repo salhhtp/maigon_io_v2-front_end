@@ -49,6 +49,7 @@ import type {
   CustomSolutionDraftingSettings,
   CustomSolutionModelSettings,
 } from "@shared/api";
+import { LEGAL_LANGUAGE_GUIDANCE } from "@shared/legalLanguage";
 
 const normalizeFrameworkName = (label: string) =>
   label.toLowerCase().replace(/\s+/g, "-");
@@ -565,7 +566,10 @@ export default function CustomSolutionModal({
       'nda': 'You are a confidentiality and intellectual property expert specializing in NDAs.',
       'service': 'You are a service agreement specialist focusing on operational and performance terms.',
     };
-    return prompts[contractType] || 'You are an expert legal analyst specializing in contract review.';
+    const basePrompt =
+      prompts[contractType] ||
+      "You are an expert legal analyst specializing in contract review.";
+    return `${basePrompt} ${LEGAL_LANGUAGE_GUIDANCE}`;
   };
 
   const getDefaultAnalysisPrompt = (depth: string): string => {

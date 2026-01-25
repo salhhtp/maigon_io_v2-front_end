@@ -12,6 +12,7 @@ import {
 } from "./reviewSchema.ts";
 import { enhanceReportWithClauses } from "./clauseExtraction.ts";
 import {
+  assessEditSemanticDrift,
   bindProposedEditsToClauses,
   buildRetrievedClauseContext,
   dedupeIssues,
@@ -19,6 +20,7 @@ import {
   evaluatePlaybookCoverageFromContent,
   normaliseReportExpiry,
 } from "../../../shared/ai/reliability.ts";
+import { LEGAL_LANGUAGE_PROMPT_BLOCK } from "../../../shared/legalLanguage.ts";
 import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
@@ -822,6 +824,7 @@ function buildSystemPrompt(
   return [
     `You are Maigon Counsel, a senior technology contracts attorney tasked with generating a ${reviewType} review.`,
     "Emulate a professional legal memo: be objective, concise, and grounded in industry-standard compliance criteria.",
+    LEGAL_LANGUAGE_PROMPT_BLOCK,
     "Use precise legal verbs (shall/must/may/is entitled to/shall not); avoid hedging.",
     "Think through each clause carefully before producing structured output.",
     enumerationInstruction,
@@ -875,6 +878,7 @@ function buildUserPrompt(
         `Critical clauses: ${playbook.criticalClauses
           .map((clause) => clause.title)
           .join("; ")}`,
+        `Drafting tone: ${playbook.draftingTone}`,
         `Clause anchors: ${playbook.clauseAnchors.join("; ")}`,
       ].join("\n")
     : [
@@ -885,6 +889,7 @@ function buildUserPrompt(
           (clause, index) =>
             `${index + 1}. ${clause.title} | Must include: ${clause.mustInclude.join(", ")} | Red flags: ${clause.redFlags.join(", ")}`,
         ),
+        `Drafting tone: ${playbook.draftingTone}`,
         `Negotiation guidance: ${playbook.negotiationGuidance.join("; ")}`,
       ].join("\n");
 
@@ -1186,6 +1191,27 @@ function runHeuristicCritique(
     )
   ) {
     notes.push("DPA reviews must address security or breach handling.");
+  }
+
+  const driftAlerts = assessEditSemanticDrift({
+    edits: report.proposedEdits ?? [],
+    clauses: coverageContext?.clauses ?? [],
+  });
+  if (driftAlerts.length > 0) {
+    notes.push(
+      `Review proposed edits for semantic drift (${driftAlerts.length} flagged).`,
+    );
+    driftAlerts.slice(0, 3).forEach((alert) => {
+      const similarityPct = Math.round(alert.similarity * 100);
+      const clauseLabel = alert.clauseId ? ` in clause ${alert.clauseId}` : "";
+      const reason =
+        alert.reason === "structural-mismatch"
+          ? "structural mismatch"
+          : "low similarity";
+      notes.push(
+        `Edit ${alert.editId}${clauseLabel} shows ${reason} (${similarityPct}% similarity).`,
+      );
+    });
   }
   if (DEBUG_REVIEW && playbook && contentCoverage && modelCoverage) {
     const missingAnchors = contentCoverage.anchorCoverage
@@ -1857,6 +1883,10 @@ async function generateEnhancementSections(
   model: string,
 ) {
   const prompt = buildEnhancementPrompt(context, report);
+  const enhancementSystemPrompt = [
+    "You are Maigon Counsel enhancements engine. Produce concise supplemental legal sections for a legal compliance review for legal contracts.",
+    LEGAL_LANGUAGE_PROMPT_BLOCK,
+  ].join(" ");
   const response = await fetch(OPENAI_RESPONSES_API_BASE, {
     method: "POST",
     headers: {
@@ -1866,7 +1896,7 @@ async function generateEnhancementSections(
     body: JSON.stringify({
       model,
       input: buildResponsesInput(
-        "You are Maigon Counsel enhancements engine. Produce concise supplemental legal sections for a legal compliance review for legal contracts.",
+        enhancementSystemPrompt,
         prompt,
       ),
       text: {

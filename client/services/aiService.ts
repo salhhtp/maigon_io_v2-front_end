@@ -10,6 +10,7 @@ import {
 } from "@/utils/errorLogger";
 import type { CustomSolution } from "@shared/api";
 import type { AnalysisReport } from "@shared/ai/reviewSchema";
+import { LEGAL_LANGUAGE_GUIDANCE } from "@shared/legalLanguage";
 
 // Enhanced AI Model Configuration for Advanced Contract Analysis
 export enum AIModel {
@@ -1123,7 +1124,7 @@ class AIService {
         aiModel: AIModel.OPENAI_GPT4O,
         prompts: {
           systemPrompt:
-            "You are a senior contract risk analyst with expertise in commercial law, regulatory compliance, and enterprise risk management. You have 15+ years of experience reviewing complex commercial agreements across multiple industries.",
+            `You are a senior contract risk analyst with expertise in commercial law, regulatory compliance, and enterprise risk management. You have 15+ years of experience reviewing complex commercial agreements across multiple industries. ${LEGAL_LANGUAGE_GUIDANCE}`,
           analysisPrompt:
             "Conduct a comprehensive risk assessment examining financial, legal, operational, compliance, reputational, and strategic risks. Analyze risk interconnections, provide scenario planning, and deliver strategic recommendations.",
           riskPrompt:
@@ -1151,7 +1152,7 @@ class AIService {
         aiModel: AIModel.ANTHROPIC_CLAUDE_OPUS,
         prompts: {
           systemPrompt:
-            "You are a leading compliance expert and regulatory attorney with deep expertise in GDPR, CCPA, HIPAA, SOX, PCI-DSS, international data protection laws, financial regulations, and industry-specific compliance frameworks.",
+            `You are a leading compliance expert and regulatory attorney with deep expertise in GDPR, CCPA, HIPAA, SOX, PCI-DSS, international data protection laws, financial regulations, and industry-specific compliance frameworks. ${LEGAL_LANGUAGE_GUIDANCE}`,
           analysisPrompt:
             "Conduct comprehensive regulatory compliance assessment using multi-jurisdictional analysis, regulatory evolution consideration, cross-framework impact analysis, and enforcement risk evaluation.",
           compliancePrompt:
@@ -1176,7 +1177,7 @@ class AIService {
         aiModel: AIModel.OPENAI_GPT4O,
         prompts: {
           systemPrompt:
-            "You are a senior contract strategist with expertise in multi-stakeholder analysis, commercial negotiations, and stakeholder management. You have extensive experience representing different parties in complex commercial transactions.",
+            `You are a senior contract strategist with expertise in multi-stakeholder analysis, commercial negotiations, and stakeholder management. You have extensive experience representing different parties in complex commercial transactions. ${LEGAL_LANGUAGE_GUIDANCE}`,
           analysisPrompt:
             "Conduct sophisticated multi-stakeholder analysis using stakeholder mapping, power dynamics analysis, strategic implications assessment, and relationship dynamics evaluation.",
         },
@@ -1199,7 +1200,7 @@ class AIService {
         aiModel: AIModel.ANTHROPIC_CLAUDE_OPUS,
         prompts: {
           systemPrompt:
-            "You are a distinguished senior partner and contract strategist with 20+ years of experience in complex commercial transactions, M&A, and strategic partnerships. You provide executive-level analysis that combines legal expertise with business acumen.",
+            `You are a distinguished senior partner and contract strategist with 20+ years of experience in complex commercial transactions, M&A, and strategic partnerships. You provide executive-level analysis that combines legal expertise with business acumen. ${LEGAL_LANGUAGE_GUIDANCE}`,
           analysisPrompt:
             "Provide comprehensive executive-level contract analysis using strategic context, commercial intelligence, risk-reward analysis, competitive positioning, and operational impact assessment.",
         },

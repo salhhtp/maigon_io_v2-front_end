@@ -64,6 +64,13 @@ export type ClauseMatchResult = {
   candidates: ClauseMatchCandidate[];
 };
 
+export type SemanticDriftAlert = {
+  editId: string;
+  clauseId?: string;
+  similarity: number;
+  reason: "low-similarity" | "structural-mismatch";
+};
+
 export type EvidenceMatchResult = {
   matched: boolean;
   reason:
@@ -1865,6 +1872,92 @@ export function bindProposedEditsToClauses(options: {
       intent: "insert",
     };
   });
+}
+
+export function assessEditSemanticDrift(options: {
+  edits: ProposedEditLike[];
+  clauses: ClauseExtractionLike[];
+  minSimilarity?: number;
+}): SemanticDriftAlert[] {
+  const { edits, clauses } = options;
+  if (!edits.length || !clauses.length) return [];
+
+  const clauseById = new Map<string, ClauseExtractionLike>();
+  clauses.forEach((clause) => {
+    const clauseId = getClauseIdentifier(clause);
+    const normalized = normalizeClauseId(clauseId);
+    if (!normalized || clauseById.has(normalized)) return;
+    clauseById.set(normalized, clause);
+  });
+
+  const alerts: SemanticDriftAlert[] = [];
+  edits.forEach((edit, index) => {
+    if (!edit || typeof edit !== "object") return;
+    const intent =
+      typeof edit.intent === "string" ? edit.intent.toLowerCase() : "";
+    if (intent.includes("insert") || intent.includes("remove")) return;
+    const proposedText =
+      typeof edit.proposedText === "string" ? edit.proposedText.trim() : "";
+    if (proposedText.length < 60) return;
+
+    const anchorSeed =
+      typeof edit.previousText === "string" && edit.previousText.trim().length > 0
+        ? edit.previousText.trim()
+        : typeof edit.anchorText === "string"
+          ? edit.anchorText.trim()
+          : "";
+    if (isMissingEvidenceMarker(anchorSeed)) return;
+
+    const rawClauseId =
+      typeof edit.clauseId === "string" ? edit.clauseId.trim() : "";
+    const normalizedClauseId = normalizeClauseId(rawClauseId);
+    let clause = normalizedClauseId
+      ? clauseById.get(normalizedClauseId) ?? null
+      : null;
+    if (!clause && anchorSeed) {
+      const match = resolveClauseMatch({
+        clauseReference: { excerpt: anchorSeed },
+        fallbackText: anchorSeed,
+        clauses,
+      });
+      clause = match.match;
+    }
+    if (!clause) return;
+
+    const clauseText =
+      clause.originalText ?? clause.normalizedText ?? clause.title ?? "";
+    if (clauseText.trim().length < 60) return;
+
+    const similarity = scoreTextSimilarity(proposedText, clauseText).score;
+    const clauseTokens = tokenizeForMatch(clauseText);
+    const proposedTokens = tokenizeForMatch(proposedText);
+    const clauseStructural = clauseTokens.filter((token) =>
+      isStructuralToken(token),
+    );
+    const proposedStructural = proposedTokens.filter((token) =>
+      isStructuralToken(token),
+    );
+    const structuralMismatch =
+      clauseStructural.length >= 2 &&
+      proposedStructural.length >= 2 &&
+      !hasStructuralMatch(clauseStructural, proposedStructural);
+    const minSimilarity =
+      options.minSimilarity ?? (structuralMismatch ? 0.32 : 0.24);
+
+    if (similarity >= minSimilarity) return;
+
+    alerts.push({
+      editId:
+        typeof edit.id === "string" && edit.id.trim().length > 0
+          ? edit.id
+          : `edit-${index + 1}`,
+      clauseId: rawClauseId || undefined,
+      similarity,
+      reason: structuralMismatch ? "structural-mismatch" : "low-similarity",
+    });
+  });
+
+  return alerts;
 }
 
 export function findRequirementMatch(
