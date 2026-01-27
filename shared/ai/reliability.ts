@@ -1969,14 +1969,21 @@ export function findRequirementMatch(
     return { met: false, score: 0 };
   }
   const requirementTokens = tokenizeForMatch(requirement);
+  const requiresHeadingMatch =
+    requirementTokens.length === 1 &&
+    requirementTokens.some((token) => HEADING_PRIORITY_TOKENS.has(token));
   const structuralTokens = requirementTokens.filter((token) =>
     isStructuralToken(token),
   );
   const matchTokens =
     structuralTokens.length > 0 ? structuralTokens : requirementTokens;
   const minCoverage =
-    matchTokens.length <= 3 ? 0.5 : 0.35;
-  const minHits = matchTokens.length >= 4 ? 2 : 1;
+    matchTokens.length <= 2
+      ? 0.75
+      : matchTokens.length === 3
+        ? 0.67
+        : 0.35;
+  const minHits = matchTokens.length >= 2 ? 2 : 1;
   let bestScore = 0;
   let bestCoverage = 0;
   let bestHits = 0;
@@ -2011,6 +2018,7 @@ export function findRequirementMatch(
 
   const headingCandidates = rankClauseCandidates(requirement, clauses, "heading");
   const topHeading = headingCandidates[0];
+  let hasHeadingMatch = false;
   if (topHeading && topHeading.score >= MIN_HEADING_SCORE) {
     const headingClause =
       clauses.find((entry) =>
@@ -2034,7 +2042,7 @@ export function findRequirementMatch(
           "confidential information",
         );
       const headingThreshold = preferHeading
-        ? Math.max(MIN_HEADING_SCORE, bestScore - 0.05)
+        ? MIN_HEADING_SCORE
         : bestScore + 0.08;
       if (
         passesStructure &&
@@ -2047,14 +2055,19 @@ export function findRequirementMatch(
         bestHits = hits;
         bestEvidence =
           headingClause.title ?? getClauseIdentifier(headingClause) ?? undefined;
+        hasHeadingMatch = true;
       }
     }
+  }
+
+  if (requiresHeadingMatch && !hasHeadingMatch) {
+    return { met: false, score: bestScore };
   }
 
   if (
     bestCoverage >= minCoverage &&
     bestHits >= minHits &&
-    (bestScore >= MIN_MATCH_SCORE || structuralTokens.length > 0)
+    (bestScore >= MIN_MATCH_SCORE || structuralTokens.length >= 2)
   ) {
     const score = Math.max(bestScore, MIN_MATCH_SCORE);
     return { met: true, evidence: bestEvidence, score };
@@ -2098,7 +2111,7 @@ export function evaluatePlaybookCoverageFromContent(
     return {
       title: clause.title,
       met,
-      evidence: titleMatch.evidence,
+      evidence: met ? titleMatch.evidence : undefined,
       missingMustInclude,
     };
   });
@@ -2108,7 +2121,7 @@ export function evaluatePlaybookCoverageFromContent(
     return {
       anchor,
       met: anchorMatch.met,
-      evidence: anchorMatch.evidence,
+      evidence: anchorMatch.met ? anchorMatch.evidence : undefined,
     };
   });
 

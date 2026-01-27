@@ -370,6 +370,34 @@ function normalizeSearchText(value: string) {
   return value.toLowerCase().replace(/\s+/g, " ").trim();
 }
 
+function isMissingEvidenceString(value?: string | null) {
+  if (!value) return false;
+  const normalized = normalizeSearchText(value);
+  if (!normalized) return false;
+  return normalized.includes("not present in contract");
+}
+
+function isMissingClauseReference(reference?: Issue["clauseReference"] | null) {
+  if (!reference) return false;
+  if (isMissingEvidenceString(reference.excerpt)) return true;
+  if (reference.locationHint?.clauseNumber &&
+      isMissingEvidenceString(reference.locationHint.clauseNumber)) {
+    return true;
+  }
+  const clauseId = reference.clauseId ?? "";
+  const normalizedClauseId = normalizeSearchText(clauseId).replace(/\s+/g, "-");
+  return (
+    normalizedClauseId.startsWith("missing") ||
+    normalizedClauseId.startsWith("unbound") ||
+    normalizedClauseId.startsWith("issue-clause")
+  );
+}
+
+function resolveClauseTextFull(clause: ClauseExtraction | null | undefined) {
+  if (!clause) return null;
+  return clause.originalText ?? clause.normalizedText ?? clause.title ?? null;
+}
+
 function readString(
   record: Record<string, unknown> | null | undefined,
   ...keys: string[]
@@ -1056,6 +1084,7 @@ function resolveClauseEvidenceText(
   clauses: ClauseExtraction[],
 ): string | null {
   if (!reference || !clauses.length) return null;
+  if (isMissingClauseReference(reference)) return null;
   const referenceClauseId = reference.clauseId ?? null;
   const normalizedHeading = reference.heading
     ? normalizeSearchText(reference.heading)
@@ -1072,9 +1101,7 @@ function resolveClauseEvidenceText(
           : false;
       })
     : null;
-  if (clauseById) {
-    return clauseById.normalizedText ?? clauseById.originalText ?? null;
-  }
+  if (clauseById) return resolveClauseTextFull(clauseById);
 
   const clauseByHeading = normalizedHeading
     ? clauses.find((clause) => {
@@ -1087,9 +1114,7 @@ function resolveClauseEvidenceText(
         );
       })
     : null;
-  if (clauseByHeading) {
-    return clauseByHeading.normalizedText ?? clauseByHeading.originalText ?? null;
-  }
+  if (clauseByHeading) return resolveClauseTextFull(clauseByHeading);
 
   const clauseByExcerpt = normalizedExcerpt
     ? clauses.find((clause) => {
@@ -1099,7 +1124,7 @@ function resolveClauseEvidenceText(
       })
     : null;
 
-  return clauseByExcerpt?.normalizedText ?? clauseByExcerpt?.originalText ?? null;
+  return resolveClauseTextFull(clauseByExcerpt);
 }
 
 function resolveClauseEvidenceFromSnippet(
@@ -1107,6 +1132,7 @@ function resolveClauseEvidenceFromSnippet(
   clauses: ClauseExtraction[],
 ): string | null {
   if (!snippet || !clauses.length) return null;
+  if (isMissingEvidenceString(snippet)) return null;
   const normalizedSnippet = normalizeSearchText(snippet);
   const clauseMatch = clauses.find((clause) => {
     const clauseText = clause.normalizedText ?? clause.originalText ?? "";
@@ -1114,9 +1140,7 @@ function resolveClauseEvidenceFromSnippet(
       ? normalizeSearchText(clauseText).includes(normalizedSnippet)
       : false;
   });
-  if (clauseMatch) {
-    return clauseMatch.normalizedText ?? clauseMatch.originalText ?? null;
-  }
+  if (clauseMatch) return resolveClauseTextFull(clauseMatch);
   const tokens = normalizedSnippet
     .split(/\W+/)
     .map((token) => token.trim())
@@ -1140,7 +1164,7 @@ function resolveClauseEvidenceFromSnippet(
     }
   });
 
-  return bestClause?.normalizedText ?? bestClause?.originalText ?? null;
+  return resolveClauseTextFull(bestClause);
 }
 
 function escapeRegex(value: string) {
@@ -1154,6 +1178,7 @@ function resolveHighlightCandidate(
   if (!excerpt) return null;
   const trimmed = excerpt.trim().replace(/\s+/g, " ");
   if (!trimmed) return null;
+  if (isMissingEvidenceString(trimmed)) return null;
   if (!fullText) return trimmed;
   const candidates = [
     trimmed,
@@ -1168,6 +1193,16 @@ function resolveHighlightCandidate(
   for (const candidate of candidates) {
     if (lowerText.includes(candidate.toLowerCase())) {
       return candidate;
+    }
+  }
+  const normalizedFull = normalizeSearchText(fullText);
+  const tokens = trimmed.split(" ").filter(Boolean);
+  for (let windowSize = Math.min(18, tokens.length); windowSize >= 5; windowSize -= 1) {
+    for (let start = 0; start + windowSize <= tokens.length; start += 1) {
+      const candidate = tokens.slice(start, start + windowSize).join(" ");
+      if (normalizedFull.includes(normalizeSearchText(candidate))) {
+        return candidate;
+      }
     }
   }
   return candidates[0] ?? null;
@@ -1326,6 +1361,7 @@ function resolveClauseEvidenceFullText(options: {
 }): string | null {
   const { reference, documentText, clauses } = options;
   if (!reference) return null;
+  if (isMissingClauseReference(reference)) return null;
   const fromDocument = resolveClauseEvidenceFromDocument(reference, documentText);
   const fromClauses = resolveFullClauseText({
     clauseId: reference.clauseId ?? null,
@@ -1351,17 +1387,27 @@ function resolveFullClauseText({
   clauses: ClauseExtraction[];
 }): string | null {
   if (!clauses.length) return null;
+  if (isMissingEvidenceString(anchorText ?? "")) return null;
   const normalizedClauseId = clauseId ? clauseId.toLowerCase() : null;
   const normalizedTitle = clauseTitle ? normalizeSearchText(clauseTitle) : null;
+  const normalizedClauseIdKey = normalizedClauseId
+    ? normalizeSearchText(normalizedClauseId).replace(/\s+/g, "-")
+    : null;
+  if (
+    normalizedClauseIdKey &&
+    (normalizedClauseIdKey.startsWith("missing") ||
+      normalizedClauseIdKey.startsWith("unbound") ||
+      normalizedClauseIdKey.startsWith("issue-clause"))
+  ) {
+    return null;
+  }
 
   if (normalizedClauseId) {
     const clauseById = clauses.find((clause) => {
       const clauseKey = clause.clauseId ?? clause.id ?? "";
       return clauseKey.toLowerCase() === normalizedClauseId;
     });
-    if (clauseById) {
-      return clauseById.normalizedText ?? clauseById.originalText ?? null;
-    }
+    if (clauseById) return resolveClauseTextFull(clauseById);
   }
 
   if (normalizedTitle) {
@@ -1374,9 +1420,7 @@ function resolveFullClauseText({
         normalizedTitle.includes(clauseTitleNormalized)
       );
     });
-    if (clauseByTitle) {
-      return clauseByTitle.normalizedText ?? clauseByTitle.originalText ?? null;
-    }
+    if (clauseByTitle) return resolveClauseTextFull(clauseByTitle);
   }
 
   if (anchorText) {
@@ -1484,10 +1528,11 @@ function ClauseEvidenceBlock({
   }
   const locationLabel = locationParts.join(" · ");
   const excerptText = reference.excerpt?.trim() ?? "";
-  const modalText = fullText ?? excerptText ?? "";
-  const previewText = excerptText || fullText || "";
+  const isMissing = isMissingClauseReference(reference);
+  const modalText = isMissing ? "" : fullText ?? excerptText ?? "";
+  const previewText = isMissing ? excerptText : excerptText || fullText || "";
   const highlightText =
-    modalText && excerptText
+    !isMissing && modalText && excerptText
       ? resolveHighlightCandidate(modalText, excerptText)
       : null;
 
@@ -1620,7 +1665,7 @@ function deriveClauseExtractionsFromContent(
       clauseId: clauseNumber ? `parsed-${clauseNumber}` : `parsed-${clauses.length + 1}`,
       title: heading || `Clause ${clauses.length + 1}`,
       category: undefined,
-      originalText: excerpt,
+      originalText: options?.includeFullText ? body : excerpt,
       normalizedText,
       importance: inferClauseImportance(excerpt),
       location: null,
@@ -2119,7 +2164,7 @@ const updatedPlainText = useMemo(() => {
       high: severitySummary.high ?? 0,
       medium: severitySummary.medium ?? 0,
       low: severitySummary.low ?? 0,
-      total: totalPriorityItems,
+      total: severityTotal,
     };
 
     return {
@@ -2846,7 +2891,9 @@ const actionItemEntries = useMemo(
   }, [recommendationEntries, actionItemEntries, structuredProposedEdits.length]);
   const topNextSteps = combinedDecisions;
 
-  const severitySummary = useMemo(() => {
+  const totalPriorityItems = combinedDecisions.length;
+
+  const decisionSeveritySummary = useMemo(() => {
     const base: Record<string, number> = {
       critical: 0,
       high: 0,
@@ -2863,7 +2910,31 @@ const actionItemEntries = useMemo(
     return base;
   }, [combinedDecisions]);
 
-  const totalPriorityItems = combinedDecisions.length;
+  const issueSeveritySummary = useMemo(() => {
+    const base: Record<string, number> = {
+      critical: 0,
+      high: 0,
+      medium: 0,
+      low: 0,
+      default: 0,
+    };
+    structuredIssues.forEach((issue) => {
+      const level = SEVERITY_ORDER[issue.severity] !== undefined
+        ? issue.severity
+        : "default";
+      base[level] = (base[level] ?? 0) + 1;
+    });
+    return base;
+  }, [structuredIssues]);
+
+  const useIssueSeverity = structuredIssues.length > 0;
+  const severitySummary = useMemo(
+    () => (useIssueSeverity ? issueSeveritySummary : decisionSeveritySummary),
+    [useIssueSeverity, issueSeveritySummary, decisionSeveritySummary],
+  );
+  const severityTotal = useIssueSeverity
+    ? structuredIssues.length
+    : totalPriorityItems;
 
   useEffect(() => {
     setSuggestionSelection((prev) => {
@@ -2956,9 +3027,9 @@ const actionItemEntries = useMemo(
       high: severitySummary.high ?? 0,
       medium: severitySummary.medium ?? 0,
       low: severitySummary.low ?? 0,
-      total: totalPriorityItems,
+      total: severityTotal,
     }),
-    [severitySummary, totalPriorityItems],
+    [severitySummary, severityTotal],
   );
 
   const metadataSolutionKey = useMemo(() => {
@@ -4426,7 +4497,7 @@ const heroNavItems: { id: string; label: string }[] = [
 
           {/* Priority Snapshot */}
           {showPrioritySnapshot &&
-            (totalPriorityItems > 0 && hasSeverityBreakdown ? (
+            (severityTotal > 0 && hasSeverityBreakdown ? (
               <div className="mb-6">
                 <h3 className="text-sm font-semibold text-[#271D1D] uppercase tracking-wide mb-3">
                   Priority Snapshot
@@ -4475,7 +4546,7 @@ const heroNavItems: { id: string; label: string }[] = [
                   </div>
                 )}
               </div>
-            ) : totalPriorityItems > 0 ? (
+            ) : severityTotal > 0 ? (
               <div className="mb-6 text-sm text-gray-600">
                 No severity-ranked issues were highlighted; review general observations for context.
               </div>

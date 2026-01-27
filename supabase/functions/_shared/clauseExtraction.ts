@@ -375,18 +375,45 @@ export function enhanceReportWithClauses(
   > = {};
   // Track used excerpts per clause to ensure unique evidence across criteria
   const usedExcerptsByClause = new Map<string, Set<string>>();
-  const isMissingLocationHint = (
-    locationHint: ClauseExtraction["location"] | undefined | null,
-  ) => {
-    if (!locationHint) return true;
-    const section = `${locationHint.section ?? ""}`.toLowerCase();
-    const clauseNumber = `${locationHint.clauseNumber ?? ""}`.toLowerCase();
+  const isMissingLocationValue = (value: unknown) => {
+    if (typeof value !== "string") return true;
+    const normalized = normalizeForMatch(value);
+    if (!normalized) return true;
     return (
-      section.includes("not present") ||
-      clauseNumber.startsWith("missing") ||
-      clauseNumber.startsWith("unbound")
+      normalized.includes("not present") ||
+      normalized.includes("not found") ||
+      normalized.includes("evidence not found") ||
+      normalized.startsWith("missing") ||
+      normalized.startsWith("unbound")
     );
   };
+  const cleanLocationHint = (
+    locationHint: ClauseExtraction["location"] | undefined | null,
+  ): ClauseExtraction["location"] | null => {
+    if (!locationHint) return null;
+    const page =
+      typeof locationHint.page === "number" ? locationHint.page : null;
+    const paragraph =
+      typeof locationHint.paragraph === "number" ? locationHint.paragraph : null;
+    const section = isMissingLocationValue(locationHint.section)
+      ? null
+      : locationHint.section ?? null;
+    const clauseNumber = isMissingLocationValue(locationHint.clauseNumber)
+      ? null
+      : locationHint.clauseNumber ?? null;
+    if (!section && !clauseNumber && page === null && paragraph === null) {
+      return null;
+    }
+    return {
+      page,
+      paragraph,
+      section,
+      clauseNumber,
+    };
+  };
+  const isMissingLocationHint = (
+    locationHint: ClauseExtraction["location"] | undefined | null,
+  ) => !cleanLocationHint(locationHint);
 
   const issuesWithEvidence = report.issuesToAddress.map((issue, index) => {
     const fallbackText = `${issue.title} ${issue.recommendation ?? ""}`.trim();
@@ -785,27 +812,23 @@ export function enhanceReportWithClauses(
     const resolvedHeading = shouldPreserveMissingEvidence
       ? existingReference?.heading ?? null
       : match?.title ?? existingReference?.heading ?? null;
+    const cleanedExistingLocation = cleanLocationHint(
+      existingReference?.locationHint,
+    );
+    const cleanedMatchLocation = cleanLocationHint(match?.location);
+    const fallbackLocation = match
+      ? cleanLocationHint({
+          page: match?.location?.page ?? null,
+          paragraph: match?.location?.paragraph ?? null,
+          section: match?.location?.section ?? match?.title ?? null,
+          clauseNumber: match?.location?.clauseNumber ?? matchedClauseId ?? null,
+        })
+      : null;
     const resolvedLocation = shouldPreserveMissingEvidence
-      ? existingReference?.locationHint ?? {
-          page: null,
-          paragraph: null,
-          section: "Not present in contract",
-          clauseNumber: stableClauseId ?? null,
-        }
+      ? cleanedExistingLocation ?? cleanedMatchLocation ?? fallbackLocation
       : match && isMissingLocationHint(existingReference?.locationHint)
-        ? match?.location ?? {
-            page: null,
-            paragraph: null,
-            section: match?.title ?? null,
-            clauseNumber: matchedClauseId ?? null,
-          }
-        : existingReference?.locationHint ??
-          match?.location ?? {
-            page: null,
-            paragraph: null,
-            section: match?.title ?? (match ? null : "Not present in contract"),
-            clauseNumber: matchedClauseId ?? null,
-          };
+      ? cleanedMatchLocation ?? fallbackLocation
+      : cleanedExistingLocation ?? cleanedMatchLocation ?? fallbackLocation;
     const updatedIssue = {
       ...issue,
       clauseReference: {
@@ -1079,9 +1102,29 @@ export function enhanceReportWithClauses(
     issuesWithDefinitionFix,
     clauseCandidates,
   );
+  const issuesWithNormalizedLocations = issuesWithRationaleFix.map((issue) => {
+    if (!issue.clauseReference) return issue;
+    const clauseId = normalizeForMatch(issue.clauseReference.clauseId ?? "");
+    const matchedClause = clauseId
+      ? clauseCandidates.find((clause) =>
+          normalizeForMatch(getClauseKey(clause)) === clauseId
+        )
+      : null;
+    const resolvedLocation =
+      cleanLocationHint(matchedClause?.location) ??
+      cleanLocationHint(issue.clauseReference.locationHint) ??
+      null;
+    return {
+      ...issue,
+      clauseReference: {
+        ...issue.clauseReference,
+        locationHint: resolvedLocation,
+      },
+    };
+  });
   const { playbookInsights: updatedPlaybookInsights, deviationInsights: updatedDeviationInsights } =
     rewriteDefinitionInsights(
-      issuesWithRationaleFix,
+      issuesWithNormalizedLocations,
       report.playbookInsights ?? [],
       report.deviationInsights ?? [],
       clauseCandidates,
@@ -1089,7 +1132,7 @@ export function enhanceReportWithClauses(
 
   const criteriaAlignedWithIssues = alignCriteriaWithIssues(
     criteriaWithEvidence,
-    issuesWithRationaleFix,
+    issuesWithNormalizedLocations,
   );
   const metOnlyCriteria = criteriaAlignedWithIssues.filter(
     (criterion) =>
@@ -1161,7 +1204,7 @@ export function enhanceReportWithClauses(
     ...report,
     contractSummary: validatedSummary,
     clauseExtractions: clauseCandidates,
-    issuesToAddress: issuesWithRationaleFix,
+    issuesToAddress: issuesWithNormalizedLocations,
     criteriaMet: metOnlyCriteria,
     playbookInsights: updatedPlaybookInsights,
     deviationInsights: updatedDeviationInsights,

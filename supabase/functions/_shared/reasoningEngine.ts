@@ -1443,6 +1443,85 @@ function normaliseProposedEditContent(payload: Record<string, unknown>) {
   });
 }
 
+function buildActionItemsFromEdits(
+  edits: AnalysisReport["proposedEdits"],
+): AnalysisReport["actionItems"] {
+  return edits.map((edit, index) => ({
+    id: edit.id ?? `edit-action-${index + 1}`,
+    title: edit.intent ?? `Update clause ${edit.clauseId ?? index + 1}`,
+    description: edit.rationale ?? edit.proposedText ?? "Draft update required.",
+    owner: "Legal",
+    department: "legal",
+    dueDate: "Before execution",
+    priority: normalisePriorityValue("high"),
+    status: "open",
+    relatedClauseId: edit.clauseId ?? undefined,
+  }));
+}
+
+function reconcileActionItemsWithProposedEdits(
+  report: AnalysisReport,
+): AnalysisReport {
+  const edits = report.proposedEdits ?? [];
+  if (edits.length === 0) return report;
+
+  const normalizeKey = (value?: string | null) =>
+    typeof value === "string" ? value.trim().toLowerCase() : "";
+  const editMap = new Map<string, AnalysisReport["proposedEdits"][number]>();
+  edits.forEach((edit) => {
+    const idKey = normalizeKey(edit.id ?? null);
+    const clauseKey = normalizeKey(edit.clauseId ?? null);
+    if (idKey) editMap.set(idKey, edit);
+    if (clauseKey) editMap.set(clauseKey, edit);
+  });
+
+  const matchedEditKeys = new Set<string>();
+  const reconciled: AnalysisReport["actionItems"] = [];
+
+  (report.actionItems ?? []).forEach((item) => {
+    const itemIdKey = normalizeKey(item?.id ?? null);
+    const clauseKey = normalizeKey(item?.relatedClauseId ?? null);
+    const match = editMap.get(itemIdKey) ?? editMap.get(clauseKey);
+    if (!match) return;
+
+    const matchKey = normalizeKey(match.id ?? match.clauseId ?? null);
+    if (matchKey && matchedEditKeys.has(matchKey)) return;
+    if (matchKey) matchedEditKeys.add(matchKey);
+
+    reconciled.push({
+      ...item,
+      id: match.id ?? item.id,
+      title:
+        item.title && item.title.trim().length > 0
+          ? item.title
+          : match.intent ?? `Update clause ${match.clauseId ?? ""}`.trim(),
+      description:
+        item.description && item.description.trim().length > 0
+          ? item.description
+          : match.rationale ?? match.proposedText ?? "Draft update required.",
+      owner: item.owner ?? "Legal",
+      department: item.department ?? "legal",
+      dueDate: item.dueDate ?? "Before execution",
+      priority: normalisePriorityValue(
+        item.priority ?? "high",
+      ),
+      status: normaliseWorkflowStatus(item.status ?? "open"),
+      relatedClauseId: match.clauseId ?? item.relatedClauseId,
+    });
+  });
+
+  const remainingEdits = edits.filter((edit) => {
+    const key = normalizeKey(edit.id ?? edit.clauseId ?? null);
+    return !key || !matchedEditKeys.has(key);
+  });
+  const fallbackItems = buildActionItemsFromEdits(remainingEdits);
+
+  return {
+    ...report,
+    actionItems: [...reconciled, ...fallbackItems],
+  };
+}
+
 const MISSING_CLAUSE_MARKERS = [
   "not present in contract",
   "not present",
@@ -1740,10 +1819,11 @@ function evaluatePlaybookCoverageFromReport(
           ? !sources.some((source) => source.text.includes(token))
           : false;
       }) ?? [];
+    const clauseMet = met && missingMustInclude.length === 0;
     return {
       title: clause.title,
-      met: met && missingMustInclude.length === 0,
-      evidence,
+      met: clauseMet,
+      evidence: clauseMet ? evidence : undefined,
       missingMustInclude,
     };
   });
@@ -1753,7 +1833,7 @@ function evaluatePlaybookCoverageFromReport(
     return {
       anchor,
       met: result.met,
-      evidence: result.evidence,
+      evidence: result.met ? result.evidence : undefined,
     };
   });
 
@@ -2510,9 +2590,10 @@ async function finalizeReasoningReport(
     issuesToAddress: dedupeIssues(clauseAlignedReportWithEdits.issuesToAddress),
     proposedEdits: dedupeProposedEdits(clauseAlignedReportWithEdits.proposedEdits),
   };
+  const reconciledReport = reconcileActionItemsWithProposedEdits(dedupedReport);
 
   const scoringResult = computeRuleBasedScore(
-    dedupedReport,
+    reconciledReport,
     session.usePlaybookCoverage ? session.playbook : null,
     {
       content: context.content,
@@ -2521,16 +2602,16 @@ async function finalizeReasoningReport(
     },
   );
   const scoredReport: AnalysisReport = {
-    ...dedupedReport,
+    ...reconciledReport,
     generalInformation: {
-      ...dedupedReport.generalInformation,
+      ...reconciledReport.generalInformation,
       complianceScore: scoringResult.score,
     },
     metadata: {
-      ...dedupedReport.metadata,
+      ...reconciledReport.metadata,
       playbookCoverage:
         scoringResult.coverage ??
-        dedupedReport.metadata?.playbookCoverage,
+        reconciledReport.metadata?.playbookCoverage,
       scoreSource: "rule_based",
       scoreBreakdown: scoringResult.breakdown,
     } as AnalysisReport["metadata"],
