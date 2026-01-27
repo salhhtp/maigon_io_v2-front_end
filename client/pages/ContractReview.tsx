@@ -816,6 +816,22 @@ function renderTokenDiff(
     .filter(Boolean);
 }
 
+function renderInlineTokenDiff(tokens: TokenDiff[], keyPrefix: string) {
+  return tokens.map((token, index) => {
+    const className =
+      token.type === "added"
+        ? "bg-emerald-100/80 text-emerald-900 underline decoration-emerald-600 decoration-2 rounded-sm px-0.5"
+        : token.type === "removed"
+          ? "bg-red-100/80 text-red-700 line-through decoration-red-600 decoration-2 rounded-sm px-0.5"
+          : "";
+    return (
+      <span key={`${keyPrefix}-${index}`} className={className}>
+        {token.token || "\u00A0"}
+      </span>
+    );
+  });
+}
+
 function renderTrackedDiffChunks(chunks: DiffChunk[]) {
   const rows: React.ReactNode[] = [];
 
@@ -832,27 +848,16 @@ function renderTrackedDiffChunks(chunks: DiffChunk[]) {
         const removedLine = chunk.lines[lineIndex] ?? "";
         const addedLine = nextChunk.lines[lineIndex] ?? "";
         const tokenDiff = computeTokenDiff(removedLine, addedLine);
-        const removedTokens = renderTokenDiff(
+        const inlineTokens = renderInlineTokenDiff(
           tokenDiff,
-          "original",
-          `tracked-rm-${i}-${lineIndex}`,
-        );
-        const addedTokens = renderTokenDiff(
-          tokenDiff,
-          "updated",
-          `tracked-add-${i}-${lineIndex}`,
+          `tracked-inline-${i}-${lineIndex}`,
         );
         rows.push(
           <div
             key={`tracked-pair-${i}-${lineIndex}`}
-            className="space-y-1"
+            className="whitespace-pre-wrap break-words text-[#271D1D]"
           >
-            <div className="whitespace-pre-wrap break-words text-[#271D1D]">
-              {removedTokens.length ? removedTokens : "\u00A0"}
-            </div>
-            <div className="whitespace-pre-wrap break-words text-[#271D1D]">
-              {addedTokens.length ? addedTokens : "\u00A0"}
-            </div>
+            {inlineTokens.length ? inlineTokens : "\u00A0"}
           </div>,
         );
       }

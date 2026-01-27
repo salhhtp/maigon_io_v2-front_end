@@ -1536,6 +1536,25 @@ function normalizeMatchText(value: string) {
     .trim();
 }
 
+function tokenizeMatchText(value: string): string[] {
+  const normalized = normalizeMatchText(value);
+  return normalized ? normalized.split(" ").filter(Boolean) : [];
+}
+
+function jaccardSimilarityForText(a: string, b: string): number {
+  const tokensA = tokenizeMatchText(a);
+  const tokensB = tokenizeMatchText(b);
+  if (!tokensA.length || !tokensB.length) return 0;
+  const setA = new Set(tokensA);
+  const setB = new Set(tokensB);
+  let intersection = 0;
+  setA.forEach((token) => {
+    if (setB.has(token)) intersection += 1;
+  });
+  const union = new Set([...setA, ...setB]).size;
+  return union === 0 ? 0 : intersection / union;
+}
+
 function issueSignals(issue: AnalysisReport["issuesToAddress"][number]) {
   return [
     issue.id,
@@ -1581,9 +1600,37 @@ function editMatchesTemplate(
     return true;
   }
   const templateText = normalizeMatchText(template.text);
-  if (!templateText) return false;
-  const templateSnippet = templateText.slice(0, 140);
-  return templateSnippet ? proposedText.includes(templateSnippet) : false;
+  if (templateText) {
+    const templateSnippet = templateText.slice(0, 140);
+    if (templateSnippet && proposedText.includes(templateSnippet)) {
+      return true;
+    }
+    const similarity = jaccardSimilarityForText(proposedText, templateText);
+    if (similarity >= 0.6) {
+      return true;
+    }
+  }
+  const tags = template.tags ?? [];
+  if (tags.length > 0) {
+    const tagHits = tags.filter((tag) =>
+      proposedText.includes(normalizeMatchText(tag)),
+    );
+    if (tagHits.length >= 1) {
+      return true;
+    }
+    const tagTokens = tags.flatMap((tag) => tokenizeMatchText(tag));
+    if (tagTokens.length > 0) {
+      const editTokens = new Set(tokenizeMatchText(proposedText));
+      let hits = 0;
+      tagTokens.forEach((token) => {
+        if (editTokens.has(token)) hits += 1;
+      });
+      if (hits >= Math.min(2, tagTokens.length)) {
+        return true;
+      }
+    }
+  }
+  return false;
 }
 
 function pickAnchorSnippet(text: string, maxLength = 220) {

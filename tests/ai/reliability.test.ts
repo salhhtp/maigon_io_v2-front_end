@@ -226,6 +226,85 @@ describe("Reliability harness", () => {
     expect(coverage.coverageScore).toBe(1);
   });
 
+  it("dedupes missing clause edits when an anchored edit exists", () => {
+    const edits = [
+      {
+        id: "EDIT-ANCHOR",
+        clauseId: "exceptions",
+        anchorText: "The Confidential Information shall not include",
+        intent: "insert",
+        proposedText:
+          "Marking and notice. Confidential Information disclosed in writing or electronic form shall be marked confidential.",
+      },
+      {
+        id: "AUTO-ISSUE_MARKING",
+        clauseId: "missing-marking-vs-reasonable-notice",
+        anchorText: "Not present in contract",
+        intent: "insert",
+        proposedText:
+          "Marking and notice. Confidential Information should be marked as confidential when disclosed in writing or electronic form.",
+      },
+    ];
+
+    const deduped = dedupeProposedEdits(edits);
+    expect(deduped).toHaveLength(1);
+    expect(deduped[0]?.id).toBe("EDIT-ANCHOR");
+  });
+
+  it("prefers compelled disclosure clauses over generic disclosure text", () => {
+    const clauses = [
+      {
+        clauseId: "whereas",
+        id: "whereas",
+        title: "Whereas",
+        originalText:
+          "The Parties need to disclose certain information regarding the Project.",
+        normalizedText: "The Parties need to disclose certain information.",
+      },
+      {
+        clauseId: "exceptions",
+        id: "exceptions",
+        title: "Exceptions",
+        originalText:
+          "If the Receiving Party is required by law or court order to disclose Confidential Information, it shall notify the Discloser and seek protective orders.",
+        normalizedText:
+          "required by law or court order to disclose Confidential Information",
+      },
+    ];
+    const content = clauses.map((clause) => clause.originalText).join(" ");
+    const match = findRequirementMatch("Compelled disclosure", clauses, content);
+    expect(match.met).toBe(true);
+    expect(match.evidence).toBe("Exceptions");
+  });
+
+  it("treats no-license clauses as satisfying IP license requirements", () => {
+    const clauses = [
+      {
+        clauseId: "no-binding",
+        id: "no-binding",
+        title: "No Binding Commitments",
+        originalText:
+          "No license under any trademark, patent, copyright, trade secret or other intellectual property right is either granted or implied.",
+        normalizedText:
+          "No license under any trademark, patent, copyright, trade secret or other intellectual property right is either granted or implied.",
+      },
+    ];
+    const content = clauses[0].originalText;
+    const impliedLicense = findRequirementMatch(
+      "No implied license beyond Purpose",
+      clauses,
+      content,
+    );
+    const ownershipTransfer = findRequirementMatch(
+      "No transfer of IP ownership",
+      clauses,
+      content,
+    );
+
+    expect(impliedLicense.met).toBe(true);
+    expect(ownershipTransfer.met).toBe(true);
+  });
+
   it("matches structural requirements with synonyms", () => {
     const clauses = [
       {

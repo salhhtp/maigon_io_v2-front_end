@@ -1968,6 +1968,86 @@ export function findRequirementMatch(
   if (!requirement || !requirement.trim()) {
     return { met: false, score: 0 };
   }
+  const normalizedRequirement = normalizeForMatch(requirement);
+  const requiresCompelledSignals =
+    normalizedRequirement.includes("compelled disclosure");
+  const requiresIpLicenseSignals =
+    normalizedRequirement.includes("license") &&
+    (normalizedRequirement.includes("ip") ||
+      normalizedRequirement.includes("intellectual") ||
+      normalizedRequirement.includes("ownership") ||
+      normalizedRequirement.includes("implied"));
+
+  const hasCompelledDisclosureSignals = (tokens: string[]) => {
+    if (!tokens.length) return false;
+    const tokenSet = new Set(tokens);
+    const disclosureSignals = [
+      "disclosure",
+      "disclosures",
+      "disclose",
+      "disclosed",
+      "disclosing",
+    ];
+    const compelledSignals = [
+      "required",
+      "require",
+      "court",
+      "subpoena",
+      "regulator",
+      "regulatory",
+      "authority",
+      "demand",
+      "order",
+      "law",
+    ];
+    const hasDisclosure = disclosureSignals.some((token) => tokenSet.has(token));
+    const hasCompelled = compelledSignals.some((token) => tokenSet.has(token));
+    return hasDisclosure && hasCompelled;
+  };
+
+  const hasIpLicenseSignals = (tokens: string[]) => {
+    if (!tokens.length) return false;
+    const tokenSet = new Set(tokens);
+    const licenseSignals = [
+      "license",
+      "licence",
+      "licensed",
+      "licensing",
+      "implied",
+      "grant",
+      "granted",
+    ];
+    const ipSignals = [
+      "ip",
+      "intellectual",
+      "property",
+      "trademark",
+      "patent",
+      "copyright",
+      "trade",
+      "secret",
+    ];
+    const hasLicense = licenseSignals.some((token) => tokenSet.has(token));
+    const hasIp = ipSignals.some((token) => tokenSet.has(token));
+    return hasLicense && hasIp;
+  };
+
+  if (requiresIpLicenseSignals) {
+    for (const clause of clauses) {
+      const clauseText = `${clause.title ?? ""} ${clause.originalText ?? ""} ${
+        clause.normalizedText ?? ""
+      }`;
+      const clauseTokens = tokenizeForMatch(clauseText);
+      if (hasIpLicenseSignals(clauseTokens)) {
+        return {
+          met: true,
+          evidence: clause.title ?? getClauseIdentifier(clause) ?? undefined,
+          score: Math.max(MIN_MATCH_SCORE + 0.05, 0.3),
+        };
+      }
+    }
+  }
+
   const requirementTokens = tokenizeForMatch(requirement);
   const requiresHeadingMatch =
     requirementTokens.length === 1 &&
@@ -1994,6 +2074,9 @@ export function findRequirementMatch(
       clause.normalizedText ?? ""
     }`;
     const clauseTokens = tokenizeForMatch(clauseText);
+    if (requiresCompelledSignals && !hasCompelledDisclosureSignals(clauseTokens)) {
+      continue;
+    }
     if (
       structuralTokens.length > 0 &&
       !hasStructuralMatch(structuralTokens, clauseTokens)
@@ -2030,32 +2113,34 @@ export function findRequirementMatch(
         headingClause.originalText ?? ""
       } ${headingClause.normalizedText ?? ""}`;
       const clauseTokens = tokenizeForMatch(clauseText);
-      const passesStructure =
-        structuralTokens.length === 0 ||
-        hasStructuralMatch(structuralTokens, clauseTokens);
-      const preferHeading = requirementTokens.some((token) =>
-        HEADING_PRIORITY_TOKENS.has(token),
-      );
-      const preferDefinitionHeading =
-        requirementTokens.includes("definition") &&
-        normalizeForMatch(headingClause.title ?? "").includes(
-          "confidential information",
+      if (!requiresCompelledSignals || hasCompelledDisclosureSignals(clauseTokens)) {
+        const passesStructure =
+          structuralTokens.length === 0 ||
+          hasStructuralMatch(structuralTokens, clauseTokens);
+        const preferHeading = requirementTokens.some((token) =>
+          HEADING_PRIORITY_TOKENS.has(token),
         );
-      const headingThreshold = preferHeading
-        ? MIN_HEADING_SCORE
-        : bestScore + 0.08;
-      if (
-        passesStructure &&
-        (topHeading.score >= headingThreshold || preferDefinitionHeading)
-      ) {
-        const coverage = coverageWithSynonyms(matchTokens, clauseTokens);
-        const hits = countTokenMatches(matchTokens, clauseTokens);
-        bestScore = topHeading.score;
-        bestCoverage = coverage;
-        bestHits = hits;
-        bestEvidence =
-          headingClause.title ?? getClauseIdentifier(headingClause) ?? undefined;
-        hasHeadingMatch = true;
+        const preferDefinitionHeading =
+          requirementTokens.includes("definition") &&
+          normalizeForMatch(headingClause.title ?? "").includes(
+            "confidential information",
+          );
+        const headingThreshold = preferHeading
+          ? MIN_HEADING_SCORE
+          : bestScore + 0.08;
+        if (
+          passesStructure &&
+          (topHeading.score >= headingThreshold || preferDefinitionHeading)
+        ) {
+          const coverage = coverageWithSynonyms(matchTokens, clauseTokens);
+          const hits = countTokenMatches(matchTokens, clauseTokens);
+          bestScore = topHeading.score;
+          bestCoverage = coverage;
+          bestHits = hits;
+          bestEvidence =
+            headingClause.title ?? getClauseIdentifier(headingClause) ?? undefined;
+          hasHeadingMatch = true;
+        }
       }
     }
   }
@@ -2073,7 +2158,6 @@ export function findRequirementMatch(
     return { met: true, evidence: bestEvidence, score };
   }
 
-  const normalizedRequirement = normalizeForMatch(requirement);
   const normalizedContent = normalizeForMatch(content ?? "");
   if (
     normalizedRequirement &&
@@ -2400,31 +2484,49 @@ export function dedupeIssues(issues: IssueLike[]): IssueLike[] {
 export function dedupeProposedEdits(
   edits: ProposedEditLike[],
 ): ProposedEditLike[] {
-  const buckets = new Map<string, ProposedEditLike[]>();
-  edits.forEach((edit) => {
-    const clauseId = edit.clauseId ?? "unbound";
-    const bucket = buckets.get(clauseId) ?? [];
-    bucket.push(edit);
-    buckets.set(clauseId, bucket);
+  const editsWithSort = edits.map((edit, index) => ({ edit, index }));
+  editsWithSort.sort((a, b) => {
+    const aMissing = isMissingClauseId(a.edit.clauseId ?? null);
+    const bMissing = isMissingClauseId(b.edit.clauseId ?? null);
+    if (aMissing !== bMissing) return aMissing ? 1 : -1;
+    return a.index - b.index;
   });
 
   const deduped: ProposedEditLike[] = [];
-  buckets.forEach((bucket) => {
-    const kept: ProposedEditLike[] = [];
-    bucket.forEach((edit) => {
-      const editText = `${edit.intent ?? ""} ${edit.proposedText ?? ""}`.trim();
-      const matchIndex = kept.findIndex((existing) => {
-        const existingText =
-          `${existing.intent ?? ""} ${existing.proposedText ?? ""}`.trim();
-        const similarity = similarityForText(editText, existingText);
-        return similarity >= 0.86;
-      });
-      if (matchIndex === -1) {
-        kept.push(edit);
-      }
+  editsWithSort.forEach(({ edit }) => {
+    const editText = `${edit.intent ?? ""} ${edit.proposedText ?? ""}`.trim();
+    const editClauseId = normalizeClauseId(edit.clauseId ?? "") || null;
+    const editMissing = isMissingClauseId(edit.clauseId ?? null);
+
+    const matchIndex = deduped.findIndex((existing) => {
+      const existingText =
+        `${existing.intent ?? ""} ${existing.proposedText ?? ""}`.trim();
+      const existingClauseId = normalizeClauseId(existing.clauseId ?? "") || null;
+      const existingMissing = isMissingClauseId(existing.clauseId ?? null);
+      const similarity = similarityForText(editText, existingText);
+      const sameClause = editClauseId && existingClauseId
+        ? editClauseId === existingClauseId
+        : false;
+      const threshold = editMissing || existingMissing
+        ? 0.72
+        : sameClause
+          ? 0.86
+          : 0.93;
+      return similarity >= threshold;
     });
-    deduped.push(...kept);
+
+    if (matchIndex === -1) {
+      deduped.push(edit);
+      return;
+    }
+
+    const existing = deduped[matchIndex];
+    const existingMissing = isMissingClauseId(existing.clauseId ?? null);
+    if (existingMissing && !editMissing) {
+      deduped[matchIndex] = edit;
+    }
   });
+
   return deduped;
 }
 

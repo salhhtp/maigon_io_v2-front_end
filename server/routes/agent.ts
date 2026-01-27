@@ -706,6 +706,25 @@ function applyEditsToPlainText(
   original: string,
   edits: AgentDraftEdit[],
 ): string {
+  const normalizeDraftText = (value: string) =>
+    value.toLowerCase().replace(/\s+/g, " ").trim();
+  const insertAfterParagraph = (
+    text: string,
+    matchIndex: number,
+    matchLength: number,
+    insertion: string,
+  ) => {
+    const afterMatch = text.slice(matchIndex + matchLength);
+    const paragraphBreak = afterMatch.match(/\n\s*\n/);
+    const insertPos = paragraphBreak?.index !== undefined
+      ? matchIndex + matchLength + paragraphBreak.index + paragraphBreak[0].length
+      : matchIndex + matchLength;
+    return (
+      text.slice(0, insertPos).replace(/\s*$/, "\n\n") +
+      insertion +
+      text.slice(insertPos)
+    ).replace(/\n{3,}/g, "\n\n");
+  };
   let output = original;
 
   for (const edit of edits) {
@@ -720,8 +739,14 @@ function applyEditsToPlainText(
 
     if (changeType === "insert") {
       if (!suggestion) continue;
+      if (normalizeDraftText(output).includes(normalizeDraftText(suggestion))) {
+        continue;
+      }
       if (pattern && pattern.test(output)) {
-        output = output.replace(pattern, (match) => `${match}\n\n${suggestion}`);
+        const match = pattern.exec(output);
+        if (match) {
+          output = insertAfterParagraph(output, match.index, match[0].length, suggestion);
+        }
         continue;
       }
       output = `${output.trim()}\n\n${suggestion}`;
