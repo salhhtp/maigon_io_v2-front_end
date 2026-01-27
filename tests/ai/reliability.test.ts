@@ -277,6 +277,37 @@ describe("Reliability harness", () => {
     expect(match.evidence).toBe("Exceptions");
   });
 
+  it("prefers definition clauses for definition requirements", () => {
+    const clauses = [
+      {
+        clauseId: "exceptions",
+        id: "exceptions",
+        title: "Exceptions",
+        originalText:
+          "Confidential Information shall not include information in the public domain.",
+        normalizedText:
+          "Confidential Information shall not include information in the public domain.",
+      },
+      {
+        clauseId: "confidential-information",
+        id: "confidential-information",
+        title: "Confidential Information",
+        originalText:
+          "Confidential Information shall mean any non-public information disclosed by the Discloser.",
+        normalizedText:
+          "Confidential Information shall mean any non-public information disclosed by the Discloser.",
+      },
+    ];
+    const content = clauses.map((clause) => clause.originalText).join(" ");
+    const match = findRequirementMatch(
+      "Definition of Confidential Information",
+      clauses,
+      content,
+    );
+    expect(match.met).toBe(true);
+    expect(match.evidence).toBe("Confidential Information");
+  });
+
   it("treats no-license clauses as satisfying IP license requirements", () => {
     const clauses = [
       {

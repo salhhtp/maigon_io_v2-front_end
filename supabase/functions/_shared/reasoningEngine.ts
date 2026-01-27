@@ -1706,12 +1706,29 @@ function backfillMissingClauseEdits(
 
   const clauseList = clauses ?? [];
   const existingEdits = report.proposedEdits ?? [];
-  const missingIssues = report.issuesToAddress.filter(isMissingClauseIssue);
-  if (missingIssues.length === 0) return report;
+  const shouldBackfillIssue = (
+    issue: AnalysisReport["issuesToAddress"][number],
+  ) => {
+    if (isMissingClauseIssue(issue)) return true;
+    const normalized = normalizeMatchText(issueSignals(issue));
+    if (!normalized) return false;
+    return (
+      normalized.includes("insert") ||
+      normalized.includes("add") ||
+      normalized.includes("include") ||
+      normalized.includes("missing") ||
+      normalized.includes("not present") ||
+      normalized.includes("must include") ||
+      normalized.includes("add or clarify") ||
+      normalized.includes("clarify")
+    );
+  };
+  const targetIssues = report.issuesToAddress.filter(shouldBackfillIssue);
+  if (targetIssues.length === 0) return report;
 
   const additions: AnalysisReport["proposedEdits"] = [];
 
-  missingIssues.forEach((issue, index) => {
+  targetIssues.forEach((issue, index) => {
     const issueText = issueSignals(issue);
     const template = templates.find((item) =>
       templateMatchesIssue(item, issueText),

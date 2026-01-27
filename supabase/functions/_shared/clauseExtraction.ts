@@ -1559,6 +1559,18 @@ function clauseSupportsDefinition(
   return normalized.includes("exception") || normalized.includes("exclude");
 }
 
+function clauseSupportsStrongDefinition(
+  clause: ClauseExtraction,
+  clauseText: string,
+): boolean {
+  const normalized = normalizeForMatch(
+    `${clause.title ?? ""} ${clauseText}`,
+  );
+  if (!normalized.includes("confidential information")) return false;
+  if (normalized.includes("shall mean") || normalized.includes("means")) return true;
+  return normalized.includes("definition");
+}
+
 function isTermSurvivalIssue(
   issue: AnalysisReport["issuesToAddress"][number],
 ): boolean {
@@ -1882,12 +1894,21 @@ function findDefinitionClause(
     if (direct) return direct;
   }
   const issueTokens = tokenizeForMatch(buildIssueSignalText(issue));
-  const supported = findBestClauseBySupport(
-    issueTokens,
-    clauses,
-    clauseSupportsDefinition,
-  );
-  return supported?.clause ?? null;
+  const prefersExclusions = issueMentionsExclusions(issue);
+  const primarySupport = prefersExclusions
+    ? clauseSupportsDefinition
+    : clauseSupportsStrongDefinition;
+  const supported = findBestClauseBySupport(issueTokens, clauses, primarySupport);
+  if (supported?.clause) return supported.clause;
+  if (!prefersExclusions) {
+    const fallback = findBestClauseBySupport(
+      issueTokens,
+      clauses,
+      clauseSupportsDefinition,
+    );
+    return fallback?.clause ?? null;
+  }
+  return null;
 }
 
 function getDefinitionGapDetail(

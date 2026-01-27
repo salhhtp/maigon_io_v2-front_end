@@ -99,7 +99,8 @@ export async function buildPatchedHtmlDraft(
   });
 
   const sanitizedHtml = stripDangerousHtml(patched.html) ?? patched.html;
-  const plainText = htmlToPlainText(sanitizedHtml) ?? null;
+  const plainText =
+    htmlToPlainText(stripTrackedDeletions(sanitizedHtml)) ?? null;
 
   return {
     html: sanitizedHtml,
@@ -137,7 +138,8 @@ export function buildPatchedHtmlFromString(
   }
 
   const sanitizedHtml = stripDangerousHtml(patched.html) ?? patched.html;
-  const plainText = htmlToPlainText(sanitizedHtml) ?? null;
+  const plainText =
+    htmlToPlainText(stripTrackedDeletions(sanitizedHtml)) ?? null;
 
   return {
     html: sanitizedHtml,
@@ -192,7 +194,12 @@ function applyEditsToHtml(
     }
 
     if (changeType === "remove" && targetNode) {
-      $(targetNode.element).remove();
+      const formatted = formatSuggestedText(edit);
+      if (formatted) {
+        $(targetNode.element).html(formatted);
+      } else {
+        $(targetNode.element).remove();
+      }
       usedNodes.add(targetNode.element);
       matched.push(resolvedId);
       lastTarget = null;
@@ -339,34 +346,59 @@ function computeMatchScore(a: string, b: string): number {
 }
 
 function formatSuggestedText(edit: AgentDraftEdit): string {
+  const changeType = (edit.changeType || "modify").toLowerCase();
   const suggestion = (edit.suggestedText || "").trim();
-  if (!suggestion) {
+  const original = (edit.originalText || "").trim();
+  if (!suggestion && changeType !== "remove") {
     return "";
   }
 
-  const paragraphs = suggestion
-    .split(/\n{2,}/)
-    .map((block) =>
-      block
-        .split(/\n/)
-        .map((line) => escapeHtml(line.trim()))
-        .join("<br />"),
-    )
-    .map((block) => (block.length > 0 ? block : "&nbsp;"));
-
-  let content = paragraphs.join("<br /><br />");
-  const prefix = extractNumberingPrefix(
-    edit.originalText,
-    edit.suggestedText,
-  );
-  if (prefix) {
-    const escapedPrefix = escapeHtml(prefix);
-    if (!suggestion.startsWith(prefix)) {
-      content = `${escapedPrefix} ${content}`;
+  const prefix = extractNumberingPrefix(edit.originalText, edit.suggestedText);
+  const formatTextBlock = (value: string) => {
+    if (!value) return "";
+    let text = value.trim();
+    if (prefix && text && !text.startsWith(prefix)) {
+      text = `${prefix} ${text}`;
     }
+    const paragraphs = text
+      .split(/\n{2,}/)
+      .map((block) =>
+        block
+          .split(/\n/)
+          .map((line) => escapeHtml(line.trim()))
+          .join("<br />"),
+      )
+      .map((block) => (block.length > 0 ? block : "&nbsp;"));
+    return paragraphs.join("<br /><br />");
+  };
+
+  const wrapInsert = (value: string) =>
+    `<ins style="text-decoration: underline; background-color: #ecfdf3; color: #027a48;">${value}</ins>`;
+  const wrapDelete = (value: string) =>
+    `<del style="text-decoration: line-through; background-color: #fef3f2; color: #b42318;">${value}</del>`;
+
+  const formattedSuggestion = suggestion ? formatTextBlock(suggestion) : "";
+  const formattedOriginal = original ? formatTextBlock(original) : "";
+
+  if (changeType === "insert") {
+    return wrapInsert(formattedSuggestion);
   }
 
-  return content;
+  if (changeType === "remove") {
+    return formattedOriginal ? wrapDelete(formattedOriginal) : "";
+  }
+
+  if (formattedOriginal) {
+    return `${wrapDelete(formattedOriginal)}<br /><br />${wrapInsert(formattedSuggestion)}`;
+  }
+
+  return formattedSuggestion;
+}
+
+function stripTrackedDeletions(html: string): string {
+  const $ = cheerio.load(html, { decodeEntities: false });
+  $("del").remove();
+  return $.html();
 }
 
 function extractNumberingPrefix(

@@ -209,6 +209,244 @@ describe("clauseExtraction", () => {
     expect(issue.clauseReference?.excerpt).toBe("Not present in contract");
   });
 
+  it("binds use limitation issues to receiving party obligations", () => {
+    const clauses: ClauseExtraction[] = [
+      {
+        id: "confidential-information",
+        clauseId: "confidential-information",
+        title: "Confidential Information",
+        category: "confidential_information",
+        originalText:
+          "Confidential Information includes business plans, trade secrets, and related materials.",
+        normalizedText:
+          "Confidential Information includes business plans, trade secrets, and related materials.",
+        importance: "high",
+        location: {
+          page: null,
+          section: "Confidential Information",
+          paragraph: null,
+          clauseNumber: "confidential-information",
+        },
+        references: ["segment 3"],
+        metadata: {
+          source: "segment-parser",
+          contractType: "non_disclosure_agreement",
+        },
+      },
+      {
+        id: "receiving-party",
+        clauseId: "receiving-party",
+        title: "The Receiving Party hereby undertakes",
+        category: "confidential_information",
+        originalText:
+          "The Receiving Party shall use Confidential Information solely for the Purpose and shall not disclose it to any third party without consent.",
+        normalizedText:
+          "The Receiving Party shall use Confidential Information solely for the Purpose and shall not disclose it to any third party without consent.",
+        importance: "high",
+        location: {
+          page: null,
+          section: "The Receiving Party hereby undertakes",
+          paragraph: null,
+          clauseNumber: "receiving-party",
+        },
+        references: ["segment 4"],
+        metadata: {
+          source: "segment-parser",
+          contractType: "non_disclosure_agreement",
+        },
+      },
+    ];
+
+    const report: AnalysisReport = {
+      version: "v3",
+      generatedAt: "2026-01-12T00:00:00Z",
+      generalInformation: {
+        complianceScore: 0,
+        selectedPerspective: "nda",
+        reviewTimeSeconds: 0,
+        timeSavingsMinutes: 0,
+        reportExpiry: "Not specified",
+      },
+      contractSummary: {
+        contractName: "Test NDA",
+        filename: "test-nda.txt",
+        parties: ["Company A", "Company B"],
+        agreementDirection: "Mutual",
+        purpose: "Confidentiality for evaluation",
+        verbalInformationCovered: true,
+        contractPeriod: "Indefinite",
+        governingLaw: "Not specified",
+        jurisdiction: "Not specified",
+      },
+      issuesToAddress: [
+        {
+          id: "ISS-USE",
+          title: "Use limitation & purpose",
+          category: "Use limitation & purpose",
+          severity: "medium",
+          tags: ["use limitation", "purpose", "need-to-know"],
+          recommendation:
+            "Add explicit need-to-know access controls and purpose limitation.",
+          rationale: "Use limitation language is not sufficiently explicit.",
+          clauseReference: {
+            clauseId: "missing-use-limitation",
+            heading: "Use limitation & purpose",
+            excerpt: "Not present in contract",
+            locationHint: {
+              page: null,
+              section: "Use limitation & purpose",
+              paragraph: null,
+              clauseNumber: "missing-use-limitation",
+            },
+          },
+        },
+      ],
+      criteriaMet: [],
+      clauseFindings: [],
+      proposedEdits: [],
+      metadata: {
+        model: "test",
+        modelCategory: "default",
+        playbookKey: "non_disclosure_agreement",
+      },
+      playbookInsights: [],
+      clauseExtractions: [],
+      similarityAnalysis: [],
+      deviationInsights: [],
+      actionItems: [],
+      draftMetadata: null,
+    };
+
+    const playbook = resolvePlaybook("nda");
+    const result = enhanceReportWithClauses(report, {
+      clauses,
+      content: clauses.map((clause) => clause.originalText).join(" "),
+      playbook,
+    });
+
+    const issue = result.issuesToAddress[0];
+    expect(issue.clauseReference?.clauseId).toBe("receiving-party");
+  });
+
+  it("prefers definition clauses when available for definition issues", () => {
+    const clauses: ClauseExtraction[] = [
+      {
+        id: "confidential-information",
+        clauseId: "confidential-information",
+        title: "Confidential Information",
+        category: "confidential_information",
+        originalText:
+          "Confidential Information shall mean any non-public information disclosed by the Discloser.",
+        normalizedText:
+          "Confidential Information shall mean any non-public information disclosed by the Discloser.",
+        importance: "high",
+        location: {
+          page: null,
+          section: "Confidential Information",
+          paragraph: null,
+          clauseNumber: "confidential-information",
+        },
+        references: ["segment 3"],
+        metadata: {
+          source: "segment-parser",
+          contractType: "non_disclosure_agreement",
+        },
+      },
+      {
+        id: "exceptions",
+        clauseId: "exceptions",
+        title: "Exceptions",
+        category: "confidential_information",
+        originalText:
+          "Confidential Information shall not include information in the public domain.",
+        normalizedText:
+          "Confidential Information shall not include information in the public domain.",
+        importance: "high",
+        location: {
+          page: null,
+          section: "Exceptions",
+          paragraph: null,
+          clauseNumber: "exceptions",
+        },
+        references: ["segment 5"],
+        metadata: {
+          source: "segment-parser",
+          contractType: "non_disclosure_agreement",
+        },
+      },
+    ];
+
+    const report: AnalysisReport = {
+      version: "v3",
+      generatedAt: "2026-01-12T00:00:00Z",
+      generalInformation: {
+        complianceScore: 0,
+        selectedPerspective: "nda",
+        reviewTimeSeconds: 0,
+        timeSavingsMinutes: 0,
+        reportExpiry: "Not specified",
+      },
+      contractSummary: {
+        contractName: "Test NDA",
+        filename: "test-nda.txt",
+        parties: ["Company A", "Company B"],
+        agreementDirection: "Mutual",
+        purpose: "Confidentiality for evaluation",
+        verbalInformationCovered: true,
+        contractPeriod: "Indefinite",
+        governingLaw: "Not specified",
+        jurisdiction: "Not specified",
+      },
+      issuesToAddress: [
+        {
+          id: "ISS-DEF",
+          title: "Definition of Confidential Information missing residual knowledge",
+          category: "Definition & scope",
+          severity: "high",
+          tags: ["definition", "residual knowledge"],
+          recommendation:
+            "Add residual knowledge stance and unmarked information handling.",
+          rationale: "Definition lacks residual knowledge language.",
+          clauseReference: {
+            clauseId: "missing-definition",
+            heading: "Definition of Confidential Information",
+            excerpt: "Not present in contract",
+            locationHint: {
+              page: null,
+              section: "Definition of Confidential Information",
+              paragraph: null,
+              clauseNumber: "missing-definition",
+            },
+          },
+        },
+      ],
+      criteriaMet: [],
+      clauseFindings: [],
+      proposedEdits: [],
+      metadata: {
+        model: "test",
+        modelCategory: "default",
+        playbookKey: "non_disclosure_agreement",
+      },
+      playbookInsights: [],
+      clauseExtractions: [],
+      similarityAnalysis: [],
+      deviationInsights: [],
+      actionItems: [],
+      draftMetadata: null,
+    };
+
+    const playbook = resolvePlaybook("nda");
+    const result = enhanceReportWithClauses(report, {
+      clauses,
+      content: clauses.map((clause) => clause.originalText).join(" "),
+      playbook,
+    });
+
+    const issue = result.issuesToAddress[0];
+    expect(issue.clauseReference?.clauseId).toBe("confidential-information");
+  });
+
   it("binds IP/no-license issues to clauses with intellectual property language", () => {
     const clauses: ClauseExtraction[] = [
       {

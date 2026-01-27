@@ -274,6 +274,18 @@ const STRUCTURAL_SYNONYMS: Record<string, string[]> = {
   license: ["licence", "licensed", "licensing"],
   ip: ["intellectual", "intellectual-property"],
   ownership: ["owner", "owned", "ownership", "transfer"],
+  purpose: ["purposes"],
+  purposes: ["purpose"],
+  use: ["use", "used", "using", "uses", "usage", "utilize", "utilise"],
+  limitation: [
+    "limit",
+    "limited",
+    "limits",
+    "limiting",
+    "restriction",
+    "restricted",
+    "restrict",
+  ],
   term: ["duration", "period", "expiry", "expiration", "expires", "expire"],
   termination: ["terminate", "terminated", "terminates", "terminating"],
   survival: ["survive", "survival"],
@@ -658,12 +670,21 @@ export function resolveClauseMatch(options: {
   const headingScore = topHeading?.score ?? 0;
   const textScore = topText?.score ?? 0;
   const hasHeadingReference = Boolean(headingQuery?.trim());
+  const prefersDefinitionHeading = Boolean(
+    headingQuery &&
+      topHeading &&
+      normalizeForMatch(headingQuery).includes("definition") &&
+      normalizeForMatch(topHeading.title ?? "").includes(
+        "confidential information",
+      ),
+  );
   const shouldPreferHeading =
     topHeading &&
     headingScore >= MIN_HEADING_SCORE &&
     (!topText ||
       textScore < MIN_MATCH_SCORE ||
       headingScore >= textScore + 0.08 ||
+      prefersDefinitionHeading ||
       (hasHeadingReference &&
         headingScore >= STRONG_HEADING_SCORE &&
         headingScore >= textScore - 0.05));
@@ -1348,6 +1369,36 @@ function findBestSupportedClause(
   return best;
 }
 
+function hasCompelledDisclosureProcessSignals(value: string): boolean {
+  const normalized = normalizeForMatch(value);
+  if (!normalized) return false;
+  const hasTrigger =
+    normalized.includes("required by law") ||
+    normalized.includes("court order") ||
+    normalized.includes("subpoena") ||
+    normalized.includes("regulator") ||
+    normalized.includes("regulatory") ||
+    normalized.includes("competent authority") ||
+    (normalized.includes("required") && normalized.includes("disclose"));
+  const hasNotice =
+    normalized.includes("notice") ||
+    normalized.includes("notify") ||
+    normalized.includes("notification") ||
+    normalized.includes("prompt");
+  const hasProtection =
+    normalized.includes("protective order") ||
+    normalized.includes("protective") ||
+    normalized.includes("cooperate") ||
+    normalized.includes("cooperation") ||
+    normalized.includes("assist");
+  const hasLimit =
+    normalized.includes("limit") ||
+    normalized.includes("minimum") ||
+    normalized.includes("minimize") ||
+    normalized.includes("restrict");
+  return hasTrigger && hasNotice && (hasProtection || hasLimit);
+}
+
 /**
  * Checks if a proposed edit is redundant because a clause already exists
  * that adequately covers the same topic.
@@ -1367,29 +1418,55 @@ function isRedundantEdit(
   const supportCheck = getEditSupportCheck(fullContent);
   if (!supportCheck) return false;
 
-  // Find if any clause supports this topic
-  const supportingClause = clauses.find((clause) => {
-    const clauseText =
-      clause.originalText ?? clause.normalizedText ?? clause.title ?? "";
-    if (!clauseText) return false;
-    return supportCheck(clause, clauseText);
-  });
+  const supportedMatch = findBestSupportedClause(
+    fullContent,
+    clauses,
+    supportCheck,
+  );
+  if (!supportedMatch) return false;
 
-  if (!supportingClause) return false;
-
-  // Check if the supporting clause has substantial overlap with the edit
   const clauseText =
-    supportingClause.originalText ??
-    supportingClause.normalizedText ??
-    supportingClause.title ??
+    supportedMatch.clause.originalText ??
+    supportedMatch.clause.normalizedText ??
+    supportedMatch.clause.title ??
     "";
-  const candidateText = `${supportingClause.title ?? ""} ${clauseText}`.trim();
-  const { score } = scoreTextSimilarity(fullContent, candidateText);
+  if (!clauseText) return false;
+  const candidateText = `${supportedMatch.clause.title ?? ""} ${clauseText}`.trim();
 
-  // If the clause covers >40% of the edit's content, consider it redundant
-  // This threshold is chosen to catch obvious duplicates while allowing
-  // legitimate enhancement suggestions
+  if (
+    supportCheck === clauseSupportsCompelledDisclosure &&
+    !hasCompelledDisclosureProcessSignals(candidateText)
+  ) {
+    return false;
+  }
+
+  const { score } = scoreTextSimilarity(fullContent, candidateText);
+  const clauseTokens = tokenizeForMatch(candidateText);
+  const editTokens = tokenizeForMatch(fullContent);
+  const structuralTokens = editTokens.filter((token) =>
+    isStructuralToken(token),
+  );
+  const hasStructuralOverlap =
+    structuralTokens.length === 0 ||
+    hasStructuralMatch(structuralTokens, clauseTokens);
+  const structuralCoverage =
+    structuralTokens.length > 0
+      ? coverageWithSynonyms(structuralTokens, clauseTokens)
+      : 0;
+
+  if (!hasStructuralOverlap && structuralTokens.length > 0) {
+    return false;
+  }
+
   if (score > 0.4) {
+    return true;
+  }
+
+  if (structuralTokens.length >= 2 && structuralCoverage >= 0.6) {
+    return true;
+  }
+
+  if (structuralTokens.length === 1 && structuralCoverage >= 0.8) {
     return true;
   }
 
@@ -1970,7 +2047,21 @@ export function findRequirementMatch(
   }
   const normalizedRequirement = normalizeForMatch(requirement);
   const requiresCompelledSignals =
-    normalizedRequirement.includes("compelled disclosure");
+    normalizedRequirement.includes("compelled") ||
+    (normalizedRequirement.includes("disclosure") &&
+      (normalizedRequirement.includes("legal") ||
+        normalizedRequirement.includes("court") ||
+        normalizedRequirement.includes("regulator") ||
+        normalizedRequirement.includes("authority")));
+  const requiresUseLimitationSignals =
+    normalizedRequirement.includes("use limitation") ||
+    normalizedRequirement.includes("need to know") ||
+    normalizedRequirement.includes("need-to-know") ||
+    (normalizedRequirement.includes("purpose") &&
+      normalizedRequirement.includes("use"));
+  const requiresDefinitionSignals =
+    normalizedRequirement.includes("definition") &&
+    normalizedRequirement.includes("confidential");
   const requiresIpLicenseSignals =
     normalizedRequirement.includes("license") &&
     (normalizedRequirement.includes("ip") ||
@@ -2003,6 +2094,14 @@ export function findRequirementMatch(
     const hasDisclosure = disclosureSignals.some((token) => tokenSet.has(token));
     const hasCompelled = compelledSignals.some((token) => tokenSet.has(token));
     return hasDisclosure && hasCompelled;
+  };
+
+  const hasStrongDefinitionSignals = (value: string) => {
+    const normalized = normalizeForMatch(value);
+    if (!normalized.includes("confidential information")) return false;
+    if (normalized.includes("shall mean")) return true;
+    if (normalized.includes("definition")) return true;
+    return normalized.includes("means");
   };
 
   const hasIpLicenseSignals = (tokens: string[]) => {
@@ -2077,6 +2176,12 @@ export function findRequirementMatch(
     if (requiresCompelledSignals && !hasCompelledDisclosureSignals(clauseTokens)) {
       continue;
     }
+    if (requiresUseLimitationSignals && !clauseSupportsUseLimitation(clause, clauseText)) {
+      continue;
+    }
+    if (requiresDefinitionSignals && !hasStrongDefinitionSignals(clauseText)) {
+      continue;
+    }
     if (
       structuralTokens.length > 0 &&
       !hasStructuralMatch(structuralTokens, clauseTokens)
@@ -2114,6 +2219,11 @@ export function findRequirementMatch(
       } ${headingClause.normalizedText ?? ""}`;
       const clauseTokens = tokenizeForMatch(clauseText);
       if (!requiresCompelledSignals || hasCompelledDisclosureSignals(clauseTokens)) {
+        const meetsUseLimitation =
+          !requiresUseLimitationSignals ||
+          clauseSupportsUseLimitation(headingClause, clauseText);
+        const meetsDefinitionSignals =
+          !requiresDefinitionSignals || hasStrongDefinitionSignals(clauseText);
         const passesStructure =
           structuralTokens.length === 0 ||
           hasStructuralMatch(structuralTokens, clauseTokens);
@@ -2129,6 +2239,8 @@ export function findRequirementMatch(
           ? MIN_HEADING_SCORE
           : bestScore + 0.08;
         if (
+          meetsUseLimitation &&
+          meetsDefinitionSignals &&
           passesStructure &&
           (topHeading.score >= headingThreshold || preferDefinitionHeading)
         ) {

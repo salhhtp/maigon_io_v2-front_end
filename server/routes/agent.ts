@@ -702,12 +702,93 @@ function inferSuggestionChangeType(options: {
   return "modify";
 }
 
+function inferInsertionReference(options: {
+  proposedText?: string | null;
+  clauseId?: string | null;
+  clauseTitle?: string | null;
+  anchorText?: string | null;
+}): string | null {
+  if (options.clauseTitle && options.clauseTitle.trim()) {
+    return options.clauseTitle.trim();
+  }
+  if (options.clauseId && options.clauseId.trim()) {
+    return options.clauseId.trim();
+  }
+  const proposedText = (options.proposedText ?? "").trim();
+  if (!proposedText) return null;
+
+  const headingMatch = proposedText.match(/^([A-Za-z0-9 &/()-]{3,80})[:.]/);
+  const heading = headingMatch?.[1]?.trim().toLowerCase() ?? "";
+  const normalized = proposedText.toLowerCase();
+
+  if (heading.includes("remedies") || normalized.includes("injunctive relief")) {
+    return "MISCELLANEOUS";
+  }
+  if (heading.includes("compelled disclosure") || normalized.includes("compelled disclosure")) {
+    return "Exceptions";
+  }
+  if (
+    heading.includes("marking") ||
+    heading.includes("reasonable notice") ||
+    normalized.includes("marking and notice")
+  ) {
+    return "Confidential Information";
+  }
+  if (heading.includes("residual knowledge") || normalized.includes("residual knowledge")) {
+    return "Confidential Information";
+  }
+  if (
+    heading.includes("use limitation") ||
+    heading.includes("need-to-know") ||
+    normalized.includes("need to know")
+  ) {
+    return "The Receiving Party hereby undertakes";
+  }
+  if (heading.includes("term") || heading.includes("survival")) {
+    return "term and termination";
+  }
+  if (heading.includes("no license") || normalized.includes("no license")) {
+    return "No Binding Commitments";
+  }
+  if (heading.includes("limitation of liability") || normalized.includes("liability")) {
+    return "MISCELLANEOUS";
+  }
+  if (heading.includes("export control") || normalized.includes("export control")) {
+    return "MISCELLANEOUS";
+  }
+
+  const anchorText = (options.anchorText ?? "").trim();
+  if (anchorText && !isMissingPlaceholder(anchorText)) {
+    return anchorText;
+  }
+
+  return null;
+}
+
 function applyEditsToPlainText(
   original: string,
   edits: AgentDraftEdit[],
 ): string {
   const normalizeDraftText = (value: string) =>
-    value.toLowerCase().replace(/\s+/g, " ").trim();
+    value
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  const isHeadingLine = (line: string) => {
+    const trimmed = line.trim();
+    if (!trimmed) return false;
+    if (trimmed.length > 80) return false;
+    if (/[.;:]$/.test(trimmed)) return false;
+    const words = trimmed.split(/\s+/).filter(Boolean);
+    if (!words.length) return false;
+    const uppercase = words.filter((word) => word === word.toUpperCase());
+    const titleCase = words.filter(
+      (word) => word[0] && word[0] === word[0].toUpperCase(),
+    );
+    if (uppercase.length === words.length) return true;
+    return titleCase.length / words.length >= 0.6;
+  };
   const insertAfterParagraph = (
     text: string,
     matchIndex: number,
@@ -724,6 +805,42 @@ function applyEditsToPlainText(
       insertion +
       text.slice(insertPos)
     ).replace(/\n{3,}/g, "\n\n");
+  };
+  const insertAfterSection = (
+    text: string,
+    reference: string,
+    insertion: string,
+  ) => {
+    const lines = text.split(/\r?\n/);
+    const normalizedRef = normalizeDraftText(reference);
+    if (!normalizedRef) return null;
+    let headingIndex = -1;
+    for (let i = 0; i < lines.length; i += 1) {
+      const lineText = normalizeDraftText(lines[i] ?? "");
+      if (lineText && lineText.includes(normalizedRef)) {
+        headingIndex = i;
+        break;
+      }
+    }
+    if (headingIndex < 0) return null;
+    let endIndex = lines.length;
+    for (let i = headingIndex + 1; i < lines.length; i += 1) {
+      if (isHeadingLine(lines[i] ?? "")) {
+        endIndex = i;
+        break;
+      }
+    }
+    const insertionLines = insertion.split(/\r?\n/);
+    const updated = [
+      ...lines.slice(0, endIndex),
+      "",
+      ...insertionLines,
+      "",
+      ...lines.slice(endIndex),
+    ]
+      .join("\n")
+      .replace(/\n{3,}/g, "\n\n");
+    return updated;
   };
   let output = original;
 
@@ -748,6 +865,13 @@ function applyEditsToPlainText(
           output = insertAfterParagraph(output, match.index, match[0].length, suggestion);
         }
         continue;
+      }
+      if (edit.clauseReference) {
+        const updated = insertAfterSection(output, edit.clauseReference, suggestion);
+        if (updated) {
+          output = updated;
+          continue;
+        }
       }
       output = `${output.trim()}\n\n${suggestion}`;
       continue;
@@ -1339,6 +1463,15 @@ async function composeDraft(
         previousText: proposed.previousText ?? null,
         anchorText: proposed.anchorText ?? null,
       });
+      const inferredInsertionReference =
+        changeType === "insert"
+          ? inferInsertionReference({
+              proposedText: proposed.updatedText ?? proposed.proposedText ?? null,
+              clauseId: proposed.clauseId ?? null,
+              clauseTitle: proposed.clauseTitle ?? null,
+              anchorText: proposed.anchorText ?? null,
+            })
+          : null;
       const anchorIsPlaceholder = isMissingPlaceholder(
         proposed.previousText ?? proposed.anchorText ?? "",
       );
@@ -1346,6 +1479,7 @@ async function composeDraft(
         changeType === "insert"
           ? proposed.clauseTitle ??
             proposed.clauseId ??
+            inferredInsertionReference ??
             (anchorIsPlaceholder ? null : proposed.anchorText) ??
             null
           : proposed.clauseTitle ??
