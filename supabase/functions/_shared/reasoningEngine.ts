@@ -981,6 +981,7 @@ function buildJsonSchemaDescription(
     "- issuesToAddress: Issues with id, title, severity, recommendation, rationale, clauseReference { clauseId, heading, excerpt, locationHint }. Excerpt must quote or paraphrase the retrieved clause excerpts or clause digest. If a clause is missing, state \"Not present in contract\" in excerpt and location.",
     "- criteriaMet: Checklist items with id, title, description, met, evidence.",
     "- proposedEdits: Each edit with id, clauseId, anchorText, proposedText, intent, rationale. Anchor text must be an exact excerpt from the extracted clause text provided; for missing-clause inserts use the literal \"Not present in contract\" and include insertion guidance in the rationale. Proposed text = fully rewritten clause or paragraph ready to paste into the contract. Intent must be insert|replace|remove.",
+    "- Provide one proposed edit per issue. Prefer surgical inserts or minimal replacements; avoid rewriting entire clauses unless necessary.",
     "- metadata: model + classification + token usage + critique notes.",
     "Do not include previewHtml/previousText/updatedText/applyByDefault; these are derived later.",
     "Optional sections (playbookInsights, clauseExtractions, similarityAnalysis, deviationInsights, actionItems, draftMetadata) should be omitted unless explicitly requested.",
@@ -1713,6 +1714,192 @@ function applyTemplateContext(
     );
   }
   return text;
+}
+
+function findClauseByIssue(
+  issue: AnalysisReport["issuesToAddress"][number],
+  clauses: ClauseExtraction[],
+): ClauseExtraction | null {
+  const clauseId = normalizeMatchText(issue.clauseReference?.clauseId ?? "");
+  if (!clauseId) return null;
+  return (
+    clauses.find((clause) => {
+      const candidate = normalizeMatchText(
+        clause.clauseId ?? clause.id ?? "",
+      );
+      return candidate === clauseId;
+    }) ?? null
+  );
+}
+
+function selectTemplateForIssue(
+  templates: ClauseTemplate[],
+  issue: AnalysisReport["issuesToAddress"][number],
+  hasClauseEvidence: boolean,
+): ClauseTemplate | null {
+  if (!templates.length) return null;
+  const issueId = normalizeMatchText(issue.id ?? "");
+  const normalized = normalizeMatchText(issueSignals(issue));
+
+  if (
+    !hasClauseEvidence &&
+    (normalized.includes("definition") || normalized.includes("exclusion"))
+  ) {
+    return templates.find((item) => item.id === "nda-definition-exclusions") ?? null;
+  }
+
+  if (issueId.includes("residual")) {
+    return templates.find((item) => item.id === "nda-residual-knowledge") ?? null;
+  }
+  if (normalized.includes("marking") || normalized.includes("unmarked")) {
+    return templates.find((item) => item.id === "nda-marking-notice") ?? null;
+  }
+  if (
+    normalized.includes("return") ||
+    normalized.includes("destruction") ||
+    normalized.includes("backup")
+  ) {
+    return templates.find((item) => item.id === "nda-return-destruction") ?? null;
+  }
+  if (
+    normalized.includes("compelled") ||
+    normalized.includes("protective order") ||
+    normalized.includes("subpoena")
+  ) {
+    return templates.find((item) => item.id === "nda-compelled-disclosure") ?? null;
+  }
+  if (
+    normalized.includes("governing law") ||
+    normalized.includes("jurisdiction") ||
+    normalized.includes("dispute")
+  ) {
+    const preferred = hasClauseEvidence
+      ? "nda-governing-law-clarify"
+      : "nda-governing-law";
+    return templates.find((item) => item.id === preferred) ?? null;
+  }
+
+  return templates.find((item) => templateMatchesIssue(item, normalized)) ?? null;
+}
+
+function buildProposedEditsForIssues(
+  report: AnalysisReport,
+  playbook: ContractPlaybook,
+  clauses: ClauseExtraction[] | null,
+): AnalysisReport["proposedEdits"] {
+  const templates = playbook.clauseTemplates ?? [];
+  const clauseList = clauses ?? [];
+  const existingEdits = report.proposedEdits ?? [];
+
+  return report.issuesToAddress
+    .map((issue, index) => {
+      const issueId =
+        typeof issue.id === "string" && issue.id.trim().length > 0
+          ? issue.id
+          : `ISSUE_${index + 1}`;
+      const hasClauseEvidence = !isMissingClauseIssue(issue);
+      const template = selectTemplateForIssue(
+        templates,
+        issue,
+        hasClauseEvidence,
+      );
+      const matchedEdit = template
+        ? existingEdits.find((edit) => editMatchesTemplate(edit, template))
+        : undefined;
+
+      const baseEdit =
+        matchedEdit && typeof matchedEdit === "object"
+          ? { ...(matchedEdit as Record<string, unknown>) }
+          : null;
+      const baseProposedText =
+        baseEdit && typeof baseEdit.proposedText === "string"
+          ? baseEdit.proposedText
+          : "";
+      const fallbackProposedText = template
+        ? applyTemplateContext(template.text, report)
+        : "";
+
+      let anchorClause: ClauseExtraction | null = null;
+      let fallbackAnchorText = "";
+      let fallbackAnchorId: string | undefined;
+      if (template) {
+        const insertionAnchor = resolveInsertionAnchor(template, clauseList);
+        if (insertionAnchor?.clauseId) {
+          anchorClause =
+            clauseList.find(
+              (clause) =>
+                normalizeMatchText(clause.clauseId ?? clause.id ?? "") ===
+                normalizeMatchText(insertionAnchor.clauseId),
+            ) ?? null;
+          fallbackAnchorId = insertionAnchor.clauseId;
+          fallbackAnchorText = insertionAnchor.anchorText;
+        }
+      }
+      if (!anchorClause) {
+        anchorClause = findClauseByIssue(issue, clauseList);
+      }
+
+      const anchorText = anchorClause?.originalText
+        ? pickAnchorSnippet(anchorClause.originalText)
+        : fallbackAnchorText || "Not present in contract";
+      const anchorClauseId =
+        anchorClause?.clauseId ??
+        anchorClause?.id ??
+        fallbackAnchorId ??
+        undefined;
+
+      if (baseEdit) {
+        const resolvedProposedText = baseProposedText || fallbackProposedText;
+        return {
+          ...baseEdit,
+          id: issueId,
+          clauseId: anchorClauseId ?? (baseEdit.clauseId as string | undefined),
+          anchorText: anchorText || (baseEdit.anchorText as string | undefined),
+          intent:
+            typeof baseEdit.intent === "string" && baseEdit.intent.length > 0
+              ? baseEdit.intent
+              : "insert",
+          previousText:
+            typeof baseEdit.previousText === "string" &&
+            baseEdit.previousText.length > 0
+              ? baseEdit.previousText
+              : anchorText,
+          updatedText:
+            typeof baseEdit.updatedText === "string" &&
+            baseEdit.updatedText.length > 0
+              ? baseEdit.updatedText
+              : resolvedProposedText,
+          proposedText: resolvedProposedText,
+          rationale:
+            (baseEdit.rationale as string | undefined) ??
+            issue.recommendation ??
+            issue.rationale ??
+            `Insert ${template?.title ?? "clause"}.`,
+        };
+      }
+
+      if (!template) return null;
+
+      const proposedText = applyTemplateContext(template.text, report);
+      const rationale =
+        issue.recommendation ??
+        issue.rationale ??
+        `Insert ${template.title} clause.`;
+
+      return {
+        id: issueId,
+        clauseId: anchorClauseId,
+        anchorText,
+        proposedText,
+        intent: "insert",
+        rationale,
+        previousText: anchorText,
+        updatedText: proposedText,
+      };
+    })
+    .filter(
+      (entry): entry is AnalysisReport["proposedEdits"][number] => Boolean(entry),
+    );
 }
 
 function backfillMissingClauseEdits(
@@ -2652,21 +2839,24 @@ async function finalizeReasoningReport(
     playbook: session.playbook,
     preferModelEvidence: true,
   });
-  const reportWithMissingEdits = backfillMissingClauseEdits(
-    clauseAlignedReport,
-    session.playbook,
-    context.clauseExtractions ?? clauseAlignedReport.clauseExtractions ?? [],
-  );
+  const reportWithIssueEdits: AnalysisReport = {
+    ...clauseAlignedReport,
+    proposedEdits: buildProposedEditsForIssues(
+      clauseAlignedReport,
+      session.playbook,
+      context.clauseExtractions ?? clauseAlignedReport.clauseExtractions ?? [],
+    ),
+  };
   const boundEdits = bindProposedEditsToClauses({
-    proposedEdits: reportWithMissingEdits.proposedEdits,
-    issues: reportWithMissingEdits.issuesToAddress,
+    proposedEdits: reportWithIssueEdits.proposedEdits,
+    issues: reportWithIssueEdits.issuesToAddress,
     clauses:
       context.clauseExtractions ??
-      reportWithMissingEdits.clauseExtractions ??
+      reportWithIssueEdits.clauseExtractions ??
       [],
   });
   const clauseAlignedReportWithEdits: AnalysisReport = {
-    ...reportWithMissingEdits,
+    ...reportWithIssueEdits,
     proposedEdits: boundEdits,
   };
   const dedupedReport: AnalysisReport = {

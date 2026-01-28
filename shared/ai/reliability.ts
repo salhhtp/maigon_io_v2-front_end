@@ -1607,9 +1607,13 @@ export function bindProposedEditsToClauses(options: {
       typeof edit.previousText === "string" ? edit.previousText.trim() : "";
     const intent =
       typeof edit.intent === "string" ? edit.intent.toLowerCase() : "";
-    const missingAnchor = isMissingEvidenceMarker(
-      rawPreviousText || rawAnchorText,
-    );
+    const anchorMissing =
+      rawAnchorText.length === 0 ||
+      isMissingEvidenceMarker(rawAnchorText);
+    const previousMissing =
+      rawPreviousText.length === 0 ||
+      isMissingEvidenceMarker(rawPreviousText);
+    const missingAnchor = anchorMissing && previousMissing;
     const editId = typeof edit.id === "string" ? edit.id : "";
     const normalizedEditId = editId.toLowerCase();
     const editClauseId =
@@ -2719,47 +2723,18 @@ export function dedupeIssues(issues: IssueLike[]): IssueLike[] {
 export function dedupeProposedEdits(
   edits: ProposedEditLike[],
 ): ProposedEditLike[] {
-  const editsWithSort = edits.map((edit, index) => ({ edit, index }));
-  editsWithSort.sort((a, b) => {
-    const aMissing = isMissingClauseId(a.edit.clauseId ?? null);
-    const bMissing = isMissingClauseId(b.edit.clauseId ?? null);
-    if (aMissing !== bMissing) return aMissing ? 1 : -1;
-    return a.index - b.index;
-  });
-
   const deduped: ProposedEditLike[] = [];
-  editsWithSort.forEach(({ edit }) => {
-    const editText = `${edit.intent ?? ""} ${edit.proposedText ?? ""}`.trim();
-    const editClauseId = normalizeClauseId(edit.clauseId ?? "") || null;
-    const editMissing = isMissingClauseId(edit.clauseId ?? null);
-
-    const matchIndex = deduped.findIndex((existing) => {
-      const existingText =
-        `${existing.intent ?? ""} ${existing.proposedText ?? ""}`.trim();
-      const existingClauseId = normalizeClauseId(existing.clauseId ?? "") || null;
-      const existingMissing = isMissingClauseId(existing.clauseId ?? null);
-      const similarity = similarityForText(editText, existingText);
-      const sameClause = editClauseId && existingClauseId
-        ? editClauseId === existingClauseId
-        : false;
-      const threshold = editMissing || existingMissing
-        ? 0.72
-        : sameClause
-          ? 0.86
-          : 0.93;
-      return similarity >= threshold;
-    });
-
-    if (matchIndex === -1) {
-      deduped.push(edit);
+  const seenIds = new Set<string>();
+  edits.forEach((edit) => {
+    const rawId = typeof edit.id === "string" ? edit.id.trim() : "";
+    const normalizedId = rawId.toLowerCase();
+    if (normalizedId && seenIds.has(normalizedId)) {
       return;
     }
-
-    const existing = deduped[matchIndex];
-    const existingMissing = isMissingClauseId(existing.clauseId ?? null);
-    if (existingMissing && !editMissing) {
-      deduped[matchIndex] = edit;
+    if (normalizedId) {
+      seenIds.add(normalizedId);
     }
+    deduped.push(edit);
   });
 
   return deduped;

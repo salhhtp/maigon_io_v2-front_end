@@ -160,6 +160,25 @@ export const CONTRACT_PLAYBOOKS: Record<PlaybookKey, ContractPlaybook> = {
           "Remedies. The Discloser may seek injunctive relief and specific performance to prevent or cure any unauthorized use or disclosure of Confidential Information, in addition to any other remedies available at law or in equity. Remedies are cumulative, and the availability of damages does not limit equitable relief.",
       },
       {
+        id: "nda-definition-exclusions",
+        title: "Definition of Confidential Information and Exclusions",
+        tags: [
+          "definition",
+          "confidential information",
+          "exclusions",
+          "prior knowledge",
+          "public domain",
+          "independently developed",
+        ],
+        insertionAnchors: [
+          "Confidential Information",
+          "Definition of Confidential Information",
+          "Whereas",
+        ],
+        text:
+          "Definition of Confidential Information. For purposes of this Agreement, Confidential Information means any non-public information disclosed by the Disclosing Party to the Receiving Party, whether oral, written, electronic, or other form, that is designated as confidential or that a reasonable person would understand to be confidential under the circumstances. Exclusions. Confidential Information does not include information that (i) was known to the Receiving Party without obligation of confidentiality before disclosure, (ii) becomes publicly known through no fault of the Receiving Party, (iii) is independently developed without use of the Disclosing Party's Confidential Information, or (iv) is rightfully received from a third party without breach of confidentiality.",
+      },
+      {
         id: "nda-marking-notice",
         title: "Marking and reasonable notice",
         tags: ["marking", "reasonable notice", "unmarked", "confidentiality"],
@@ -184,6 +203,14 @@ export const CONTRACT_PLAYBOOKS: Record<PlaybookKey, ContractPlaybook> = {
           "Residual knowledge. The Receiving Party's obligations apply regardless of any residual knowledge retained in unaided memory. Residual knowledge does not authorize use or disclosure of Confidential Information or derivative information.",
       },
       {
+        id: "nda-compelled-disclosure",
+        title: "Compelled disclosure",
+        tags: ["compelled disclosure", "notice", "protective order", "subpoena", "regulatory"],
+        insertionAnchors: ["Exceptions", "Permitted disclosures", "Confidential Information"],
+        text:
+          "Compelled disclosure. If the Receiving Party is required by law, regulation, subpoena, or other governmental process to disclose Confidential Information, it shall promptly notify the Disclosing Party (to the extent permitted), cooperate to seek a protective order or limit disclosure, and disclose only the minimum required.",
+      },
+      {
         id: "nda-use-limitation",
         title: "Use limitation and need-to-know",
         tags: ["use limitation", "purpose", "need-to-know", "need to know"],
@@ -201,6 +228,18 @@ export const CONTRACT_PLAYBOOKS: Record<PlaybookKey, ContractPlaybook> = {
         insertionAnchors: ["MISCELLANEOUS", "Governing law", "Term and termination"],
         text:
           "Limitation of liability. Except for breaches of confidentiality, misuse of Confidential Information, willful misconduct, or infringement of intellectual property rights, each party's aggregate liability arising out of this Agreement is limited to the greater of USD 100,000 or the total fees paid (if any) under this Agreement. Neither party is liable for indirect, consequential, special, or punitive damages to the maximum extent permitted by law.",
+      },
+      {
+        id: "nda-return-destruction",
+        title: "Return/Destruction",
+        tags: ["return", "destruction", "backups", "archives", "destruction certificate"],
+        insertionAnchors: [
+          "The Receiving Party hereby undertakes",
+          "Return or Destruction",
+          "MISCELLANEOUS",
+        ],
+        text:
+          "Return/Destruction. Upon termination or upon the Discloser's written request, the Receiving Party shall return or destroy all Confidential Information, including copies and summaries. Electronic backups and archives containing Confidential Information shall be destroyed or rendered inaccessible to the extent practicable. Upon request, the Receiving Party shall provide a written destruction certificate.",
       },
       {
         id: "nda-export-control",
@@ -241,6 +280,14 @@ export const CONTRACT_PLAYBOOKS: Record<PlaybookKey, ContractPlaybook> = {
         insertionAnchors: ["MISCELLANEOUS"],
         text:
           "Governing law and disputes. This Agreement is governed by the laws of the Discloser's jurisdiction of incorporation, without regard to conflict of laws rules. The parties submit to the exclusive jurisdiction of the courts located in that jurisdiction for any dispute arising out of or relating to this Agreement.",
+      },
+      {
+        id: "nda-governing-law-clarify",
+        title: "Governing law clarification",
+        tags: ["governing law", "jurisdiction", "dispute resolution", "clarify"],
+        insertionAnchors: ["Governing law", "GOVERNING LAW AND DISPUTES"],
+        text:
+          "Forum election. The parties may agree in writing to resolve disputes by arbitration; absent such agreement, disputes shall be resolved by the courts identified above.",
       },
     ],
     clauseAnchors: [

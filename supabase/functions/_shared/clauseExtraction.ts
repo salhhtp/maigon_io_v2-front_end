@@ -2567,6 +2567,7 @@ export function validateAndFixContractSummary(
       /each party may disclose/i,
       /either party may disclose/i,
       /both parties may disclose/i,
+      /each referred to as.*discloser.*receiving party/i,
     ];
     const oneWayIndicators = [
       /disclosing party.*receiving party/i,
