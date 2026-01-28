@@ -1,4 +1,8 @@
-import { unzipSync, strFromU8 } from "https://esm.sh/fflate@0.8.1?target=deno";
+import {
+  inflateSync,
+  unzipSync,
+  strFromU8,
+} from "https://esm.sh/fflate@0.8.1?target=deno";
 
 /**
  * Real PDF text extraction for contract analysis
@@ -36,78 +40,150 @@ export async function extractTextFromPDF(base64Data: string): Promise<string> {
 }
 
 function extractPDFText(pdfBytes: Uint8Array): string {
-  // Convert bytes to string
   const decoder = new TextDecoder("utf-8", { fatal: false });
-  let pdfString = decoder.decode(pdfBytes);
+  const encoder = new TextEncoder();
+  const pdfString = decoder.decode(pdfBytes);
 
-  // Extract text between stream objects
   const textMatches: string[] = [];
 
-  // Method 1: Extract from stream objects
-  const streamRegex = /stream\s*(.*?)\s*endstream/gs;
-  let match;
-  while ((match = streamRegex.exec(pdfString)) !== null) {
-    const streamContent = match[1];
-    // Decode if it looks like text
-    if (
-      streamContent &&
-      !streamContent.includes("\x00") &&
-      streamContent.length > 10
-    ) {
-      textMatches.push(streamContent);
+  const extractTextFromContent = (content: string) => {
+    const matches: string[] = [];
+    if (!content) return matches;
+    const textObjectRegex = /BT\s*(.*?)\s*ET/gs;
+    let match;
+    while ((match = textObjectRegex.exec(content)) !== null) {
+      const textContent = match[1];
+      const textCommands = textContent.match(/\((.*?)\)\s*Tj/g);
+      if (textCommands) {
+        textCommands.forEach((cmd) => {
+          const text = cmd.match(/\((.*?)\)/)?.[1];
+          if (text) matches.push(text);
+        });
+      }
+      const arrayCommands = textContent.match(/\[(.*?)\]\s*TJ/g);
+      if (arrayCommands) {
+        arrayCommands.forEach((cmd) => {
+          const texts = cmd.match(/\((.*?)\)/g);
+          if (texts) {
+            texts.forEach((t) => {
+              const text = t.match(/\((.*?)\)/)?.[1];
+              if (text) matches.push(text);
+            });
+          }
+        });
+      }
     }
-  }
+    return matches;
+  };
 
-  // Method 2: Extract from text objects - more reliable for most PDFs
-  const textObjectRegex = /BT\s*(.*?)\s*ET/gs;
-  while ((match = textObjectRegex.exec(pdfString)) !== null) {
-    const textContent = match[1];
-    // Extract actual text from PDF commands
-    const textCommands = textContent.match(/\((.*?)\)\s*Tj/g);
-    if (textCommands) {
-      textCommands.forEach((cmd) => {
-        const text = cmd.match(/\((.*?)\)/)?.[1];
-        if (text) {
-          textMatches.push(text);
-        }
-      });
-    }
-
-    // Also try TJ (array) commands
-    const arrayCommands = textContent.match(/\[(.*?)\]\s*TJ/g);
-    if (arrayCommands) {
-      arrayCommands.forEach((cmd) => {
-        const texts = cmd.match(/\((.*?)\)/g);
-        if (texts) {
-          texts.forEach((t) => {
-            const text = t.match(/\((.*?)\)/)?.[1];
-            if (text) {
-              textMatches.push(text);
-            }
-          });
-        }
-      });
-    }
-  }
-
-  // Method 3: Fallback - extract readable ASCII text
-  if (textMatches.length === 0) {
+  const extractReadableSegments = (content: string) => {
+    if (!content) return [];
     const asciiRegex = /[\x20-\x7E]{10,}/g;
-    const asciiMatches = pdfString.match(asciiRegex);
-    if (asciiMatches) {
-      // Filter out common PDF structure keywords
-      const filtered = asciiMatches.filter(
-        (text) =>
-          !text.startsWith("/") &&
-          !text.includes("endobj") &&
-          !text.includes("stream") &&
-          text.split(" ").length > 1,
-      );
-      textMatches.push(...filtered);
+    const asciiMatches = content.match(asciiRegex) ?? [];
+    return asciiMatches.filter(
+      (text) =>
+        !text.startsWith("/") &&
+        !text.includes("endobj") &&
+        !text.includes("stream") &&
+        text.split(" ").length > 1,
+    );
+  };
+
+  const indexOfSequence = (
+    haystack: Uint8Array,
+    needle: Uint8Array,
+    start = 0,
+  ) => {
+    if (needle.length === 0) return -1;
+    for (let i = start; i <= haystack.length - needle.length; i += 1) {
+      let found = true;
+      for (let j = 0; j < needle.length; j += 1) {
+        if (haystack[i + j] !== needle[j]) {
+          found = false;
+          break;
+        }
+      }
+      if (found) return i;
+    }
+    return -1;
+  };
+
+  const lastIndexOfSequence = (
+    haystack: Uint8Array,
+    needle: Uint8Array,
+    end: number,
+  ) => {
+    if (needle.length === 0) return -1;
+    const start = Math.min(end, haystack.length - needle.length);
+    for (let i = start; i >= 0; i -= 1) {
+      let found = true;
+      for (let j = 0; j < needle.length; j += 1) {
+        if (haystack[i + j] !== needle[j]) {
+          found = false;
+          break;
+        }
+      }
+      if (found) return i;
+    }
+    return -1;
+  };
+
+  const decodeStream = (bytes: Uint8Array) => decoder.decode(bytes);
+
+  textMatches.push(...extractTextFromContent(pdfString));
+
+  const streamMarker = encoder.encode("stream");
+  const endStreamMarker = encoder.encode("endstream");
+  const dictStartMarker = encoder.encode("<<");
+  const dictEndMarker = encoder.encode(">>");
+  let cursor = 0;
+  while (true) {
+    const streamIndex = indexOfSequence(pdfBytes, streamMarker, cursor);
+    if (streamIndex === -1) break;
+    const dictStart = lastIndexOfSequence(pdfBytes, dictStartMarker, streamIndex);
+    const dictEnd = lastIndexOfSequence(pdfBytes, dictEndMarker, streamIndex);
+    const dictText =
+      dictStart !== -1 && dictEnd !== -1 && dictEnd > dictStart
+        ? decoder.decode(
+            pdfBytes.slice(dictStart, dictEnd + dictEndMarker.length),
+          )
+        : "";
+    let dataStart = streamIndex + streamMarker.length;
+    if (pdfBytes[dataStart] === 0x0d && pdfBytes[dataStart + 1] === 0x0a) {
+      dataStart += 2;
+    } else if (pdfBytes[dataStart] === 0x0a) {
+      dataStart += 1;
+    }
+    const dataEnd = indexOfSequence(pdfBytes, endStreamMarker, dataStart);
+    if (dataEnd === -1) break;
+    let streamData = pdfBytes.slice(dataStart, dataEnd);
+    const isFlate =
+      /\/Filter\s*\/FlateDecode/i.test(dictText) ||
+      /\/Filter\s*\[[^\]]*FlateDecode/i.test(dictText);
+    if (isFlate && streamData.length > 0) {
+      try {
+        streamData = inflateSync(streamData);
+      } catch (error) {
+        console.warn("⚠️ PDF stream inflate failed", error);
+      }
+    }
+    const streamText = decodeStream(streamData);
+    const streamMatches = extractTextFromContent(streamText);
+    if (streamMatches.length > 0) {
+      textMatches.push(...streamMatches);
+    } else {
+      textMatches.push(...extractReadableSegments(streamText));
+    }
+    cursor = dataEnd + endStreamMarker.length;
+  }
+
+  if (textMatches.length === 0) {
+    const fallbackMatches = extractReadableSegments(pdfString);
+    if (fallbackMatches.length > 0) {
+      textMatches.push(...fallbackMatches);
     }
   }
 
-  // Method 4: Ultra fallback - just get any readable text sequences
   if (textMatches.length === 0) {
     console.log("⚠️ Using ultra-fallback PDF extraction");
     const ultraFallbackRegex = /[a-zA-Z]{3,}[\s\S]{0,100}[a-zA-Z]{3,}/g;
@@ -135,6 +211,14 @@ function cleanExtractedText(text: string): string {
       .replace(/<[^>]+>/g, "")
       // Remove PDF encoding artifacts
       .replace(/\\[0-9]{3}/g, "")
+      // Collapse letter-spaced words like "A g r e e m e n t"
+      .replace(/\b(?:[A-Za-z]\s+){2,}[A-Za-z]\b/g, (match) =>
+        match.replace(/\s+/g, ""),
+      )
+      // Collapse digit-spaced sequences like "2 0 2 2"
+      .replace(/\b(?:\d\s+){2,}\d\b/g, (match) =>
+        match.replace(/\s+/g, ""),
+      )
       // Remove excessive whitespace
       .replace(/[ \t]+/g, " ")
       // Remove common PDF artifacts

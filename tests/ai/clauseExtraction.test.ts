@@ -447,7 +447,7 @@ describe("clauseExtraction", () => {
     expect(issue.clauseReference?.clauseId).toBe("confidential-information");
   });
 
-  it("binds IP/no-license issues to clauses with intellectual property language", () => {
+  it("drops IP/no-license issues when evidence shows the clause is present", () => {
     const clauses: ClauseExtraction[] = [
       {
         id: "no-binding",
@@ -540,9 +540,8 @@ describe("clauseExtraction", () => {
       playbook,
     });
 
-    const issue = result.issuesToAddress[0];
-    expect(issue.clauseReference?.clauseId).toBe("no-binding");
-    expect(issue.clauseReference?.excerpt).not.toBe("Not present in contract");
+    const issue = result.issuesToAddress.find((entry) => entry.id === "ISS-IP");
+    expect(issue).toBeUndefined();
   });
 });
 
@@ -599,7 +598,7 @@ describe("validateAndFixContractSummary", () => {
     const clauses: ClauseExtraction[] = [];
 
     const content =
-      "The Disclosing Party may disclose Confidential Information to the Receiving Party. " +
+      "This is a one-way NDA. The Disclosing Party may disclose Confidential Information to the Receiving Party. " +
       "The Receiving Party shall keep the Confidential Information strictly confidential.";
 
     const fixed = validateAndFixContractSummary(summary, clauses, content);
@@ -629,6 +628,67 @@ describe("validateAndFixContractSummary", () => {
     const fixed = validateAndFixContractSummary(summary, clauses, content);
 
     expect(fixed.agreementDirection).toBe("Mutual");
+  });
+
+  it("corrects agreement direction from One-way to Mutual when each party can disclose", () => {
+    const summary: AnalysisReport["contractSummary"] = {
+      contractName: "Test NDA",
+      filename: "test.docx",
+      parties: ["Party A", "Party B"],
+      agreementDirection: "One-way (Discloser to Receiver)",
+      purpose: "Confidentiality",
+      verbalInformationCovered: false,
+      contractPeriod: "3 years",
+      governingLaw: "Sweden",
+      jurisdiction: "Sweden",
+    };
+
+    const clauses: ClauseExtraction[] = [];
+    const content =
+      "Each party may disclose Confidential Information to the other party. " +
+      "Each party is a Discloser or Receiving Party as applicable.";
+
+    const fixed = validateAndFixContractSummary(summary, clauses, content);
+
+    expect(fixed.agreementDirection).toBe("Mutual");
+  });
+
+  it("captures alternate court or arbitration venues in jurisdiction", () => {
+    const summary: AnalysisReport["contractSummary"] = {
+      contractName: "Test NDA",
+      filename: "test.docx",
+      parties: ["Party A", "Party B"],
+      agreementDirection: "Mutual",
+      purpose: "Confidentiality",
+      verbalInformationCovered: false,
+      contractPeriod: "3 years",
+      governingLaw: "Estonian law",
+      jurisdiction: "Harju County Court",
+    };
+
+    const clauses: ClauseExtraction[] = [
+      {
+        id: "governing-law",
+        clauseId: "governing-law",
+        title: "GOVERNING LAW AND DISPUTES",
+        category: "governing_law",
+        originalText:
+          "Any dispute arising out of or in connection with this Agreement will be settled in Harju County Court " +
+          "as the court of first instance. OR Any dispute, controversy or claim arising out of or in connection with " +
+          "this contract shall be finally settled by the Arbitration Court of the Estonian Chamber of Commerce and Industry.",
+        normalizedText: "Governing law and disputes clause",
+        importance: "medium",
+        location: { page: null, paragraph: null, section: "Governing law", clauseNumber: "10" },
+        references: [],
+        metadata: {},
+      },
+    ];
+
+    const content = clauses[0].originalText ?? "";
+    const fixed = validateAndFixContractSummary(summary, clauses, content);
+
+    expect(fixed.jurisdiction).toMatch(/Harju County Court/i);
+    expect(fixed.jurisdiction).toMatch(/Arbitration Court/i);
   });
 });
 

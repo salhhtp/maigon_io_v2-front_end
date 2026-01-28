@@ -741,6 +741,31 @@ describe("Reliability harness", () => {
     expect(edits).toHaveLength(1);
   });
 
+  it("drops legal-basis duplicates when a primary issue exists", () => {
+    const issues = dedupeIssues([
+      {
+        id: "ISS-TERM-001",
+        title: "Term & Survival; Indefinite obligations",
+        recommendation: "Replace indefinite term with fixed-term treatment.",
+        severity: "high",
+        category: "Term and survival",
+        clauseReference: { clauseId: "term-and-termination" },
+      },
+      {
+        id: "ISS-TERM-001-LEGALBASIS",
+        title: "Term & Survival Grounding",
+        recommendation: "Adopt a two-tier term structure.",
+        severity: "high",
+        category: "Term and survival",
+        tags: ["legal-basis"],
+        clauseReference: { clauseId: "term-and-termination" },
+      },
+    ]);
+
+    expect(issues).toHaveLength(1);
+    expect(issues[0].id).toBe("ISS-TERM-001");
+  });
+
   it("normalizes invalid report expiry values to ISO dates", () => {
     const normalized = normaliseReportExpiry("Invalid Date");
     expect(Number.isFinite(Date.parse(normalized))).toBe(true);

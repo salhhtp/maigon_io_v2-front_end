@@ -816,10 +816,15 @@ export function buildUniqueEvidenceExcerpt(options: {
   excludeExcerpts?: Set<string>;
   maxLength?: number;
 }): string {
-  const maxLength = options.maxLength ?? DEFAULT_EXCERPT_LENGTH;
+  const hasExclusions = (options.excludeExcerpts?.size ?? 0) > 0;
+  let maxLength = options.maxLength ?? DEFAULT_EXCERPT_LENGTH;
   const clauseText = (options.clauseText ?? "").replace(/\s+/g, " ").trim();
   if (!clauseText) return "";
-  if (clauseText.length <= maxLength) return clauseText;
+  if (clauseText.length <= maxLength && !hasExclusions) return clauseText;
+  if (clauseText.length <= maxLength && hasExclusions) {
+    const targetLength = Math.max(80, Math.floor(clauseText.length * 0.6));
+    maxLength = Math.min(Math.max(40, targetLength), clauseText.length - 1);
+  }
 
   const excludeExcerpts = options.excludeExcerpts ?? new Set<string>();
   const clauseLower = clauseText.toLowerCase();
@@ -1183,6 +1188,7 @@ function clauseHasReceivingPartyObligation(value: string): boolean {
     normalized.includes("receiving party shall") ||
     normalized.includes("receiving party must") ||
     normalized.includes("receiving party hereby undertakes") ||
+    normalized.includes("receiving party undertakes") ||
     normalized.includes("receiving party agrees") ||
     normalized.includes("recipient shall")
   );
@@ -1223,16 +1229,25 @@ function clauseSupportsTermSurvival(
   clause: ClauseExtractionLike,
   clauseText: string,
 ): boolean {
-  const normalized = normalizeForMatch(
+  const headingTokens = tokenizeForMatch(clause.title ?? "");
+  if (
+    headingTokens.includes("term") ||
+    headingTokens.includes("termination") ||
+    headingTokens.includes("survival")
+  ) {
+    return true;
+  }
+  const clauseTokens = tokenizeForMatch(
     `${clause.title ?? ""} ${clauseText}`,
   );
-  return (
-    normalized.includes("term") ||
-    normalized.includes("termination") ||
-    normalized.includes("survival") ||
-    normalized.includes("expires") ||
-    normalized.includes("duration")
-  );
+  const hasTermSignals =
+    clauseTokens.includes("term") ||
+    clauseTokens.includes("duration") ||
+    clauseTokens.includes("expires") ||
+    clauseTokens.includes("expiration");
+  const hasSurvivalSignals =
+    clauseTokens.includes("survival") || clauseTokens.includes("survive");
+  return hasTermSignals || (hasSurvivalSignals && clauseTokens.includes("agreement"));
 }
 
 function clauseSupportsRemediesEdit(
@@ -1256,18 +1271,24 @@ function clauseSupportsIpEdit(
   clause: ClauseExtractionLike,
   clauseText: string,
 ): boolean {
-  const normalized = normalizeForMatch(
+  const tokens = tokenizeForMatch(
     `${clause.title ?? ""} ${clauseText}`,
   );
-  return (
-    normalized.includes("intellectual property") ||
-    normalized.includes("license") ||
-    normalized.includes("licence") ||
-    normalized.includes("patent") ||
-    normalized.includes("copyright") ||
-    normalized.includes("trademark") ||
-    normalized.includes("ownership")
-  );
+  const tokenSet = new Set(tokens);
+  const hasLicense =
+    tokenSet.has("license") ||
+    tokenSet.has("licence") ||
+    tokenSet.has("licensed") ||
+    tokenSet.has("licensing");
+  const hasIp =
+    tokenSet.has("ip") ||
+    (tokenSet.has("intellectual") && tokenSet.has("property")) ||
+    tokenSet.has("patent") ||
+    tokenSet.has("copyright") ||
+    tokenSet.has("trademark") ||
+    (tokenSet.has("trade") && tokenSet.has("secret")) ||
+    tokenSet.has("ownership");
+  return hasLicense || hasIp;
 }
 
 function clauseSupportsCompelledDisclosure(
@@ -1407,6 +1428,30 @@ function isRedundantEdit(
   edit: ProposedEditLike,
   clauses: ClauseExtractionLike[],
 ): boolean {
+  const intent =
+    typeof edit.intent === "string" ? edit.intent.toLowerCase() : "";
+  if (!intent.includes("insert")) return false;
+  const anchorText =
+    typeof edit.anchorText === "string" ? edit.anchorText.trim() : "";
+  const previousText =
+    typeof edit.previousText === "string" ? edit.previousText.trim() : "";
+  const clauseId =
+    typeof edit.clauseId === "string" ? edit.clauseId.trim() : "";
+  const normalizedClauseId = normalizeClauseId(clauseId);
+  const hasMissingAnchor =
+    isMissingEvidenceMarker(anchorText) ||
+    isMissingEvidenceMarker(previousText) ||
+    normalizedClauseId.startsWith("missing") ||
+    normalizedClauseId.startsWith("unbound");
+  if (!hasMissingAnchor) return false;
+  if (
+    normalizedClauseId &&
+    !normalizedClauseId.startsWith("missing") &&
+    !normalizedClauseId.startsWith("unbound")
+  ) {
+    return false;
+  }
+
   const editContent = getEditContent(edit);
   const editSignal = [edit.proposedText, edit.rationale, edit.id, edit.intent]
     .filter(Boolean)
@@ -2062,12 +2107,23 @@ export function findRequirementMatch(
   const requiresDefinitionSignals =
     normalizedRequirement.includes("definition") &&
     normalizedRequirement.includes("confidential");
+  const requiresLicenseSignals =
+    normalizedRequirement.includes("license") ||
+    normalizedRequirement.includes("licence");
+  const requiresIpOwnershipSignals =
+    (normalizedRequirement.includes("ownership") ||
+      normalizedRequirement.includes("transfer")) &&
+    (normalizedRequirement.includes("ip") ||
+      normalizedRequirement.includes("intellectual") ||
+      normalizedRequirement.includes("property"));
   const requiresIpLicenseSignals =
-    normalizedRequirement.includes("license") &&
+    requiresLicenseSignals &&
     (normalizedRequirement.includes("ip") ||
       normalizedRequirement.includes("intellectual") ||
       normalizedRequirement.includes("ownership") ||
       normalizedRequirement.includes("implied"));
+  const requiresLicenseOnlySignals =
+    requiresLicenseSignals && !requiresIpLicenseSignals;
 
   const hasCompelledDisclosureSignals = (tokens: string[]) => {
     if (!tokens.length) return false;
@@ -2131,13 +2187,45 @@ export function findRequirementMatch(
     return hasLicense && hasIp;
   };
 
-  if (requiresIpLicenseSignals) {
+  const hasIpOwnershipSignals = (tokens: string[]) => {
+    if (!tokens.length) return false;
+    const tokenSet = new Set(tokens);
+    const ownershipSignals = ["ownership", "owner", "owned", "transfer", "assign"];
+    const ipSignals = ["ip", "intellectual", "property", "trademark", "patent", "copyright"];
+    const hasOwnership = ownershipSignals.some((token) => tokenSet.has(token));
+    const hasIp = ipSignals.some((token) => tokenSet.has(token));
+    return hasOwnership && hasIp;
+  };
+
+  const hasLicenseSignals = (tokens: string[]) => {
+    if (!tokens.length) return false;
+    const tokenSet = new Set(tokens);
+    const licenseSignals = [
+      "license",
+      "licence",
+      "licensed",
+      "licensing",
+      "grant",
+      "granted",
+      "implied",
+    ];
+    return licenseSignals.some((token) => tokenSet.has(token));
+  };
+
+  if (requiresIpLicenseSignals || requiresIpOwnershipSignals || requiresLicenseOnlySignals) {
     for (const clause of clauses) {
       const clauseText = `${clause.title ?? ""} ${clause.originalText ?? ""} ${
         clause.normalizedText ?? ""
       }`;
       const clauseTokens = tokenizeForMatch(clauseText);
-      if (hasIpLicenseSignals(clauseTokens)) {
+      const matchesIpLicense = hasIpLicenseSignals(clauseTokens);
+      const matchesIpOwnership = hasIpOwnershipSignals(clauseTokens);
+      const matchesLicenseOnly = hasLicenseSignals(clauseTokens);
+      if (
+        matchesIpLicense ||
+        (requiresIpOwnershipSignals && matchesIpOwnership) ||
+        (requiresLicenseOnlySignals && matchesLicenseOnly)
+      ) {
         return {
           met: true,
           evidence: clause.title ?? getClauseIdentifier(clause) ?? undefined,
@@ -2160,7 +2248,7 @@ export function findRequirementMatch(
     matchTokens.length <= 2
       ? 0.75
       : matchTokens.length === 3
-        ? 0.67
+        ? 0.66
         : 0.35;
   const minHits = matchTokens.length >= 2 ? 2 : 1;
   let bestScore = 0;
@@ -2303,7 +2391,10 @@ export function evaluatePlaybookCoverageFromContent(
         const itemMatch = findRequirementMatch(item, clauses, content);
         return !itemMatch.met;
       }) ?? [];
-    const met = titleMatch.met && missingMustInclude.length === 0;
+    const hasMustInclude = (clause.mustInclude?.length ?? 0) > 0;
+    const met = hasMustInclude
+      ? missingMustInclude.length === 0
+      : titleMatch.met;
     return {
       title: clause.title,
       met,
@@ -2541,6 +2632,19 @@ function isMissingClauseId(value?: string | null): boolean {
   );
 }
 
+function isLegalBasisIssue(issue: IssueLike): boolean {
+  const id = normalizeForMatch(issue.id ?? "");
+  const title = normalizeForMatch(issue.title ?? "");
+  const tags = Array.isArray(issue.tags)
+    ? issue.tags.map((tag) => normalizeForMatch(tag))
+    : [];
+  if (id.includes("legalbasis") || id.includes("legal basis")) return true;
+  if (title.includes("legal basis")) return true;
+  return tags.some((tag) =>
+    tag.includes("legalbasis") || tag.includes("legal basis"),
+  );
+}
+
 export function dedupeIssues(issues: IssueLike[]): IssueLike[] {
   const buckets = new Map<string, IssueLike[]>();
   issues.forEach((issue) => {
@@ -2566,8 +2670,27 @@ export function dedupeIssues(issues: IssueLike[]): IssueLike[] {
 
   const deduped: IssueLike[] = [];
   buckets.forEach((bucket) => {
+    let scoped = bucket;
+    if (bucket.length > 1) {
+      const primaryIssues = bucket.filter((issue) => !isLegalBasisIssue(issue));
+      if (primaryIssues.length > 0) {
+        scoped = bucket.filter((issue) => {
+          if (!isLegalBasisIssue(issue)) return true;
+          return !primaryIssues.some((candidate) => {
+            const categoryMatch = normalizeForMatch(issue.category ?? "") &&
+              normalizeForMatch(issue.category ?? "") ===
+                normalizeForMatch(candidate.category ?? "");
+            const issueText =
+              `${issue.title ?? ""} ${issue.recommendation ?? ""}`.trim();
+            const candidateText =
+              `${candidate.title ?? ""} ${candidate.recommendation ?? ""}`.trim();
+            return categoryMatch || similarityForText(issueText, candidateText) >= 0.5;
+          });
+        });
+      }
+    }
     const kept: IssueLike[] = [];
-    bucket.forEach((issue) => {
+    scoped.forEach((issue) => {
       const issueText = `${issue.title ?? ""} ${issue.recommendation ?? ""}`.trim();
       const matchIndex = kept.findIndex((existing) => {
         const existingText =

@@ -1,0 +1,136 @@
+{
+  "meta": {
+    "file": "/Users/salihhatipoglu/Desktop/maigon_io_v2_front_end_fresh/tmp/nda-edited.txt",
+    "extractor": "edge",
+    "extractorRequested": "edge",
+    "playbookKey": "non_disclosure_agreement",
+    "playbookTitle": "Non-Disclosure Agreement",
+    "contentLength": 14560,
+    "clauseCount": 10
+  },
+  "clauseDigest": {
+    "summary": "1. [non-disclosure-agreement | general] Non - disclosure Agreement (Non - disclosure Agreement) -> This non- disclosure agreement (the Agreement ) has been entered into on FORMTEXT [...] FORMTEXT [...] 20 2 2 by and between: Company 1 , and Company 2 Company 1 and Company 2 together and separately also referred to as Parties and Party and each referred to as Discloser or Rec eiving Party in respect of disclosure or receipt of information.\n2. [whereas | confidential_information] Whereas (Whereas) -> Company 1 wishes to research, develop and exploit commercially potential uses of [] as a new innovative product (the Project ) Company 1 and Company 2 intend to enter into negotiations and afterwards co-operation (e.g. service agreement or  ... rties or unauthorized use thereof may cause material damage to the Discloser and therefore all such information must at all times be kept strictly confidential;\n3. [confidential-information | confidential_information] Confidential Information (Confidential Information) -> Residual knowledge. The Receiving Party's obligations apply regardless of any residual knowledge retained in unaided memory. Residual knowledge does not authorize use or disclosure of Confidential Information or derivative information.\n4. [confidential-information-within-the-meaning-of-this-agreement-sh | confidential_information] Confidential Information  within the meaning of this Agreement shall mean (Confidential Information  within the meaning of this Agreement shall mean) -> any and all information marked or declared as confidential (including all oral and visual information, and all information recorded in writing or electronically, or in any other medium or by any other method) disclosed to the Receiving Part ... common control with the Discloser or Receiving Party, where control of at least 50 percent of the voting shares or other equity interest in the relevant entity.\n5. [the-receiving-party-hereby-undertakes | confidential_information] The Receiving Party hereby undertakes (The Receiving Party hereby undertakes) -> Use limitation and need-to-know. The Receiving Party shall use Confidential Information solely for the Purpose and disclose it only to personnel, contractors, or Affiliates with a need to know and who are bound by confidentiality obligation ... . Notwithstanding the termination or expiry of this Agreement for whatever reason the obligations and restrictions in this clause 2 shall be valid indefinitely.\n6. [exceptions | confidential_information] Exceptions (Exceptions) -> Marking and notice. Confidential Information should be marked as confidential when disclosed in writing or electronic form. Oral or visual disclosures are Confidential Information if identified as confidential at the time of disclosure or c ...  with and assist Discloser in seeking a protective order or other appropriate remedy, in each case to the extent possible and allowed under the applicable laws.\n7. [no-binding-commitments-to-disclose-information-or-to-enter-into- | confidential_information] No Binding Commitments to Disclose Information or to Enter into any Agreement (No Binding Commitments to Disclose Information or to Enter into any Agreement) -> No license. All Confidential Information and related intellectual property remain the property of the Discloser. No license or transfer is granted or implied except the limited right to use Confidential Information for the Purpose. Under th ...  copyright, trade secret or other intellectual property right is either granted or implied by disclosure of the Confidential Information to the Receiving Party.\n8. [term-and-termination | confidential_information] term and termination (term and termination) -> Term and survival. This Agreement remains in effect for 2 years for Confidential Information that is not a trade secret. Obligations for trade secrets survive for so long as the information remains a trade secret under applicable law. Oblig ... gations of the Parties after the termination of this Agreement (above all, Sections 1, 2 and 3 ) shall remain in force after the termination of this Agreement .\n9. [governing-law-and-disputes | governing_law] GOVERNING LAW AND DISPUTES (GOVERNING LAW AND DISPUTES) -> This Agreement is governed by the Estonian law. Any dispute arising out of or in connection with this Agreement will be settled in Harju County Court as the court of first instance. OR Any dispute, controversy or claim arising out of or in  ... ies agree and acknowledge that in case of a court dispute, parties shall jointly apply to the court to declare proceedings closed due to sensitive information .\n10. [miscellaneous | confidential_information] MISCELLANEOUS (MISCELLANEOUS) -> Non-solicitation. During the term of this Agreement and for 12 months thereafter, neither party will knowingly solicit for employment any employee of the other party who had material involvement with the Project, except through general adve ... ompany 2 Classified by Alfa Laval as: Business Classified by Alfa Laval as: Business Classified by Alfa Laval as: Business Classified by Alfa Laval as: Business",
+    "total": 10,
+    "categoryCounts": {
+      "general": 1,
+      "confidential_information": 8,
+      "governing_law": 1
+    }
+  },
+  "retrievedExcerpts": {
+    "summary": "1. (Definition of Confidential Information) [confidential-information] Confidential Information -> Residual knowledge. The Receiving Party's obligations apply regardless of any residual knowledge retained in unaided memory. Residual knowledge does not authorize use or disclosure of Confidential Information or derivative information.\n2. (Permitted disclosures) [exceptions] Exceptions -> lt with and assist Discloser in seeking a protective order or other appropriate remedy, in each case to the extent possible and allowed under the applicable laws.\n3. (Permitted disclosures) [miscellaneous] MISCELLANEOUS -> ) under this Agreement. Neither party is liable for indirect, consequential, special, or punitive damages to the maximum extent permitted by law. Remedies. The Discloser may seek injunctive relief and specific performance to prevent or cure any unauthorized use or disclosure of Confidential Information, in addition to \n4. (Return/Destroy obligations) [the-receiving-party-hereby-undertakes] The Receiving Party hereby undertakes -> closer presented the document; upon termination of this Agreement or upon receipt of the respective request from Discloser , to return to Discloser or , if it cannot be returned, to destroy any data containing the Confidential Information ( any data in a format which can be reproduced in writing , data that is stored i\n5. (Return/Destroy obligations) [term-and-termination] term and termination -> ion remains a trade secret under applicable law. Obligations that by their nature should survive, including confidentiality and return or destruction, survive termination. This Agreement enters into force upon signing and will be valid indefinitely. The Agreement cannot be terminated unilaterally by either of the Parti\n6. (Term & survival) [term-and-termination] term and termination -> Term and survival. This Agreement remains in effect for 2 years for Confidential Information that is not a trade secret. Obligations for trade secrets survive for so long as the information remains a trade secret under applicable law. Obligations that by their nature should survive, including confidentiality and return\n7. (Definition & exclusions) [exceptions] Exceptions -> access to any of the Discloser's information ; p rovided, however, that information shall not be deemed to be excepted from the definition of Confidential Information merely because it is (i) embraced by more general information in Receiving Partys possession or (ii) in public literature in general terms not specifical\n8. (Remedies) [miscellaneous] MISCELLANEOUS -> ment. Neither party is liable for indirect, consequential, special, or punitive damages to the maximum extent permitted by law. Remedies. The Discloser may seek injunctive relief and specific performance to prevent or cure any unauthorized use or disclosure of Confidential Information, in addition to any other remedies\n9. (Exclusions for prior knowledge & public domain) [exceptions] Exceptions -> e Receiving Party or known by the Receiving Party at the time of disclosure as shown by the Receiving Partys files and records; prior or after the time of disclosure becomes part of the public knowledge or literature, not as a result of any breach of this Agreement by the Receiving Party; is lawfully obtained from a th\n10. (Clear residual knowledge stance) [confidential-information] Confidential Information -> Residual knowledge. The Receiving Party's obligations apply regardless of any residual knowledge retained in unaided memory. Residual knowledge does not authorize use or disclosure of Confidential Information or derivative information.\n11. (Injunctive relief) [miscellaneous] MISCELLANEOUS ->  indirect, consequential, special, or punitive damages to the maximum extent permitted by law. Remedies. The Discloser may seek injunctive relief and specific performance to prevent or cure any unauthorized use or disclosure of Confidential Information, in addition to any other remedies available at law or in equity. R\n12. (Specific performance language) [miscellaneous] MISCELLANEOUS -> al, special, or punitive damages to the maximum extent permitted by law. Remedies. The Discloser may seek injunctive relief and specific performance to prevent or cure any unauthorized use or disclosure of Confidential Information, in addition to any other remedies available at law or in equity. Remedies are cumulative",
+    "snippets": [
+      {
+        "clauseId": "confidential-information",
+        "title": "Confidential Information",
+        "anchor": "Definition of Confidential Information",
+        "excerpt": "Residual knowledge. The Receiving Party's obligations apply regardless of any residual knowledge retained in unaided memory. Residual knowledge does not authorize use or disclosure of Confidential Information or derivative information."
+      },
+      {
+        "clauseId": "exceptions",
+        "title": "Exceptions",
+        "anchor": "Permitted disclosures",
+        "excerpt": "lt with and assist Discloser in seeking a protective order or other appropriate remedy, in each case to the extent possible and allowed under the applicable laws."
+      },
+      {
+        "clauseId": "miscellaneous",
+        "title": "MISCELLANEOUS",
+        "anchor": "Permitted disclosures",
+        "excerpt": ") under this Agreement. Neither party is liable for indirect, consequential, special, or punitive damages to the maximum extent permitted by law. Remedies. The Discloser may seek injunctive relief and specific performance to prevent or cure any unauthorized use or disclosure of Confidential Information, in addition to "
+      },
+      {
+        "clauseId": "the-receiving-party-hereby-undertakes",
+        "title": "The Receiving Party hereby undertakes",
+        "anchor": "Return/Destroy obligations",
+        "excerpt": "closer presented the document; upon termination of this Agreement or upon receipt of the respective request from Discloser , to return to Discloser or , if it cannot be returned, to destroy any data containing the Confidential Information ( any data in a format which can be reproduced in writing , data that is stored i"
+      },
+      {
+        "clauseId": "term-and-termination",
+        "title": "term and termination",
+        "anchor": "Return/Destroy obligations",
+        "excerpt": "ion remains a trade secret under applicable law. Obligations that by their nature should survive, including confidentiality and return or destruction, survive termination. This Agreement enters into force upon signing and will be valid indefinitely. The Agreement cannot be terminated unilaterally by either of the Parti"
+      },
+      {
+        "clauseId": "term-and-termination",
+        "title": "term and termination",
+        "anchor": "Term & survival",
+        "excerpt": "Term and survival. This Agreement remains in effect for 2 years for Confidential Information that is not a trade secret. Obligations for trade secrets survive for so long as the information remains a trade secret under applicable law. Obligations that by their nature should survive, including confidentiality and return"
+      },
+      {
+        "clauseId": "exceptions",
+        "title": "Exceptions",
+        "anchor": "Definition & exclusions",
+        "excerpt": "access to any of the Discloser's information ; p rovided, however, that information shall not be deemed to be excepted from the definition of Confidential Information merely because it is (i) embraced by more general information in Receiving Partys possession or (ii) in public literature in general terms not specifical"
+      },
+      {
+        "clauseId": "miscellaneous",
+        "title": "MISCELLANEOUS",
+        "anchor": "Remedies",
+        "excerpt": "ment. Neither party is liable for indirect, consequential, special, or punitive damages to the maximum extent permitted by law. Remedies. The Discloser may seek injunctive relief and specific performance to prevent or cure any unauthorized use or disclosure of Confidential Information, in addition to any other remedies"
+      },
+      {
+        "clauseId": "exceptions",
+        "title": "Exceptions",
+        "anchor": "Exclusions for prior knowledge & public domain",
+        "excerpt": "e Receiving Party or known by the Receiving Party at the time of disclosure as shown by the Receiving Partys files and records; prior or after the time of disclosure becomes part of the public knowledge or literature, not as a result of any breach of this Agreement by the Receiving Party; is lawfully obtained from a th"
+      },
+      {
+        "clauseId": "confidential-information",
+        "title": "Confidential Information",
+        "anchor": "Clear residual knowledge stance",
+        "excerpt": "Residual knowledge. The Receiving Party's obligations apply regardless of any residual knowledge retained in unaided memory. Residual knowledge does not authorize use or disclosure of Confidential Information or derivative information."
+      },
+      {
+        "clauseId": "miscellaneous",
+        "title": "MISCELLANEOUS",
+        "anchor": "Injunctive relief",
+        "excerpt": " indirect, consequential, special, or punitive damages to the maximum extent permitted by law. Remedies. The Discloser may seek injunctive relief and specific performance to prevent or cure any unauthorized use or disclosure of Confidential Information, in addition to any other remedies available at law or in equity. R"
+      },
+      {
+        "clauseId": "miscellaneous",
+        "title": "MISCELLANEOUS",
+        "anchor": "Specific performance language",
+        "excerpt": "al, special, or punitive damages to the maximum extent permitted by law. Remedies. The Discloser may seek injunctive relief and specific performance to prevent or cure any unauthorized use or disclosure of Confidential Information, in addition to any other remedies available at law or in equity. Remedies are cumulative"
+      }
+    ]
+  },
+  "coverage": {
+    "coverageScore": 1,
+    "criticalClauses": [
+      {
+        "title": "Definition & exclusions",
+        "met": true,
+        "missingMustInclude": []
+      },
+      {
+        "title": "Remedies",
+        "met": true,
+        "missingMustInclude": []
+      }
+    ],
+    "anchorCoverage": [
+      {
+        "anchor": "Definition of Confidential Information",
+        "met": true,
+        "evidence": "Exceptions"
+      },
+      {
+        "anchor": "Permitted disclosures",
+        "met": true,
+        "evidence": "Exceptions"
+      },
+      {
+        "anchor": "Return/Destroy obligations",
+        "met": true,
+        "evidence": "The Receiving Party hereby undertakes"
+      },
+      {
+        "anchor": "Term & survival",
+        "met": true,
+        "evidence": "term and termination"
+      }
+    ]
+  },
+  "missingAnchors": [],
+  "missingCriticalClauses": []
+}

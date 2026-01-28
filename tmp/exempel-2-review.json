@@ -1,0 +1,113 @@
+{
+  "meta": {
+    "file": "/Users/salihhatipoglu/Desktop/maigon_io_v2_front_end_fresh/docs/exempel-2.docx",
+    "extractor": "edge",
+    "extractorRequested": "edge",
+    "playbookKey": "non_disclosure_agreement",
+    "playbookTitle": "Non-Disclosure Agreement",
+    "contentLength": 4639,
+    "clauseCount": 4
+  },
+  "clauseDigest": {
+    "summary": "1. [non-disclosure-agreement | confidential_information] NON-DISCLOSURE AGREEMENT (NON-DISCLOSURE AGREEMENT) -> This Non-Disclosure Agreement (the Agreement ) is entered into as of [] (the Effective Date )\n2. [between | confidential_information] BETWEEN (BETWEEN) -> (1) [Company Name] , a company incorporated under the laws of Sweden, with registration number [] , and registered address at [] ( Disclosing Party ); AND (2) [Company Name] , a company incorporated under the laws of Sweden, with registrati ... ed from a third party without restriction; or d) is independently developed without reference to the Confidential Information. 4. Obligations of Confidentiality\n3. [the-receiving-party-undertakes-to | confidential_information] The Receiving Party undertakes to (The Receiving Party undertakes to) -> a) keep the Confidential Information strictly confidential; b) use the Confidential Information solely for the Purpose stated in Clause 1; c) not disclose Confidential Information to any third party without the prior written consent of the  ... reement between the Parties regarding its subject matter and supersedes any prior understandings. Amendments must be made in writing and signed by both Parties.\n4. [signatures | general] SIGNATURES (SIGNATURES) -> For [Disclosing Party] Name: Title: Date: For [Receiving Party] Name: Title: Date:",
+    "total": 4,
+    "categoryCounts": {
+      "confidential_information": 3,
+      "general": 1
+    }
+  },
+  "retrievedExcerpts": {
+    "summary": "1. (Definition of Confidential Information) [between] BETWEEN -> on with the evaluation, structuring, and potential implementation of the Transaction, the Disclosing Party may disclose certain confidential information to the Receiving Party. The purpose of this Agreement is to regulate the handling of such information. 2. Definition of Confidential Information For the purposes of th\n2. (Definition of Confidential Information) [the-receiving-party-undertakes-to] The Receiving Party undertakes to -> a) keep the Confidential Information strictly confidential; b) use the Confidential Information solely for the Purpose stated in Clause 1; c) not disclose Confidential Information to any third party without the prior written consent of the Disclosing Party; and d) restrict access to Confidential Information to such emp\n3. (Permitted disclosures) [the-receiving-party-undertakes-to] The Receiving Party undertakes to ->  by law, regulation, or decision of a competent authority to disclose Confidential Information, it shall (to the extent legally permitted) promptly notify the Disclosing Party and cooperate to limit the scope of such disclosure. 6. No Obligation to Proceed Nothing in this Agreement shall obligate either Party to procee\n4. (Return/Destroy obligations) [the-receiving-party-undertakes-to] The Receiving Party undertakes to -> bligate either Party to proceed with the Transaction. Any Transaction shall be subject to separate agreements and approvals. 7. Return or Destruction of Information Upon written request by the Disclosing Party, or upon termination of discussions, the Receiving Party shall promptly return or destroy all Confidential Inf\n5. (Term & survival) [the-receiving-party-undertakes-to] The Receiving Party undertakes to -> eparate agreements and approvals. 7. Return or Destruction of Information Upon written request by the Disclosing Party, or upon termination of discussions, the Receiving Party shall promptly return or destroy all Confidential Information, except where retention is required by law or internal compliance rules. 8. Term T\n6. (Definition & exclusions) [between] BETWEEN -> fidential information to the Receiving Party. The purpose of this Agreement is to regulate the handling of such information. 2. Definition of Confidential Information For the purposes of this Agreement, Confidential Information means any information, whether oral, written, electronic, or otherwise, disclosed by or on b\n7. (Exclusions for prior knowledge & public domain) [between] BETWEEN -> a) is or becomes publicly available other than through a breach of this Agreement; b) was lawfully known to the Receiving Party prior to disclosure; c) is lawfully obtained from a third party without restriction; or d) is independently developed without reference to the Confidential Information. 4. Obligations of Confi",
+    "snippets": [
+      {
+        "clauseId": "between",
+        "title": "BETWEEN",
+        "anchor": "Definition of Confidential Information",
+        "excerpt": "on with the evaluation, structuring, and potential implementation of the Transaction, the Disclosing Party may disclose certain confidential information to the Receiving Party. The purpose of this Agreement is to regulate the handling of such information. 2. Definition of Confidential Information For the purposes of th"
+      },
+      {
+        "clauseId": "the-receiving-party-undertakes-to",
+        "title": "The Receiving Party undertakes to",
+        "anchor": "Definition of Confidential Information",
+        "excerpt": "a) keep the Confidential Information strictly confidential; b) use the Confidential Information solely for the Purpose stated in Clause 1; c) not disclose Confidential Information to any third party without the prior written consent of the Disclosing Party; and d) restrict access to Confidential Information to such emp"
+      },
+      {
+        "clauseId": "the-receiving-party-undertakes-to",
+        "title": "The Receiving Party undertakes to",
+        "anchor": "Permitted disclosures",
+        "excerpt": " by law, regulation, or decision of a competent authority to disclose Confidential Information, it shall (to the extent legally permitted) promptly notify the Disclosing Party and cooperate to limit the scope of such disclosure. 6. No Obligation to Proceed Nothing in this Agreement shall obligate either Party to procee"
+      },
+      {
+        "clauseId": "the-receiving-party-undertakes-to",
+        "title": "The Receiving Party undertakes to",
+        "anchor": "Return/Destroy obligations",
+        "excerpt": "bligate either Party to proceed with the Transaction. Any Transaction shall be subject to separate agreements and approvals. 7. Return or Destruction of Information Upon written request by the Disclosing Party, or upon termination of discussions, the Receiving Party shall promptly return or destroy all Confidential Inf"
+      },
+      {
+        "clauseId": "the-receiving-party-undertakes-to",
+        "title": "The Receiving Party undertakes to",
+        "anchor": "Term & survival",
+        "excerpt": "eparate agreements and approvals. 7. Return or Destruction of Information Upon written request by the Disclosing Party, or upon termination of discussions, the Receiving Party shall promptly return or destroy all Confidential Information, except where retention is required by law or internal compliance rules. 8. Term T"
+      },
+      {
+        "clauseId": "between",
+        "title": "BETWEEN",
+        "anchor": "Definition & exclusions",
+        "excerpt": "fidential information to the Receiving Party. The purpose of this Agreement is to regulate the handling of such information. 2. Definition of Confidential Information For the purposes of this Agreement, Confidential Information means any information, whether oral, written, electronic, or otherwise, disclosed by or on b"
+      },
+      {
+        "clauseId": "between",
+        "title": "BETWEEN",
+        "anchor": "Exclusions for prior knowledge & public domain",
+        "excerpt": "a) is or becomes publicly available other than through a breach of this Agreement; b) was lawfully known to the Receiving Party prior to disclosure; c) is lawfully obtained from a third party without restriction; or d) is independently developed without reference to the Confidential Information. 4. Obligations of Confi"
+      }
+    ]
+  },
+  "coverage": {
+    "coverageScore": 0.67,
+    "criticalClauses": [
+      {
+        "title": "Definition & exclusions",
+        "met": false,
+        "missingMustInclude": [
+          "Clear residual knowledge stance"
+        ]
+      },
+      {
+        "title": "Remedies",
+        "met": false,
+        "missingMustInclude": [
+          "Injunctive relief",
+          "Specific performance language"
+        ]
+      }
+    ],
+    "anchorCoverage": [
+      {
+        "anchor": "Definition of Confidential Information",
+        "met": true,
+        "evidence": "BETWEEN"
+      },
+      {
+        "anchor": "Permitted disclosures",
+        "met": true,
+        "evidence": "The Receiving Party undertakes to"
+      },
+      {
+        "anchor": "Return/Destroy obligations",
+        "met": true,
+        "evidence": "The Receiving Party undertakes to"
+      },
+      {
+        "anchor": "Term & survival",
+        "met": true,
+        "evidence": "The Receiving Party undertakes to"
+      }
+    ]
+  },
+  "missingAnchors": [],
+  "missingCriticalClauses": [
+    "Definition & exclusions",
+    "Remedies"
+  ]
+}

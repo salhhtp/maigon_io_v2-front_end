@@ -1586,7 +1586,26 @@ function templateMatchesIssue(
 ): boolean {
   const normalizedIssue = normalizeMatchText(issueText);
   const tags = template.tags?.length ? template.tags : [template.title];
-  return tags.some((tag) => normalizedIssue.includes(normalizeMatchText(tag)));
+  const normalizedTags = tags.map((tag) => normalizeMatchText(tag));
+  if (normalizedTags.some((tag) => normalizedIssue.includes(tag))) {
+    return true;
+  }
+  const issueTokens = new Set(tokenizeMatchText(normalizedIssue));
+  if (issueTokens.size === 0) return false;
+  const tagTokens = normalizedTags.flatMap((tag) => tokenizeMatchText(tag));
+  if (tagTokens.length === 0) return false;
+  const requiredHits = tagTokens.length <= 2 ? 1 : 2;
+  let hits = 0;
+  const seen = new Set<string>();
+  for (const token of tagTokens) {
+    if (seen.has(token)) continue;
+    seen.add(token);
+    if (issueTokens.has(token)) {
+      hits += 1;
+      if (hits >= requiredHits) return true;
+    }
+  }
+  return false;
 }
 
 function editMatchesTemplate(
@@ -2631,6 +2650,7 @@ async function finalizeReasoningReport(
     clauses: context.clauseExtractions ?? null,
     content: context.content,
     playbook: session.playbook,
+    preferModelEvidence: true,
   });
   const reportWithMissingEdits = backfillMissingClauseEdits(
     clauseAlignedReport,

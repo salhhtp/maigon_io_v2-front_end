@@ -334,6 +334,7 @@ export function enhanceReportWithClauses(
     clauses?: ClauseExtraction[] | null;
     content?: string | null;
     playbook?: ContractPlaybook | null;
+    preferModelEvidence?: boolean;
   },
 ): AnalysisReport {
   const clauseCandidates =
@@ -342,10 +343,73 @@ export function enhanceReportWithClauses(
       : report.clauseExtractions ?? [];
   const content = options.content ?? "";
   const normalizedContent = normalizeForMatch(content);
+  const preferModelEvidence = options.preferModelEvidence === true;
   const playbookCriteria = options.playbook
     ? buildCriteriaFromPlaybook(options.playbook)
     : null;
-  const baseCriteria = playbookCriteria?.criteria ?? report.criteriaMet;
+  const reportCriteria = Array.isArray(report.criteriaMet)
+    ? report.criteriaMet
+    : [];
+  const reportCriteriaById = new Map<
+    string,
+    AnalysisReport["criteriaMet"][number]
+  >();
+  const reportCriteriaByTitle = new Map<
+    string,
+    AnalysisReport["criteriaMet"][number]
+  >();
+  reportCriteria.forEach((criterion) => {
+    const idKey = normalizeIssueKey(criterion.id ?? "");
+    if (idKey) {
+      reportCriteriaById.set(idKey, criterion);
+    }
+    const titleKey = normalizeTitleKey(criterion.title ?? "");
+    if (titleKey) {
+      reportCriteriaByTitle.set(titleKey, criterion);
+    }
+  });
+  const findReportCriterion = (
+    criterion: AnalysisReport["criteriaMet"][number],
+  ) => {
+    const idKey = normalizeIssueKey(criterion.id ?? "");
+    if (idKey && reportCriteriaById.has(idKey)) {
+      return reportCriteriaById.get(idKey);
+    }
+    const titleKey = normalizeTitleKey(criterion.title ?? "");
+    if (titleKey && reportCriteriaByTitle.has(titleKey)) {
+      return reportCriteriaByTitle.get(titleKey);
+    }
+    return undefined;
+  };
+  const mergeCriteriaFromReport = (
+    criteria: AnalysisReport["criteriaMet"],
+  ) =>
+    criteria.map((criterion) => {
+      const reportCriterion = findReportCriterion(criterion);
+      if (!reportCriterion) return criterion;
+      const reportEvidence =
+        typeof reportCriterion.evidence === "string"
+          ? reportCriterion.evidence.trim()
+          : "";
+      const reportEvidenceTrusted =
+        reportEvidence.length > 0 && !isMissingEvidenceMarker(reportEvidence);
+      const preferReportMet =
+        preferModelEvidence && reportCriterion.met === true;
+      return {
+        ...criterion,
+        title: reportCriterion.title || criterion.title,
+        description: reportCriterion.description || criterion.description,
+        evidence: preferReportMet && reportEvidenceTrusted
+          ? reportEvidence
+          : criterion.evidence,
+        met: preferReportMet ? true : criterion.met,
+      };
+    });
+  const baseCriteria = playbookCriteria
+    ? preferModelEvidence
+      ? mergeCriteriaFromReport(playbookCriteria.criteria)
+      : playbookCriteria.criteria
+    : reportCriteria;
   const requiredSignalsById =
     playbookCriteria?.requirementsById ?? new Map<string, string[]>();
   const optionalCriteriaIds =
@@ -489,6 +553,10 @@ export function enhanceReportWithClauses(
       typeof existingReference.excerpt === "string"
         ? existingReference.excerpt.trim()
         : "";
+    const hasExternalEvidence =
+      preferModelEvidence &&
+      existingExcerpt.length > 0 &&
+      !isMissingEvidenceMarker(existingExcerpt);
     if (match && matchResult.method === "id" && existingClauseId) {
       const clauseText = buildClauseMatchText(match);
       const excerptMismatch =
@@ -651,16 +719,27 @@ export function enhanceReportWithClauses(
               supportCheck,
             )
             : null;
-        if (!supportedMatch && preserveMissingEvidence) {
-          supportedMatch = findBestClauseBySupport(
+        if (
+          (!supportedMatch || supportedMatch.score < REBIND_MIN_COVERAGE) &&
+          issueMatchTokens.length > 0
+        ) {
+          const supportOnlyMatch = findBestClauseBySupport(
             issueMatchTokens,
             clauseCandidates,
             supportCheck,
           );
+          if (
+            supportOnlyMatch &&
+            (!supportedMatch || supportOnlyMatch.score > supportedMatch.score)
+          ) {
+            supportedMatch = supportOnlyMatch;
+          }
         }
         if (
           supportedMatch &&
-          (supportedMatch.score >= REBIND_MIN_COVERAGE || preserveMissingEvidence)
+          (supportedMatch.score >= REBIND_MIN_COVERAGE ||
+            preserveMissingEvidence ||
+            supportedMatch.score >= MIN_ISSUE_CONFIDENCE)
         ) {
           match = supportedMatch.clause;
           matchResult = {
@@ -684,6 +763,10 @@ export function enhanceReportWithClauses(
     const clauseText = match
       ? match.originalText ?? match.normalizedText ?? match.title ?? ""
       : "";
+    const shouldPreserveExternalEvidence = hasExternalEvidence && !match;
+    if (shouldPreserveExternalEvidence) {
+      trustExistingClauseId = true;
+    }
     const supportsMatchedClause =
       preserveMissingEvidence &&
       Boolean(match && clauseText && supportCheck && supportCheck(match, clauseText));
@@ -697,9 +780,9 @@ export function enhanceReportWithClauses(
     const stableClauseId =
       matchedClauseId ??
       (!shouldPreserveMissingEvidence &&
-          trustExistingClauseId &&
-          existingClauseId.trim().length > 0
-        ? existingClauseId
+          (shouldPreserveExternalEvidence ||
+            (trustExistingClauseId && existingClauseId.trim().length > 0))
+        ? existingClauseId || buildMissingClauseId(missingLabel)
         : buildMissingClauseId(missingLabel));
 
     if (match && (issue.id || stableClauseId)) {
@@ -733,7 +816,7 @@ export function enhanceReportWithClauses(
       : "";
 
     const currentExcerpt =
-      !issueStructuralMismatch
+      !issueStructuralMismatch || hasExternalEvidence
         ? preferredExcerpt ||
           (existingReference?.excerpt &&
               existingReference.excerpt.trim().length > 0
@@ -809,7 +892,7 @@ export function enhanceReportWithClauses(
       return issue;
     }
 
-    const resolvedHeading = shouldPreserveMissingEvidence
+    const resolvedHeading = shouldPreserveMissingEvidence || shouldPreserveExternalEvidence
       ? existingReference?.heading ?? null
       : match?.title ?? existingReference?.heading ?? null;
     const cleanedExistingLocation = cleanLocationHint(
@@ -824,7 +907,7 @@ export function enhanceReportWithClauses(
           clauseNumber: match?.location?.clauseNumber ?? matchedClauseId ?? null,
         })
       : null;
-    const resolvedLocation = shouldPreserveMissingEvidence
+    const resolvedLocation = shouldPreserveMissingEvidence || shouldPreserveExternalEvidence
       ? cleanedExistingLocation ?? cleanedMatchLocation ?? fallbackLocation
       : match && isMissingLocationHint(existingReference?.locationHint)
       ? cleanedMatchLocation ?? fallbackLocation
@@ -874,6 +957,19 @@ export function enhanceReportWithClauses(
   }
 
   const criteriaWithEvidence = baseCriteria.map((criterion) => {
+    const reportCriterion = preferModelEvidence
+      ? findReportCriterion(criterion)
+      : undefined;
+    const reportEvidence =
+      typeof reportCriterion?.evidence === "string"
+        ? reportCriterion.evidence.trim()
+        : "";
+    const preferReportMet =
+      preferModelEvidence && reportCriterion?.met === true;
+    const reportEvidenceTrusted =
+      preferReportMet &&
+      reportEvidence.length > 0 &&
+      !isMissingEvidenceMarker(reportEvidence);
     const fallbackText = `${criterion.title} ${criterion.description ?? ""}`.trim();
     const headingReference =
       typeof criterion.title === "string" && criterion.title.trim().length > 0
@@ -978,10 +1074,11 @@ export function enhanceReportWithClauses(
       })
       : "";
 
-    const currentEvidence =
-      !structuralMismatch &&
-        typeof criterion.evidence === "string" &&
-        criterion.evidence.trim().length > 0
+    const currentEvidence = reportEvidenceTrusted
+      ? reportEvidence
+      : !structuralMismatch &&
+          typeof criterion.evidence === "string" &&
+          criterion.evidence.trim().length > 0
         ? criterion.evidence
         : fallbackExcerpt;
 
@@ -999,6 +1096,10 @@ export function enhanceReportWithClauses(
       }
     } else if (isMissingEvidenceMarker(currentEvidence)) {
       nextEvidence = currentEvidence;
+    }
+
+    if (preferReportMet && reportEvidenceTrusted) {
+      nextEvidence = reportEvidence;
     }
 
     const evidenceResult = nextEvidence
@@ -1064,11 +1165,12 @@ export function enhanceReportWithClauses(
       : !hasEvidence
       ? false
       : criterion.met;
+    const finalMet = preferReportMet ? true : nextMet;
     return {
       ...criterion,
       description: nextDescription,
       evidence: nextEvidence,
-      met: nextMet,
+      met: finalMet,
     };
   });
 
@@ -1092,6 +1194,7 @@ export function enhanceReportWithClauses(
     issuesBackfilledFromCriteria,
     criteriaWithEvidence,
     optionalCriteriaIds,
+    criticalCriteriaIds,
   );
 
   const issuesWithDefinitionFix = rewriteDefinitionExclusionIssues(
@@ -1520,6 +1623,7 @@ function clauseSupportsUseLimitation(
     normalized.includes("receiving party shall") ||
     normalized.includes("receiving party must") ||
     normalized.includes("receiving party hereby undertakes") ||
+    normalized.includes("receiving party undertakes") ||
     normalized.includes("receiving party agrees") ||
     normalized.includes("recipient shall");
   if (!hasReceivingPartyObligation) return false;
@@ -1576,25 +1680,36 @@ function isTermSurvivalIssue(
 ): boolean {
   const normalized = normalizeIssueSignals(issue);
   if (!normalized) return false;
-  if (normalized.includes("term")) return true;
-  if (normalized.includes("survival")) return true;
-  return normalized.includes("termination");
+  const tokens = tokenizeForMatch(normalized);
+  const tokenSet = new Set(tokens);
+  if (tokenSet.has("term")) return true;
+  if (tokenSet.has("survival") || tokenSet.has("survive")) return true;
+  return tokenSet.has("trade") && tokenSet.has("secret");
 }
 
 function clauseSupportsTermSurvival(
   clause: ClauseExtraction,
   clauseText: string,
 ): boolean {
-  const normalized = normalizeForMatch(
+  const headingTokens = tokenizeForMatch(clause.title ?? "");
+  if (
+    headingTokens.includes("term") ||
+    headingTokens.includes("termination") ||
+    headingTokens.includes("survival")
+  ) {
+    return true;
+  }
+  const clauseTokens = tokenizeForMatch(
     `${clause.title ?? ""} ${clauseText}`,
   );
-  return (
-    normalized.includes("term") ||
-    normalized.includes("termination") ||
-    normalized.includes("survival") ||
-    normalized.includes("expires") ||
-    normalized.includes("duration")
-  );
+  const hasTermSignals =
+    clauseTokens.includes("term") ||
+    clauseTokens.includes("duration") ||
+    clauseTokens.includes("expires") ||
+    clauseTokens.includes("expiration");
+  const hasSurvivalSignals =
+    clauseTokens.includes("survival") || clauseTokens.includes("survive");
+  return hasTermSignals || (hasSurvivalSignals && clauseTokens.includes("agreement"));
 }
 
 function isReturnDestructionIssue(
@@ -1636,18 +1751,24 @@ function clauseSupportsIp(
   clause: ClauseExtraction,
   clauseText: string,
 ): boolean {
-  const normalized = normalizeForMatch(
+  const tokens = tokenizeForMatch(
     `${clause.title ?? ""} ${clauseText}`,
   );
-  return (
-    normalized.includes("intellectual property") ||
-    normalized.includes("license") ||
-    normalized.includes("licence") ||
-    normalized.includes("patent") ||
-    normalized.includes("copyright") ||
-    normalized.includes("trademark") ||
-    normalized.includes("ownership")
-  );
+  const tokenSet = new Set(tokens);
+  const hasLicense =
+    tokenSet.has("license") ||
+    tokenSet.has("licence") ||
+    tokenSet.has("licensed") ||
+    tokenSet.has("licensing");
+  const hasIp =
+    tokenSet.has("ip") ||
+    (tokenSet.has("intellectual") && tokenSet.has("property")) ||
+    tokenSet.has("patent") ||
+    tokenSet.has("copyright") ||
+    tokenSet.has("trademark") ||
+    (tokenSet.has("trade") && tokenSet.has("secret")) ||
+    tokenSet.has("ownership");
+  return hasLicense || hasIp;
 }
 
 function isGoverningLawIssue(
@@ -1764,7 +1885,11 @@ function getIssueSupportCheck(
   if (isGoverningLawIssue(issue)) return clauseSupportsGoverningLaw;
   if (isMarkingNoticeIssue(issue)) return clauseSupportsMarkingNotice;
   if (isUseLimitationIssue(issue)) return clauseSupportsUseLimitation;
-  if (isDefinitionIssue(issue)) return clauseSupportsDefinition;
+  if (isDefinitionIssue(issue)) {
+    return issueMentionsExclusions(issue)
+      ? clauseSupportsDefinition
+      : clauseSupportsStrongDefinition;
+  }
   return null;
 }
 
@@ -1891,13 +2016,29 @@ function findDefinitionClause(
     const direct = clauses.find((clause) =>
       normalizeForMatch(getClauseKey(clause)) === clauseId
     );
-    if (direct) return direct;
+    if (direct) {
+      const clauseText =
+        direct.originalText ?? direct.normalizedText ?? direct.title ?? "";
+      const prefersExclusions = issueMentionsExclusions(issue);
+      const primarySupport = prefersExclusions
+        ? clauseSupportsDefinition
+        : clauseSupportsStrongDefinition;
+      if (primarySupport(direct, clauseText)) return direct;
+    }
   }
   const issueTokens = tokenizeForMatch(buildIssueSignalText(issue));
   const prefersExclusions = issueMentionsExclusions(issue);
   const primarySupport = prefersExclusions
     ? clauseSupportsDefinition
     : clauseSupportsStrongDefinition;
+  if (!prefersExclusions) {
+    const strongDefinitionClause = clauses.find((clause) => {
+      const clauseText =
+        clause.originalText ?? clause.normalizedText ?? clause.title ?? "";
+      return clauseSupportsStrongDefinition(clause, clauseText);
+    });
+    if (strongDefinitionClause) return strongDefinitionClause;
+  }
   const supported = findBestClauseBySupport(issueTokens, clauses, primarySupport);
   if (supported?.clause) return supported.clause;
   if (!prefersExclusions) {
@@ -2040,11 +2181,21 @@ function rewriteDefinitionExclusionIssues(
       ? buildDefinitionGapSummary(detail.missingParts)
       : issue.rationale;
 
-    const clauseIdNormalized = normalizeForMatch(issue.clauseReference?.clauseId ?? "");
+    const clauseIdNormalized = normalizeForMatch(
+      issue.clauseReference?.clauseId ?? "",
+    );
+    const preferredClauseId = normalizeForMatch(
+      detail.clause.clauseId ?? detail.clause.id ?? "",
+    );
+    const prefersDefinitionClause = !issueMentionsExclusions(issue);
     const needsClauseId =
       !clauseIdNormalized ||
       clauseIdNormalized.startsWith("missing") ||
-      clauseIdNormalized.startsWith("unbound");
+      clauseIdNormalized.startsWith("unbound") ||
+      (preferredClauseId &&
+        clauseIdNormalized &&
+        clauseIdNormalized !== preferredClauseId &&
+        prefersDefinitionClause);
     const existingExcerpt = issue.clauseReference?.excerpt ?? "";
     const excerptNeedsAnchor = existingExcerpt &&
       !excerptHasDefinitionSignals(existingExcerpt);
@@ -2192,13 +2343,46 @@ function filterIssuesByCriteria(
   issues: AnalysisReport["issuesToAddress"],
   criteria: AnalysisReport["criteriaMet"],
   optionalCriteriaIds: Set<string>,
+  criticalCriteriaIds: Set<string>,
 ): AnalysisReport["issuesToAddress"] {
   if (!issues.length || !criteria.length) return issues;
   const filtered = issues.filter((issue) => {
     const matched = findMatchingCriterion(issue, criteria);
-    if (!matched) return false;
-    if (optionalCriteriaIds.has(matched.id)) return false;
-    return !matched.met;
+    if (!matched) return true;
+    const issueIdKey = normalizeIssueKey(issue.id ?? "");
+    const tagKeys = (issue.tags ?? []).map((tag) => normalizeIssueKey(tag));
+    const isBackfilled =
+      issueIdKey.startsWith("ISSUE_") && tagKeys.includes(normalizeIssueKey(matched.id));
+    const issueSignal = normalizeForMatch(
+      [
+        issue.title,
+        issue.category,
+        issue.recommendation,
+        issue.rationale,
+        issue.clauseReference?.excerpt,
+      ]
+        .filter(Boolean)
+        .join(" "),
+    );
+    const signalsMissing = looksNegativeEvidence(issueSignal);
+    const hasUnmetCriticalMatch = Array.from(criticalCriteriaIds).some((id) => {
+      const criterion = criteria.find((entry) => entry.id === id);
+      if (!criterion || criterion.met) return false;
+      if (issueMatchesCriterion(issue, criterion)) return true;
+      const criterionTitle = normalizeForMatch(criterion.title ?? "");
+      if (isDefinitionIssue(issue) && criterionTitle.includes("definition")) {
+        return true;
+      }
+      return false;
+    });
+    if (matched.met) {
+      if (hasUnmetCriticalMatch) return true;
+      if (isBackfilled || signalsMissing) return false;
+      if (optionalCriteriaIds.has(matched.id)) return false;
+      return true;
+    }
+    if (optionalCriteriaIds.has(matched.id) && isBackfilled) return false;
+    return true;
   });
   const nonDraftIssues = filtered.filter((issue) => !isDraftIssue(issue));
   return filtered.filter((issue) => {
@@ -2371,21 +2555,25 @@ export function validateAndFixContractSummary(
   }
 
   // Fix agreementDirection if misclassified
-  if (
-    fixed.agreementDirection === "Mutual" ||
-    fixed.agreementDirection === "mutual"
-  ) {
+  if (content) {
     const contentLower = content.toLowerCase();
-
-    // One-way indicators (Discloser -> Receiver pattern)
+    const summaryDirection = normalizeForMatch(fixed.agreementDirection ?? "");
+    const hasSummaryDirection =
+      summaryDirection.length > 0 &&
+      !summaryDirection.includes("not specified");
+    const explicitOneWayIndicators = [/one[-\s]?way/i, /unilateral/i];
+    const explicitMutualIndicators = [
+      /mutual/i,
+      /each party may disclose/i,
+      /either party may disclose/i,
+      /both parties may disclose/i,
+    ];
     const oneWayIndicators = [
       /disclosing party.*receiving party/i,
       /receiving party shall.*keep.*confidential/i,
       /discloser.*receiver/i,
       /disclosed by.*to the receiving/i,
     ];
-
-    // Mutual indicators (both parties disclose)
     const mutualIndicators = [
       /each party.*disclose/i,
       /mutual.*disclosure/i,
@@ -2393,13 +2581,76 @@ export function validateAndFixContractSummary(
       /either party.*may disclose/i,
       /each party may disclose.*to the other/i,
     ];
+    const hasExplicitOneWay = explicitOneWayIndicators.some((p) =>
+      p.test(contentLower)
+    );
+    const hasExplicitMutual = explicitMutualIndicators.some((p) =>
+      p.test(contentLower)
+    );
+    const hasOneWay = oneWayIndicators.some((p) => p.test(contentLower));
+    const hasMutual = mutualIndicators.some((p) => p.test(contentLower));
 
-    const hasOneWay = oneWayIndicators.some((p) => p.test(content));
-    const hasMutual = mutualIndicators.some((p) => p.test(content));
-
-    // Only change if clearly one-way (has one-way indicators without mutual ones)
-    if (hasOneWay && !hasMutual) {
+    if (hasExplicitMutual && !hasExplicitOneWay) {
+      fixed.agreementDirection = "Mutual";
+    } else if (hasExplicitOneWay && !hasExplicitMutual) {
       fixed.agreementDirection = "One-way (Discloser to Receiver)";
+    } else if (!hasSummaryDirection) {
+      if (hasMutual && !hasOneWay) {
+        fixed.agreementDirection = "Mutual";
+      } else if (hasOneWay && !hasMutual) {
+        fixed.agreementDirection = "One-way (Discloser to Receiver)";
+      }
+    }
+  }
+
+  const disputeClause = clauses.find((clause) => {
+    const title = normalizeForMatch(clause.title ?? "");
+    const category = normalizeForMatch(clause.category ?? "");
+    return (
+      title.includes("governing law") ||
+      title.includes("dispute") ||
+      title.includes("arbitration") ||
+      category.includes("governing") ||
+      category.includes("dispute")
+    );
+  });
+  if (disputeClause) {
+    const clauseText =
+      disputeClause.originalText ??
+      disputeClause.normalizedText ??
+      disputeClause.title ??
+      "";
+    const normalized = normalizeForMatch(clauseText);
+    const hasCourt = normalized.includes("court");
+    const hasArbitration = normalized.includes("arbitration");
+    const hasOr =
+      normalized.includes(" or ") ||
+      normalized.includes(" either ") ||
+      normalized.includes(" alternatively ");
+    if (hasCourt && hasArbitration && hasOr) {
+      const courtMatch =
+        clauseText.match(
+          /([A-Z][A-Za-z]+(?:\s+[A-Z][A-Za-z]+){0,6}\s+Court(?:\s+of\s+[A-Z][A-Za-z]+(?:\s+[A-Z][A-Za-z]+){0,6})?)/,
+        ) ?? clauseText.match(/(court of competent jurisdiction)/i);
+      const arbitrationMatch =
+        clauseText.match(/(Arbitration Court[^.;\n]+?)(?:\.|;|,|$)/i) ??
+        clauseText.match(/(arbitral tribunal[^.;\n]+?)(?:\.|;|,|$)/i);
+      const courtLabel = courtMatch?.[1]?.trim();
+      const arbitrationLabel = arbitrationMatch?.[1]?.trim();
+      const combined = [courtLabel, arbitrationLabel]
+        .filter(Boolean)
+        .join(" or ");
+      if (combined) {
+        const existingJurisdiction = normalizeForMatch(
+          fixed.jurisdiction ?? "",
+        );
+        if (
+          !existingJurisdiction.includes("arbitration") ||
+          !existingJurisdiction.includes("court")
+        ) {
+          fixed.jurisdiction = combined;
+        }
+      }
     }
   }
 

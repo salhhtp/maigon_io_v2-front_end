@@ -1,0 +1,104 @@
+{
+  "meta": {
+    "file": "/Users/salihhatipoglu/Desktop/maigon_io_v2_front_end_fresh/docs/Demo NDA AL.docx",
+    "extractor": "edge",
+    "extractorRequested": "edge",
+    "playbookKey": "non_disclosure_agreement",
+    "playbookTitle": "Non-Disclosure Agreement",
+    "contentLength": 11534,
+    "clauseCount": 9
+  },
+  "clauseDigest": {
+    "summary": "1. [non-disclosure-agreement | general] Non - disclosure Agreement (Non - disclosure Agreement) -> This non- disclosure agreement (the Agreement ) has been entered into on FORMTEXT [...] FORMTEXT [...] 20 2 2 by and between: Company 1 , and Company 2 Company 1 and Company 2 together and separately also referred to as Parties and Party and each referred to as Discloser or Rec eiving Party in respect of disclosure or receipt of information.\n2. [whereas | confidential_information] Whereas (Whereas) -> Company 1 wishes to research, develop and exploit commercially potential uses of [] as a new innovative product (the Project ) Company 1 and Company 2 intend to enter into negotiations and afterwards co-operation (e.g. service agreement or  ... rties or unauthorized use thereof may cause material damage to the Discloser and therefore all such information must at all times be kept strictly confidential;\n3. [confidential-information-within-the-meaning-of-this-agreement-sh | confidential_information] Confidential Information  within the meaning of this Agreement shall mean (Confidential Information  within the meaning of this Agreement shall mean) -> any and all information marked or declared as confidential (including all oral and visual information, and all information recorded in writing or electronically, or in any other medium or by any other method) disclosed to the Receiving Part ... common control with the Discloser or Receiving Party, where control of at least 50 percent of the voting shares or other equity interest in the relevant entity.\n4. [the-receiving-party-hereby-undertakes | confidential_information] The Receiving Party hereby undertakes (The Receiving Party hereby undertakes) -> to take all steps to keep confidential all Confidential Information which is disclosed to or otherwise obtained by the Receiving Party in connection with the Project , and shall not divulge the Confidential Information to any third party, u ... . Notwithstanding the termination or expiry of this Agreement for whatever reason the obligations and restrictions in this clause 2 shall be valid indefinitely.\n5. [exceptions | confidential_information] Exceptions (Exceptions) -> The Confidential Information shall not include information, technical data or know-how which: is in the possession of the Receiving Party or known by the Receiving Party at the time of disclosure as shown by the Receiving Partys files and r ...  with and assist Discloser in seeking a protective order or other appropriate remedy, in each case to the extent possible and allowed under the applicable laws.\n6. [no-binding-commitments-to-disclose-information-or-to-enter-into- | confidential_information] No Binding Commitments to Disclose Information or to Enter into any Agreement (No Binding Commitments to Disclose Information or to Enter into any Agreement) -> Under this Agreement the Discloser shall not be obliged to disclose any information (including the Confidential Information) to the Receiving Party , unless any Discloser , in its own discretion, chooses to disclose such information. Partie ...  copyright, trade secret or other intellectual property right is either granted or implied by disclosure of the Confidential Information to the Receiving Party.\n7. [term-and-termination | term_and_termination] term and termination (term and termination) -> This Agreement enters into force upon signing and will be valid indefinitely. The Agreement cannot be terminated unilaterally by either of the Parties . In case of termination of this Agreement by any reason, invalidity or annulment of any  ... gations of the Parties after the termination of this Agreement (above all, Sections 1, 2 and 3 ) shall remain in force after the termination of this Agreement .\n8. [governing-law-and-disputes | governing_law] GOVERNING LAW AND DISPUTES (GOVERNING LAW AND DISPUTES) -> This Agreement is governed by the Estonian law. Any dispute arising out of or in connection with this Agreement will be settled in Harju County Court as the court of first instance. OR Any dispute, controversy or claim arising out of or in  ... ies agree and acknowledge that in case of a court dispute, parties shall jointly apply to the court to declare proceedings closed due to sensitive information .\n9. [miscellaneous | term_and_termination] MISCELLANEOUS (MISCELLANEOUS) -> This Agreement represents the entire agreement between the Parties with respect to the subject matter hereof and supersedes all prior negotiations, understandings and agreements relating to the subject matter hereof. This Agreement and the  ... ompany 2 Classified by Alfa Laval as: Business Classified by Alfa Laval as: Business Classified by Alfa Laval as: Business Classified by Alfa Laval as: Business",
+    "total": 9,
+    "categoryCounts": {
+      "general": 1,
+      "confidential_information": 5,
+      "term_and_termination": 2,
+      "governing_law": 1
+    }
+  },
+  "retrievedExcerpts": {
+    "summary": "1. (Definition of Confidential Information) [confidential-information-within-the-meaning-of-this-agreement-sh] Confidential Information  within the meaning of this Agreement shall mean -> any and all information marked or declared as confidential (including all oral and visual information, and all information recorded in writing or electronically, or in any other medium or by any other method) disclosed to the Receiving Party by Discloser (including their employees) or a third party acting on Discloser \n2. (Permitted disclosures) [exceptions] Exceptions -> lt with and assist Discloser in seeking a protective order or other appropriate remedy, in each case to the extent possible and allowed under the applicable laws.\n3. (Return/Destroy obligations) [the-receiving-party-hereby-undertakes] The Receiving Party hereby undertakes -> closer presented the document; upon termination of this Agreement or upon receipt of the respective request from Discloser , to return to Discloser or , if it cannot be returned, to destroy any data containing the Confidential Information ( any data in a format which can be reproduced in writing , data that is stored i\n4. (Definition & exclusions) [exceptions] Exceptions -> access to any of the Discloser's information ; p rovided, however, that information shall not be deemed to be excepted from the definition of Confidential Information merely because it is (i) embraced by more general information in Receiving Partys possession or (ii) in public literature in general terms not specifical\n5. (Exclusions for prior knowledge & public domain) [exceptions] Exceptions -> e Receiving Party or known by the Receiving Party at the time of disclosure as shown by the Receiving Partys files and records; prior or after the time of disclosure becomes part of the public knowledge or literature, not as a result of any breach of this Agreement by the Receiving Party; is lawfully obtained from a th",
+    "snippets": [
+      {
+        "clauseId": "confidential-information-within-the-meaning-of-this-agreement-sh",
+        "title": "Confidential Information  within the meaning of this Agreement shall mean",
+        "anchor": "Definition of Confidential Information",
+        "excerpt": "any and all information marked or declared as confidential (including all oral and visual information, and all information recorded in writing or electronically, or in any other medium or by any other method) disclosed to the Receiving Party by Discloser (including their employees) or a third party acting on Discloser "
+      },
+      {
+        "clauseId": "exceptions",
+        "title": "Exceptions",
+        "anchor": "Permitted disclosures",
+        "excerpt": "lt with and assist Discloser in seeking a protective order or other appropriate remedy, in each case to the extent possible and allowed under the applicable laws."
+      },
+      {
+        "clauseId": "the-receiving-party-hereby-undertakes",
+        "title": "The Receiving Party hereby undertakes",
+        "anchor": "Return/Destroy obligations",
+        "excerpt": "closer presented the document; upon termination of this Agreement or upon receipt of the respective request from Discloser , to return to Discloser or , if it cannot be returned, to destroy any data containing the Confidential Information ( any data in a format which can be reproduced in writing , data that is stored i"
+      },
+      {
+        "clauseId": "exceptions",
+        "title": "Exceptions",
+        "anchor": "Definition & exclusions",
+        "excerpt": "access to any of the Discloser's information ; p rovided, however, that information shall not be deemed to be excepted from the definition of Confidential Information merely because it is (i) embraced by more general information in Receiving Partys possession or (ii) in public literature in general terms not specifical"
+      },
+      {
+        "clauseId": "exceptions",
+        "title": "Exceptions",
+        "anchor": "Exclusions for prior knowledge & public domain",
+        "excerpt": "e Receiving Party or known by the Receiving Party at the time of disclosure as shown by the Receiving Partys files and records; prior or after the time of disclosure becomes part of the public knowledge or literature, not as a result of any breach of this Agreement by the Receiving Party; is lawfully obtained from a th"
+      }
+    ]
+  },
+  "coverage": {
+    "coverageScore": 0.5,
+    "criticalClauses": [
+      {
+        "title": "Definition & exclusions",
+        "met": false,
+        "missingMustInclude": [
+          "Clear residual knowledge stance"
+        ]
+      },
+      {
+        "title": "Remedies",
+        "met": false,
+        "missingMustInclude": [
+          "Injunctive relief",
+          "Specific performance language"
+        ]
+      }
+    ],
+    "anchorCoverage": [
+      {
+        "anchor": "Definition of Confidential Information",
+        "met": true,
+        "evidence": "Confidential Information  within the meaning of this Agreement shall mean"
+      },
+      {
+        "anchor": "Permitted disclosures",
+        "met": true,
+        "evidence": "Exceptions"
+      },
+      {
+        "anchor": "Return/Destroy obligations",
+        "met": true,
+        "evidence": "The Receiving Party hereby undertakes"
+      },
+      {
+        "anchor": "Term & survival",
+        "met": false
+      }
+    ]
+  },
+  "missingAnchors": [
+    "Term & survival"
+  ],
+  "missingCriticalClauses": [
+    "Definition & exclusions",
+    "Remedies"
+  ]
+}

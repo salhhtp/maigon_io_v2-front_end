@@ -1,0 +1,63 @@
+Non - disclosure Agreement
+This non- disclosure agreement (the  Agreement ) has been entered into on FORMTEXT [...] FORMTEXT [...] 20 2 2 by and between:
+Company 1 ,
+and
+Company 2
+Company 1 and Company 2 together and separately also referred to as  Parties  and  Party  and each referred to as  Discloser  or  Rec eiving Party  in respect of disclosure or receipt of information.
+Whereas :
+Company 1 wishes to research, develop and exploit commercially potential uses of [] as a new innovative product (the  Project )
+Company 1 and Company 2 intend to enter into negotiations and afterwards co-operation (e.g. service agreement or other) regarding the Project;
+in order to enter into negotiations and afterwards co-operation (e.g. service agreement or other) , the Parties and their related p arties need to disclose certain information regarding the Project and/ or the company to the other Party ;
+the Parties acknowledge that the information to be disclosed by the Discloser to the Receiving Party is sensitive and confidential and any disclosure of such information to third parties or unauthorized use thereof may cause material damage to the Discloser and therefore all such information must at all times be kept strictly confidential;
+Now, therefore , the Parties hereby agree as follows:
+Confidential Information
+Confidential Information  within the meaning of this Agreement shall mean:
+any and all information marked or declared as confidential (including all oral and visual information, and all information recorded in writing or electronically, or in any other medium or by any other method) disclosed to the Receiving Party by Discloser (including their employees) or a third party acting on Discloser  s behalf (including all information disclosed prior to and after the signing of this Agreement), and without prejudice to the generality of the foregoing, including but not limited to any documents and information relating to :
+the Project, all technical know-how created and developed for the purposes of the Project or otherwise related to it, as well as the cost and profitability of the Project ;
+Discloser s operations, processes, plans (including budgets, market plans), analysis, intentions, product information (including pricing), know-how, designs, drawings, trade secrets, market opportunities, forecasts, studies, details of specific projects whether design, idea or information technology oriented data, computer programs (whether in source code or object code), secret processes, security-related information, solutions related to the creation of information for any medium, customers and business affairs,
+any information developed by the Receiving Partner with a reference to the Confidential Information or using the Confidential Information as the basis;
+the existence of this Agreement and the fact that the Confidential Information has been made available.
+For the purpose of this Agreement, a reference to Discloser or Receiving Party shall be deemed to include its Affiliates (as defined herein). Affiliates means any entity which is controlling, controlled by or under common control with the Discloser or Receiving Party, where control of at least 50 percent of the voting shares or other equity interest in the relevant entity.
+Intellectual Property
+Confidentiality Undertakings by the Receiving Party
+The Receiving Party hereby undertakes:
+to take all steps to keep confidential all Confidential Information which is disclosed to or otherwise obtained by the Receiving Party in connection with the Project , and shall not divulge the Confidential Information to any third party, unless explicitly allowed in this Agreement;
+not to use any Confidential Information for any purpose other than for neg o t i ations with and afterwards co-operation (e.g. service agreement or other) with Discloser (or its related parties) and, if any agreement (e.g. service agreement or other) is concluded between the Parties in relation to the Project , for performance of such agreement ;
+not to make any use of the Confidential Information or use the same for the benefit of itself or of any third party for any purpose;
+to apply to the Confidential Information sufficient security measures and degree of care providing adequate protection from unauthorized disclosure, copying or use;
+not to copy or reproduce any part of the Confidential Information, except as may be reasonably necessary for the purposes of this Agreement, whereas any copies or reproductions so made shall remain the property of the respective Discloser or the party on whose behalf the Discloser presented the document;
+upon termination of this Agreement or upon receipt of the respective request from Discloser , to return to Discloser or , if it cannot be returned, to destroy any data containing the Confidential Information ( any data in a format which can be reproduced in writing , data that is stored in a cloud, on his/her computer or any other medium etc.) provided for the purposes of this Agreement and at the request of the Discloser certify in writing that it has complied with this clause 2.1. 6 .
+to inform its directors, employees and representatives of itself, and see to that all such persons comply with the obligations set out in this Agreement as if they were directly bound by the same, and be responsible for any breach of the terms of this Agreement by any such person as it itself were the party that had breached them .
+Notwithstanding the termination or expiry of this Agreement for whatever reason the obligations and restrictions in this clause 2 shall be valid indefinitely.
+Exceptions
+The Confidential Information shall not include information, technical data or know-how which:
+is in the possession of the Receiving Party or known by the Receiving Party at the time of disclosure as shown by the Receiving Partys files and records;
+prior or after the time of disclosure becomes part of the public knowledge or literature, not as a result of any breach of this Agreement by the Receiving Party;
+is lawfully obtained from a third party who did not to the best knowledge of the Receiving Party acquire the information, directly or indirectly, from the Discloser under an obligation of confidence; and ;
+is approved for release by the respective Discloser in writing;
+is developed independently by by an employee of the Rec eiving Party , the said employee having no knowledge of the disclosure pursuant to this Agreement and having had no access to any of the Discloser's information ;
+p rovided, however, that information shall not be deemed to be excepted from the definition of Confidential Information merely because it is (i) embraced by more general information in Receiving Partys possession or (ii) in public literature in general terms not specifically in accordance with the Confidential Information.
+In the event that the Receiving Party is required by law, any court of competent jurisdiction, or any other rules and regulations (including regulatory requirements) to make any disclosures otherwise prohibited under clause 2.1 above, the Receiving Party shall promptly (and, in any event, before complying with any such requirement) notify Discloser in writing of the same and of the action which is proposed to be taken in response, and consult with and assist Discloser in seeking a protective order or other appropriate remedy, in each case to the extent possible and allowed under the applicable laws.
+No Binding Commitments to Disclose Information or to Enter into any Agreement
+Under this Agreement the Discloser shall not be obliged to disclose any information (including the Confidential Information) to the Receiving Party , unless any Discloser , in its own discretion, chooses to disclose such information.
+Parties agree that neither this Agreement, nor any disclosure of Confidential Information, nor the ongoing discussions and correspondence between the Parties shall constitute or imply a commitment or binding obligation between the Parties, regarding any agreement . If, in the future, the Parties choose to enter into any agreement (e.g. employment, service agreement or other) , such commitment will be explicitly stated in a separate written agreement executed by the Parties and the Parties hereby confirm that they do not intend their discussions, correspondence and other activities to be construed as forming an offer or contract regarding the agreement (e.g. employment, service agreement or other), between them without execution of such separate written agreement.
+No license under any trademark, patent, copyright, trade secret or other intellectual property right is either granted or implied by disclosure of the Confidential Information to the Receiving Party.
+Export control
+Each Party undertakes not to transfer any information received hereunder to any country in breach of any applicable export law or regulation
+term and termination
+This Agreement enters into force upon signing and will be valid indefinitely.
+The Agreement cannot be terminated unilaterally by either of the Parties .
+In case of termination of this Agreement by any reason, invalidity or annulment of any provisions of the Agreement , provisions of this Agreement that by their nature regulate the rights and obligations of the Parties after the termination of this Agreement (above all, Sections 1, 2 and 3 ) shall remain in force after the termination of this Agreement .
+GOVERNING LAW AND DISPUTES
+This Agreement is governed by the Estonian law.
+Any dispute arising out of or in connection with this Agreement will be settled in Harju County Court as the court of first instance. OR Any dispute, controversy or claim arising out of or in connection with this contract shall be finally settled by the Arbitration Court of the Estonian Chamber of Commerce and Industry in accordance with its rules. The arbitral tribunal shall be composed a sole arbitrator. The seat of arbitration shall be Tallinn. The language of the arbitral proceedings shall be English.
+Parties agree and acknowledge that in case of a court dispute, parties shall jointly apply to the court to declare proceedings closed due to sensitive information .
+MISCELLANEOUS
+This Agreement represents the entire agreement between the Parties with respect to the subject matter hereof and supersedes all prior negotiations, understandings and agreements relating to the subject matter hereof.
+This Agreement and the rights and obligations specified herein shall be binding upon and inure to the benefit of the Parties and the Parties may not transfer or otherwise assign any of their rights or obligations arising from this Agreement to third parties without prior written consent of the other Part y .
+If any part of this Agreement or any transaction contemplated herein (partly or in whole) is held to be invalid or unenforceable, such determination shall not invalidate any other provision of this Agreement or other transactions contemplated herein.
+A failure by any Party at any time or times to require performance of any provisions of this Agreement shall in no manner affect its right to enforce the same, and the waiver by any Party of any breach of any provision of this Agreement shall not be construed to be a waiver by such Party of any succeeding breach of such provision or waiver by such Party of any breach of any other provision hereof.
+Company 1
+Company 2 Classified by Alfa Laval as: Business
+Classified by Alfa Laval as: Business Classified by Alfa Laval as: Business
+Classified by Alfa Laval as: Business
