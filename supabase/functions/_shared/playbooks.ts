@@ -176,7 +176,7 @@ export const CONTRACT_PLAYBOOKS: Record<PlaybookKey, ContractPlaybook> = {
           "Whereas",
         ],
         text:
-          "Definition of Confidential Information. For purposes of this Agreement, Confidential Information means any non-public information disclosed by the Disclosing Party to the Receiving Party, whether oral, written, electronic, or other form, that is designated as confidential or that a reasonable person would understand to be confidential under the circumstances. Exclusions. Confidential Information does not include information that (i) was known to the Receiving Party without obligation of confidentiality before disclosure, (ii) becomes publicly known through no fault of the Receiving Party, (iii) is independently developed without use of the Disclosing Party's Confidential Information, or (iv) is rightfully received from a third party without breach of confidentiality.",
+          "Definition clarification. Confidential Information includes unmarked information that a reasonable person would understand to be confidential under the circumstances. Confidential Information does not include information that (i) was known to the Receiving Party without obligation of confidentiality before disclosure, (ii) becomes publicly known through no fault of the Receiving Party, (iii) is independently developed without use of the Disclosing Party's Confidential Information, or (iv) is rightfully received from a third party without breach of confidentiality.",
       },
       {
         id: "nda-marking-notice",

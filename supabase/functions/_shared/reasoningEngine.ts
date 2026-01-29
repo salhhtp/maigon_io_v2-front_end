@@ -1732,54 +1732,80 @@ function findClauseByIssue(
   );
 }
 
+function normalizeIssueKey(value: string) {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+}
+
+function issueMatchesAny(issueKey: string, needles: string[]) {
+  return needles.some((needle) => issueKey.includes(needle));
+}
+
 function selectTemplateForIssue(
   templates: ClauseTemplate[],
   issue: AnalysisReport["issuesToAddress"][number],
   hasClauseEvidence: boolean,
 ): ClauseTemplate | null {
   if (!templates.length) return null;
-  const issueId = normalizeMatchText(issue.id ?? "");
-  const normalized = normalizeMatchText(issueSignals(issue));
+  const issueKey = normalizeIssueKey(
+    [
+      issue.id,
+      issue.title,
+      issue.category,
+      issue.recommendation,
+      ...(issue.tags ?? []),
+    ]
+      .filter(Boolean)
+      .join(" "),
+  );
 
-  if (
-    !hasClauseEvidence &&
-    (normalized.includes("definition") || normalized.includes("exclusion"))
-  ) {
-    return templates.find((item) => item.id === "nda-definition-exclusions") ?? null;
-  }
-
-  if (issueId.includes("residual")) {
-    return templates.find((item) => item.id === "nda-residual-knowledge") ?? null;
-  }
-  if (normalized.includes("marking") || normalized.includes("unmarked")) {
+  if (issueMatchesAny(issueKey, ["marking", "reasonable notice", "unmarked"])) {
     return templates.find((item) => item.id === "nda-marking-notice") ?? null;
   }
-  if (
-    normalized.includes("return") ||
-    normalized.includes("destruction") ||
-    normalized.includes("backup")
-  ) {
-    return templates.find((item) => item.id === "nda-return-destruction") ?? null;
+  if (issueMatchesAny(issueKey, ["residual"])) {
+    return templates.find((item) => item.id === "nda-residual-knowledge") ?? null;
   }
-  if (
-    normalized.includes("compelled") ||
-    normalized.includes("protective order") ||
-    normalized.includes("subpoena")
-  ) {
+  if (issueMatchesAny(issueKey, ["compelled", "protective order", "subpoena"])) {
     return templates.find((item) => item.id === "nda-compelled-disclosure") ?? null;
   }
   if (
-    normalized.includes("governing law") ||
-    normalized.includes("jurisdiction") ||
-    normalized.includes("dispute")
+    issueMatchesAny(issueKey, [
+      "return",
+      "destruction",
+      "backups",
+      "archives",
+      "destruction certificate",
+    ])
   ) {
+    return templates.find((item) => item.id === "nda-return-destruction") ?? null;
+  }
+  if (issueMatchesAny(issueKey, ["use limitation", "purpose", "need to know", "need-to-know"])) {
+    return templates.find((item) => item.id === "nda-use-limitation") ?? null;
+  }
+  if (issueMatchesAny(issueKey, ["remedies", "injunctive", "specific performance"])) {
+    return templates.find((item) => item.id === "nda-remedies") ?? null;
+  }
+  if (issueMatchesAny(issueKey, ["term", "survival", "trade secret"])) {
+    return templates.find((item) => item.id === "nda-term-survival") ?? null;
+  }
+  if (issueMatchesAny(issueKey, ["liability", "caps", "carve-outs", "carve outs"])) {
+    return templates.find((item) => item.id === "nda-liability-cap") ?? null;
+  }
+  if (issueMatchesAny(issueKey, ["license", "ip", "intellectual property"])) {
+    return templates.find((item) => item.id === "nda-ip-no-license") ?? null;
+  }
+  if (issueMatchesAny(issueKey, ["governing law", "jurisdiction", "dispute"])) {
     const preferred = hasClauseEvidence
       ? "nda-governing-law-clarify"
       : "nda-governing-law";
     return templates.find((item) => item.id === preferred) ?? null;
   }
+  if (
+    issueMatchesAny(issueKey, ["definition", "exclusion", "confidential information"])
+  ) {
+    return templates.find((item) => item.id === "nda-definition-exclusions") ?? null;
+  }
 
-  return templates.find((item) => templateMatchesIssue(item, normalized)) ?? null;
+  return templates.find((item) => templateMatchesIssue(item, issueKey)) ?? null;
 }
 
 function buildProposedEditsForIssues(
@@ -1803,9 +1829,14 @@ function buildProposedEditsForIssues(
         issue,
         hasClauseEvidence,
       );
-      const matchedEdit = template
-        ? existingEdits.find((edit) => editMatchesTemplate(edit, template))
-        : undefined;
+      const issueIdNormalized = normalizeIssueKey(issueId);
+      const matchedEdit = existingEdits.find((edit) => {
+        const editId = typeof edit.id === "string" ? edit.id : "";
+        const editMatchesId = editId && normalizeIssueKey(editId) === issueIdNormalized;
+        if (!editMatchesId) return false;
+        if (!template) return true;
+        return editMatchesTemplate(edit, template);
+      });
 
       const baseEdit =
         matchedEdit && typeof matchedEdit === "object"
@@ -1859,16 +1890,8 @@ function buildProposedEditsForIssues(
             typeof baseEdit.intent === "string" && baseEdit.intent.length > 0
               ? baseEdit.intent
               : "insert",
-          previousText:
-            typeof baseEdit.previousText === "string" &&
-            baseEdit.previousText.length > 0
-              ? baseEdit.previousText
-              : anchorText,
-          updatedText:
-            typeof baseEdit.updatedText === "string" &&
-            baseEdit.updatedText.length > 0
-              ? baseEdit.updatedText
-              : resolvedProposedText,
+          previousText: anchorText,
+          updatedText: resolvedProposedText,
           proposedText: resolvedProposedText,
           rationale:
             (baseEdit.rationale as string | undefined) ??

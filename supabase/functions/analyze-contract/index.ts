@@ -1183,14 +1183,36 @@ function buildLegacyResponse(
     category: issue.title,
   }));
 
-  const actionItems = report.proposedEdits.map((edit) => ({
-    id: edit.id,
-    description: edit.intent || edit.proposedText.slice(0, 120),
-    severity: edit.applyByDefault ? "high" : "medium",
-    department: "legal",
-    owner: "Legal",
-    due_timeline: "Drafting phase",
-    category: "drafting",
+  const editMap = new Map<string, (typeof report.proposedEdits)[number]>();
+  report.proposedEdits.forEach((edit) => {
+    if (edit.id) editMap.set(edit.id, edit);
+  });
+
+  const actionItems = (report.actionItems && report.actionItems.length > 0
+    ? report.actionItems.map((item) => ({
+        id: item.id,
+        description: item.description ?? item.title ?? "Draft update required.",
+        severity: item.priority ?? "medium",
+        department: item.department ?? "legal",
+        owner: item.owner ?? "Legal",
+        due_timeline: item.dueDate ?? "Before execution",
+        category: item.title ?? "drafting",
+      }))
+    : report.proposedEdits.map((edit) => ({
+        id: edit.id,
+        description: edit.rationale || edit.intent || edit.proposedText.slice(0, 120),
+        severity: edit.applyByDefault ? "high" : "medium",
+        department: "legal",
+        owner: "Legal",
+        due_timeline: "Drafting phase",
+        category: "drafting",
+      }))
+  ).map((item) => ({
+    ...item,
+    proposedEdit:
+      item.id && editMap.has(item.id)
+        ? editMap.get(item.id)
+        : undefined,
   }));
 
   return {
