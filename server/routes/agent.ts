@@ -42,6 +42,8 @@ interface ClientChatMessage {
 interface AgentChatRequest {
   contractId?: string | null;
   messages: ClientChatMessage[];
+  model?: string | null;
+  mode?: "clause_edit" | "general";
   context?: AgentContextPayload;
 }
 
@@ -149,6 +151,7 @@ const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const OPENAI_AGENT_MODEL =
   process.env.OPENAI_AGENT_MODEL ?? "gpt-5";
+const GPT5_FALLBACK_MODEL = "gpt-5";
 const ANTHROPIC_AGENT_MODEL =
   process.env.ANTHROPIC_AGENT_MODEL ?? "claude-3-5-sonnet-20241022";
 const FORCE_OPENAI_ONLY =
@@ -184,6 +187,27 @@ const CLAUSE_KEYWORDS = [
   "provision",
   "term",
 ];
+
+const isGpt5Model = (value: string) =>
+  value.toLowerCase().includes("gpt-5");
+
+const resolveOpenAiModel = (options?: {
+  preferred?: string | null;
+  forceGpt5?: boolean;
+}) => {
+  const preferred =
+    typeof options?.preferred === "string" ? options.preferred.trim() : "";
+  const forceGpt5 = options?.forceGpt5 === true;
+  if (preferred && (!forceGpt5 || isGpt5Model(preferred))) {
+    return preferred;
+  }
+  if (forceGpt5) {
+    return isGpt5Model(OPENAI_AGENT_MODEL)
+      ? OPENAI_AGENT_MODEL
+      : GPT5_FALLBACK_MODEL;
+  }
+  return OPENAI_AGENT_MODEL;
+};
 
 function escapeRegExp(text: string): string {
   return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -982,6 +1006,7 @@ async function callOpenAI(
   systemPrompt: string,
   messages: { role: "user" | "assistant"; content: string }[],
   context?: { requestId?: string; route?: string; contractId?: string; draftKey?: string },
+  modelOverride?: string,
 ): Promise<{
   output: string;
   model: string;
@@ -1004,9 +1029,10 @@ async function callOpenAI(
       contractId: context?.contractId,
       draftKey: context?.draftKey,
     };
+    const resolvedModel = modelOverride ?? OPENAI_AGENT_MODEL;
     console.info("[agent] openai start", {
       ...logCtx,
-      model: OPENAI_AGENT_MODEL,
+      model: resolvedModel,
       timeoutMs: AI_TIMEOUT_MS,
       messages: messages.length,
     });
@@ -1020,7 +1046,7 @@ async function callOpenAI(
           Authorization: `Bearer ${OPENAI_API_KEY}`,
         },
         body: JSON.stringify({
-          model: OPENAI_AGENT_MODEL,
+          model: resolvedModel,
           // Use provider default temperature to avoid unsupported overrides on newer models
           // temperature omitted,
           response_format: { type: "json_object" },
@@ -1077,7 +1103,7 @@ async function callOpenAI(
 
   return {
     output,
-    model: body?.model ?? OPENAI_AGENT_MODEL,
+    model: body?.model ?? modelOverride ?? OPENAI_AGENT_MODEL,
     usage: body?.usage
       ? {
           inputTokens: body.usage.prompt_tokens,
@@ -1371,28 +1397,40 @@ Contract title: ${contractTitle ?? context.contract?.title ?? "Unknown"}.`;
     });
   }
 
-    try {
-      let provider: AgentApiResponse["provider"] = "openai";
-      let model = OPENAI_AGENT_MODEL;
-      let usage: AgentApiResponse["usage"] | undefined;
+  const forceGpt5 = body?.mode === "clause_edit";
+  const openAiModel = resolveOpenAiModel({
+    preferred: body?.model ?? null,
+    forceGpt5,
+  });
+
+  try {
+    let provider: AgentApiResponse["provider"] = "openai";
+    let model = openAiModel;
+    let usage: AgentApiResponse["usage"] | undefined;
 
     let aiOutput: string;
-      try {
-        const result = await callOpenAI(systemPrompt, conversationMessages);
-        aiOutput = result.output;
-        model = result.model;
-        usage = result.usage;
-      } catch (error) {
-        if (
-          ALLOW_ANTHROPIC &&
-          !!ANTHROPIC_API_KEY &&
-          shouldFallbackToAnthropic(error)
-        ) {
-          console.warn(
-            "[agent] Falling back to Anthropic due to OpenAI error:",
-            (error as Error).message,
-          );
-          provider = "anthropic";
+    try {
+      const result = await callOpenAI(
+        systemPrompt,
+        conversationMessages,
+        undefined,
+        openAiModel,
+      );
+      aiOutput = result.output;
+      model = result.model;
+      usage = result.usage;
+    } catch (error) {
+      if (
+        !forceGpt5 &&
+        ALLOW_ANTHROPIC &&
+        !!ANTHROPIC_API_KEY &&
+        shouldFallbackToAnthropic(error)
+      ) {
+        console.warn(
+          "[agent] Falling back to Anthropic due to OpenAI error:",
+          (error as Error).message,
+        );
+        provider = "anthropic";
         const result = await callAnthropic(systemPrompt, conversationMessages);
         aiOutput = result.output;
         model = result.model;
@@ -1414,6 +1452,12 @@ Contract title: ${contractTitle ?? context.contract?.title ?? "Unknown"}.`;
       usage,
     } satisfies AgentApiResponse);
   } catch (error) {
+    if (forceGpt5) {
+      const message =
+        error instanceof Error ? error.message : "AI edit failed.";
+      res.status(502).json({ error: message });
+      return;
+    }
     console.error("[agent] AI failure, using heuristic response", error);
     const fallback = summarizeHeuristicResponse(
       context,

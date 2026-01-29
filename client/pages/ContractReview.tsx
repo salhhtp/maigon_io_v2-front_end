@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   ChevronDown,
   User,
@@ -10,6 +10,7 @@ import {
   Clock,
   Copy,
   Loader2,
+  Sparkles,
 } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import Logo from "@/components/Logo";
@@ -26,17 +27,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { logError, createUserFriendlyMessage } from "@/utils/errorLogger";
-import AnalyticsEventsService from "@/services/analyticsEventsService";
-import AgentInteractionsService from "@/services/agentInteractionsService";
-import AgentEditApprovalsService from "@/services/agentEditApprovalsService";
+import type { AgentChatContext, AgentProposedEdit } from "@/components/AgentChat";
 import type {
   ContractReviewPayload,
   AgentDraftResponse,
   AgentDraftSuggestion,
-  AgentDraftEdit,
   AgentDraftJobStatus,
   AgentDraftJobStartResponse,
   AgentDraftJobStatusResponse,
@@ -52,12 +49,6 @@ import type {
   SimilarityMatch,
   DeviationInsight,
 } from "@shared/ai/reviewSchema";
-import AgentChat, {
-  AgentChatContext,
-  AgentChatHandle,
-  AgentProposedEdit,
-  AgentInteractionMeta,
-} from "@/components/AgentChat";
 import DOMPurify from "dompurify";
 import {
   solutionKeyToDisplayName,
@@ -127,14 +118,6 @@ type ProposedEditPreview = {
   } | null;
 };
 
-type AgentEditWithStatus = AgentProposedEdit & {
-  internalId: string;
-  status: "pending" | "accepted" | "rejected";
-  provider?: string;
-  model?: string;
-  createdAt: string;
-  interactionId?: string | null;
-};
 
 type ContractReviewLocationState = Partial<ContractReviewPayload> & {
   selectedFile?: File | null;
@@ -207,24 +190,6 @@ const DEPARTMENT_STYLES: Record<string, { label: string; badge: string }> = {
   commercial: { label: "Commercial", badge: "bg-pink-100 text-pink-700" },
   risk: { label: "Risk", badge: "bg-rose-100 text-rose-700" },
   general: { label: "General", badge: "bg-gray-200 text-gray-700" },
-};
-
-const EDIT_STATUS_STYLES: Record<
-  "pending" | "accepted" | "rejected",
-  { label: string; className: string }
-> = {
-  pending: {
-    label: "Pending review",
-    className: "bg-gray-100 text-gray-700",
-  },
-  accepted: {
-    label: "Accepted",
-    className: "bg-emerald-100 text-emerald-700",
-  },
-  rejected: {
-    label: "Rejected",
-    className: "bg-red-100 text-red-700",
-  },
 };
 
 const FALLBACK_MISSING_INFO = [
@@ -418,10 +383,18 @@ function isGenericActionText(value?: string | null) {
   );
 }
 
-function resolveActionItemTitle(item: NormalizedDecision) {
+function resolveActionItemTitle(
+  item: NormalizedDecision,
+  updatedTextOverride?: string | null,
+) {
   const edit = item.proposedEdit;
+  const updatedText =
+    updatedTextOverride ??
+    edit?.updatedText ??
+    edit?.proposedText ??
+    null;
   const candidates = [
-    extractClauseHeading(edit?.proposedText ?? edit?.updatedText ?? null),
+    extractClauseHeading(updatedText),
     edit?.clauseTitle ?? null,
     extractClauseHeading(edit?.anchorText ?? null),
     item.title ?? null,
@@ -1815,6 +1788,10 @@ function ClausePreview({
   fullUpdatedText,
   previewHtml,
   isActive = true,
+  isEditable = false,
+  aiEditState,
+  onSaveUpdatedText,
+  onRequestAiEdit,
 }: {
   clauseTitle?: string | null;
   anchorText: string;
@@ -1829,10 +1806,18 @@ function ClausePreview({
     diff?: string;
   } | null;
   isActive?: boolean;
+  isEditable?: boolean;
+  aiEditState?: { isLoading: boolean; error?: string | null };
+  onSaveUpdatedText?: (text: string) => void;
+  onRequestAiEdit?: (prompt: string) => Promise<boolean>;
 }) {
   const [activeModal, setActiveModal] = useState<"original" | "updated" | null>(
     null,
   );
+  const [isEditing, setIsEditing] = useState(false);
+  const [draftUpdatedText, setDraftUpdatedText] = useState("");
+  const [isAiPromptOpen, setIsAiPromptOpen] = useState(false);
+  const [aiPrompt, setAiPrompt] = useState("");
 
   const resolvedPreviousText =
     previousText ?? anchorText ?? "Not provided yet.";
@@ -1888,6 +1873,28 @@ function ClausePreview({
     );
   };
 
+  useEffect(() => {
+    if (isEditing) return;
+    setDraftUpdatedText(resolvedUpdatedText);
+  }, [isEditing, resolvedUpdatedText]);
+
+  const handleSaveEdit = () => {
+    const trimmed = draftUpdatedText.trim();
+    if (!trimmed) return;
+    onSaveUpdatedText?.(trimmed);
+    setIsEditing(false);
+  };
+
+  const handleApplyAiEdit = async () => {
+    const trimmed = aiPrompt.trim();
+    if (!trimmed || !onRequestAiEdit) return;
+    const success = await onRequestAiEdit(trimmed);
+    if (success) {
+      setIsAiPromptOpen(false);
+      setAiPrompt("");
+    }
+  };
+
   return (
     <div
       className={`mt-4 rounded-lg border border-[#E8DDDD] bg-white transition-opacity ${
@@ -1923,15 +1930,124 @@ function ClausePreview({
             <p className="text-xs font-semibold uppercase tracking-wide text-[#2C5C4F]">
               Updated clause
             </p>
-            <button
-              type="button"
-              className="text-[11px] text-[#725A5A] underline"
-              onClick={() => setActiveModal("updated")}
-            >
-              View full
-            </button>
+            <div className="flex items-center gap-3 text-[11px] text-[#725A5A]">
+              <button
+                type="button"
+                className="underline"
+                onClick={() => setActiveModal("updated")}
+              >
+                View full
+              </button>
+              {isEditable && (
+                <>
+                  <button
+                    type="button"
+                    className="underline"
+                    onClick={() => {
+                      setIsEditing(true);
+                      setIsAiPromptOpen(false);
+                    }}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-1 underline"
+                    onClick={() => {
+                      setIsAiPromptOpen(true);
+                      setIsEditing(false);
+                    }}
+                    aria-label="Edit with AI"
+                  >
+                    <Sparkles className="h-3 w-3" />
+                    Edit
+                  </button>
+                </>
+              )}
+            </div>
           </div>
-          {renderDiffColumn("updated")}
+          {isEditing ? (
+            <div className="rounded bg-[#FDFBFB] p-3">
+              <textarea
+                value={draftUpdatedText}
+                onChange={(event) => setDraftUpdatedText(event.target.value)}
+                className="min-h-[160px] w-full resize-y rounded border border-[#E8DDDD] bg-white p-2 text-sm text-[#271D1D] focus:outline-none focus:ring-2 focus:ring-[#9A7C7C]"
+              />
+              <div className="mt-2 flex items-center gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  className="bg-[#271D1D] text-white hover:bg-[#3A2F2F]"
+                  onClick={handleSaveEdit}
+                >
+                  Save
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="border-[#E8DDDD] text-[#725A5A]"
+                  onClick={() => {
+                    setIsEditing(false);
+                    setDraftUpdatedText(resolvedUpdatedText);
+                  }}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          ) : (
+            renderDiffColumn("updated")
+          )}
+          {isAiPromptOpen && !isEditing && (
+            <div className="mt-3 rounded-md border border-[#E8DDDD] bg-[#FDFBFB] p-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[#725A5A]">
+                AI Edit
+              </p>
+              <div className="mt-2 flex flex-col gap-2">
+                <input
+                  type="text"
+                  value={aiPrompt}
+                  onChange={(event) => setAiPrompt(event.target.value)}
+                  placeholder="Describe how the clause should change..."
+                  className="w-full rounded border border-[#E8DDDD] bg-white px-3 py-2 text-sm text-[#271D1D] focus:outline-none focus:ring-2 focus:ring-[#9A7C7C]"
+                />
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="bg-[#271D1D] text-white hover:bg-[#3A2F2F]"
+                    onClick={handleApplyAiEdit}
+                    disabled={aiEditState?.isLoading || !aiPrompt.trim()}
+                  >
+                    {aiEditState?.isLoading ? (
+                      <span className="inline-flex items-center gap-2">
+                        <Loader2 className="h-4 w-4 animate-spin" /> Applying...
+                      </span>
+                    ) : (
+                      "Apply"
+                    )}
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="border-[#E8DDDD] text-[#725A5A]"
+                    onClick={() => {
+                      setIsAiPromptOpen(false);
+                      setAiPrompt("");
+                    }}
+                    disabled={aiEditState?.isLoading}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+                {aiEditState?.error && (
+                  <p className="text-xs text-red-600">{aiEditState.error}</p>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
       <Dialog
@@ -2027,17 +2143,12 @@ export default function ContractReview() {
   const [isLoading, setIsLoading] = useState(
     !initialContract || !initialReview,
   );
-  const agentChatRef = useRef<AgentChatHandle>(null);
-  const [agentEdits, setAgentEdits] = useState<AgentEditWithStatus[]>([]);
-  const [isAgentOpen, setIsAgentOpen] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     actions: true,
     missing: true,
   });
   const [suggestionSelection, setSuggestionSelection] = useState<Record<string, boolean>>({});
-  const [includeAcceptedAgentEdits, setIncludeAcceptedAgentEdits] = useState(true);
-  const [hasManuallyToggledIncludeEdits, setHasManuallyToggledIncludeEdits] = useState(false);
   const [activeSimilarityMatch, setActiveSimilarityMatch] =
     useState<SimilarityMatch | null>(null);
   const [activeDeviationInsight, setActiveDeviationInsight] =
@@ -2051,6 +2162,12 @@ export default function ContractReview() {
   const [draftViewMode, setDraftViewMode] = useState<"preview" | "diff">(
     "preview",
   );
+  const [proposedEditOverrides, setProposedEditOverrides] = useState<
+    Record<string, { text: string; source: "manual" | "ai" }>
+  >({});
+  const [aiEditStatus, setAiEditStatus] = useState<
+    Record<string, { isLoading: boolean; error?: string | null }>
+  >({});
 
   const originalHtml = useMemo(() => {
     if (draftResult?.originalHtml) {
@@ -2334,19 +2451,6 @@ const updatedPlainText = useMemo(() => {
       clauses: resolvedClauseExtractions,
       recommendations: normalizedRecommendations,
       action_items: normalizedActionItems,
-      agent_edits: acceptedAgentEdits.map((edit) => ({
-        id: edit.id,
-        clause_reference: edit.clauseReference ?? null,
-        change_type: edit.changeType ?? null,
-        original_text: edit.originalText ?? null,
-        suggested_text: edit.suggestedText,
-        rationale: edit.rationale,
-        severity: edit.severity ?? null,
-        provider: edit.provider ?? null,
-        model: edit.model ?? null,
-        created_at: edit.createdAt,
-        references: edit.references ?? null,
-      })),
       raw_results: results,
     };
   };
@@ -2380,24 +2484,6 @@ const updatedPlainText = useMemo(() => {
       : "";
 
     const dominantDepartments = payload.summary.dominant_departments || [];
-    const agentEditsHtml = payload.agent_edits && payload.agent_edits.length
-      ? `<h2>Approved Agent Edits</h2>${payload.agent_edits
-          .map(
-            (edit: any) => `
-        <div style="margin-bottom:12px;">
-          <h4>${edit.clause_reference || edit.id || "Clause"}</h4>
-          <p><strong>Change:</strong> ${formatLabel(edit.change_type || "modify")}</p>
-          ${edit.original_text ? `<p><strong>Original:</strong> ${edit.original_text}</p>` : ""}
-          <p><strong>Suggested:</strong> ${edit.suggested_text}</p>
-          <p><strong>Rationale:</strong> ${edit.rationale}</p>
-          <p><strong>Severity:</strong> ${formatLabel(edit.severity || "info")}</p>
-        </div>
-      `,
-          )
-          .join("")}
-      `
-      : "";
-
     const htmlContent = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Maigon Contract Analysis</title></head><body>
       <h1>Contract Analysis Report</h1>
       <p><strong>Document:</strong> ${payload.contract.file_name || "Untitled"}</p>
@@ -2462,7 +2548,6 @@ const updatedPlainText = useMemo(() => {
               .join("")}</ul>`
           : ""
       }
-      ${agentEditsHtml}
     </body></html>`;
 
     const blob = new Blob([htmlContent], {
@@ -2899,6 +2984,11 @@ Next step: ${
     });
   }, [reviewData?.id, structuredIssues.length]);
 
+  useEffect(() => {
+    setProposedEditOverrides({});
+    setAiEditStatus({});
+  }, [reviewData?.id]);
+
   const toggleSeveritySection = useCallback((severity: string) => {
     setExpandedSeverities((prev) => ({
       ...prev,
@@ -3160,6 +3250,156 @@ const actionItemEntries = useMemo(
     [visibleDecisions, resolvedClauseExtractions],
   );
 
+  const resolveUpdatedTextForItem = useCallback(
+    (item: NormalizedDecision) => {
+      const override = proposedEditOverrides[item.id]?.text;
+      if (override) return override;
+      return (
+        item.proposedEdit?.updatedText ??
+        item.proposedEdit?.proposedText ??
+        item.proposedEdit?.anchorText ??
+        item.description ??
+        ""
+      );
+    },
+    [proposedEditOverrides],
+  );
+
+  const saveUpdatedTextOverride = useCallback(
+    (itemId: string, text: string, source: "manual" | "ai") => {
+      const trimmed = text.trim();
+      if (!trimmed) return;
+      setProposedEditOverrides((prev) => ({
+        ...prev,
+        [itemId]: { text: trimmed, source },
+      }));
+    },
+    [],
+  );
+
+  const requestAiClauseEdit = useCallback(
+    async (item: NormalizedDecision, prompt: string) => {
+      const trimmedPrompt = prompt.trim();
+      if (!trimmedPrompt) return false;
+      if (!contractData?.id) {
+        toast({
+          title: "Contract not available",
+          description: "We couldn't find the contract needed for AI edits.",
+          variant: "destructive",
+        });
+        return false;
+      }
+
+      setAiEditStatus((prev) => ({
+        ...prev,
+        [item.id]: { isLoading: true, error: null },
+      }));
+
+      const updatedText = resolveUpdatedTextForItem(item);
+      const originalText =
+        item.proposedEdit?.previousText ??
+        item.proposedEdit?.anchorText ??
+        "";
+      const clauseTitle = item.proposedEdit?.clauseTitle ?? null;
+      const clauseEvidence = [
+        {
+          clause: clauseTitle ?? item.proposedEdit?.clauseId ?? undefined,
+          clause_title: clauseTitle ?? undefined,
+          clause_text: originalText || undefined,
+          evidence_excerpt: originalText || undefined,
+          recommendation: item.description,
+          importance: item.severity,
+        },
+      ];
+
+      const instructions = [
+        "Rewrite the updated clause below based on the reviewer instruction.",
+        "Return a single proposed edit with suggestedText containing the full revised clause.",
+        "Use final contractual language only (no analysis or commentary).",
+      ].join(" ");
+
+      const userContent = [
+        instructions,
+        `Reviewer instruction: ${trimmedPrompt}`,
+        clauseTitle ? `Clause title: ${clauseTitle}` : null,
+        "Current updated clause:",
+        updatedText,
+        originalText ? "Original clause excerpt:" : null,
+        originalText || null,
+      ]
+        .filter(Boolean)
+        .join("\n\n");
+
+      try {
+        const response = await fetch("/api/agent/chat", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            contractId: contractData.id,
+            messages: [{ role: "user", content: userContent }],
+            mode: "clause_edit",
+            model: "gpt-5",
+            context: {
+              contract: {
+                id: contractData.id,
+                title: contractData.title ?? null,
+                contractType: classificationContractType ?? null,
+                classificationFallback: classificationFallbackUsed,
+              },
+              clauseEvidence,
+            } as AgentChatContext,
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`AI edit failed (${response.status})`);
+        }
+
+        const data = (await response.json()) as {
+          proposedEdits?: AgentProposedEdit[];
+          message?: { content?: string };
+        };
+        const suggestedText =
+          data.proposedEdits?.find(
+            (edit) => typeof edit.suggestedText === "string",
+          )?.suggestedText ?? null;
+
+        if (!suggestedText || !suggestedText.trim()) {
+          const fallbackMessage = data.message?.content?.trim();
+          throw new Error(
+            fallbackMessage || "AI did not return a revised clause.",
+          );
+        }
+
+        saveUpdatedTextOverride(item.id, suggestedText, "ai");
+        setAiEditStatus((prev) => ({
+          ...prev,
+          [item.id]: { isLoading: false, error: null },
+        }));
+        return true;
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "AI edit failed.";
+        setAiEditStatus((prev) => ({
+          ...prev,
+          [item.id]: { isLoading: false, error: message },
+        }));
+        return false;
+      }
+    },
+    [
+      classificationContractType,
+      classificationFallbackUsed,
+      contractData?.id,
+      contractData?.title,
+      resolveUpdatedTextForItem,
+      saveUpdatedTextOverride,
+      toast,
+    ],
+  );
+
   const topDepartments = useMemo(() => {
     const counts = new Map<string, number>();
     combinedDecisions.forEach((item) => {
@@ -3208,238 +3448,11 @@ const actionItemEntries = useMemo(
     return null;
   }, [contractData?.metadata]);
 
-  const agentContext = useMemo<AgentChatContext>(
-    () => ({
-      contract: {
-        id: contractData?.id ?? null,
-        title: contractData?.title ?? null,
-        contractType: classificationContractType,
-        classificationFallback: classificationFallbackUsed,
-      },
-      severitySnapshot,
-      topDepartments: topDepartments.map(([key, count]) => ({
-        key,
-        label: getDepartmentStyle(key).label,
-        count,
-      })),
-      missingInformation: displayMissingInformation,
-      recommendations: recommendationEntries.map((item) => ({
-        id: item.id,
-        description: item.description,
-        severity: item.severity,
-        department: item.department,
-        owner: item.owner,
-        dueTimeline: item.dueTimeline,
-      })),
-      actionItems: combinedDecisions.map((item) => ({
-        id: item.id,
-        description: item.description,
-        severity: item.severity,
-        department: item.department,
-        owner: item.owner,
-        dueTimeline: item.dueTimeline,
-      })),
-    }),
-    [
-      contractData?.id,
-      contractData?.title,
-      classificationContractType,
-      classificationFallbackUsed,
-      severitySnapshot,
-      topDepartments,
-      displayMissingInformation,
-      recommendationEntries,
-      combinedDecisions,
-    ],
-  );
 
-  const acceptedAgentEdits = useMemo(
-    () => agentEdits.filter((edit) => edit.status === "accepted"),
-    [agentEdits],
-  );
-
-  useEffect(() => {
-    if (acceptedAgentEdits.length === 0) {
-      if (includeAcceptedAgentEdits) {
-        setIncludeAcceptedAgentEdits(false);
-      }
-      if (hasManuallyToggledIncludeEdits) {
-        setHasManuallyToggledIncludeEdits(false);
-      }
-      return;
-    }
-
-    if (!hasManuallyToggledIncludeEdits && !includeAcceptedAgentEdits) {
-      setIncludeAcceptedAgentEdits(true);
-    }
-  }, [
-    acceptedAgentEdits.length,
-    hasManuallyToggledIncludeEdits,
-    includeAcceptedAgentEdits,
-  ]);
-
-  const handleAgentEdits = useCallback(
-    (
-      edits: AgentProposedEdit[],
-      meta: AgentInteractionMeta,
-    ) => {
-      const timestamp = new Date().toISOString();
-      const fallbackUsed = meta.provider ? meta.provider !== "openai" : false;
-
-      const nextEntries = (edits ?? []).map((edit, index) => ({
-        ...edit,
-        internalId: `${timestamp}-${index}-${edit.id}`,
-        status: "pending" as const,
-        provider: meta.provider,
-        model: meta.model,
-        createdAt: timestamp,
-        interactionId: null,
-      }));
-
-      if (nextEntries.length > 0) {
-        setAgentEdits((prev) => [...nextEntries, ...prev]);
-      }
-
-      if (user?.profileId) {
-        const solutionKeyForAnalytics =
-          (selectedSolution &&
-            (selectedSolution.key || selectedSolution.id || null)) ||
-          metadataSolutionKey;
-
-        void AnalyticsEventsService.recordMetric({
-          user_id: user.profileId,
-          contract_id: contractData?.id ?? null,
-          review_id: reviewData?.id ?? null,
-          ingestion_id: null,
-          model_used: meta.model ?? null,
-          review_type: reviewData?.review_type ?? "agent_interaction",
-          contract_type: classificationContractType,
-          solution_key: solutionKeyForAnalytics,
-          fallback_used: fallbackUsed,
-          retry_count: 0,
-          latency_ms: meta.latencyMs ?? null,
-          metadata: {
-            event: "agent_interaction",
-            provider: meta.provider ?? null,
-            model: meta.model ?? null,
-            editCount: edits?.length ?? 0,
-          },
-        });
-
-        const interactionPayload: Parameters<
-          typeof AgentInteractionsService.logInteraction
-        >[0] = {
-          user_id: user.profileId,
-          contract_id: contractData?.id ?? null,
-          review_id: reviewData?.id ?? null,
-          provider: meta.provider ?? null,
-          model: meta.model ?? null,
-          edit_count: edits?.length ?? 0,
-          fallback_used: fallbackUsed,
-          latency_ms: meta.latencyMs ?? null,
-          metadata: {
-            event: "agent_interaction",
-            reviewType: reviewData?.review_type ?? null,
-          } as Parameters<
-            typeof AgentInteractionsService.logInteraction
-          >[0]["metadata"],
-        };
-
-        if (nextEntries.length > 0) {
-          const affectedInternalIds = nextEntries.map((entry) => entry.internalId);
-          void AgentInteractionsService.logInteraction(interactionPayload).then(
-            (interaction) => {
-              if (!interaction) return;
-              setAgentEdits((prev) =>
-                prev.map((entry) =>
-                  affectedInternalIds.includes(entry.internalId)
-                    ? { ...entry, interactionId: interaction.id }
-                    : entry,
-                ),
-              );
-            },
-          );
-        } else {
-          void AgentInteractionsService.logInteraction(interactionPayload);
-        }
-      }
-    },
-    [
-      user?.profileId,
-      contractData?.id,
-      reviewData?.id,
-      reviewData?.review_type,
-      classificationContractType,
-      selectedSolution,
-      metadataSolutionKey,
-    ],
-  );
-
-  const updateAgentEditStatus = useCallback(
-    (internalId: string, status: AgentEditWithStatus["status"]) => {
-      let approvalPayload: Parameters<
-        typeof AgentEditApprovalsService.recordApproval
-      >[0] | null = null;
-
-      setAgentEdits((prev) =>
-        prev.map((edit) => {
-          if (edit.internalId !== internalId) {
-            return edit;
-          }
-
-          const nextEdit = { ...edit, status };
-
-          if (
-            status === "accepted" &&
-            user?.profileId
-          ) {
-            approvalPayload = {
-              user_id: user.profileId,
-              contract_id: contractData?.id ?? null,
-              review_id: reviewData?.id ?? null,
-              interaction_id: edit.interactionId ?? null,
-              proposed_edit_id: edit.id ?? null,
-              clause_reference: edit.clauseReference ?? null,
-              change_type: edit.changeType ?? null,
-              suggested_text: edit.suggestedText ?? null,
-              rationale: edit.rationale ?? null,
-              metadata: {
-                provider: edit.provider ?? null,
-                model: edit.model ?? null,
-              } as Parameters<
-                typeof AgentEditApprovalsService.recordApproval
-              >[0]["metadata"],
-            };
-          }
-
-          return nextEdit;
-        }),
-      );
-
-      if (approvalPayload) {
-        void AgentEditApprovalsService.recordApproval(approvalPayload);
-      }
-    },
-    [user?.profileId, contractData?.id, reviewData?.id],
-  );
-
-  const resetAgentEditStatus = useCallback((internalId: string) => {
-    setAgentEdits((prev) =>
-      prev.map((edit) =>
-        edit.internalId === internalId ? { ...edit, status: "pending" } : edit,
-      ),
-    );
-  }, []);
 
   const hasSelectedDraftInputs = useMemo(
-    () =>
-      selectedSuggestionCount > 0 ||
-      (includeAcceptedAgentEdits && acceptedAgentEdits.length > 0),
-    [
-      selectedSuggestionCount,
-      includeAcceptedAgentEdits,
-      acceptedAgentEdits.length,
-    ],
+    () => selectedSuggestionCount > 0,
+    [selectedSuggestionCount],
   );
 
   const handleGenerateDraft = useCallback(async () => {
@@ -3453,43 +3466,39 @@ const actionItemEntries = useMemo(
     }
 
     const suggestionsPayload: AgentDraftSuggestion[] = selectedSuggestions.map(
-      (item) => ({
-        id: item.id,
-        description: item.description,
-        severity: item.severity,
-        department: item.department,
-        owner: item.owner,
-        dueTimeline: item.dueTimeline,
-        proposedEdit: item.proposedEdit
-          ? {
-              id: item.proposedEdit.id,
-              clauseId: item.proposedEdit.clauseId ?? null,
-              clauseTitle: item.proposedEdit.clauseTitle ?? null,
-              anchorText: item.proposedEdit.anchorText,
-              proposedText: item.proposedEdit.updatedText ?? item.proposedEdit.proposedText,
-              previousText: item.proposedEdit.previousText ?? item.proposedEdit.anchorText ?? null,
-              updatedText: item.proposedEdit.updatedText ?? item.proposedEdit.proposedText ?? null,
-              previewHtml: item.proposedEdit.previewHtml,
-            }
-          : undefined,
-      }),
+      (item) => {
+        const updatedText = resolveUpdatedTextForItem(item);
+        const previousText =
+          item.proposedEdit?.previousText ??
+          item.proposedEdit?.anchorText ??
+          null;
+        return {
+          id: item.id,
+          description: item.description,
+          severity: item.severity,
+          department: item.department,
+          owner: item.owner,
+          dueTimeline: item.dueTimeline,
+          proposedEdit: item.proposedEdit
+            ? {
+                id: item.proposedEdit.id,
+                clauseId: item.proposedEdit.clauseId ?? null,
+                clauseTitle: item.proposedEdit.clauseTitle ?? null,
+                anchorText: item.proposedEdit.anchorText,
+                proposedText: updatedText,
+                previousText,
+                updatedText,
+                previewHtml: buildPreviewHtmlFromText(previousText, updatedText),
+              }
+            : undefined,
+        };
+      },
     );
 
-    const editsPayload: AgentDraftEdit[] = includeAcceptedAgentEdits
-      ? acceptedAgentEdits.map((edit) => ({
-          id: edit.id || edit.internalId,
-          clauseReference: edit.clauseReference ?? null,
-          changeType: edit.changeType ?? null,
-          originalText: edit.originalText ?? null,
-          suggestedText: edit.suggestedText,
-          rationale: edit.rationale,
-        }))
-      : [];
-
-    if (suggestionsPayload.length === 0 && editsPayload.length === 0) {
+    if (suggestionsPayload.length === 0) {
       toast({
         title: "Nothing selected",
-        description: "Choose at least one recommendation or accepted agent edit to apply.",
+        description: "Choose at least one recommendation to apply.",
         variant: "destructive",
       });
       return;
@@ -3509,7 +3518,6 @@ const actionItemEntries = useMemo(
         body: JSON.stringify({
           contractId: contractData.id,
           suggestions: suggestionsPayload,
-          agentEdits: editsPayload.length > 0 ? editsPayload : undefined,
         }),
       });
 
@@ -3586,8 +3594,7 @@ const actionItemEntries = useMemo(
   }, [
     contractData?.id,
     selectedSuggestions,
-    includeAcceptedAgentEdits,
-    acceptedAgentEdits,
+    resolveUpdatedTextForItem,
     toast,
   ]);
 
@@ -3848,15 +3855,6 @@ const actionItemEntries = useMemo(
     [draftDiffChunks],
   );
 
-const handleDraftMissingClause = useCallback((item: string) => {
-  setIsAgentOpen(true);
-  setTimeout(() => {
-    agentChatRef.current?.sendPrompt(
-      `Draft an insertable clause that resolves the following gap: ${item}. Provide clause text ready to paste, and label it appropriately.`,
-    );
-  }, 150);
-}, []);
-
 const scrollToSection = useCallback((sectionId: string) => {
   const el = document.getElementById(sectionId);
   if (el) {
@@ -4032,13 +4030,6 @@ const heroNavItems: { id: string; label: string }[] = [
                         {item.label}
                       </Button>
                     ))}
-                    <Button
-                      size="sm"
-                      className="bg-white text-[#0B1223] hover:bg-white/90"
-                      onClick={() => setIsAgentOpen(true)}
-                    >
-                      Ask Maigon Copilot
-                    </Button>
                   </div>
                 </div>
               </div>
@@ -4714,117 +4705,6 @@ const heroNavItems: { id: string; label: string }[] = [
               </div>
             ))}
 
-            {agentEdits.length > 0 && (
-              <div className="mb-8 print:mb-6">
-                <div className="flex items-center justify-between mb-3">
-                  <h2 className="text-xl font-medium text-[#271D1D] print:text-lg">
-                    Agent Draft Edits
-                  </h2>
-                  <span className="text-sm text-gray-500">
-                    {acceptedAgentEdits.length} accepted · {agentEdits.length} total
-                  </span>
-                </div>
-                <div className="space-y-3">
-                  {agentEdits.map((edit) => {
-                    const severityStyle = getSeverityStyle(
-                      edit.severity || "default",
-                    );
-                    return (
-                    <div
-                      key={edit.internalId}
-                      className="rounded-lg border border-[#E8DDDD] bg-white p-4 shadow-sm"
-                    >
-                      <div className="flex flex-wrap items-start justify-between gap-2">
-                        <div>
-                          <h4 className="text-sm font-semibold text-[#271D1D]">
-                            {edit.clauseReference || edit.id || "Clause"}
-                          </h4>
-                          <p className="text-xs text-gray-500">
-                            {formatLabel(edit.changeType || "modify")}
-                            {edit.provider ? ` · ${edit.provider}` : ""}
-                            {edit.model ? ` (${edit.model})` : ""}
-                          </p>
-                        </div>
-                        <span
-                          className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-medium ${EDIT_STATUS_STYLES[edit.status].className}`}
-                        >
-                          {EDIT_STATUS_STYLES[edit.status].label}
-                        </span>
-                        {edit.severity && (
-                          <span
-                            className={`inline-flex items-center gap-2 rounded-full px-2.5 py-0.5 text-[11px] font-medium ${severityStyle.badge}`}
-                          >
-                            <span
-                              className={`h-2 w-2 rounded-full ${severityStyle.dot}`}
-                            ></span>
-                            {severityStyle.label}
-                          </span>
-                        )}
-                      </div>
-
-                      {edit.originalText && (
-                        <div className="mt-3 text-xs">
-                          <p className="font-semibold text-gray-600 uppercase tracking-wide">
-                            Original
-                          </p>
-                          <div className="mt-1 rounded border border-gray-200 bg-gray-50 p-3 text-gray-700 whitespace-pre-wrap">
-                            {edit.originalText}
-                          </div>
-                        </div>
-                      )}
-
-                      <div className="mt-3 text-xs">
-                        <p className="font-semibold text-gray-600 uppercase tracking-wide">
-                          Suggested
-                        </p>
-                        <div className="mt-1 rounded border border-emerald-200 bg-emerald-50/70 p-3 text-[#1f5130] whitespace-pre-wrap">
-                          {edit.suggestedText}
-                        </div>
-                      </div>
-
-                      <p className="mt-3 text-xs text-gray-600">
-                        <span className="font-semibold text-[#271D1D]">Rationale:</span> {edit.rationale}
-                      </p>
-
-                      <div className="mt-4 flex flex-wrap items-center gap-2">
-                        {edit.status !== "accepted" && (
-                          <Button
-                            type="button"
-                            size="sm"
-                            className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                            onClick={() => updateAgentEditStatus(edit.internalId, "accepted")}
-                          >
-                            Accept
-                          </Button>
-                        )}
-                        {edit.status !== "rejected" && (
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="outline"
-                            onClick={() => updateAgentEditStatus(edit.internalId, "rejected")}
-                          >
-                            Reject
-                          </Button>
-                        )}
-                        {edit.status !== "pending" && (
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => resetAgentEditStatus(edit.internalId)}
-                          >
-                            Reset
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
             {/* Key Metrics Grid */}
             {false && results.key_points && (
               <div />
@@ -4849,18 +4729,9 @@ const heroNavItems: { id: string; label: string }[] = [
                     {displayMissingInformation.map((item, index) => (
                       <li
                         key={`missing-${index}`}
-                        className="flex flex-col gap-2 rounded-md border border-red-100 bg-white/60 p-3 text-red-900 sm:flex-row sm:items-start sm:justify-between"
+                        className="rounded-md border border-red-100 bg-white/60 p-3 text-red-900"
                       >
                         <span className="leading-relaxed">• {item}</span>
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          className="border-red-200 text-red-700 hover:bg-red-100"
-                          onClick={() => handleDraftMissingClause(item)}
-                        >
-                          Draft clause with agent
-                        </Button>
                       </li>
                     ))}
                   </ul>
@@ -4904,7 +4775,7 @@ const heroNavItems: { id: string; label: string }[] = [
             </div>
           )}
 
-          {(combinedDecisions.length > 0 || acceptedAgentEdits.length > 0) && (
+          {combinedDecisions.length > 0 && (
             <div id="draft-section" className="mb-8 print:hidden">
               <div className="rounded-2xl border border-[#E8DDDD] bg-white shadow-sm p-6">
                 <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
@@ -4913,17 +4784,10 @@ const heroNavItems: { id: string; label: string }[] = [
                       Build an AI-assisted contract draft
                     </h2>
                     <p className="text-sm text-[#725A5A] max-w-xl">
-                      Select which review recommendations and approved agent edits you want to merge. Maigon will create a fresh contract that applies those changes while preserving the existing structure.
+                      Select which review recommendations you want to merge. Maigon will create a fresh contract that applies those changes while preserving the existing structure.
                     </p>
                   </div>
                   <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center">
-                    <Button
-                      variant="outline"
-                      className="border-[#9A7C7C] text-[#9A7C7C] hover:bg-[#9A7C7C]/10"
-                      onClick={() => setIsAgentOpen(true)}
-                    >
-                      Ask the AI Instead
-                    </Button>
                     <Button
                       className="bg-[#271D1D] hover:bg-[#3A2F2F] text-white"
                       onClick={handleGenerateDraft}
@@ -4961,22 +4825,6 @@ const heroNavItems: { id: string; label: string }[] = [
                         Clear all
                       </button>
                     </div>
-                  )}
-                  {acceptedAgentEdits.length > 0 ? (
-                    <div className="flex items-center gap-2 text-xs">
-                      <Switch
-                        checked={includeAcceptedAgentEdits}
-                        onCheckedChange={(checked) => {
-                          setHasManuallyToggledIncludeEdits(true);
-                          setIncludeAcceptedAgentEdits(Boolean(checked));
-                        }}
-                      />
-                      <span className="text-[#271D1D]">
-                        Include {acceptedAgentEdits.length} accepted agent edit{acceptedAgentEdits.length === 1 ? "" : "s"}
-                      </span>
-                    </div>
-                  ) : (
-                    <span className="text-xs">No accepted agent edits yet</span>
                   )}
                 </div>
               </div>
@@ -5031,9 +4879,15 @@ const heroNavItems: { id: string; label: string }[] = [
                           item.proposedEdit?.anchorText ??
                           "Current clause text";
                         const actionPreviewUpdated =
-                          item.proposedEdit?.updatedText ??
-                          item.proposedEdit?.proposedText ??
+                          resolveUpdatedTextForItem(item) ||
                           actionPreviewAnchor;
+                        const actionPreviewHtml =
+                          proposedEditOverrides[item.id]?.text
+                            ? buildPreviewHtmlFromText(
+                                actionPreviewAnchor,
+                                actionPreviewUpdated,
+                              )
+                            : item.proposedEdit?.previewHtml ?? null;
                         const fullClauseSource =
                           fullDocumentClauseExtractions.length > 0
                             ? fullDocumentClauseExtractions
@@ -5093,7 +4947,10 @@ const heroNavItems: { id: string; label: string }[] = [
                                 <AlertTriangle className="mt-1 h-5 w-5 flex-shrink-0 text-orange-600" />
                               <div className="space-y-1">
                                 <p className="text-sm font-semibold text-[#271D1D]">
-                                  {resolveActionItemTitle(item)}
+                                  {resolveActionItemTitle(
+                                    item,
+                                    actionPreviewUpdated,
+                                  )}
                                 </p>
                                 <p className="text-sm text-gray-700">
                                   {item.description}
@@ -5112,14 +4969,20 @@ const heroNavItems: { id: string; label: string }[] = [
                                     null
                                   }
                                   updatedText={
-                                    item.proposedEdit.updatedText ??
-                                    item.proposedEdit.proposedText ??
-                                    null
+                                    actionPreviewUpdated
                                   }
                                   fullPreviousText={actionFullOriginal}
                                   fullUpdatedText={actionPreviewUpdated}
-                                  previewHtml={item.proposedEdit.previewHtml ?? null}
+                                  previewHtml={actionPreviewHtml}
                                   isActive={checked}
+                                  isEditable
+                                  aiEditState={aiEditStatus[item.id]}
+                                  onSaveUpdatedText={(text) =>
+                                    saveUpdatedTextOverride(item.id, text, "manual")
+                                  }
+                                  onRequestAiEdit={(prompt) =>
+                                    requestAiClauseEdit(item, prompt)
+                                  }
                                 />
                                 {!checked && (
                                   <p className="text-xs text-[#9A7C7C]">
@@ -5330,14 +5193,6 @@ const heroNavItems: { id: string; label: string }[] = [
         </DialogContent>
       </Dialog>
 
-      <AgentChat
-        ref={agentChatRef}
-        open={isAgentOpen}
-        onOpen={() => setIsAgentOpen(true)}
-        onClose={() => setIsAgentOpen(false)}
-        context={agentContext}
-        onEdits={handleAgentEdits}
-      />
     </>
   );
 }
