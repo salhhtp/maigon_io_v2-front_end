@@ -1068,12 +1068,13 @@ function convertProposedEditToDecision(
   const applyFlag = Boolean(edit.applyByDefault);
   const rationale =
     normalizeField(context?.rationale) ?? normalizeField(edit.rationale);
+  const intentText = edit.intent?.trim() ?? "";
   const baseDescription =
     rationale ??
-    edit.intent?.trim() ||
-    (clauseTitle
-      ? `Update clause: ${clauseTitle}`
-      : "Apply proposed contract change");
+    (intentText ||
+      (clauseTitle
+        ? `Update clause: ${clauseTitle}`
+        : "Apply proposed contract change"));
   const resolvedClauseTitle = resolveClauseTitleCandidate({
     clauseTitle,
     clauseId: edit.clauseId ?? null,
