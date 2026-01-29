@@ -43,6 +43,7 @@ import type {
 } from "@shared/api";
 import type {
   AnalysisReport,
+  ActionItem,
   Issue,
   ClauseFinding,
   ProposedEdit,
@@ -89,6 +90,7 @@ interface ReviewData {
 
 type NormalizedDecision = {
   id: string;
+  title?: string | null;
   description: string;
   severity: string;
   department: string;
@@ -374,7 +376,74 @@ function isMissingEvidenceString(value?: string | null) {
   if (!value) return false;
   const normalized = normalizeSearchText(value);
   if (!normalized) return false;
-  return normalized.includes("not present in contract");
+  if (normalized.length > 120) return false;
+  return (
+    normalized === "not present" ||
+    normalized === "missing" ||
+    normalized === "not found" ||
+    normalized === "n/a" ||
+    normalized.includes("not present in contract") ||
+    normalized.includes("not present in agreement") ||
+    normalized.includes("not present") ||
+    normalized.includes("missing") ||
+    normalized.includes("not found")
+  );
+}
+
+function extractClauseHeading(value?: string | null) {
+  if (!value) return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const firstLine = trimmed.split(/\r?\n/)[0]?.trim() ?? "";
+  if (!firstLine) return null;
+  const match = firstLine.match(
+    /^([A-Za-z0-9][A-Za-z0-9 &/(),'-]{2,80})(?=[:.])/,
+  );
+  if (!match) return null;
+  const heading = match[1].trim();
+  if (heading.split(/\s+/).length > 12) return null;
+  return heading === heading.toLowerCase() ? formatLabel(heading) : heading;
+}
+
+function isGenericActionText(value?: string | null) {
+  if (!value) return false;
+  const normalized = normalizeSearchText(value);
+  return (
+    normalized === "insert" ||
+    normalized === "add" ||
+    normalized === "update" ||
+    normalized === "modify" ||
+    normalized === "delete" ||
+    normalized === "remove"
+  );
+}
+
+function resolveActionItemTitle(item: NormalizedDecision) {
+  const edit = item.proposedEdit;
+  const candidates = [
+    extractClauseHeading(edit?.proposedText ?? edit?.updatedText ?? null),
+    edit?.clauseTitle ?? null,
+    extractClauseHeading(edit?.anchorText ?? null),
+    item.title ?? null,
+    !isGenericActionText(edit?.intent ?? null) && edit?.intent
+      ? formatLabel(edit.intent)
+      : null,
+    item.category &&
+    item.category !== "draft_update" &&
+    !isGenericActionText(item.category)
+      ? formatLabel(item.category)
+      : null,
+  ];
+  for (const candidate of candidates) {
+    if (!candidate) continue;
+    if (isGenericActionText(candidate)) continue;
+    return truncateText(candidate, 90);
+  }
+  const fallback =
+    item.description && !isGenericActionText(item.description)
+      ? item.description
+      : item.id;
+  return truncateText(fallback, 90);
 }
 
 function isMissingClauseReference(reference?: Issue["clauseReference"] | null) {
@@ -526,15 +595,20 @@ function normalizeDecisionEntries(
         item && typeof item === "object"
           ? (item as Record<string, unknown>)
           : { description: String(item ?? "") };
+      const title =
+        (typeof data.title === "string" && data.title.trim()) || null;
+      const rationale =
+        (typeof data.rationale === "string" && data.rationale.trim()) ||
+        (typeof data.reason === "string" && data.reason.trim()) ||
+        (typeof data.justification === "string" && data.justification.trim()) ||
+        null;
       const description =
         (typeof data.description === "string" && data.description) ||
         (typeof data.recommendation === "string" && data.recommendation) ||
         (typeof data.action === "string" && data.action) ||
         "";
       const trimmedDescription = description.trim();
-      if (!trimmedDescription) {
-        return null;
-      }
+      let finalDescription = rationale || trimmedDescription;
       const severityRaw =
         (typeof data.severity === "string" && data.severity) || defaultSeverity;
       const severity = severityRaw.toLowerCase();
@@ -558,6 +632,12 @@ function normalizeDecisionEntries(
         (typeof data.next_step === "string" && data.next_step) ||
         (typeof data.nextStep === "string" && data.nextStep) ||
         "";
+      if (isGenericActionText(finalDescription) && nextStep) {
+        finalDescription = nextStep;
+      }
+      if (!finalDescription) {
+        return null;
+      }
       const proposedEditPreview = extractProposedEditPreview(
         data,
         prefix,
@@ -568,7 +648,8 @@ function normalizeDecisionEntries(
         id:
           (typeof data.id === "string" && data.id) ||
           `${prefix}-${index + 1}`,
-        description: trimmedDescription,
+        title,
+        description: finalDescription,
         severity,
         department,
         owner,
@@ -892,6 +973,8 @@ function normalizeLegacyProposedEdit(value: unknown): ProposedEdit | null {
   }
   const data = value as Record<string, unknown>;
   const id = typeof data.id === "string" ? data.id : null;
+  const rationale =
+    typeof data.rationale === "string" ? data.rationale : null;
   const anchorText =
     typeof data.anchorText === "string"
       ? data.anchorText
@@ -912,6 +995,7 @@ function normalizeLegacyProposedEdit(value: unknown): ProposedEdit | null {
     clauseId: typeof data.clauseId === "string" ? data.clauseId : undefined,
     anchorText,
     proposedText,
+    rationale: rationale ?? undefined,
     intent:
       typeof data.intent === "string"
         ? data.intent
@@ -922,9 +1006,28 @@ function normalizeLegacyProposedEdit(value: unknown): ProposedEdit | null {
   };
 }
 
+function resolveClauseTitleCandidate(options: {
+  clauseTitle?: string | null;
+  clauseId?: string | null;
+  proposedText?: string | null;
+  anchorText?: string | null;
+}) {
+  const title = options.clauseTitle?.trim();
+  if (title) return title;
+  const fromProposed = extractClauseHeading(options.proposedText ?? null);
+  if (fromProposed) return fromProposed;
+  const fromAnchor = extractClauseHeading(options.anchorText ?? null);
+  if (fromAnchor) return fromAnchor;
+  if (options.clauseId) {
+    return formatLabel(options.clauseId);
+  }
+  return null;
+}
+
 function convertProposedEditToDecision(
   edit: ProposedEdit,
   clauseTitle?: string | null,
+  context?: { rationale?: string | null; title?: string | null },
 ): NormalizedDecision {
   const normalizeField = (value: unknown): string | null => {
     if (typeof value !== "string") return null;
@@ -963,13 +1066,23 @@ function convertProposedEditToDecision(
     normalizedAnchor;
 
   const applyFlag = Boolean(edit.applyByDefault);
+  const rationale =
+    normalizeField(context?.rationale) ?? normalizeField(edit.rationale);
   const baseDescription =
+    rationale ??
     edit.intent?.trim() ||
     (clauseTitle
       ? `Update clause: ${clauseTitle}`
       : "Apply proposed contract change");
+  const resolvedClauseTitle = resolveClauseTitleCandidate({
+    clauseTitle,
+    clauseId: edit.clauseId ?? null,
+    proposedText: normalizedProposed ?? normalizedUpdated,
+    anchorText: normalizedAnchor,
+  });
   return {
     id: edit.id,
+    title: normalizeField(context?.title) ?? resolvedClauseTitle,
     description: baseDescription,
     severity: applyFlag ? "high" : "medium",
     department: "legal",
@@ -981,7 +1094,7 @@ function convertProposedEditToDecision(
     proposedEdit: {
       id: edit.id,
       clauseId: edit.clauseId ?? null,
-      clauseTitle: clauseTitle ?? null,
+      clauseTitle: resolvedClauseTitle ?? null,
       anchorText: normalizedAnchor,
       proposedText: chosenUpdated ?? normalizedAnchor,
       intent: edit.intent,
@@ -1211,6 +1324,20 @@ function resolveHighlightCandidate(
     }
   }
   return candidates[0] ?? null;
+}
+
+function fullTextMatchesAnchor(
+  fullText?: string | null,
+  anchor?: string | null,
+) {
+  if (!fullText || !anchor) return false;
+  if (isMissingEvidenceString(anchor)) return false;
+  const candidate = resolveHighlightCandidate(fullText, anchor);
+  if (!candidate) return false;
+  const normalizedFull = normalizeSearchText(fullText);
+  const normalizedCandidate = normalizeSearchText(candidate);
+  if (!normalizedCandidate) return false;
+  return normalizedFull.includes(normalizedCandidate);
 }
 
 function renderHighlightedText(text: string, highlight: string | null) {
@@ -1468,13 +1595,9 @@ function groupDecisionsByClause(
     if (!groups.has(groupKey)) {
       const fallbackTitle =
         clauseMatch?.title ??
+        (clauseId ? truncateText(formatLabel(clauseId), 80) : null) ??
         clauseTitle ??
-        truncateText(
-          decision.proposedEdit?.anchorText ??
-            decision.description ??
-            decision.id,
-          80,
-        );
+        resolveActionItemTitle(decision);
       groups.set(groupKey, {
         id: groupKey,
         title: fallbackTitle,
@@ -2505,6 +2628,15 @@ Next step: ${
   const structuredDeviationInsights =
     structuredReport?.deviationInsights ?? [];
   const structuredReportActionItems = structuredReport?.actionItems ?? [];
+  const structuredActionItemMap = useMemo(() => {
+    const map = new Map<string, ActionItem>();
+    structuredReportActionItems.forEach((item) => {
+      if (item.id) {
+        map.set(item.id.toLowerCase(), item);
+      }
+    });
+    return map;
+  }, [structuredReportActionItems]);
   const playbookCoverage = structuredReport?.metadata?.playbookCoverage ?? null;
   const coveragePercent =
     typeof playbookCoverage?.coverageScore === "number"
@@ -2710,7 +2842,22 @@ Next step: ${
         });
     }
 
-    return Array.from(merged.values());
+    const deduped: ProposedEdit[] = [];
+    const seenSignatures = new Set<string>();
+    Array.from(merged.values()).forEach((edit) => {
+      const proposedKey = normalizeSearchText(edit.proposedText ?? "");
+      if (!proposedKey) {
+        deduped.push(edit);
+        return;
+      }
+      const clauseKey = normalizeSearchText(edit.clauseId ?? "");
+      const anchorKey = normalizeSearchText(edit.anchorText ?? "").slice(0, 140);
+      const signature = `${clauseKey || "unbound"}|${proposedKey}|${anchorKey}`;
+      if (seenSignatures.has(signature)) return;
+      seenSignatures.add(signature);
+      deduped.push(edit);
+    });
+    return deduped;
   }, [structuredReport, results]);
 
   const severityBuckets = useMemo<Record<string, Issue[]>>(() => {
@@ -2762,13 +2909,18 @@ Next step: ${
     if (!structuredProposedEdits.length) {
       return [];
     }
-    return structuredProposedEdits.map((edit) =>
-      convertProposedEditToDecision(
+    return structuredProposedEdits.map((edit) => {
+      const actionItem = structuredActionItemMap.get(edit.id.toLowerCase());
+      return convertProposedEditToDecision(
         edit,
         edit.clauseId ? clauseTitleMap.get(edit.clauseId) ?? null : null,
-      ),
-    );
-  }, [structuredProposedEdits, clauseTitleMap]);
+        {
+          rationale: actionItem?.description ?? null,
+          title: actionItem?.title ?? null,
+        },
+      );
+    });
+  }, [structuredProposedEdits, clauseTitleMap, structuredActionItemMap]);
   const proposedEditLookup = useMemo(() => {
     const lookup = new Map<string, ProposedEdit>();
     structuredProposedEdits.forEach((edit) => {
@@ -4885,14 +5037,21 @@ const heroNavItems: { id: string; label: string }[] = [
                           fullDocumentClauseExtractions.length > 0
                             ? fullDocumentClauseExtractions
                             : resolvedClauseExtractions;
+                        const actionFullOriginalCandidate = item.proposedEdit
+                          ? resolveFullClauseText({
+                              clauseId: item.proposedEdit.clauseId ?? null,
+                              clauseTitle: item.proposedEdit.clauseTitle ?? null,
+                              anchorText: actionPreviewAnchor,
+                              clauses: fullClauseSource,
+                            })
+                          : null;
                         const actionFullOriginal =
-                          item.proposedEdit
-                            ? resolveFullClauseText({
-                                clauseId: item.proposedEdit.clauseId ?? null,
-                                clauseTitle: item.proposedEdit.clauseTitle ?? null,
-                                anchorText: actionPreviewAnchor,
-                                clauses: fullClauseSource,
-                              })
+                          actionFullOriginalCandidate &&
+                          fullTextMatchesAnchor(
+                            actionFullOriginalCandidate,
+                            actionPreviewAnchor,
+                          )
+                            ? actionFullOriginalCandidate
                             : null;
                         return (
                           <div
@@ -4930,13 +5089,10 @@ const heroNavItems: { id: string; label: string }[] = [
                               </label>
                             </div>
                             <div className="mt-3 flex items-start gap-3">
-                              <AlertTriangle className="mt-1 h-5 w-5 flex-shrink-0 text-orange-600" />
+                                <AlertTriangle className="mt-1 h-5 w-5 flex-shrink-0 text-orange-600" />
                               <div className="space-y-1">
                                 <p className="text-sm font-semibold text-[#271D1D]">
-                                  {item.proposedEdit?.clauseTitle ||
-                                    item.proposedEdit?.anchorText ||
-                                    item.title ||
-                                    "Action item"}
+                                  {resolveActionItemTitle(item)}
                                 </p>
                                 <p className="text-sm text-gray-700">
                                   {item.description}
