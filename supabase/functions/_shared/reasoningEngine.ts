@@ -1823,7 +1823,8 @@ function buildProposedEditsForIssues(
         typeof issue.id === "string" && issue.id.trim().length > 0
           ? issue.id
           : `ISSUE_${index + 1}`;
-      const hasClauseEvidence = !isMissingClauseIssue(issue);
+      const issueMissing = isMissingClauseIssue(issue);
+      const hasClauseEvidence = !issueMissing;
       const template = selectTemplateForIssue(
         templates,
         issue,
@@ -1870,9 +1871,11 @@ function buildProposedEditsForIssues(
         anchorClause = findClauseByIssue(issue, clauseList);
       }
 
-      const anchorText = anchorClause?.originalText
-        ? pickAnchorSnippet(anchorClause.originalText)
-        : fallbackAnchorText || "Not present in contract";
+      const anchorText = issueMissing
+        ? "Not present in contract"
+        : anchorClause?.originalText
+          ? pickAnchorSnippet(anchorClause.originalText)
+          : fallbackAnchorText || "Not present in contract";
       const anchorClauseId =
         anchorClause?.clauseId ??
         anchorClause?.id ??
@@ -1881,6 +1884,10 @@ function buildProposedEditsForIssues(
 
       if (baseEdit) {
         const resolvedProposedText = baseProposedText || fallbackProposedText;
+        const rationaleSuffix =
+          issueMissing && template?.insertionAnchors?.length
+            ? ` Suggested insertion near ${template.insertionAnchors[0]}.`
+            : "";
         return {
           ...baseEdit,
           id: issueId,
@@ -1897,7 +1904,7 @@ function buildProposedEditsForIssues(
             (baseEdit.rationale as string | undefined) ??
             issue.recommendation ??
             issue.rationale ??
-            `Insert ${template?.title ?? "clause"}.`,
+            `Insert ${template?.title ?? "clause"}.${rationaleSuffix}`,
         };
       }
 
@@ -1908,6 +1915,10 @@ function buildProposedEditsForIssues(
         issue.recommendation ??
         issue.rationale ??
         `Insert ${template.title} clause.`;
+      const rationaleWithHint =
+        issueMissing && template.insertionAnchors?.length
+          ? `${rationale} Suggested insertion near ${template.insertionAnchors[0]}.`
+          : rationale;
 
       return {
         id: issueId,
@@ -1915,7 +1926,7 @@ function buildProposedEditsForIssues(
         anchorText,
         proposedText,
         intent: "insert",
-        rationale,
+        rationale: rationaleWithHint,
         previousText: anchorText,
         updatedText: proposedText,
       };

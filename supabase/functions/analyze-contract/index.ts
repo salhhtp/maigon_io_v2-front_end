@@ -1187,6 +1187,10 @@ function buildLegacyResponse(
   report.proposedEdits.forEach((edit) => {
     if (edit.id) editMap.set(edit.id, edit);
   });
+  const issueMap = new Map<string, (typeof report.issuesToAddress)[number]>();
+  report.issuesToAddress.forEach((issue) => {
+    if (issue.id) issueMap.set(issue.id, issue);
+  });
 
   const actionItems = (report.actionItems && report.actionItems.length > 0
     ? report.actionItems.map((item) => ({
@@ -1207,13 +1211,24 @@ function buildLegacyResponse(
         due_timeline: "Drafting phase",
         category: "drafting",
       }))
-  ).map((item) => ({
-    ...item,
-    proposedEdit:
+  ).map((item) => {
+    const baseEdit =
       item.id && editMap.has(item.id)
-        ? editMap.get(item.id)
-        : undefined,
-  }));
+        ? { ...editMap.get(item.id)! }
+        : undefined;
+    const issue = item.id ? issueMap.get(item.id) : undefined;
+    if (baseEdit && issue?.clauseReference) {
+      const evidence =
+        issue.clauseReference.excerpt ?? "Not present in contract";
+      baseEdit.anchorText = evidence;
+      baseEdit.previousText = evidence;
+      baseEdit.clauseId = issue.clauseReference.clauseId ?? baseEdit.clauseId;
+    }
+    return {
+      ...item,
+      proposedEdit: baseEdit,
+    };
+  });
 
   return {
     model_used: report.metadata?.model,

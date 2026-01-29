@@ -1624,9 +1624,12 @@ export function bindProposedEditsToClauses(options: {
       normalizedEditClauseId.startsWith("missing") ||
       missingIssueIds.has(normalizedEditId);
     if (intent.includes("insert") && missingAnchor && isAutoMissingEdit) {
+      const normalizedEditClauseId = normalizeClauseId(editClauseId);
+      const hasPlacementClause =
+        normalizedEditClauseId && clauseIds.has(normalizedEditClauseId);
       return {
         ...edit,
-        clauseId: undefined,
+        clauseId: hasPlacementClause ? editClauseId : undefined,
         anchorText: rawPreviousText || rawAnchorText || "Not present in contract",
         intent: "insert",
       };
