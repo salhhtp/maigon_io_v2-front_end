@@ -738,6 +738,83 @@ function inferSuggestionChangeType(options: {
   return "modify";
 }
 
+// Patterns that indicate signature blocks - insertions should go BEFORE these
+const SIGNATURE_BLOCK_PATTERNS = [
+  /^company\s*\d*\s*$/i,
+  /^party\s*\d*\s*$/i,
+  /^signature[s]?\s*[:.]?\s*$/i,
+  /^in\s+witness\s+whereof/i,
+  /^executed\s+as\s+of/i,
+  /^by\s*:\s*_+/i,
+  /^name\s*:\s*_+/i,
+  /^title\s*:\s*_+/i,
+  /^date\s*:\s*_+/i,
+  /^authorized\s+signatory/i,
+  /^\[?signature\]?$/i,
+  /^_{5,}\s*$/,  // Signature lines
+  /^for\s+and\s+on\s+behalf\s+of/i,
+  /^duly\s+authorized/i,
+];
+
+// Comprehensive mapping of clause keywords to target sections
+const CLAUSE_TO_SECTION_MAP: Array<{
+  keywords: string[];
+  targetSections: string[];
+}> = [
+  // Confidentiality-related clauses
+  {
+    keywords: ["marking", "notice", "marking and notice", "written notice"],
+    targetSections: ["Confidential Information", "Definition", "1."],
+  },
+  {
+    keywords: ["residual knowledge", "residual information", "residuals"],
+    targetSections: ["Confidential Information", "Exceptions", "4."],
+  },
+  {
+    keywords: ["use limitation", "need-to-know", "need to know", "permitted use"],
+    targetSections: ["Confidentiality Undertakings", "Receiving Party", "3."],
+  },
+  {
+    keywords: ["compelled disclosure", "required disclosure", "legal requirement"],
+    targetSections: ["Exceptions", "4."],
+  },
+  // Remedies and enforcement
+  {
+    keywords: ["remedies", "injunctive relief", "specific performance", "equitable relief"],
+    targetSections: ["Confidentiality Undertakings", "MISCELLANEOUS", "3."],
+  },
+  // Term and termination
+  {
+    keywords: ["term", "survival", "duration", "termination", "expiration"],
+    targetSections: ["term and termination", "7.", "Term"],
+  },
+  // Liability
+  {
+    keywords: ["limitation of liability", "liability", "damages", "indemnification", "indemnify"],
+    targetSections: ["MISCELLANEOUS", "9.", "Liability"],
+  },
+  // IP-related
+  {
+    keywords: ["intellectual property", "ip rights", "ownership", "no license", "patent", "copyright", "trademark"],
+    targetSections: ["Intellectual Property", "No Binding Commitments", "2.", "5."],
+  },
+  // Export and compliance
+  {
+    keywords: ["export control", "export", "compliance", "regulatory"],
+    targetSections: ["Export", "6.", "MISCELLANEOUS"],
+  },
+  // General/Miscellaneous
+  {
+    keywords: ["entire agreement", "amendment", "waiver", "severability", "assignment", "notices"],
+    targetSections: ["MISCELLANEOUS", "9.", "General"],
+  },
+  // Dispute resolution
+  {
+    keywords: ["governing law", "dispute", "jurisdiction", "arbitration", "venue"],
+    targetSections: ["GOVERNING LAW", "DISPUTES", "8."],
+  },
+];
+
 function inferInsertionReference(options: {
   proposedText?: string | null;
   clauseId?: string | null;
@@ -757,40 +834,14 @@ function inferInsertionReference(options: {
   const heading = headingMatch?.[1]?.trim().toLowerCase() ?? "";
   const normalized = proposedText.toLowerCase();
 
-  if (heading.includes("remedies") || normalized.includes("injunctive relief")) {
-    return "MISCELLANEOUS";
-  }
-  if (heading.includes("compelled disclosure") || normalized.includes("compelled disclosure")) {
-    return "Exceptions";
-  }
-  if (
-    heading.includes("marking") ||
-    heading.includes("reasonable notice") ||
-    normalized.includes("marking and notice")
-  ) {
-    return "Confidential Information";
-  }
-  if (heading.includes("residual knowledge") || normalized.includes("residual knowledge")) {
-    return "Confidential Information";
-  }
-  if (
-    heading.includes("use limitation") ||
-    heading.includes("need-to-know") ||
-    normalized.includes("need to know")
-  ) {
-    return "The Receiving Party hereby undertakes";
-  }
-  if (heading.includes("term") || heading.includes("survival")) {
-    return "term and termination";
-  }
-  if (heading.includes("no license") || normalized.includes("no license")) {
-    return "No Binding Commitments";
-  }
-  if (heading.includes("limitation of liability") || normalized.includes("liability")) {
-    return "MISCELLANEOUS";
-  }
-  if (heading.includes("export control") || normalized.includes("export control")) {
-    return "MISCELLANEOUS";
+  // Check against comprehensive clause-to-section mapping
+  for (const mapping of CLAUSE_TO_SECTION_MAP) {
+    const matches = mapping.keywords.some(
+      (keyword) => heading.includes(keyword) || normalized.includes(keyword),
+    );
+    if (matches && mapping.targetSections.length > 0) {
+      return mapping.targetSections[0];
+    }
   }
 
   const anchorText = (options.anchorText ?? "").trim();
@@ -799,6 +850,63 @@ function inferInsertionReference(options: {
   }
 
   return null;
+}
+
+function isSignatureBlockLine(line: string): boolean {
+  const trimmed = line.trim();
+  if (!trimmed) return false;
+  return SIGNATURE_BLOCK_PATTERNS.some((pattern) => pattern.test(trimmed));
+}
+
+function findSignatureBlockStart(lines: string[]): number {
+  // Look for signature block indicators from the end of the document
+  // We want to find where the main content ends and signatures begin
+  let signatureStart = lines.length;
+
+  // First pass: look for explicit signature markers
+  for (let i = lines.length - 1; i >= 0; i--) {
+    const line = lines[i] ?? "";
+    if (isSignatureBlockLine(line)) {
+      signatureStart = i;
+    } else if (signatureStart < lines.length) {
+      // We found signature content and now hit non-signature content
+      // Check if this might be a section heading before signatures
+      const trimmed = line.trim();
+      if (trimmed && !trimmed.match(/^\d+\.\s*$/)) {
+        break;
+      }
+    }
+  }
+
+  // If we didn't find an explicit signature block, look for common patterns
+  // like table structures at the end (often used for signature blocks)
+  if (signatureStart === lines.length) {
+    // Look for "Company 1" / "Company 2" style blocks at the end
+    for (let i = lines.length - 1; i >= Math.max(0, lines.length - 20); i--) {
+      const line = (lines[i] ?? "").trim().toLowerCase();
+      if (
+        line.match(/^company\s*[12]?\s*$/) ||
+        line.match(/^party\s*[a-z]?\s*$/) ||
+        line.match(/^_{10,}$/) ||  // Long underscores often for signature lines
+        line === ""
+      ) {
+        // Check if we have multiple such lines in succession
+        let consecutiveSignatureLines = 0;
+        for (let j = i; j < Math.min(lines.length, i + 5); j++) {
+          const checkLine = (lines[j] ?? "").trim();
+          if (!checkLine || isSignatureBlockLine(checkLine) || checkLine.match(/^_{3,}$/)) {
+            consecutiveSignatureLines++;
+          }
+        }
+        if (consecutiveSignatureLines >= 2) {
+          signatureStart = i;
+          break;
+        }
+      }
+    }
+  }
+
+  return signatureStart;
 }
 
 function applyEditsToPlainText(
@@ -850,8 +958,12 @@ function applyEditsToPlainText(
     const lines = text.split(/\r?\n/);
     const normalizedRef = normalizeDraftText(reference);
     if (!normalizedRef) return null;
+
+    // Find the signature block start to avoid inserting after it
+    const signatureStart = findSignatureBlockStart(lines);
+
     let headingIndex = -1;
-    for (let i = 0; i < lines.length; i += 1) {
+    for (let i = 0; i < signatureStart; i += 1) {
       const lineText = normalizeDraftText(lines[i] ?? "");
       if (lineText && lineText.includes(normalizedRef)) {
         headingIndex = i;
@@ -859,8 +971,10 @@ function applyEditsToPlainText(
       }
     }
     if (headingIndex < 0) return null;
-    let endIndex = lines.length;
-    for (let i = headingIndex + 1; i < lines.length; i += 1) {
+
+    // Find end of section (next heading or signature block, whichever comes first)
+    let endIndex = signatureStart;
+    for (let i = headingIndex + 1; i < signatureStart; i += 1) {
       if (isHeadingLine(lines[i] ?? "")) {
         endIndex = i;
         break;
@@ -878,6 +992,56 @@ function applyEditsToPlainText(
       .replace(/\n{3,}/g, "\n\n");
     return updated;
   };
+
+  // Try multiple target sections for a clause type
+  const tryInsertWithFallbackSections = (
+    text: string,
+    clauseText: string,
+    insertion: string,
+  ): string | null => {
+    const normalized = clauseText.toLowerCase();
+    const headingMatch = clauseText.match(/^([A-Za-z0-9 &/()-]{3,80})[:.]/);
+    const heading = headingMatch?.[1]?.trim().toLowerCase() ?? "";
+
+    // Find matching clause type and try all its target sections
+    for (const mapping of CLAUSE_TO_SECTION_MAP) {
+      const matches = mapping.keywords.some(
+        (keyword) => heading.includes(keyword) || normalized.includes(keyword),
+      );
+      if (matches) {
+        for (const targetSection of mapping.targetSections) {
+          const result = insertAfterSection(text, targetSection, insertion);
+          if (result) return result;
+        }
+      }
+    }
+    return null;
+  };
+
+  // Insert before signature blocks as a last resort
+  const insertBeforeSignatures = (text: string, insertion: string): string => {
+    const lines = text.split(/\r?\n/);
+    const signatureStart = findSignatureBlockStart(lines);
+    const insertionLines = insertion.split(/\r?\n/);
+
+    if (signatureStart < lines.length) {
+      // Insert before the signature block
+      const updated = [
+        ...lines.slice(0, signatureStart),
+        "",
+        ...insertionLines,
+        "",
+        ...lines.slice(signatureStart),
+      ]
+        .join("\n")
+        .replace(/\n{3,}/g, "\n\n");
+      return updated;
+    }
+
+    // No signature block found, append at end
+    return `${text.trim()}\n\n${insertion}`;
+  };
+
   let output = original;
 
   for (const edit of edits) {
@@ -902,6 +1066,7 @@ function applyEditsToPlainText(
         }
         continue;
       }
+      // Try explicit clause reference first
       if (edit.clauseReference) {
         const updated = insertAfterSection(output, edit.clauseReference, suggestion);
         if (updated) {
@@ -909,7 +1074,14 @@ function applyEditsToPlainText(
           continue;
         }
       }
-      output = `${output.trim()}\n\n${suggestion}`;
+      // Try to infer target section from clause content
+      const inferredResult = tryInsertWithFallbackSections(output, suggestion, suggestion);
+      if (inferredResult) {
+        output = inferredResult;
+        continue;
+      }
+      // Last resort: insert before signature blocks instead of at the very end
+      output = insertBeforeSignatures(output, suggestion);
       continue;
     }
 

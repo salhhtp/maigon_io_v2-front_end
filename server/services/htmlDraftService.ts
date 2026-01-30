@@ -34,6 +34,75 @@ interface ClauseNode {
 
 const MATCH_THRESHOLD = 0.55;
 
+// Patterns that indicate signature blocks - insertions should go BEFORE these
+const SIGNATURE_BLOCK_PATTERNS = [
+  /^company\s*\d*\s*$/i,
+  /^party\s*\d*\s*$/i,
+  /^signature[s]?\s*[:.]?\s*$/i,
+  /^in\s+witness\s+whereof/i,
+  /^executed\s+as\s+of/i,
+  /^by\s*:\s*_*/i,
+  /^name\s*:\s*_*/i,
+  /^title\s*:\s*_*/i,
+  /^date\s*:\s*_*/i,
+  /^authorized\s+signatory/i,
+  /^\[?signature\]?$/i,
+  /^_{5,}\s*$/,
+  /^for\s+and\s+on\s+behalf\s+of/i,
+  /^duly\s+authorized/i,
+];
+
+function isSignatureBlockElement(text: string): boolean {
+  const trimmed = text.trim();
+  if (!trimmed) return false;
+  return SIGNATURE_BLOCK_PATTERNS.some((pattern) => pattern.test(trimmed));
+}
+
+function findSignatureBlockElement($: cheerio.CheerioAPI): cheerio.Element | null {
+  const bodyChildren = $("body").children().toArray();
+
+  // Search from the end to find where signature blocks begin
+  for (let i = bodyChildren.length - 1; i >= 0; i--) {
+    const element = bodyChildren[i];
+    const text = $(element).text().trim();
+
+    if (isSignatureBlockElement(text)) {
+      // Found a signature block element, look for the first one in this sequence
+      let firstSignatureIdx = i;
+      for (let j = i - 1; j >= Math.max(0, i - 10); j--) {
+        const prevText = $(bodyChildren[j]).text().trim();
+        if (isSignatureBlockElement(prevText) || !prevText) {
+          firstSignatureIdx = j;
+        } else {
+          break;
+        }
+      }
+      return bodyChildren[firstSignatureIdx];
+    }
+
+    // Also check for table-based signature blocks (common in legal docs)
+    if (element.tagName === "table") {
+      const tableText = $(element).text().toLowerCase();
+      if (
+        tableText.includes("company") ||
+        tableText.includes("signature") ||
+        tableText.includes("party")
+      ) {
+        // Check if this looks like a signature table
+        const cells = $(element).find("td, th").toArray();
+        const signatureCells = cells.filter((cell) =>
+          isSignatureBlockElement($(cell).text()),
+        );
+        if (signatureCells.length >= 2) {
+          return element;
+        }
+      }
+    }
+  }
+
+  return null;
+}
+
 export async function buildPatchedHtmlDraft(
   options: BuildHtmlDraftOptions,
 ): Promise<HtmlDraftBuildResult | null> {
@@ -214,23 +283,48 @@ function applyEditsToHtml(
       }
 
       const insertionHtml = `<p>${formattedInsert}</p>`;
-      const shouldAppendToEnd =
-        !targetNode && !edit.originalText && !edit.clauseReference;
+
+      // Helper to insert before signature block or at end of body
+      const insertBeforeSignaturesOrEnd = () => {
+        const signatureElement = findSignatureBlockElement($);
+        if (signatureElement) {
+          $(signatureElement).before(insertionHtml);
+          lastTarget = $(signatureElement).prev().get(0) ?? null;
+        } else {
+          $("body").append(insertionHtml);
+          lastTarget = $("body").children().last().get(0) ?? null;
+        }
+        matched.push(resolvedId);
+      };
+
       if (targetNode) {
         $(targetNode.element).after(insertionHtml);
         matched.push(resolvedId);
         lastTarget = $(targetNode.element).next().get(0) ?? null;
-      } else if (shouldAppendToEnd) {
-        $("body").append(insertionHtml);
-        matched.push(resolvedId);
-        lastTarget = $("body").children().last().get(0) ?? null;
       } else if (lastTarget) {
-        $(lastTarget).after(insertionHtml);
-        matched.push(resolvedId);
-        lastTarget = $(lastTarget).next().get(0) ?? null;
+        // Check if lastTarget is before signature block
+        const signatureElement = findSignatureBlockElement($);
+        if (signatureElement) {
+          const lastTargetIdx = $("body").children().toArray().indexOf(lastTarget);
+          const signatureIdx = $("body").children().toArray().indexOf(signatureElement);
+          if (lastTargetIdx >= signatureIdx) {
+            // lastTarget is at or after signature, insert before signature instead
+            $(signatureElement).before(insertionHtml);
+            lastTarget = $(signatureElement).prev().get(0) ?? null;
+            matched.push(resolvedId);
+          } else {
+            $(lastTarget).after(insertionHtml);
+            matched.push(resolvedId);
+            lastTarget = $(lastTarget).next().get(0) ?? null;
+          }
+        } else {
+          $(lastTarget).after(insertionHtml);
+          matched.push(resolvedId);
+          lastTarget = $(lastTarget).next().get(0) ?? null;
+        }
       } else {
-        $("body").append(insertionHtml);
-        matched.push(resolvedId);
+        // No target found - insert before signature blocks instead of at very end
+        insertBeforeSignaturesOrEnd();
       }
 
       continue;
