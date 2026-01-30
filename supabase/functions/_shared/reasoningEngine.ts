@@ -18,6 +18,7 @@ import {
   dedupeIssues,
   dedupeProposedEdits,
   evaluatePlaybookCoverageFromContent,
+  filterIssuesConflictingWithCriteriaMet,
   normaliseReportExpiry,
 } from "../../../shared/ai/reliability.ts";
 import { LEGAL_LANGUAGE_PROMPT_BLOCK } from "../../../shared/legalLanguage.ts";
@@ -835,6 +836,9 @@ function buildSystemPrompt(
     "CRITICAL: Every issue MUST have exactly one corresponding proposed edit. The proposedEdits array must have the same number of items as issuesToAddress, with matching ids.",
     "For existing clauses that need fixes, be SURGICAL: only change the specific problematic text, not the entire clause. If only a number or phrase needs to change, the anchorText should be just that portion.",
     "For each checklist/anchor item in the playbook, emit a finding (met/missing/attention) and include an issue for anything missing or ambiguous.",
+    "AVOID OVER-FLAGGING: Do NOT flag an issue if the clause already adequately addresses the concern. Only flag issues for genuine gaps, deficiencies, or missing protections.",
+    "AVOID DUPLICATES: Each distinct problem should appear exactly once in issuesToAddress. Do not create multiple issues for the same underlying concern even if phrased differently.",
+    "CONSISTENCY: If a clause meets the criteria (criteriaMet=true), do NOT also flag it as an issue unless there is a separate, distinct problem with that clause.",
     compact
       ? "If output length is constrained, group similar findings and keep each item concise."
       : null,
@@ -980,8 +984,8 @@ function buildJsonSchemaDescription(
     "- generatedAt: ISO timestamp",
     "- generalInformation: { complianceScore (0-100), selectedPerspective, reviewTimeSeconds, timeSavingsMinutes, reportExpiry }",
     "- contractSummary: { contractName, filename, parties[], agreementDirection, purpose, verbalInformationCovered, contractPeriod, governingLaw, jurisdiction }",
-    "- issuesToAddress: Issues with id, title, severity, recommendation, rationale, clauseReference { clauseId, heading, excerpt, locationHint }. Excerpt must quote or paraphrase the retrieved clause excerpts or clause digest. If a clause is missing, state \"Not present in contract\" in excerpt and location.",
-    "- criteriaMet: Checklist items with id, title, description, met, evidence.",
+    "- issuesToAddress: Issues with id, title, severity, recommendation, rationale, clauseReference { clauseId, heading, excerpt, locationHint }. Excerpt must quote or paraphrase the retrieved clause excerpts or clause digest. If a clause is missing, state \"Not present in contract\" in excerpt and location. IMPORTANT: Only flag genuine issues - do NOT flag clauses that adequately meet criteria. Each issue must be unique; avoid duplicates.",
+    "- criteriaMet: Checklist items with id, title, description, met, evidence. If met=true, do NOT create a corresponding issue for the same clause unless there is a distinct, separate problem.",
     "- proposedEdits: CRITICAL - Every issue in issuesToAddress MUST have a corresponding proposed edit with matching id. Each edit needs id, clauseId, anchorText, proposedText, intent, rationale.",
     "- For MISSING clauses (anchorText = \"Not present in contract\"): intent = \"insert\", proposedText = the new clause to add.",
     "- For EXISTING clauses that need fixes: intent = \"replace\", anchorText = ONLY the specific problematic text (not the whole clause), proposedText = ONLY the replacement for that specific text. Be SURGICAL - change only what is necessary to fix the issue.",
@@ -1816,12 +1820,11 @@ function selectTemplateForIssue(
 /**
  * Generate surgical edit text for issues without templates.
  * For missing clauses: creates placeholder text based on recommendation.
- * For existing clauses: suggests targeted modification language.
+ * For existing clauses: returns null (no placeholder edits for existing text).
  */
 function generateSurgicalEditText(
   issue: AnalysisReport["issuesToAddress"][number],
-  anchorClause: ClauseExtraction | null,
-): string {
+): string | null {
   const recommendation = issue.recommendation ?? issue.rationale ?? "";
   const issueTitle = issue.title ?? "";
   const isMissing = isMissingClauseIssue(issue);
@@ -1839,30 +1842,11 @@ function generateSurgicalEditText(
     return `[INSERT CLAUSE: ${recommendation || issueTitle}]`;
   }
 
-  // For existing clauses, suggest a surgical modification
-  // The edit should only address the specific issue, not rewrite the entire clause
-  if (anchorClause?.originalText) {
-    const originalText = anchorClause.originalText;
-
-    // Look for specific modification guidance in the recommendation
-    const modifyMatch = recommendation.match(
-      /\b(change|modify|update|replace|clarify|specify|extend|reduce|add|remove|delete|shorten|lengthen)\s+(?:the\s+)?([^.]+)/i,
-    );
-
-    if (modifyMatch) {
-      const action = modifyMatch[1].toLowerCase();
-      const target = modifyMatch[2].trim();
-
-      // Create a surgical edit suggestion
-      return `${originalText}\n\n[SURGICAL EDIT - ${action.toUpperCase()}: ${target}. ${recommendation}]`;
-    }
-
-    // If no specific action found, append the modification guidance
-    return `${originalText}\n\n[MODIFICATION NEEDED: ${recommendation}]`;
-  }
-
-  // Fallback: just use the recommendation as guidance
-  return `[EDIT REQUIRED: ${recommendation || issueTitle}]`;
+  // For existing clauses without templates, don't create placeholder edits.
+  // The issue will be visible to the user but without a proposed edit,
+  // as we cannot generate meaningful edit text without a template.
+  // This prevents showing unhelpful "[MODIFICATION NEEDED: ...]" text in the UI.
+  return null;
 }
 
 function buildProposedEditsForIssues(
@@ -1998,9 +1982,15 @@ function buildProposedEditsForIssues(
         };
       }
 
-      // Even without a template, every issue should have a proposed edit
-      // Generate a surgical edit based on the issue's recommendation
-      const surgicalProposedText = generateSurgicalEditText(issue, anchorClause);
+      // For issues without templates, only create edits for missing clauses.
+      // Existing clauses without templates won't have proposed edits (returns null).
+      const surgicalProposedText = generateSurgicalEditText(issue);
+
+      // If no surgical text (existing clause without template), skip this edit
+      if (!surgicalProposedText) {
+        return null;
+      }
+
       const surgicalIntent = issueMissing ? "insert" : "replace";
       const surgicalRationale =
         issue.recommendation ??
@@ -2980,9 +2970,15 @@ async function finalizeReasoningReport(
     ...reportWithIssueEdits,
     proposedEdits: boundEdits,
   };
+  // First dedupe issues, then filter out issues that conflict with criteria met
+  const dedupedIssues = dedupeIssues(clauseAlignedReportWithEdits.issuesToAddress);
+  const filteredIssues = filterIssuesConflictingWithCriteriaMet(
+    dedupedIssues,
+    clauseAlignedReportWithEdits.criteriaMet ?? [],
+  );
   const dedupedReport: AnalysisReport = {
     ...clauseAlignedReportWithEdits,
-    issuesToAddress: dedupeIssues(clauseAlignedReportWithEdits.issuesToAddress),
+    issuesToAddress: filteredIssues,
     proposedEdits: dedupeProposedEdits(clauseAlignedReportWithEdits.proposedEdits),
   };
   const reconciledReport = reconcileActionItemsWithProposedEdits(dedupedReport);

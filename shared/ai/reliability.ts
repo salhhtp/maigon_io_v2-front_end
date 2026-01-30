@@ -2703,7 +2703,8 @@ export function dedupeIssues(issues: IssueLike[]): IssueLike[] {
         const existingText =
           `${existing.title ?? ""} ${existing.recommendation ?? ""}`.trim();
         const similarity = similarityForText(issueText, existingText);
-        return similarity >= 0.82;
+        // Lowered threshold from 0.82 to 0.65 to catch more duplicate issues
+        return similarity >= 0.65;
       });
       if (matchIndex === -1) {
         kept.push(issue);
@@ -2741,6 +2742,81 @@ export function dedupeProposedEdits(
   });
 
   return deduped;
+}
+
+/**
+ * Filter out issues that conflict with criteria met items.
+ * If a criteria is marked as met and there's an issue with a similar title/id,
+ * the issue should be removed to avoid contradictory information.
+ */
+interface CriteriaMetLike {
+  id?: string | null;
+  title?: string | null;
+  description?: string | null;
+  met?: boolean;
+}
+
+export function filterIssuesConflictingWithCriteriaMet(
+  issues: IssueLike[],
+  criteriaMet: CriteriaMetLike[],
+): IssueLike[] {
+  if (!criteriaMet || criteriaMet.length === 0) {
+    return issues;
+  }
+
+  // Get only the criteria that are marked as met
+  const metCriteria = criteriaMet.filter((c) => c.met === true);
+  if (metCriteria.length === 0) {
+    return issues;
+  }
+
+  return issues.filter((issue) => {
+    const issueTitle = normalizeForMatch(issue.title ?? "");
+    const issueId = normalizeForMatch(issue.id ?? "");
+    const issueHeading = normalizeForMatch(issue.clauseReference?.heading ?? "");
+
+    // Check if this issue conflicts with any met criteria
+    const conflictsWithMetCriteria = metCriteria.some((criteria) => {
+      const criteriaTitle = normalizeForMatch(criteria.title ?? "");
+      const criteriaId = normalizeForMatch(criteria.id ?? "");
+
+      // Check for ID match
+      if (issueId && criteriaId && issueId === criteriaId) {
+        return true;
+      }
+
+      // Check for title similarity
+      if (issueTitle && criteriaTitle) {
+        const titleSimilarity = similarityForText(issueTitle, criteriaTitle);
+        if (titleSimilarity >= 0.6) {
+          return true;
+        }
+      }
+
+      // Check if issue title matches criteria title
+      if (issueTitle && criteriaTitle) {
+        if (issueTitle.includes(criteriaTitle)) {
+          return true;
+        }
+        if (criteriaTitle.includes(issueTitle)) {
+          return true;
+        }
+      }
+
+      // Check clause heading against criteria title
+      if (issueHeading && criteriaTitle) {
+        const headingSimilarity = similarityForText(issueHeading, criteriaTitle);
+        if (headingSimilarity >= 0.7) {
+          return true;
+        }
+      }
+
+      return false;
+    });
+
+    // Keep the issue only if it doesn't conflict with met criteria
+    return !conflictsWithMetCriteria;
+  });
 }
 
 export function normaliseReportExpiry(value?: string | null): string {
