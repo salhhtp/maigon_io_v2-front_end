@@ -832,6 +832,8 @@ function buildSystemPrompt(
     "Ground every observation in the retrieved excerpts or clause digest provided. Do not infer missing language from general knowledge.",
     "If a clause is not present in the provided excerpts, mark it as \"Not present in contract\" and propose language only when clearly missing.",
     "When a clause is missing, use the provided playbook clause templates as the baseline and produce an insert proposed edit with anchorText set to \"Not present in contract\"; include a suggested insertion location in the rationale (e.g., \"insert near Miscellaneous\").",
+    "CRITICAL: Every issue MUST have exactly one corresponding proposed edit. The proposedEdits array must have the same number of items as issuesToAddress, with matching ids.",
+    "For existing clauses that need fixes, be SURGICAL: only change the specific problematic text, not the entire clause. If only a number or phrase needs to change, the anchorText should be just that portion.",
     "For each checklist/anchor item in the playbook, emit a finding (met/missing/attention) and include an issue for anything missing or ambiguous.",
     compact
       ? "If output length is constrained, group similar findings and keep each item concise."
@@ -980,8 +982,11 @@ function buildJsonSchemaDescription(
     "- contractSummary: { contractName, filename, parties[], agreementDirection, purpose, verbalInformationCovered, contractPeriod, governingLaw, jurisdiction }",
     "- issuesToAddress: Issues with id, title, severity, recommendation, rationale, clauseReference { clauseId, heading, excerpt, locationHint }. Excerpt must quote or paraphrase the retrieved clause excerpts or clause digest. If a clause is missing, state \"Not present in contract\" in excerpt and location.",
     "- criteriaMet: Checklist items with id, title, description, met, evidence.",
-    "- proposedEdits: Each edit with id, clauseId, anchorText, proposedText, intent, rationale. Anchor text must be an exact excerpt from the extracted clause text provided; for missing-clause inserts use the literal \"Not present in contract\" and include insertion guidance in the rationale. Proposed text = fully rewritten clause or paragraph ready to paste into the contract. Intent must be insert|replace|remove.",
-    "- Provide one proposed edit per issue. Prefer surgical inserts or minimal replacements; avoid rewriting entire clauses unless necessary.",
+    "- proposedEdits: CRITICAL - Every issue in issuesToAddress MUST have a corresponding proposed edit with matching id. Each edit needs id, clauseId, anchorText, proposedText, intent, rationale.",
+    "- For MISSING clauses (anchorText = \"Not present in contract\"): intent = \"insert\", proposedText = the new clause to add.",
+    "- For EXISTING clauses that need fixes: intent = \"replace\", anchorText = ONLY the specific problematic text (not the whole clause), proposedText = ONLY the replacement for that specific text. Be SURGICAL - change only what is necessary to fix the issue.",
+    "- IMPORTANT: Do NOT rewrite entire clauses when only a phrase or sentence needs to change. If a clause says \"30 days\" but should say \"45 days\", the anchorText should be \"30 days\" and proposedText should be \"45 days\", not the entire clause.",
+    "- Intent must be insert|replace|remove. Use \"replace\" for surgical fixes to existing text, \"insert\" for missing clauses, \"remove\" only when text should be deleted entirely.",
     "- metadata: model + classification + token usage + critique notes.",
     "Do not include previewHtml/previousText/updatedText/applyByDefault; these are derived later.",
     "Optional sections (playbookInsights, clauseExtractions, similarityAnalysis, deviationInsights, actionItems, draftMetadata) should be omitted unless explicitly requested.",
@@ -1808,6 +1813,58 @@ function selectTemplateForIssue(
   return templates.find((item) => templateMatchesIssue(item, issueKey)) ?? null;
 }
 
+/**
+ * Generate surgical edit text for issues without templates.
+ * For missing clauses: creates placeholder text based on recommendation.
+ * For existing clauses: suggests targeted modification language.
+ */
+function generateSurgicalEditText(
+  issue: AnalysisReport["issuesToAddress"][number],
+  anchorClause: ClauseExtraction | null,
+): string {
+  const recommendation = issue.recommendation ?? issue.rationale ?? "";
+  const issueTitle = issue.title ?? "";
+  const isMissing = isMissingClauseIssue(issue);
+
+  if (isMissing) {
+    // For missing clauses, create a placeholder clause based on the recommendation
+    // Extract key action from recommendation (e.g., "Add a limitation of liability clause")
+    const actionMatch = recommendation.match(
+      /\b(add|include|insert|incorporate|specify|define|establish)\s+(?:a\s+)?([^.]+)/i,
+    );
+    if (actionMatch) {
+      const clauseSubject = actionMatch[2].trim();
+      return `[INSERT ${clauseSubject.toUpperCase()} CLAUSE: ${recommendation}]`;
+    }
+    return `[INSERT CLAUSE: ${recommendation || issueTitle}]`;
+  }
+
+  // For existing clauses, suggest a surgical modification
+  // The edit should only address the specific issue, not rewrite the entire clause
+  if (anchorClause?.originalText) {
+    const originalText = anchorClause.originalText;
+
+    // Look for specific modification guidance in the recommendation
+    const modifyMatch = recommendation.match(
+      /\b(change|modify|update|replace|clarify|specify|extend|reduce|add|remove|delete|shorten|lengthen)\s+(?:the\s+)?([^.]+)/i,
+    );
+
+    if (modifyMatch) {
+      const action = modifyMatch[1].toLowerCase();
+      const target = modifyMatch[2].trim();
+
+      // Create a surgical edit suggestion
+      return `${originalText}\n\n[SURGICAL EDIT - ${action.toUpperCase()}: ${target}. ${recommendation}]`;
+    }
+
+    // If no specific action found, append the modification guidance
+    return `${originalText}\n\n[MODIFICATION NEEDED: ${recommendation}]`;
+  }
+
+  // Fallback: just use the recommendation as guidance
+  return `[EDIT REQUIRED: ${recommendation || issueTitle}]`;
+}
+
 function buildProposedEditsForIssues(
   report: AnalysisReport,
   playbook: ContractPlaybook,
@@ -1871,11 +1928,16 @@ function buildProposedEditsForIssues(
         anchorClause = findClauseByIssue(issue, clauseList);
       }
 
+      // For surgical edits, prefer the specific excerpt from the issue if available
+      // This allows targeting just the problematic text, not the entire clause
+      const issueExcerpt = issue.clauseReference?.excerpt?.trim();
       const anchorText = issueMissing
         ? "Not present in contract"
-        : anchorClause?.originalText
-          ? pickAnchorSnippet(anchorClause.originalText)
-          : fallbackAnchorText || "Not present in contract";
+        : issueExcerpt && issueExcerpt.length > 0 && issueExcerpt !== "Not present in contract"
+          ? issueExcerpt  // Use the specific excerpt for surgical targeting
+          : anchorClause?.originalText
+            ? pickAnchorSnippet(anchorClause.originalText)
+            : fallbackAnchorText || "Not present in contract";
       const anchorClauseId =
         anchorClause?.clauseId ??
         anchorClause?.id ??
@@ -1908,27 +1970,52 @@ function buildProposedEditsForIssues(
         };
       }
 
-      if (!template) return null;
+      // For issues with templates, generate edits
+      if (template) {
+        const proposedText = applyTemplateContext(template.text, report);
+        const rationale =
+          issue.recommendation ??
+          issue.rationale ??
+          `Insert ${template.title} clause.`;
+        const rationaleWithHint =
+          issueMissing && template.insertionAnchors?.length
+            ? `${rationale} Suggested insertion near ${template.insertionAnchors[0]}.`
+            : rationale;
 
-      const proposedText = applyTemplateContext(template.text, report);
-      const rationale =
+        // For existing clauses (not missing), create a more surgical edit
+        // by using the issue's recommendation to guide the change
+        const intent = issueMissing ? "insert" : "replace";
+
+        return {
+          id: issueId,
+          clauseId: anchorClauseId,
+          anchorText,
+          proposedText,
+          intent,
+          rationale: rationaleWithHint,
+          previousText: anchorText,
+          updatedText: proposedText,
+        };
+      }
+
+      // Even without a template, every issue should have a proposed edit
+      // Generate a surgical edit based on the issue's recommendation
+      const surgicalProposedText = generateSurgicalEditText(issue, anchorClause);
+      const surgicalIntent = issueMissing ? "insert" : "replace";
+      const surgicalRationale =
         issue.recommendation ??
         issue.rationale ??
-        `Insert ${template.title} clause.`;
-      const rationaleWithHint =
-        issueMissing && template.insertionAnchors?.length
-          ? `${rationale} Suggested insertion near ${template.insertionAnchors[0]}.`
-          : rationale;
+        `Address: ${issue.title}`;
 
       return {
         id: issueId,
         clauseId: anchorClauseId,
         anchorText,
-        proposedText,
-        intent: "insert",
-        rationale: rationaleWithHint,
+        proposedText: surgicalProposedText,
+        intent: surgicalIntent,
+        rationale: surgicalRationale,
         previousText: anchorText,
-        updatedText: proposedText,
+        updatedText: surgicalProposedText,
       };
     })
     .filter(
