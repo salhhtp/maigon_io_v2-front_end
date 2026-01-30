@@ -6,11 +6,13 @@ import {
   ArrowLeft,
   Printer,
   AlertTriangle,
+  Check,
   CheckCircle,
   Clock,
   Copy,
   Loader2,
   Sparkles,
+  X,
 } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import Logo from "@/components/Logo";
@@ -1790,8 +1792,11 @@ function ClausePreview({
   isActive = true,
   isEditable = false,
   aiEditState,
+  pendingAiEditText,
   onSaveUpdatedText,
   onRequestAiEdit,
+  onAcceptAiEdit,
+  onRejectAiEdit,
 }: {
   clauseTitle?: string | null;
   anchorText: string;
@@ -1808,8 +1813,11 @@ function ClausePreview({
   isActive?: boolean;
   isEditable?: boolean;
   aiEditState?: { isLoading: boolean; error?: string | null };
+  pendingAiEditText?: string | null;
   onSaveUpdatedText?: (text: string) => void;
   onRequestAiEdit?: (prompt: string) => Promise<boolean>;
+  onAcceptAiEdit?: () => void;
+  onRejectAiEdit?: () => void;
 }) {
   const [activeModal, setActiveModal] = useState<"original" | "updated" | null>(
     null,
@@ -1842,6 +1850,12 @@ function ClausePreview({
     if (previousTextForDiff === updatedTextForDiff) return null;
     return computeTokenDiff(previousTextForDiff, updatedTextForDiff);
   }, [previousTextForDiff, updatedTextForDiff]);
+  const aiSuggestionDiffTokens = useMemo(() => {
+    if (!pendingAiEditText) return null;
+    if (!updatedTextForDiff) return null;
+    if (pendingAiEditText.trim() === updatedTextForDiff.trim()) return null;
+    return computeTokenDiff(updatedTextForDiff, pendingAiEditText);
+  }, [pendingAiEditText, updatedTextForDiff]);
 
   const resolvedFullPreviousText =
     fullPreviousText && fullPreviousText.trim().length > 0
@@ -1893,6 +1907,19 @@ function ClausePreview({
       setIsAiPromptOpen(false);
       setAiPrompt("");
     }
+  };
+
+  const handleAcceptAiEdit = () => {
+    if (!pendingAiEditText) return;
+    onAcceptAiEdit?.();
+    setIsAiPromptOpen(false);
+    setAiPrompt("");
+  };
+
+  const handleRejectAiEdit = () => {
+    onRejectAiEdit?.();
+    setIsAiPromptOpen(false);
+    setAiPrompt("");
   };
 
   return (
@@ -2022,10 +2049,10 @@ function ClausePreview({
                   >
                     {aiEditState?.isLoading ? (
                       <span className="inline-flex items-center gap-2">
-                        <Loader2 className="h-4 w-4 animate-spin" /> Applying...
+                        <Loader2 className="h-4 w-4 animate-spin" /> Generating...
                       </span>
                     ) : (
-                      "Apply"
+                      "Generate"
                     )}
                   </Button>
                   <Button
@@ -2046,6 +2073,42 @@ function ClausePreview({
                   <p className="text-xs text-red-600">{aiEditState.error}</p>
                 )}
               </div>
+            </div>
+          )}
+          {pendingAiEditText && (
+            <div className="mt-3 rounded-md border border-[#E8DDDD] bg-white p-3">
+              <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-[#725A5A]">
+                <span className="font-semibold uppercase tracking-wide">
+                  AI suggestion
+                </span>
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="bg-[#1F5B3A] text-white hover:bg-[#1A4C31]"
+                    onClick={handleAcceptAiEdit}
+                  >
+                    <Check className="h-3 w-3 mr-1" /> Accept
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="border-[#E8DDDD] text-[#725A5A]"
+                    onClick={handleRejectAiEdit}
+                  >
+                    <X className="h-3 w-3 mr-1" /> Reject
+                  </Button>
+                </div>
+              </div>
+              <pre className="mt-2 whitespace-pre-wrap break-words rounded bg-[#FDFBFB] p-3 text-sm text-[#271D1D]">
+                {aiSuggestionDiffTokens
+                  ? renderInlineTokenDiff(
+                      aiSuggestionDiffTokens,
+                      "ai-suggestion",
+                    )
+                  : pendingAiEditText}
+              </pre>
             </div>
           )}
         </div>
@@ -2164,6 +2227,9 @@ export default function ContractReview() {
   );
   const [proposedEditOverrides, setProposedEditOverrides] = useState<
     Record<string, { text: string; source: "manual" | "ai" }>
+  >({});
+  const [pendingAiEdits, setPendingAiEdits] = useState<
+    Record<string, { text: string; prompt?: string }>
   >({});
   const [aiEditStatus, setAiEditStatus] = useState<
     Record<string, { isLoading: boolean; error?: string | null }>
@@ -2986,6 +3052,7 @@ Next step: ${
 
   useEffect(() => {
     setProposedEditOverrides({});
+    setPendingAiEdits({});
     setAiEditStatus({});
   }, [reviewData?.id]);
 
@@ -3273,9 +3340,24 @@ const actionItemEntries = useMemo(
         ...prev,
         [itemId]: { text: trimmed, source },
       }));
+      setPendingAiEdits((prev) => {
+        if (!prev[itemId]) return prev;
+        const next = { ...prev };
+        delete next[itemId];
+        return next;
+      });
     },
     [],
   );
+
+  const clearPendingAiEdit = useCallback((itemId: string) => {
+    setPendingAiEdits((prev) => {
+      if (!prev[itemId]) return prev;
+      const next = { ...prev };
+      delete next[itemId];
+      return next;
+    });
+  }, []);
 
   const requestAiClauseEdit = useCallback(
     async (item: NormalizedDecision, prompt: string) => {
@@ -3373,7 +3455,10 @@ const actionItemEntries = useMemo(
           );
         }
 
-        saveUpdatedTextOverride(item.id, suggestedText, "ai");
+        setPendingAiEdits((prev) => ({
+          ...prev,
+          [item.id]: { text: suggestedText.trim(), prompt: trimmedPrompt },
+        }));
         setAiEditStatus((prev) => ({
           ...prev,
           [item.id]: { isLoading: false, error: null },
@@ -3395,7 +3480,6 @@ const actionItemEntries = useMemo(
       contractData?.id,
       contractData?.title,
       resolveUpdatedTextForItem,
-      saveUpdatedTextOverride,
       toast,
     ],
   );
@@ -4881,6 +4965,8 @@ const heroNavItems: { id: string; label: string }[] = [
                         const actionPreviewUpdated =
                           resolveUpdatedTextForItem(item) ||
                           actionPreviewAnchor;
+                        const pendingAiText =
+                          pendingAiEdits[item.id]?.text ?? null;
                         const actionPreviewHtml =
                           proposedEditOverrides[item.id]?.text
                             ? buildPreviewHtmlFromText(
@@ -4977,12 +5063,24 @@ const heroNavItems: { id: string; label: string }[] = [
                                   isActive={checked}
                                   isEditable
                                   aiEditState={aiEditStatus[item.id]}
+                                  pendingAiEditText={pendingAiText}
                                   onSaveUpdatedText={(text) =>
                                     saveUpdatedTextOverride(item.id, text, "manual")
                                   }
                                   onRequestAiEdit={(prompt) =>
                                     requestAiClauseEdit(item, prompt)
                                   }
+                                  onAcceptAiEdit={() => {
+                                    if (!pendingAiText) return;
+                                    saveUpdatedTextOverride(
+                                      item.id,
+                                      pendingAiText,
+                                      "ai",
+                                    );
+                                  }}
+                                  onRejectAiEdit={() => {
+                                    clearPendingAiEdit(item.id);
+                                  }}
                                 />
                                 {!checked && (
                                   <p className="text-xs text-[#9A7C7C]">
