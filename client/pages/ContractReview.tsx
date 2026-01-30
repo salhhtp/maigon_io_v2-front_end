@@ -39,6 +39,10 @@ import type {
   AgentDraftJobStatus,
   AgentDraftJobStartResponse,
   AgentDraftJobStatusResponse,
+  ClauseEditJobStatus,
+  ClauseEditJobStartRequest,
+  ClauseEditJobStartResponse,
+  ClauseEditJobStatusResponse,
 } from "@shared/api";
 import type {
   AnalysisReport,
@@ -3413,65 +3417,77 @@ const actionItemEntries = useMemo(
         },
       ];
 
-      const instructions = [
-        "Rewrite the updated clause below based on the reviewer instruction.",
-        "Return a single proposed edit with suggestedText containing the full revised clause.",
-        "Use final contractual language only (no analysis or commentary).",
-      ].join(" ");
-
-      const userContent = [
-        instructions,
-        `Reviewer instruction: ${trimmedPrompt}`,
-        clauseTitle ? `Clause title: ${clauseTitle}` : null,
-        "Current updated clause:",
-        updatedText,
-        originalText ? "Original clause excerpt:" : null,
-        originalText || null,
-      ]
-        .filter(Boolean)
-        .join("\n\n");
-
       try {
-        const response = await fetch("/api/agent/chat", {
+        // Start the async clause edit job
+        const startPayload: ClauseEditJobStartRequest = {
+          contractId: contractData.id,
+          itemId: item.id,
+          prompt: trimmedPrompt,
+          updatedText,
+          originalText,
+          clauseTitle,
+          clauseEvidence,
+          context: {
+            contract: {
+              id: contractData.id,
+              title: contractData.title ?? null,
+              contractType: classificationContractType ?? null,
+              classificationFallback: classificationFallbackUsed,
+            },
+          },
+        };
+
+        const startResponse = await fetch("/api/agent/clause-edit/start", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({
-            contractId: contractData.id,
-            messages: [{ role: "user", content: userContent }],
-            mode: "clause_edit",
-            model: "gpt-5",
-            context: {
-              contract: {
-                id: contractData.id,
-                title: contractData.title ?? null,
-                contractType: classificationContractType ?? null,
-                classificationFallback: classificationFallbackUsed,
-              },
-              clauseEvidence,
-            } as AgentChatContext,
-          }),
+          body: JSON.stringify(startPayload),
         });
 
-        if (!response.ok) {
-          throw new Error(`AI edit failed (${response.status})`);
+        if (!startResponse.ok) {
+          throw new Error(`Failed to start AI edit (${startResponse.status})`);
         }
 
-        const data = (await response.json()) as {
-          proposedEdits?: AgentProposedEdit[];
-          message?: { content?: string };
+        const startData = (await startResponse.json()) as ClauseEditJobStartResponse;
+        const jobId = startData.jobId;
+
+        // Poll for job completion
+        const pollInterval = 1500; // 1.5 seconds
+        const maxPolls = 120; // Up to 3 minutes total
+        let pollCount = 0;
+
+        const pollForResult = async (): Promise<ClauseEditJobStatusResponse> => {
+          while (pollCount < maxPolls) {
+            pollCount++;
+            await new Promise((resolve) => setTimeout(resolve, pollInterval));
+
+            const statusResponse = await fetch(`/api/agent/clause-edit/status/${jobId}`);
+            if (!statusResponse.ok) {
+              throw new Error(`Failed to check AI edit status (${statusResponse.status})`);
+            }
+
+            const statusData = (await statusResponse.json()) as ClauseEditJobStatusResponse;
+
+            if (statusData.status === "succeeded") {
+              return statusData;
+            }
+
+            if (statusData.status === "failed") {
+              throw new Error(statusData.error || "AI edit failed.");
+            }
+
+            // Still pending or running, continue polling
+          }
+
+          throw new Error("AI edit timed out. Please try again.");
         };
-        const suggestedText =
-          data.proposedEdits?.find(
-            (edit) => typeof edit.suggestedText === "string",
-          )?.suggestedText ?? null;
+
+        const result = await pollForResult();
+        const suggestedText = result.result?.suggestedText ?? null;
 
         if (!suggestedText || !suggestedText.trim()) {
-          const fallbackMessage = data.message?.content?.trim();
-          throw new Error(
-            fallbackMessage || "AI did not return a revised clause.",
-          );
+          throw new Error("AI did not return a revised clause.");
         }
 
         setPendingAiEdits((prev) => ({

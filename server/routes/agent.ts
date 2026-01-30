@@ -23,6 +23,9 @@ import type {
   AgentDraftEdit,
   AgentDraftJobStartResponse,
   AgentDraftJobStatusResponse,
+  ClauseEditJobStartRequest,
+  ClauseEditJobStartResponse,
+  ClauseEditJobStatusResponse,
   StorageObjectRef,
 } from "../../shared/api";
 import { LEGAL_LANGUAGE_PROMPT_BLOCK } from "../../shared/legalLanguage";
@@ -33,6 +36,14 @@ import {
   markDraftJobRunning,
   markDraftJobSucceeded,
 } from "../services/draftJobsRepository";
+import {
+  createClauseEditJob,
+  getClauseEditJobById,
+  markClauseEditJobFailed,
+  markClauseEditJobRunning,
+  markClauseEditJobSucceeded,
+  type ClauseEditPayload,
+} from "../services/clauseEditJobsRepository";
 
 interface ClientChatMessage {
   role: "user" | "assistant";
@@ -166,6 +177,7 @@ const AI_TIMEOUT_MS = (() => {
   return 120_000;
 })();
 const BACKGROUND_FUNCTION_NAME = "draft-compose-background";
+const CLAUSE_EDIT_BACKGROUND_FUNCTION_NAME = "clause-edit-background";
 const DEFAULT_FUNCTION_BASE =
   process.env.DEPLOY_URL ??
   process.env.URL ??
@@ -2050,3 +2062,272 @@ export async function processDraftJob(jobId: string): Promise<void> {
     throw error;
   }
 }
+
+async function triggerBackgroundClauseEdit(jobId: string): Promise<void> {
+  const baseUrl = resolveFunctionBaseUrl();
+  if (!baseUrl) {
+    console.warn("[agent] Background clause edit trigger skipped (no base URL)", {
+      jobId,
+    });
+    return;
+  }
+  const url = `${baseUrl}/.netlify/functions/${CLAUSE_EDIT_BACKGROUND_FUNCTION_NAME}`;
+  try {
+    await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ jobId }),
+    });
+  } catch (error) {
+    console.warn("[agent] Failed to trigger background clause edit", {
+      jobId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+}
+
+export async function processClauseEditJob(jobId: string): Promise<void> {
+  const job = await getClauseEditJobById(jobId);
+  if (!job) {
+    throw new Error("Clause edit job not found");
+  }
+
+  if (job.status === "running") {
+    return;
+  }
+
+  if (job.status === "succeeded" || job.status === "failed") {
+    return;
+  }
+
+  if (!job.payload) {
+    await markClauseEditJobFailed(job.id, "Job payload missing");
+    throw new Error("Clause edit job payload missing");
+  }
+
+  await markClauseEditJobRunning(job.id);
+
+  try {
+    const payload = job.payload;
+
+    const supabase = getSupabaseAdminClient();
+    let contractContent: string | null = null;
+    let contractTitle: string | null = payload.context.contract.title;
+
+    if (payload.contractId) {
+      try {
+        const { data, error } = await supabase
+          .from("contracts")
+          .select("content, title")
+          .eq("id", payload.contractId)
+          .single();
+        if (error) {
+          console.warn("[agent] Failed to fetch contract content for clause edit", error);
+        } else {
+          contractContent = data?.content ?? null;
+          if (!contractTitle && data?.title) {
+            contractTitle = data.title;
+          }
+        }
+      } catch (error) {
+        console.warn("[agent] Unexpected contract fetch error", error);
+      }
+    }
+
+    const clauseSnippets = extractClauseSnippets(contractContent, payload.clauseEvidence);
+
+    const instructions = [
+      "Rewrite the updated clause below based on the reviewer instruction.",
+      "Return a single proposed edit with suggestedText containing the full revised clause.",
+      "Use final contractual language only (no analysis or commentary).",
+    ].join(" ");
+
+    const userContent = [
+      instructions,
+      `Reviewer instruction: ${payload.prompt}`,
+      payload.clauseTitle ? `Clause title: ${payload.clauseTitle}` : null,
+      "Current updated clause:",
+      payload.updatedText,
+      payload.originalText ? "Original clause excerpt:" : null,
+      payload.originalText || null,
+    ]
+      .filter(Boolean)
+      .join("\n\n");
+
+    const clauseSummary = clauseSnippets
+      .slice(0, 6)
+      .map(
+        (clause, idx) =>
+          `Clause ${idx + 1}: ${clause.reference}\n${clause.snippet}`,
+      )
+      .join("\n\n");
+
+    const jsonInstruction = buildJsonInstruction();
+
+    const fullUserContent = [
+      userContent,
+      "",
+      clauseSummary ? `Relevant clause excerpts:\n${clauseSummary}` : "",
+      jsonInstruction,
+    ]
+      .filter(Boolean)
+      .join("\n\n");
+
+    const systemPrompt = `You are Maigon's contract editing copilot. You assist lawyers and compliance officers in preparing precise contract edits based on analytical findings. Follow these principles:
+- Reference the contract context provided below.
+- Use the supplied clause excerpts and recommendations when crafting edits.
+- Align changes with the contract type and severity indicators.
+- If the user requests an edit that lacks context, ask clarifying questions.
+- ${LEGAL_LANGUAGE_PROMPT_BLOCK}
+- ${jsonInstruction}
+
+Contract title: ${contractTitle ?? "Unknown"}.`;
+
+    const conversationMessages = [
+      { role: "user" as const, content: fullUserContent },
+    ];
+
+    const openAiModel = resolveOpenAiModel({
+      preferred: "gpt-5",
+      forceGpt5: true,
+    });
+
+    const result = await callOpenAI(
+      systemPrompt,
+      conversationMessages,
+      { requestId: job.id, contractId: payload.contractId },
+      openAiModel,
+      null, // No timeout - background function has extended timeout
+    );
+
+    const normalized = normalizeAssistantOutput(result.output);
+    const suggestedText =
+      normalized.proposedEdits.find(
+        (edit) => typeof edit.suggestedText === "string",
+      )?.suggestedText ?? null;
+
+    if (!suggestedText || !suggestedText.trim()) {
+      const fallbackMessage = normalized.content?.trim();
+      throw new Error(fallbackMessage || "AI did not return a revised clause.");
+    }
+
+    await markClauseEditJobSucceeded({
+      id: job.id,
+      result: {
+        suggestedText: suggestedText.trim(),
+        prompt: payload.prompt,
+      },
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    await markClauseEditJobFailed(job.id, message);
+    throw error;
+  }
+}
+
+agentRouter.post("/clause-edit/start", async (req, res) => {
+  const body = req.body as ClauseEditJobStartRequest;
+  if (!body?.contractId) {
+    res.status(400).json({ error: "contractId is required" });
+    return;
+  }
+  if (!body?.itemId) {
+    res.status(400).json({ error: "itemId is required" });
+    return;
+  }
+  if (!body?.prompt?.trim()) {
+    res.status(400).json({ error: "prompt is required" });
+    return;
+  }
+
+  try {
+    const payload: ClauseEditPayload = {
+      jobType: "clause_edit",
+      contractId: body.contractId,
+      itemId: body.itemId,
+      prompt: body.prompt.trim(),
+      updatedText: body.updatedText ?? "",
+      originalText: body.originalText ?? "",
+      clauseTitle: body.clauseTitle ?? null,
+      clauseEvidence: body.clauseEvidence ?? [],
+      context: body.context ?? {
+        contract: {
+          id: body.contractId,
+          title: null,
+          contractType: null,
+          classificationFallback: false,
+        },
+      },
+    };
+
+    const job = await createClauseEditJob({
+      contractId: body.contractId,
+      payload,
+      metadata: {
+        itemId: body.itemId,
+      },
+    });
+
+    const hasBackgroundBase = resolveFunctionBaseUrl();
+    if (hasBackgroundBase) {
+      triggerBackgroundClauseEdit(job.id).catch(() => {
+        // Fire-and-forget; errors are logged inside triggerBackgroundClauseEdit
+      });
+    } else {
+      processClauseEditJob(job.id).catch((error) => {
+        console.error("[agent] Inline clause edit job failed", {
+          jobId: job.id,
+          message: error instanceof Error ? error.message : String(error),
+        });
+      });
+    }
+
+    const response: ClauseEditJobStartResponse = {
+      jobId: job.id,
+      status: job.status,
+      contractId: job.contractId,
+      itemId: body.itemId,
+    };
+
+    res.status(202).json(response);
+  } catch (error) {
+    console.error("[agent] Failed to start clause edit job", error);
+    res.status(500).json({ error: "Failed to queue clause edit" });
+  }
+});
+
+agentRouter.get("/clause-edit/status/:jobId", async (req, res) => {
+  const jobId = req.params.jobId;
+  if (!jobId) {
+    res.status(400).json({ error: "jobId is required" });
+    return;
+  }
+
+  try {
+    const job = await getClauseEditJobById(jobId);
+    if (!job) {
+      res.status(404).json({ error: "Clause edit job not found" });
+      return;
+    }
+
+    const itemId = (job.metadata?.itemId as string) ?? (job.payload?.itemId ?? "");
+
+    const payload: ClauseEditJobStatusResponse = {
+      jobId: job.id,
+      status: job.status,
+      contractId: job.contractId,
+      itemId,
+      result: job.result ?? undefined,
+      updatedAt: job.updatedAt,
+    };
+
+    if (job.status === "failed") {
+      payload.error = job.error ?? "Clause edit failed";
+    }
+
+    res.json(payload);
+  } catch (error) {
+    console.error("[agent] Failed to fetch clause edit job status", error);
+    res.status(500).json({ error: "Unable to fetch job status" });
+  }
+});

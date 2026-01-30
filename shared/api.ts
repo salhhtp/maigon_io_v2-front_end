@@ -523,6 +523,53 @@ export interface AgentDraftJobStatusResponse {
   updatedAt?: string | null;
 }
 
+export type ClauseEditJobStatus = "pending" | "running" | "succeeded" | "failed";
+
+export interface ClauseEditJobStartRequest {
+  contractId: string;
+  itemId: string;
+  prompt: string;
+  updatedText: string;
+  originalText: string;
+  clauseTitle: string | null;
+  clauseEvidence: Array<{
+    clause?: string;
+    clause_title?: string;
+    clause_text?: string;
+    evidence_excerpt?: string;
+    recommendation?: string;
+    importance?: string;
+  }>;
+  context: {
+    contract: {
+      id: string;
+      title: string | null;
+      contractType: string | null;
+      classificationFallback: boolean;
+    };
+  };
+}
+
+export interface ClauseEditJobStartResponse {
+  jobId: string;
+  status: ClauseEditJobStatus;
+  contractId: string;
+  itemId: string;
+}
+
+export interface ClauseEditJobStatusResponse {
+  jobId: string;
+  status: ClauseEditJobStatus;
+  contractId: string;
+  itemId: string;
+  result?: {
+    suggestedText: string;
+    prompt: string;
+  } | null;
+  error?: string | null;
+  updatedAt?: string | null;
+}
+
 export interface CreateCheckoutSessionRequest {
   planKey: PlanKey;
   userId: string;
