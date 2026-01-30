@@ -848,6 +848,14 @@ function computeTokenDiff(original: string, updated: string): TokenDiff[] {
   return tokens;
 }
 
+const NOT_PRESENT_PLACEHOLDER = "not present in contract";
+
+function isNotPresentPlaceholder(value?: string | null) {
+  if (!value) return false;
+  const normalized = value.trim().toLowerCase().replace(/[.,;:]+$/, "");
+  return normalized === NOT_PRESENT_PLACEHOLDER;
+}
+
 function renderTokenDiff(
   tokens: TokenDiff[],
   variant: "original" | "updated",
@@ -861,7 +869,7 @@ function renderTokenDiff(
         token.type === "added"
           ? "bg-emerald-100/80 text-emerald-900 underline decoration-emerald-600 decoration-2 rounded-sm px-0.5"
           : token.type === "removed"
-            ? "bg-red-100/80 text-red-700 line-through decoration-red-600 decoration-2 rounded-sm px-0.5"
+            ? "bg-red-100/80 text-red-700 line-through decoration-red-600 rounded-sm px-0.5"
             : "";
       return (
         <span key={`${keyPrefix}-${index}`} className={className}>
@@ -878,7 +886,7 @@ function renderInlineTokenDiff(tokens: TokenDiff[], keyPrefix: string) {
       token.type === "added"
         ? "bg-emerald-100/80 text-emerald-900 underline decoration-emerald-600 decoration-2 rounded-sm px-0.5"
         : token.type === "removed"
-          ? "bg-red-100/80 text-red-700 line-through decoration-red-600 decoration-2 rounded-sm px-0.5"
+          ? "bg-red-100/80 text-red-700 line-through decoration-red-600 rounded-sm px-0.5"
           : "";
     return (
       <span key={`${keyPrefix}-${index}`} className={className}>
@@ -1850,6 +1858,10 @@ function ClausePreview({
     if (previousTextForDiff === updatedTextForDiff) return null;
     return computeTokenDiff(previousTextForDiff, updatedTextForDiff);
   }, [previousTextForDiff, updatedTextForDiff]);
+  const isMissingOriginal = useMemo(
+    () => isNotPresentPlaceholder(previousTextForDiff),
+    [previousTextForDiff],
+  );
   const aiSuggestionDiffTokens = useMemo(() => {
     if (!pendingAiEditText) return null;
     if (!updatedTextForDiff) return null;
@@ -1871,6 +1883,13 @@ function ClausePreview({
       : null;
 
   const renderDiffColumn = (variant: "original" | "updated") => {
+    if (variant === "original" && isMissingOriginal) {
+      return (
+        <pre className="whitespace-pre-wrap break-words rounded bg-[#FDFBFB] p-3 text-sm text-[#271D1D]">
+          {previousTextForDiff}
+        </pre>
+      );
+    }
     if (!diffTokens) {
       const fallbackText =
         variant === "original" ? previousTextForDiff : updatedTextForDiff;
