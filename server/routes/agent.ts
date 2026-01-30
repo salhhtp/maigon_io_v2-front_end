@@ -991,10 +991,13 @@ ${quickSuggestions.map((item) => `• ${item}`).join("\n")}`,
 function fetchWithTimeout(
   url: string,
   options: RequestInit,
-  ms = AI_TIMEOUT_MS,
+  ms: number | null = AI_TIMEOUT_MS,
 ) {
   const resolvedTimeout =
-    Number.isFinite(ms) && (ms as number) > 0 ? (ms as number) : AI_TIMEOUT_MS;
+    Number.isFinite(ms) && (ms as number) > 0 ? (ms as number) : null;
+  if (!resolvedTimeout) {
+    return fetch(url, options);
+  }
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), resolvedTimeout);
   return fetch(url, { ...options, signal: controller.signal }).finally(() =>
@@ -1007,6 +1010,7 @@ async function callOpenAI(
   messages: { role: "user" | "assistant"; content: string }[],
   context?: { requestId?: string; route?: string; contractId?: string; draftKey?: string },
   modelOverride?: string,
+  timeoutMs?: number | null,
 ): Promise<{
   output: string;
   model: string;
@@ -1030,10 +1034,12 @@ async function callOpenAI(
       draftKey: context?.draftKey,
     };
     const resolvedModel = modelOverride ?? OPENAI_AGENT_MODEL;
+    const resolvedTimeoutMs =
+      timeoutMs === null ? null : timeoutMs ?? AI_TIMEOUT_MS;
     console.info("[agent] openai start", {
       ...logCtx,
       model: resolvedModel,
-      timeoutMs: AI_TIMEOUT_MS,
+      timeoutMs: resolvedTimeoutMs,
       messages: messages.length,
     });
     const start = Date.now();
@@ -1057,6 +1063,7 @@ async function callOpenAI(
           ],
         }),
       },
+      resolvedTimeoutMs,
     );
     console.info("[agent] openai response", {
       ...logCtx,
@@ -1402,6 +1409,7 @@ Contract title: ${contractTitle ?? context.contract?.title ?? "Unknown"}.`;
     preferred: body?.model ?? null,
     forceGpt5,
   });
+  const openAiTimeoutMs = forceGpt5 ? null : AI_TIMEOUT_MS;
 
   try {
     let provider: AgentApiResponse["provider"] = "openai";
@@ -1415,6 +1423,7 @@ Contract title: ${contractTitle ?? context.contract?.title ?? "Unknown"}.`;
         conversationMessages,
         undefined,
         openAiModel,
+        openAiTimeoutMs,
       );
       aiOutput = result.output;
       model = result.model;
