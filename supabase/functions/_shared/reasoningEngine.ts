@@ -834,7 +834,7 @@ function buildSystemPrompt(
     "If a clause is not present in the provided excerpts, mark it as \"Not present in contract\" and propose language only when clearly missing.",
     "When a clause is missing, use the provided playbook clause templates as the baseline and produce an insert proposed edit with anchorText set to \"Not present in contract\"; include a suggested insertion location in the rationale (e.g., \"insert near Miscellaneous\").",
     "CRITICAL: Every issue MUST have exactly one corresponding proposed edit. The proposedEdits array must have the same number of items as issuesToAddress, with matching ids.",
-    "For existing clauses that need fixes, be SURGICAL: only change the specific problematic text, not the entire clause. If only a number or phrase needs to change, the anchorText should be just that portion.",
+    "For existing clauses that need fixes, be EXTREMELY SURGICAL: identify and change ONLY the specific problematic text, never the entire clause. Examples: (1) If a duration is wrong, anchorText='30 days' proposedText='45 days'. (2) If a party name is missing, anchorText='the Disclosing Party' proposedText='the Disclosing Party and its Affiliates'. (3) If a word needs adding, anchorText='shall maintain' proposedText='shall maintain reasonable'. The proposedText should be the MINIMAL replacement that fixes the issue.",
     "For each checklist/anchor item in the playbook, emit a finding (met/missing/attention) and include an issue for anything missing or ambiguous.",
     "AVOID OVER-FLAGGING: Do NOT flag an issue if the clause already adequately addresses the concern. Only flag issues for genuine gaps, deficiencies, or missing protections.",
     "AVOID DUPLICATES: Each distinct problem should appear exactly once in issuesToAddress. Do not create multiple issues for the same underlying concern even if phrased differently.",
@@ -988,8 +988,9 @@ function buildJsonSchemaDescription(
     "- criteriaMet: Checklist items with id, title, description, met, evidence. If met=true, do NOT create a corresponding issue for the same clause unless there is a distinct, separate problem.",
     "- proposedEdits: CRITICAL - Every issue in issuesToAddress MUST have a corresponding proposed edit with matching id. Each edit needs id, clauseId, anchorText, proposedText, intent, rationale.",
     "- For MISSING clauses (anchorText = \"Not present in contract\"): intent = \"insert\", proposedText = the new clause to add.",
-    "- For EXISTING clauses that need fixes: intent = \"replace\", anchorText = ONLY the specific problematic text (not the whole clause), proposedText = ONLY the replacement for that specific text. Be SURGICAL - change only what is necessary to fix the issue.",
-    "- IMPORTANT: Do NOT rewrite entire clauses when only a phrase or sentence needs to change. If a clause says \"30 days\" but should say \"45 days\", the anchorText should be \"30 days\" and proposedText should be \"45 days\", not the entire clause.",
+    "- For EXISTING clauses that need fixes: intent = \"replace\", anchorText = ONLY the specific problematic text (not the whole clause), proposedText = ONLY the replacement for that specific text. Be EXTREMELY SURGICAL - change the absolute minimum necessary.",
+    "- SURGICAL EDIT EXAMPLES: (1) Wrong duration: anchorText='thirty (30) days' proposedText='forty-five (45) days'. (2) Missing qualifier: anchorText='confidential information' proposedText='confidential information, including trade secrets,'. (3) Weak language: anchorText='should notify' proposedText='shall promptly notify'. (4) Missing party: anchorText='the Company' proposedText='the Company and its successors'.",
+    "- CRITICAL: Never replace an entire clause when only a phrase, number, or sentence needs to change. The anchorText and proposedText should be as SHORT as possible while still making the fix clear. If the proposedText is more than 2-3 sentences, you are probably not being surgical enough.",
     "- Intent must be insert|replace|remove. Use \"replace\" for surgical fixes to existing text, \"insert\" for missing clauses, \"remove\" only when text should be deleted entirely.",
     "- metadata: model + classification + token usage + critique notes.",
     "Do not include previewHtml/previousText/updatedText/applyByDefault; these are derived later.",
@@ -1849,6 +1850,23 @@ function generateSurgicalEditText(
   return null;
 }
 
+/**
+ * Check if a proposed edit is surgical (short enough for a replacement).
+ * For existing clauses, we want edits that change minimal text, not entire clauses.
+ * Returns true if the edit is surgical, false if it's too extensive.
+ */
+function isSurgicalEdit(proposedText: string, isMissing: boolean): boolean {
+  if (isMissing) {
+    // For missing clauses, any length is fine since we're inserting new content
+    return true;
+  }
+  // For existing clauses, proposedText should be relatively short
+  // A surgical edit should typically be under 500 characters
+  // (a few sentences at most, not an entire clause)
+  const MAX_SURGICAL_LENGTH = 500;
+  return proposedText.length <= MAX_SURGICAL_LENGTH;
+}
+
 function buildProposedEditsForIssues(
   report: AnalysisReport,
   playbook: ContractPlaybook,
@@ -1929,7 +1947,23 @@ function buildProposedEditsForIssues(
         undefined;
 
       if (baseEdit) {
-        const resolvedProposedText = baseProposedText || fallbackProposedText;
+        // For existing clauses, only use the AI-provided edit text (surgical)
+        // Don't fallback to template text as that would replace the entire clause
+        const resolvedProposedText = issueMissing
+          ? baseProposedText || fallbackProposedText  // OK to use template for missing clauses
+          : baseProposedText;  // Only use AI-provided text for existing clauses
+
+        // If no proposed text for an existing clause, skip this edit (not surgical)
+        if (!resolvedProposedText && !issueMissing) {
+          return null;
+        }
+
+        // Check if the edit is surgical (not too long for a replacement)
+        // Skip non-surgical edits for existing clauses to preserve contract integrity
+        if (resolvedProposedText && !isSurgicalEdit(resolvedProposedText, issueMissing)) {
+          return null;
+        }
+
         const rationaleSuffix =
           issueMissing && template?.insertionAnchors?.length
             ? ` Suggested insertion near ${template.insertionAnchors[0]}.`
@@ -1942,7 +1976,7 @@ function buildProposedEditsForIssues(
           intent:
             typeof baseEdit.intent === "string" && baseEdit.intent.length > 0
               ? baseEdit.intent
-              : "insert",
+              : issueMissing ? "insert" : "replace",
           previousText: anchorText,
           updatedText: resolvedProposedText,
           proposedText: resolvedProposedText,
@@ -1954,32 +1988,36 @@ function buildProposedEditsForIssues(
         };
       }
 
-      // For issues with templates, generate edits
-      if (template) {
+      // For issues with templates, generate edits ONLY for missing clauses
+      // For existing clauses, templates would replace the entire clause which is not surgical
+      if (template && issueMissing) {
         const proposedText = applyTemplateContext(template.text, report);
         const rationale =
           issue.recommendation ??
           issue.rationale ??
           `Insert ${template.title} clause.`;
-        const rationaleWithHint =
-          issueMissing && template.insertionAnchors?.length
-            ? `${rationale} Suggested insertion near ${template.insertionAnchors[0]}.`
-            : rationale;
-
-        // For existing clauses (not missing), create a more surgical edit
-        // by using the issue's recommendation to guide the change
-        const intent = issueMissing ? "insert" : "replace";
+        const rationaleWithHint = template.insertionAnchors?.length
+          ? `${rationale} Suggested insertion near ${template.insertionAnchors[0]}.`
+          : rationale;
 
         return {
           id: issueId,
           clauseId: anchorClauseId,
           anchorText,
           proposedText,
-          intent,
+          intent: "insert",
           rationale: rationaleWithHint,
           previousText: anchorText,
           updatedText: proposedText,
         };
+      }
+
+      // For existing clauses with templates, don't use template text (not surgical)
+      // The issue will be visible but without a proposed edit that replaces the whole clause
+      // This preserves contract integrity by not making wholesale replacements
+      if (template && !issueMissing) {
+        // Skip - don't create non-surgical edits for existing clauses
+        return null;
       }
 
       // For issues without templates, only create edits for missing clauses.
