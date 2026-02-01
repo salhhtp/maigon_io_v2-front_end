@@ -619,21 +619,6 @@ const OrgAdminDashboard: React.FC = () => {
               <div className={STAT_CARD_CLASSES}>
                 <div className="flex items-center justify-between">
                   <span className="text-sm uppercase tracking-wide text-[#6B7280]">
-                    Fallback Rate
-                  </span>
-                  <Activity className="h-5 w-5 text-[#9A7C7C]" />
-                </div>
-                <p className="text-3xl font-semibold text-[#271D1D]">
-                  {formatPercentage(overview?.analysis.fallbackRate)}
-                </p>
-                <p className="text-xs text-[#6B7280]">
-                  {formatNumber(overview?.analysis.fallbackCount)} fallbacks of{" "}
-                  {formatNumber(overview?.analysis.total)} total runs
-                </p>
-              </div>
-              <div className={STAT_CARD_CLASSES}>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm uppercase tracking-wide text-[#6B7280]">
                     Agent Interactions
                   </span>
                   <Users className="h-5 w-5 text-[#9A7C7C]" />
@@ -656,9 +641,9 @@ const OrgAdminDashboard: React.FC = () => {
           )}
         </section>
 
-        <section id="org-admin-invites-section">
+        {/* <section id="org-admin-invites-section">
           <OrgMemberInvitesPanel />
-        </section>
+        </section> */}
 
         <section
           id="org-admin-alerts-section"
