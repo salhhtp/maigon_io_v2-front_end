@@ -1868,13 +1868,6 @@ function ClausePreview({
     if (!isMissingOriginal && baseText === updatedTextForDiff) return null;
     return computeTokenDiff(baseText, updatedTextForDiff);
   }, [previousTextForDiff, updatedTextForDiff, isMissingOriginal]);
-  const aiSuggestionDiffTokens = useMemo(() => {
-    if (!pendingAiEditText) return null;
-    if (!updatedTextForDiff) return null;
-    if (pendingAiEditText.trim() === updatedTextForDiff.trim()) return null;
-    return computeTokenDiff(updatedTextForDiff, pendingAiEditText);
-  }, [pendingAiEditText, updatedTextForDiff]);
-
   const resolvedFullPreviousText =
     fullPreviousText && fullPreviousText.trim().length > 0
       ? fullPreviousText
@@ -2127,12 +2120,7 @@ function ClausePreview({
                 </div>
               </div>
               <pre className="mt-2 whitespace-pre-wrap break-words rounded bg-[#FDFBFB] p-3 text-sm text-[#271D1D]">
-                {aiSuggestionDiffTokens
-                  ? renderInlineTokenDiff(
-                      aiSuggestionDiffTokens,
-                      "ai-suggestion",
-                    )
-                  : pendingAiEditText}
+                {pendingAiEditText}
               </pre>
             </div>
           )}
