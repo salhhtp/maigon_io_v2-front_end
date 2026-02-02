@@ -740,6 +740,31 @@ export function isMissingEvidenceMarker(value?: string | null): boolean {
   );
 }
 
+const WORD_CHAR_REGEX = /[A-Za-z0-9]/;
+
+const sliceExcerptAtWordBoundary = (
+  clauseText: string,
+  start: number,
+  maxLength: number,
+) => {
+  const safeStart = Math.max(0, Math.min(start, clauseText.length));
+  if (
+    safeStart > 0 &&
+    safeStart < clauseText.length &&
+    WORD_CHAR_REGEX.test(clauseText[safeStart]) &&
+    WORD_CHAR_REGEX.test(clauseText[safeStart - 1])
+  ) {
+    let adjustedStart = safeStart;
+    while (adjustedStart > 0 && !/\s/.test(clauseText[adjustedStart - 1])) {
+      adjustedStart -= 1;
+    }
+    const adjustedEnd = Math.min(clauseText.length, adjustedStart + maxLength);
+    return clauseText.slice(adjustedStart, adjustedEnd);
+  }
+  const end = Math.min(clauseText.length, safeStart + maxLength);
+  return clauseText.slice(safeStart, end);
+};
+
 export function buildEvidenceExcerpt(options: {
   clauseText: string;
   anchorText?: string | null;
@@ -771,8 +796,7 @@ export function buildEvidenceExcerpt(options: {
         const index = clauseLower.indexOf(variant.toLowerCase());
         if (index >= 0) {
           const start = Math.max(0, index - Math.floor(maxLength * 0.4));
-          const end = Math.min(clauseText.length, start + maxLength);
-          return clauseText.slice(start, end);
+          return sliceExcerptAtWordBoundary(clauseText, start, maxLength);
         }
       }
     }
@@ -782,12 +806,11 @@ export function buildEvidenceExcerpt(options: {
     const index = clauseLower.indexOf(anchorSeed);
     if (index >= 0) {
       const start = Math.max(0, index - Math.floor(maxLength * 0.4));
-      const end = Math.min(clauseText.length, start + maxLength);
-      return clauseText.slice(start, end);
+      return sliceExcerptAtWordBoundary(clauseText, start, maxLength);
     }
   }
 
-  return clauseText.slice(0, maxLength);
+  return sliceExcerptAtWordBoundary(clauseText, 0, maxLength);
 }
 
 /**
@@ -877,8 +900,7 @@ export function buildUniqueEvidenceExcerpt(options: {
         triedPositions.add(positionKey);
 
         const start = Math.max(0, index - Math.floor(maxLength * 0.4));
-        const end = Math.min(clauseText.length, start + maxLength);
-        const excerpt = clauseText.slice(start, end);
+        const excerpt = sliceExcerptAtWordBoundary(clauseText, start, maxLength);
 
         // Check if this excerpt overlaps significantly with excluded excerpts
         const normalizedExcerpt = normalizeForMatch(excerpt);
@@ -904,7 +926,7 @@ export function buildUniqueEvidenceExcerpt(options: {
 
   // Fallback: find any non-excluded region
   for (let start = 0; start < clauseText.length - maxLength; start += Math.floor(maxLength * 0.5)) {
-    const excerpt = clauseText.slice(start, start + maxLength);
+    const excerpt = sliceExcerptAtWordBoundary(clauseText, start, maxLength);
     const normalizedExcerpt = normalizeForMatch(excerpt);
 
     let isExcluded = false;
