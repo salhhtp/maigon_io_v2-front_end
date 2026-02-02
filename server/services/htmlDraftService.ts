@@ -255,7 +255,12 @@ function applyEditsToHtml(
   for (const edit of edits) {
     const resolvedId = edit.id ?? edit.clauseReference ?? "edit";
     const changeType = (edit.changeType || "modify").toLowerCase();
-    const targetNode = findMatchingNode(edit, nodes, usedNodes);
+    const allowReuse =
+      changeType === "insert" ||
+      (changeType === "modify" && Boolean(edit.originalText?.trim()));
+    const targetNode = findMatchingNode(edit, nodes, usedNodes, {
+      allowUsed: allowReuse,
+    });
 
     if (!targetNode && changeType !== "insert") {
       unmatched.push(resolvedId);
@@ -335,14 +340,18 @@ function applyEditsToHtml(
       continue;
     }
 
-    const formatted = formatSuggestedText(edit);
-    if (!formatted) {
-      unmatched.push(resolvedId);
-      continue;
+    const appliedInline = applyInlineReplacement($, targetNode.element, edit);
+    if (!appliedInline) {
+      const formatted = formatSuggestedText(edit);
+      if (!formatted) {
+        unmatched.push(resolvedId);
+        continue;
+      }
+      $(targetNode.element).html(formatted);
+      if (!allowReuse) {
+        usedNodes.add(targetNode.element);
+      }
     }
-
-    $(targetNode.element).html(formatted);
-    usedNodes.add(targetNode.element);
     matched.push(resolvedId);
     lastTarget = targetNode.element;
   }
@@ -372,14 +381,16 @@ function findMatchingNode(
   edit: AgentDraftEdit,
   nodes: ClauseNode[],
   usedNodes: Set<cheerio.Element>,
+  options?: { allowUsed?: boolean },
 ) {
   const normalizedOriginal = normalizeClauseText(edit.originalText ?? "");
   let bestNode: ClauseNode | null = null;
   let bestScore = 0;
+  const allowUsed = options?.allowUsed ?? false;
 
   if (normalizedOriginal) {
     for (const node of nodes) {
-      if (usedNodes.has(node.element)) continue;
+      if (usedNodes.has(node.element) && !allowUsed) continue;
       const score = computeMatchScore(normalizedOriginal, node.normalizedText);
       if (score > bestScore && score >= MATCH_THRESHOLD) {
         bestNode = node;
@@ -391,7 +402,7 @@ function findMatchingNode(
   if (!bestNode && edit.clauseReference) {
     const reference = normalizeClauseReference(edit.clauseReference);
     for (const node of nodes) {
-      if (usedNodes.has(node.element)) continue;
+      if (usedNodes.has(node.element) && !allowUsed) continue;
       if (node.normalizedText.includes(reference)) {
         bestNode = node;
         break;
@@ -439,6 +450,37 @@ function computeMatchScore(a: string, b: string): number {
   return overlap / aTokens.size;
 }
 
+const wrapInsert = (value: string) =>
+  `<ins style="text-decoration: underline; background-color: #ecfdf3; color: #027a48;">${value}</ins>`;
+const wrapDelete = (value: string) =>
+  `<del style="text-decoration: line-through; background-color: #fef3f2; color: #b42318;">${value}</del>`;
+
+function escapeWithLineBreaks(value: string): string {
+  return escapeHtml(value).replace(/\n/g, "<br />");
+}
+
+function applyInlineReplacement(
+  $: cheerio.CheerioAPI,
+  element: cheerio.Element,
+  edit: AgentDraftEdit,
+): boolean {
+  const original = (edit.originalText ?? "").trim();
+  const suggestion = (edit.suggestedText ?? "").trim();
+  if (!original || !suggestion) return false;
+  const nodeText = $(element).text();
+  const haystack = nodeText.toLowerCase();
+  const needle = original.toLowerCase();
+  const index = haystack.indexOf(needle);
+  if (index < 0) return false;
+  const before = nodeText.slice(0, index);
+  const after = nodeText.slice(index + original.length);
+  const replacement = `${escapeWithLineBreaks(before)}${wrapDelete(
+    escapeWithLineBreaks(original),
+  )}${wrapInsert(escapeWithLineBreaks(suggestion))}${escapeWithLineBreaks(after)}`;
+  $(element).html(replacement);
+  return true;
+}
+
 function formatSuggestedText(edit: AgentDraftEdit): string {
   const changeType = (edit.changeType || "modify").toLowerCase();
   const suggestion = (edit.suggestedText || "").trim();
@@ -465,11 +507,6 @@ function formatSuggestedText(edit: AgentDraftEdit): string {
       .map((block) => (block.length > 0 ? block : "&nbsp;"));
     return paragraphs.join("<br /><br />");
   };
-
-  const wrapInsert = (value: string) =>
-    `<ins style="text-decoration: underline; background-color: #ecfdf3; color: #027a48;">${value}</ins>`;
-  const wrapDelete = (value: string) =>
-    `<del style="text-decoration: line-through; background-color: #fef3f2; color: #b42318;">${value}</del>`;
 
   const formattedSuggestion = suggestion ? formatTextBlock(suggestion) : "";
   const formattedOriginal = original ? formatTextBlock(original) : "";
