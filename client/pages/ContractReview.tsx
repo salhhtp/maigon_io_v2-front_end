@@ -350,6 +350,19 @@ function stripBoundaryEllipses(value: string) {
     .trim();
 }
 
+function normalizeEvidenceKey(value?: string | null) {
+  if (!value) return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  if (trimmed.toLowerCase() === "current clause text") return null;
+  if (isMissingEvidenceString(trimmed) || isNotPresentPlaceholder(trimmed)) {
+    return null;
+  }
+  const cleaned = stripBoundaryEllipses(trimmed);
+  if (!cleaned) return null;
+  return normalizeSearchText(cleaned);
+}
+
 function isMissingEvidenceString(value?: string | null) {
   if (!value) return false;
   const normalized = normalizeSearchText(value);
@@ -1811,6 +1824,7 @@ function ClausePreview({
   updatedText,
   fullPreviousText,
   fullUpdatedText,
+  originalEvidenceExcerpt,
   previewHtml,
   isActive = true,
   isEditable = false,
@@ -1828,6 +1842,7 @@ function ClausePreview({
   updatedText?: string | null;
   fullPreviousText?: string | null;
   fullUpdatedText?: string | null;
+  originalEvidenceExcerpt?: string | null;
   previewHtml?: {
     previous?: string;
     updated?: string;
@@ -1887,10 +1902,18 @@ function ClausePreview({
     fullUpdatedText && fullUpdatedText.trim().length > 0
       ? fullUpdatedText
       : updatedTextForDiff;
+  const highlightSeed =
+    originalEvidenceExcerpt && originalEvidenceExcerpt.trim().length > 0
+      ? originalEvidenceExcerpt
+      : previousTextForDiff;
   const highlightOriginal =
-    resolvedFullPreviousText && previousTextForDiff
-      ? resolveHighlightCandidate(resolvedFullPreviousText, previousTextForDiff)
+    resolvedFullPreviousText && highlightSeed
+      ? resolveHighlightCandidate(resolvedFullPreviousText, highlightSeed)
       : null;
+  const referencedExcerpt =
+    originalEvidenceExcerpt && originalEvidenceExcerpt.trim().length > 0
+      ? originalEvidenceExcerpt
+      : highlightOriginal;
 
   const renderDiffColumn = (variant: "original" | "updated") => {
     if (variant === "original" && isMissingOriginal) {
@@ -2153,13 +2176,13 @@ function ClausePreview({
               Review the full clause text below.
             </DialogDescription>
           </DialogHeader>
-          {activeModal === "original" && highlightOriginal ? (
+          {activeModal === "original" && referencedExcerpt ? (
             <div className="rounded-md border border-[#E8DDDD] bg-[#FFF7E6] px-3 py-2 text-xs text-[#7A4B00]">
               <p className="font-semibold uppercase tracking-wide">
                 Referenced excerpt
               </p>
               <p className="text-sm text-[#271D1D] whitespace-pre-wrap">
-                {highlightOriginal}
+                {referencedExcerpt}
               </p>
             </div>
           ) : null}
@@ -3118,6 +3141,43 @@ Next step: ${
     });
     return lookup;
   }, [structuredProposedEdits]);
+  const issueEvidenceLookup = useMemo(() => {
+    const lookup = new Map<
+      string,
+      {
+        issue: Issue;
+        reference: Issue["clauseReference"];
+        fullText: string | null;
+        excerpt: string | null;
+      }
+    >();
+    structuredIssues.forEach((issue) => {
+      const reference = issue.clauseReference;
+      if (!reference) return;
+      const fullText =
+        resolveClauseEvidenceFullText({
+          reference,
+          documentText: fullDocumentText,
+          clauses: clauseEvidenceSources,
+        }) ?? resolveClauseEvidenceText(reference, clauseEvidenceSources);
+      const entry = {
+        issue,
+        reference,
+        fullText: fullText ?? null,
+        excerpt: reference.excerpt ?? null,
+      };
+      const addKey = (value?: string | null) => {
+        const key = normalizeEvidenceKey(value);
+        if (!key || lookup.has(key)) return;
+        lookup.set(key, entry);
+      };
+      addKey(issue.id);
+      addKey(reference.clauseId);
+      addKey(reference.heading);
+      addKey(reference.excerpt);
+    });
+    return lookup;
+  }, [structuredIssues, fullDocumentText, clauseEvidenceSources]);
   const score =
     (typeof reviewData.score === "number"
       ? reviewData.score
@@ -5003,6 +5063,31 @@ const heroNavItems: { id: string; label: string }[] = [
                           actionPreviewAnchor;
                         const pendingAiText =
                           pendingAiEdits[item.id]?.text ?? null;
+                        const issueEvidence = item.proposedEdit
+                          ? (() => {
+                              const candidates = [
+                                item.proposedEdit.id,
+                                item.proposedEdit.clauseId ?? null,
+                                item.proposedEdit.clauseTitle ?? null,
+                                item.proposedEdit.anchorText ?? null,
+                                item.proposedEdit.previousText ?? null,
+                                actionPreviewAnchor,
+                              ];
+                              for (const candidate of candidates) {
+                                const key = normalizeEvidenceKey(candidate);
+                                if (!key) continue;
+                                const match = issueEvidenceLookup.get(key);
+                                if (match) return match;
+                              }
+                              return null;
+                            })()
+                          : null;
+                        const issueEvidenceExcerpt =
+                          issueEvidence?.excerpt ?? null;
+                        const issueEvidenceHeading =
+                          issueEvidence?.reference?.heading ?? null;
+                        const clauseTitleForPreview =
+                          issueEvidenceHeading ?? item.proposedEdit?.clauseTitle;
                         const actionPreviewHtml =
                           proposedEditOverrides[item.id]?.text
                             ? buildPreviewHtmlFromText(
@@ -5014,20 +5099,25 @@ const heroNavItems: { id: string; label: string }[] = [
                           fullDocumentClauseExtractions.length > 0
                             ? fullDocumentClauseExtractions
                             : resolvedClauseExtractions;
-                        const actionFullOriginalCandidate = item.proposedEdit
-                          ? resolveFullClauseText({
-                              clauseId: item.proposedEdit.clauseId ?? null,
-                              clauseTitle: item.proposedEdit.clauseTitle ?? null,
-                              anchorText: actionPreviewAnchor,
-                              clauses: fullClauseSource,
-                            })
-                          : null;
-                        const actionFullOriginal =
-                          actionFullOriginalCandidate &&
-                          fullTextMatchesAnchor(
-                            actionFullOriginalCandidate,
-                            actionPreviewAnchor,
-                          )
+                        const actionFullOriginalCandidate =
+                          issueEvidence?.fullText ??
+                          (item.proposedEdit
+                            ? resolveFullClauseText({
+                                clauseId: item.proposedEdit.clauseId ?? null,
+                                clauseTitle: item.proposedEdit.clauseTitle ?? null,
+                                anchorText: actionPreviewAnchor,
+                                clauses: fullClauseSource,
+                              })
+                            : null);
+                        const anchorForFullMatch =
+                          issueEvidenceExcerpt ?? actionPreviewAnchor;
+                        const actionFullOriginal = issueEvidence?.fullText
+                          ? issueEvidence.fullText
+                          : actionFullOriginalCandidate &&
+                              fullTextMatchesAnchor(
+                                actionFullOriginalCandidate,
+                                anchorForFullMatch,
+                              )
                             ? actionFullOriginalCandidate
                             : null;
                         return (
@@ -5082,7 +5172,7 @@ const heroNavItems: { id: string; label: string }[] = [
                             {item.proposedEdit ? (
                               <div className="mt-3 space-y-2">
                                 <ClausePreview
-                                  clauseTitle={item.proposedEdit.clauseTitle}
+                                  clauseTitle={clauseTitleForPreview}
                                   anchorText={actionPreviewAnchor}
                                   proposedText={actionPreviewUpdated}
                                   previousText={
@@ -5095,6 +5185,9 @@ const heroNavItems: { id: string; label: string }[] = [
                                   }
                                   fullPreviousText={actionFullOriginal}
                                   fullUpdatedText={actionPreviewUpdated}
+                                  originalEvidenceExcerpt={
+                                    issueEvidenceExcerpt
+                                  }
                                   previewHtml={actionPreviewHtml}
                                   isActive={checked}
                                   isEditable
