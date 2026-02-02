@@ -1336,7 +1336,7 @@ serve(async (req) => {
 
     if (request.ingestionId) {
       try {
-        ingestionRecord = await loadIngestionRecord(request.ingestionId);
+        ingestionRecord = await loadIngestionRecordWithRetry(request.ingestionId);
         processedContent = ingestionRecord.extracted_text ?? "";
 
         if (!processedContent || processedContent.trim().length === 0) {
@@ -1365,10 +1365,7 @@ serve(async (req) => {
           );
         }
       } catch (ingestionError) {
-        const errorMessage =
-          ingestionError instanceof Error
-            ? ingestionError.message
-            : String(ingestionError);
+        const errorMessage = formatErrorMessage(ingestionError);
         console.error("❌ Failed to load ingestion record:", {
           ingestionId: request.ingestionId,
           error: errorMessage,
@@ -1839,6 +1836,82 @@ async function extractTextFromFile(
   }
 
   return content;
+}
+
+function formatErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  if (error && typeof error === "object") {
+    const candidate = (error as Record<string, unknown>).message;
+    if (typeof candidate === "string") {
+      return candidate;
+    }
+    try {
+      return JSON.stringify(error);
+    } catch {
+      return String(error);
+    }
+  }
+  return String(error);
+}
+
+function isIngestionRecordMissing(error: unknown): boolean {
+  if (!error || typeof error !== "object") {
+    return false;
+  }
+  const err = error as Record<string, unknown>;
+  const code = typeof err.code === "string" ? err.code : "";
+  const statusRaw = err.status ?? err.statusCode;
+  const status =
+    typeof statusRaw === "number"
+      ? statusRaw
+      : typeof statusRaw === "string"
+        ? Number(statusRaw)
+        : NaN;
+  const message = formatErrorMessage(error).toLowerCase();
+  if (code === "PGRST116") {
+    return true;
+  }
+  if (status === 404 || status === 406) {
+    return true;
+  }
+  return message.includes("not found") || message.includes("no rows");
+}
+
+async function loadIngestionRecordWithRetry(
+  ingestionId: string,
+  options: { attempts?: number; delayMs?: number } = {},
+): Promise<ContractIngestionRecord> {
+  const attempts = Math.max(1, options.attempts ?? 4);
+  const delayMs = Math.max(100, options.delayMs ?? 300);
+  let lastError: unknown = null;
+
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      return await loadIngestionRecord(ingestionId);
+    } catch (error) {
+      lastError = error;
+      const shouldRetry =
+        attempt < attempts && isIngestionRecordMissing(error);
+      if (!shouldRetry) {
+        throw error;
+      }
+      console.warn("⏳ Ingestion record not ready; retrying", {
+        ingestionId,
+        attempt,
+        attempts,
+      });
+      await new Promise((resolve) =>
+        setTimeout(resolve, delayMs * attempt),
+      );
+    }
+  }
+
+  if (lastError instanceof Error) {
+    throw lastError;
+  }
+  throw new Error("Ingestion record not found");
 }
 
 async function loadIngestionRecord(
