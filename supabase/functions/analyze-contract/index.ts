@@ -61,6 +61,7 @@ interface AnalysisRequest {
   model: string;
   async?: boolean;
   responseId?: string;
+  asyncRetryDepth?: number;
   perspective?: string;
   perspectiveLabel?: string;
   customSolution?: any;
@@ -1542,17 +1543,35 @@ serve(async (req) => {
         const pollResult = await pollReasoningAnalysis(
           reasoningContext,
           responseId,
+          {
+            retryDepth:
+              typeof request.asyncRetryDepth === "number"
+                ? request.asyncRetryDepth
+                : undefined,
+          },
         );
         if (pollResult.status !== "completed") {
           console.log("⏳ Async analysis still running", {
             requestId,
             responseId: pollResult.responseId,
             status: pollResult.status,
+            reason: pollResult.reason ?? null,
+            retryOf: pollResult.retryOf ?? null,
+            retryDepth:
+              typeof pollResult.retryDepth === "number"
+                ? pollResult.retryDepth
+                : null,
           });
           return new Response(
             JSON.stringify({
               status: pollResult.status,
               responseId: pollResult.responseId,
+              reason: pollResult.reason ?? null,
+              retryOf: pollResult.retryOf ?? null,
+              retryDepth:
+                typeof pollResult.retryDepth === "number"
+                  ? pollResult.retryDepth
+                  : null,
               pollAfterMs: 3000,
             }),
             {

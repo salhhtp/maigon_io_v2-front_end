@@ -733,6 +733,9 @@ type AsyncReasoningStatus =
   | {
       status: string;
       responseId: string;
+      reason?: string;
+      retryOf?: string;
+      retryDepth?: number;
     };
 
 interface ReasoningResult {
@@ -3239,6 +3242,7 @@ export async function runReasoningAnalysis(
 
 export async function startReasoningAnalysis(
   context: ReasoningContext,
+  options: { modeOverride?: ReasoningMode } = {},
 ): Promise<{
   responseId: string;
   status: string;
@@ -3249,7 +3253,8 @@ export async function startReasoningAnalysis(
   const session = createReasoningSession(context);
   const requestStartedAt = Date.now();
   const isTightTimeout = REQUEST_TIMEOUT_MS <= 45000;
-  const mode: ReasoningMode = isTightTimeout ? "compact" : "full";
+  const mode: ReasoningMode =
+    options.modeOverride ?? (isTightTimeout ? "compact" : "full");
   const { systemPrompt, userPrompt } = session.buildPrompts(mode);
   const compactMaxTokens =
     MAX_OUTPUT_TOKENS !== null && MAX_OUTPUT_TOKENS !== undefined
@@ -3351,9 +3356,11 @@ export async function startReasoningAnalysis(
 export async function pollReasoningAnalysis(
   context: ReasoningContext,
   responseId: string,
+  options: { retryDepth?: number } = {},
 ): Promise<AsyncReasoningStatus> {
   const session = createReasoningSession(context);
   const requestStartedAt = Date.now();
+  const retryDepth = Math.max(0, options.retryDepth ?? 0);
   const response = await fetch(
     `${OPENAI_RESPONSES_API_BASE}/${responseId}`,
     {
@@ -3385,9 +3392,17 @@ export async function pollReasoningAnalysis(
     typeof payload?.status === "string" ? payload.status : "completed";
 
   if (status !== "completed") {
+    const detailsCandidate =
+      payload?.status_details ?? payload?.incomplete_details ?? payload?.last_error;
+    const reason =
+      typeof detailsCandidate === "object" &&
+      typeof (detailsCandidate as Record<string, unknown>).reason === "string"
+        ? (detailsCandidate as Record<string, unknown>).reason
+        : undefined;
     console.warn("⏳ OpenAI async status", {
       responseId,
       status,
+      reason: reason ?? null,
       model: session.model,
       tier: session.tier,
       durationMs: Date.now() - requestStartedAt,
@@ -3398,9 +3413,27 @@ export async function pollReasoningAnalysis(
       createdAt: payload?.created_at ?? null,
       expiresAt: payload?.expires_at ?? null,
       lastError: payload?.last_error ?? payload?.error ?? null,
-      statusDetails: payload?.status_details ?? payload?.incomplete_details ?? null,
+      statusDetails: detailsCandidate ?? null,
     });
-    return { status, responseId };
+
+    if (status === "incomplete" && reason === "max_output_tokens" && retryDepth < 1) {
+      console.warn("🔁 Async analysis incomplete; retrying with ultra mode", {
+        responseId,
+        model: session.model,
+      });
+      const retryStart = await startReasoningAnalysis(context, {
+        modeOverride: "ultra",
+      });
+      return {
+        status: retryStart.status ?? "in_progress",
+        responseId: retryStart.responseId,
+        reason,
+        retryOf: responseId,
+        retryDepth: retryDepth + 1,
+      };
+    }
+
+    return { status, responseId, reason, retryDepth };
   }
 
   const coreReport = buildCoreReportFromPayload(payload, context, session);

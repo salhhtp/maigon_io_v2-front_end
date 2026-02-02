@@ -855,6 +855,10 @@ class AIService {
     let waitMs = 3000;
     let attempt = 0;
     let lastWarnAt = 0;
+    let retryDepth =
+      typeof requestBody?.asyncRetryDepth === "number"
+        ? Math.max(0, requestBody.asyncRetryDepth)
+        : 0;
     const warnEveryMs = 120000;
     logger.contractAction("AI analysis async polling started", undefined, {
       reviewType,
@@ -880,6 +884,7 @@ class AIService {
         ...requestBody,
         responseId,
         async: true,
+        asyncRetryDepth: retryDepth,
       };
       const { data, error } = await this.measureAsync(
         "ai.edge.poll_attempt",
@@ -905,10 +910,34 @@ class AIService {
         typeof (data as any).status === "string"
           ? (data as any).status
           : "completed";
+      const nextResponseId =
+        typeof (data as any).responseId === "string"
+          ? ((data as any).responseId as string)
+          : responseId;
+      const nextRetryDepthRaw = (data as any).retryDepth;
+      const nextRetryDepth =
+        typeof nextRetryDepthRaw === "number" && Number.isFinite(nextRetryDepthRaw)
+          ? Math.max(0, nextRetryDepthRaw)
+          : null;
+      if (nextResponseId !== responseId) {
+        logger.warn("Async analysis responseId updated", {
+          reviewType,
+          from: responseId,
+          to: nextResponseId,
+          status,
+        });
+        responseId = nextResponseId;
+        if (nextRetryDepth === null) {
+          retryDepth += 1;
+        }
+      }
+      if (nextRetryDepth !== null) {
+        retryDepth = nextRetryDepth;
+      }
       if (status === "completed") {
         return data;
       }
-      if (status === "failed" || status === "incomplete") {
+      if (status === "failed" || status === "cancelled" || status === "expired") {
         throw new Error(`Async analysis failed with status ${status}.`);
       }
       const pollAfterMs =

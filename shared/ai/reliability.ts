@@ -742,6 +742,35 @@ export function isMissingEvidenceMarker(value?: string | null): boolean {
 
 const WORD_CHAR_REGEX = /[A-Za-z0-9]/;
 
+const isLowercaseWordStart = (text: string) => {
+  const match = text.match(/[A-Za-z]/);
+  if (!match) return false;
+  const char = match[0];
+  return char >= "a" && char <= "z";
+};
+
+const applyExcerptEllipses = (
+  clauseText: string,
+  start: number,
+  end: number,
+  excerpt: string,
+) => {
+  let result = excerpt.trim();
+  const shouldPrefix = start > 0 && isLowercaseWordStart(result);
+  if (shouldPrefix) {
+    result = `... ${result}`;
+  }
+  const cutMidWord =
+    end < clauseText.length &&
+    end > 0 &&
+    WORD_CHAR_REGEX.test(clauseText[end - 1]) &&
+    WORD_CHAR_REGEX.test(clauseText[end]);
+  if (cutMidWord) {
+    result = `${result}...`;
+  }
+  return result;
+};
+
 const sliceExcerptAtWordBoundary = (
   clauseText: string,
   start: number,
@@ -759,10 +788,20 @@ const sliceExcerptAtWordBoundary = (
       adjustedStart -= 1;
     }
     const adjustedEnd = Math.min(clauseText.length, adjustedStart + maxLength);
-    return clauseText.slice(adjustedStart, adjustedEnd);
+    return applyExcerptEllipses(
+      clauseText,
+      adjustedStart,
+      adjustedEnd,
+      clauseText.slice(adjustedStart, adjustedEnd),
+    );
   }
   const end = Math.min(clauseText.length, safeStart + maxLength);
-  return clauseText.slice(safeStart, end);
+  return applyExcerptEllipses(
+    clauseText,
+    safeStart,
+    end,
+    clauseText.slice(safeStart, end),
+  );
 };
 
 export function buildEvidenceExcerpt(options: {
