@@ -1857,15 +1857,17 @@ function ClausePreview({
     updatedFromHtml && updatedFromHtml.length >= resolvedUpdatedText.length
       ? updatedFromHtml
       : resolvedUpdatedText;
-  const diffTokens = useMemo(() => {
-    if (!previousTextForDiff || !updatedTextForDiff) return null;
-    if (previousTextForDiff === updatedTextForDiff) return null;
-    return computeTokenDiff(previousTextForDiff, updatedTextForDiff);
-  }, [previousTextForDiff, updatedTextForDiff]);
   const isMissingOriginal = useMemo(
     () => isNotPresentPlaceholder(previousTextForDiff),
     [previousTextForDiff],
   );
+  const diffTokens = useMemo(() => {
+    if (!updatedTextForDiff) return null;
+    const baseText = isMissingOriginal ? "" : previousTextForDiff ?? "";
+    if (!baseText && !updatedTextForDiff) return null;
+    if (!isMissingOriginal && baseText === updatedTextForDiff) return null;
+    return computeTokenDiff(baseText, updatedTextForDiff);
+  }, [previousTextForDiff, updatedTextForDiff, isMissingOriginal]);
   const aiSuggestionDiffTokens = useMemo(() => {
     if (!pendingAiEditText) return null;
     if (!updatedTextForDiff) return null;
