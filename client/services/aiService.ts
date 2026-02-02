@@ -1,5 +1,4 @@
 import { supabase } from "@/lib/supabase";
-import { generateFallbackAnalysis } from "./fallbackAnalysis";
 import logger from "@/utils/logger";
 import { errorHandler } from "@/utils/errorHandler";
 import {
@@ -381,13 +380,6 @@ class AIService {
       throw new Error("Review type is required for analysis");
     }
 
-    const buildFallbackResult = (reason: string) =>
-      generateFallbackAnalysis(request.reviewType, request.classification, {
-        fallbackReason: reason,
-        contractContent: request.content,
-        contractType: request.contractType,
-      });
-
     try {
       console.log("🔗 Calling Supabase Edge Function for AI analysis...", {
         model,
@@ -538,64 +530,23 @@ class AIService {
           pollAfterMs,
         });
         const responseId = (data as any).responseId as string;
-        const maxPollMs = requestBody.ingestionId ? 6 * 60 * 1000 : 10 * 60 * 1000;
-        try {
-          data = await this.measureAsync(
-            "ai.edge.poll",
-            () =>
-              this.pollAsyncAnalysis(
-                requestBody,
-                responseId,
-                session.access_token ?? null,
-                request.reviewType,
-                maxPollMs,
-              ),
-            {
-              context: {
-                reviewType: request.reviewType,
-                responseId,
-                maxPollMs,
-              },
-              warnMs: 60000,
-            },
-          );
-        } catch (pollError) {
-          const message =
-            pollError instanceof Error ? pollError.message : String(pollError);
-          if (message.toLowerCase().includes("timed out")) {
-            logger.warn("Async analysis timed out, returning fallback", {
+        data = await this.measureAsync(
+          "ai.edge.poll",
+          () =>
+            this.pollAsyncAnalysis(
+              requestBody,
+              responseId,
+              session.access_token ?? null,
+              request.reviewType,
+            ),
+          {
+            context: {
               reviewType: request.reviewType,
               responseId,
-              maxPollMs,
-            });
-            const fallback = buildFallbackResult(
-              `Async analysis timed out (responseId=${responseId}).`,
-            );
-            return {
-              ...fallback,
-              async_status: "pending",
-              async_response_id: responseId,
-              async_last_checked_at: new Date().toISOString(),
-              async_timeout_at: new Date().toISOString(),
-              async_meta: {
-                responseId,
-                reviewType: request.reviewType,
-                ingestionId: request.ingestionId,
-                model,
-                contractType: request.contractType,
-                classification: request.classification ?? null,
-                selectedSolution: request.selectedSolution ?? null,
-                perspective: request.perspective ?? null,
-                perspectiveLabel: request.perspectiveLabel ?? null,
-                fileName: request.fileName ?? request.filename ?? null,
-                fileType: request.fileType ?? null,
-                documentFormat: request.documentFormat ?? null,
-                ingestionWarnings: request.ingestionWarnings ?? null,
-              },
-            };
-          }
-          throw pollError;
-        }
+            },
+            warnMs: 60000,
+          },
+        );
       }
 
       // Validate the response structure
@@ -894,12 +845,12 @@ class AIService {
     responseId: string,
     accessToken: string | null,
     reviewType: string,
-    maxWaitMsOverride?: number,
+    maxWaitMsOverride?: number | null,
   ) {
     const maxWaitMs =
       typeof maxWaitMsOverride === "number" && maxWaitMsOverride > 0
         ? maxWaitMsOverride
-        : 10 * 60 * 1000;
+        : null;
     const startedAt = Date.now();
     let waitMs = 3000;
     let attempt = 0;
@@ -911,7 +862,18 @@ class AIService {
       maxWaitMs,
     });
 
-    while (Date.now() - startedAt < maxWaitMs) {
+    while (true) {
+      if (maxWaitMs !== null && Date.now() - startedAt >= maxWaitMs) {
+        logger.warn("AI analysis polling timed out", {
+          reviewType,
+          responseId,
+          maxWaitMs,
+          elapsedMs: Date.now() - startedAt,
+        });
+        throw new Error(
+          "Async analysis timed out while waiting for completion.",
+        );
+      }
       attempt += 1;
       await wait(waitMs);
       const pollBody = {
@@ -983,14 +945,6 @@ class AIService {
         lastWarnAt = elapsedMs;
       }
     }
-
-    logger.warn("AI analysis polling timed out", {
-      reviewType,
-      responseId,
-      maxWaitMs,
-      elapsedMs: Date.now() - startedAt,
-    });
-    throw new Error("Async analysis timed out while waiting for completion.");
   }
 
   private async manualInvokeEdgeFunction(
