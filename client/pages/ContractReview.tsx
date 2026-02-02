@@ -343,6 +343,13 @@ function normalizeSearchText(value: string) {
   return value.toLowerCase().replace(/\s+/g, " ").trim();
 }
 
+function stripBoundaryEllipses(value: string) {
+  return value
+    .replace(/^\s*(?:\.\.\.|…)\s*/g, "")
+    .replace(/\s*(?:\.\.\.|…)\s*$/g, "")
+    .trim();
+}
+
 function isMissingEvidenceString(value?: string | null) {
   if (!value) return false;
   const normalized = normalizeSearchText(value);
@@ -1239,7 +1246,9 @@ function resolveClauseEvidenceFromSnippet(
 ): string | null {
   if (!snippet || !clauses.length) return null;
   if (isMissingEvidenceString(snippet)) return null;
-  const normalizedSnippet = normalizeSearchText(snippet);
+  const cleanedSnippet = stripBoundaryEllipses(snippet);
+  if (!cleanedSnippet) return null;
+  const normalizedSnippet = normalizeSearchText(cleanedSnippet);
   const clauseMatch = clauses.find((clause) => {
     const clauseText = clause.normalizedText ?? clause.originalText ?? "";
     return clauseText
@@ -1283,14 +1292,16 @@ function resolveHighlightCandidate(
 ): string | null {
   if (!excerpt) return null;
   const trimmed = excerpt.trim().replace(/\s+/g, " ");
-  if (!trimmed) return null;
-  if (isMissingEvidenceString(trimmed)) return null;
-  if (!fullText) return trimmed;
+  const cleaned = stripBoundaryEllipses(trimmed);
+  const baseExcerpt = cleaned || trimmed;
+  if (!baseExcerpt) return null;
+  if (isMissingEvidenceString(baseExcerpt)) return null;
+  if (!fullText) return baseExcerpt;
   const candidates = [
-    trimmed,
-    trimmed.slice(0, 240).trim(),
-    trimmed.split(/[.;]/)[0]?.trim(),
-    trimmed.split(",").slice(0, 2).join(",").trim(),
+    baseExcerpt,
+    baseExcerpt.slice(0, 240).trim(),
+    baseExcerpt.split(/[.;]/)[0]?.trim(),
+    baseExcerpt.split(",").slice(0, 2).join(",").trim(),
   ].filter((value, index, list) => {
     if (!value || value.length < 12) return false;
     return list.indexOf(value) === index;
