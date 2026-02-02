@@ -760,12 +760,17 @@ const applyExcerptEllipses = (
   if (shouldPrefix) {
     result = `... ${result}`;
   }
+  const endsWithTerminalPunctuation = /[.!?]["')\]]?$/.test(result);
   const cutMidWord =
     end < clauseText.length &&
     end > 0 &&
     WORD_CHAR_REGEX.test(clauseText[end - 1]) &&
     WORD_CHAR_REGEX.test(clauseText[end]);
-  if (cutMidWord) {
+  const needsSuffix =
+    end < clauseText.length &&
+    !result.endsWith("...") &&
+    (cutMidWord || !endsWithTerminalPunctuation);
+  if (needsSuffix) {
     result = `${result}...`;
   }
   return result;
