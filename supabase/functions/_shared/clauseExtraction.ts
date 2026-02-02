@@ -1,6 +1,12 @@
 import type { AnalysisReport, ClauseExtraction } from "./reviewSchema.ts";
 import type { ContractPlaybook } from "./playbooks.ts";
 import {
+  applyRegionTokens,
+  resolveRegionFallbacks,
+  resolveRegionKeyFromSummary,
+  type RegionTokenContext,
+} from "./region.ts";
+import {
   buildEvidenceExcerpt,
   buildUniqueEvidenceExcerpt,
   checkEvidenceMatch,
@@ -260,15 +266,89 @@ const isAnchorRedundant = (
   });
 };
 
-const buildCriteriaFromPlaybook = (playbook: ContractPlaybook) => {
+const selectRegionalCriteria = (
+  playbook: ContractPlaybook,
+  regionKey: string | null,
+) => {
+  const overlays = playbook.regionalCriteria ?? [];
+  if (!regionKey || overlays.length === 0) return [];
+  const searchOrder = [regionKey, ...resolveRegionFallbacks(regionKey)];
+  const selected: typeof overlays = [];
+  searchOrder.forEach((key) => {
+    overlays.forEach((overlay) => {
+      if (overlay.region === key) selected.push(overlay);
+    });
+  });
+  return selected;
+};
+
+export const resolvePlaybookCriteriaForRegion = (
+  playbook: ContractPlaybook,
+  context?: RegionTokenContext | null,
+) => {
+  const criticalClauses: ContractPlaybook["criticalClauses"] = [];
+  const clauseAnchors: string[] = [];
+  const criticalIndex = new Map<string, number>();
+  const anchorIndex = new Map<string, number>();
+  const applyTokens = (value: string) =>
+    context ? applyRegionTokens(value, context) : value;
+  const addCritical = (clause: ContractPlaybook["criticalClauses"][number]) => {
+    const title = applyTokens(clause.title);
+    const mustInclude = clause.mustInclude?.map(applyTokens) ?? [];
+    const redFlags = clause.redFlags?.map(applyTokens) ?? [];
+    const entry = {
+      ...clause,
+      title,
+      mustInclude,
+      redFlags,
+    };
+    const key = normalizeForMatch(title);
+    const existingIndex = criticalIndex.get(key);
+    if (existingIndex === undefined) {
+      criticalIndex.set(key, criticalClauses.length);
+      criticalClauses.push(entry);
+    } else {
+      criticalClauses[existingIndex] = entry;
+    }
+  };
+  const addAnchor = (anchor: string) => {
+    const processed = applyTokens(anchor);
+    const key = normalizeForMatch(processed);
+    const existingIndex = anchorIndex.get(key);
+    if (existingIndex === undefined) {
+      anchorIndex.set(key, clauseAnchors.length);
+      clauseAnchors.push(processed);
+    } else {
+      clauseAnchors[existingIndex] = processed;
+    }
+  };
+  (playbook.criticalClauses ?? []).forEach(addCritical);
+  (playbook.clauseAnchors ?? []).forEach(addAnchor);
+  const regionKey = context?.regionKey ?? null;
+  const overlays = selectRegionalCriteria(playbook, regionKey);
+  overlays.forEach((overlay) => {
+    (overlay.criticalClauses ?? []).forEach(addCritical);
+    (overlay.clauseAnchors ?? []).forEach(addAnchor);
+  });
+  return { criticalClauses, clauseAnchors };
+};
+
+const buildCriteriaFromPlaybook = (
+  playbook: ContractPlaybook,
+  context?: RegionTokenContext | null,
+) => {
   const criteria: AnalysisReport["criteriaMet"] = [];
   const requirementsById = new Map<string, string[]>();
   const usedIds = new Map<string, number>();
   const optionalCriteriaIds = new Set<string>();
   const criticalCriteriaIds = new Set<string>();
-  const criticalTitles = playbook.criticalClauses.map((clause) => clause.title);
+  const { criticalClauses, clauseAnchors } = resolvePlaybookCriteriaForRegion(
+    playbook,
+    context,
+  );
+  const criticalTitles = criticalClauses.map((clause) => clause.title);
 
-  playbook.criticalClauses.forEach((clause, index) => {
+  criticalClauses.forEach((clause, index) => {
     const id = buildCriterionId(
       clause.title,
       usedIds,
@@ -293,7 +373,7 @@ const buildCriteriaFromPlaybook = (playbook: ContractPlaybook) => {
   const existingTitles = new Set(
     criteria.map((entry) => normalizeForMatch(entry.title ?? "")),
   );
-  playbook.clauseAnchors.forEach((anchor, index) => {
+  clauseAnchors.forEach((anchor, index) => {
     const titleKey = normalizeForMatch(anchor);
     if (existingTitles.has(titleKey)) return;
     const id = buildCriterionId(anchor, usedIds, `ANCHOR_${index + 1}`);
@@ -344,8 +424,16 @@ export function enhanceReportWithClauses(
   const content = options.content ?? "";
   const normalizedContent = normalizeForMatch(content);
   const preferModelEvidence = options.preferModelEvidence === true;
+  const governingLaw = report.contractSummary?.governingLaw ?? "";
+  const jurisdiction = report.contractSummary?.jurisdiction ?? "";
+  const regionKey = resolveRegionKeyFromSummary(governingLaw, jurisdiction);
+  const regionContext: RegionTokenContext = {
+    regionKey,
+    governingLaw,
+    jurisdiction,
+  };
   const playbookCriteria = options.playbook
-    ? buildCriteriaFromPlaybook(options.playbook)
+    ? buildCriteriaFromPlaybook(options.playbook, regionContext)
     : null;
   const reportCriteria = Array.isArray(report.criteriaMet)
     ? report.criteriaMet

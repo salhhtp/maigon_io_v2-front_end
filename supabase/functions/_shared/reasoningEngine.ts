@@ -10,7 +10,15 @@ import {
   type AnalysisReport,
   type ClauseExtraction,
 } from "./reviewSchema.ts";
-import { enhanceReportWithClauses } from "./clauseExtraction.ts";
+import {
+  enhanceReportWithClauses,
+  resolvePlaybookCriteriaForRegion,
+} from "./clauseExtraction.ts";
+import {
+  applyRegionTokens,
+  resolveRegionFallbacks,
+  resolveRegionKeyFromSummary,
+} from "./region.ts";
 import {
   assessEditSemanticDrift,
   bindProposedEditsToClauses,
@@ -833,6 +841,7 @@ function buildSystemPrompt(
     "Ground every observation in the retrieved excerpts or clause digest provided. Do not infer missing language from general knowledge.",
     "If a clause is not present in the provided excerpts, mark it as \"Not present in contract\" and propose language only when clearly missing.",
     "When a clause is missing, use the provided playbook clause templates as the baseline and produce an insert proposed edit with anchorText set to \"Not present in contract\"; include a suggested insertion location in the rationale (e.g., \"insert near Miscellaneous\").",
+    "If governing law or jurisdiction is indicated, prefer the corresponding regional template variant (country or region specific) when available; otherwise use the base template.",
     "CRITICAL: Every issue MUST have exactly one corresponding proposed edit. The proposedEdits array must have the same number of items as issuesToAddress, with matching ids.",
     "For existing clauses that need fixes, be EXTREMELY SURGICAL: identify and change ONLY the specific problematic text, never the entire clause. Examples: (1) If a duration is wrong, anchorText='30 days' proposedText='45 days'. (2) If a party name is missing, anchorText='the Disclosing Party' proposedText='the Disclosing Party and its Affiliates'. (3) If a word needs adding, anchorText='shall maintain' proposedText='shall maintain reasonable'. The proposedText should be the MINIMAL replacement that fixes the issue.",
     "For each checklist/anchor item in the playbook, emit a finding (met/missing/attention) and include an issue for anything missing or ambiguous.",
@@ -1150,7 +1159,20 @@ function runHeuristicCritique(
   }
 
   if (playbook) {
-    contentCoverage = evaluatePlaybookCoverageFromContent(playbook, {
+    const governingLaw = report.contractSummary?.governingLaw ?? "";
+    const jurisdiction = report.contractSummary?.jurisdiction ?? "";
+    const regionKey = resolveRegionKeyFromSummary(governingLaw, jurisdiction);
+    const regionalCriteria = resolvePlaybookCriteriaForRegion(playbook, {
+      regionKey,
+      governingLaw,
+      jurisdiction,
+    });
+    const regionalPlaybook = {
+      ...playbook,
+      criticalClauses: regionalCriteria.criticalClauses,
+      clauseAnchors: regionalCriteria.clauseAnchors,
+    };
+    contentCoverage = evaluatePlaybookCoverageFromContent(regionalPlaybook, {
       content: coverageContext?.content ?? "",
       clauses: coverageContext?.clauses ?? [],
     });
@@ -1179,7 +1201,7 @@ function runHeuristicCritique(
       );
     }
     const expectedMinimumIssues = Math.min(
-      Math.max(5, (playbook.clauseAnchors?.length ?? 0) / 2),
+      Math.max(5, (regionalPlaybook.clauseAnchors?.length ?? 0) / 2),
       20,
     );
     if (report.issuesToAddress.length < expectedMinimumIssues) {
@@ -1704,6 +1726,32 @@ function resolveInsertionAnchor(
   return null;
 }
 
+function resolveTemplateVariant(
+  template: ClauseTemplate,
+  report: AnalysisReport,
+): ClauseTemplate {
+  const variants = template.variants ?? [];
+  if (!variants.length) return template;
+  const regionKey = resolveRegionKeyFromSummary(
+    report.contractSummary?.governingLaw ?? "",
+    report.contractSummary?.jurisdiction ?? "",
+  );
+  if (!regionKey) return template;
+  const searchOrder = [regionKey, ...resolveRegionFallbacks(regionKey)];
+  for (const key of searchOrder) {
+    const match = variants.find((variant) => variant.region === key);
+    if (match) {
+      return {
+        ...template,
+        text: match.text,
+        insertionAnchors: match.insertionAnchors ?? template.insertionAnchors,
+        tags: match.tags ?? template.tags,
+      };
+    }
+  }
+  return template;
+}
+
 function applyTemplateContext(
   templateText: string,
   report: AnalysisReport,
@@ -1711,6 +1759,7 @@ function applyTemplateContext(
   let text = templateText;
   const governingLaw = report.contractSummary?.governingLaw ?? "";
   const jurisdiction = report.contractSummary?.jurisdiction ?? "";
+  const regionKey = resolveRegionKeyFromSummary(governingLaw, jurisdiction);
   if (governingLaw) {
     text = text.replace(
       "the Discloser's jurisdiction of incorporation",
@@ -1723,7 +1772,7 @@ function applyTemplateContext(
       `courts located in ${jurisdiction}`,
     );
   }
-  return text;
+  return applyRegionTokens(text, { regionKey, governingLaw, jurisdiction });
 }
 
 function findClauseByIssue(
@@ -1819,9 +1868,7 @@ function selectTemplateForIssue(
 }
 
 /**
- * Generate surgical edit text for issues without templates.
- * For missing clauses: creates placeholder text based on recommendation.
- * For existing clauses: returns null (no placeholder edits for existing text).
+ * Generate fallback edit text for missing clauses when no template exists.
  */
 function generateSurgicalEditText(
   issue: AnalysisReport["issuesToAddress"][number],
@@ -1843,28 +1890,7 @@ function generateSurgicalEditText(
     return `[INSERT CLAUSE: ${recommendation || issueTitle}]`;
   }
 
-  // For existing clauses without templates, don't create placeholder edits.
-  // The issue will be visible to the user but without a proposed edit,
-  // as we cannot generate meaningful edit text without a template.
-  // This prevents showing unhelpful "[MODIFICATION NEEDED: ...]" text in the UI.
   return null;
-}
-
-/**
- * Check if a proposed edit is surgical (short enough for a replacement).
- * For existing clauses, we want edits that change minimal text, not entire clauses.
- * Returns true if the edit is surgical, false if it's too extensive.
- */
-function isSurgicalEdit(proposedText: string, isMissing: boolean): boolean {
-  if (isMissing) {
-    // For missing clauses, any length is fine since we're inserting new content
-    return true;
-  }
-  // For existing clauses, proposedText should be relatively short
-  // A surgical edit should typically be under 500 characters
-  // (a few sentences at most, not an entire clause)
-  const MAX_SURGICAL_LENGTH = 500;
-  return proposedText.length <= MAX_SURGICAL_LENGTH;
 }
 
 function buildProposedEditsForIssues(
@@ -1884,11 +1910,14 @@ function buildProposedEditsForIssues(
           : `ISSUE_${index + 1}`;
       const issueMissing = isMissingClauseIssue(issue);
       const hasClauseEvidence = !issueMissing;
-      const template = selectTemplateForIssue(
+      const baseTemplate = selectTemplateForIssue(
         templates,
         issue,
         hasClauseEvidence,
       );
+      const template = baseTemplate
+        ? resolveTemplateVariant(baseTemplate, report)
+        : null;
       const issueIdNormalized = normalizeIssueKey(issueId);
       const matchedEdit = existingEdits.find((edit) => {
         const editId = typeof edit.id === "string" ? edit.id : "";
@@ -1940,34 +1969,54 @@ function buildProposedEditsForIssues(
           : anchorClause?.originalText
             ? pickAnchorSnippet(anchorClause.originalText)
             : fallbackAnchorText || "Not present in contract";
+      const resolvedMissing =
+        issueMissing || normalizeMatchText(anchorText) === "not present in contract";
       const anchorClauseId =
         anchorClause?.clauseId ??
         anchorClause?.id ??
         fallbackAnchorId ??
         undefined;
 
+      const resolveProposedText = (preferred?: string | null) => {
+        const trimmedPreferred =
+          typeof preferred === "string" ? preferred.trim() : "";
+        if (trimmedPreferred) return applyTemplateContext(trimmedPreferred, report);
+        if (resolvedMissing) {
+          const missingFallback = fallbackProposedText || generateSurgicalEditText(issue);
+          if (missingFallback && missingFallback.trim()) {
+            return missingFallback.trim();
+          }
+          const guidance =
+            issue.recommendation ??
+            issue.rationale ??
+            issue.title ??
+            "Insert missing clause.";
+          return guidance.trim();
+        }
+        if (anchorText && anchorText !== "Not present in contract") {
+          return anchorText;
+        }
+        const guidance =
+          issue.recommendation ??
+          issue.rationale ??
+          issue.title ??
+          "Update clause.";
+        return guidance.trim();
+      };
+
+      const rationaleBase =
+        issue.recommendation ??
+        issue.rationale ??
+        (template
+          ? `Insert ${template.title} clause.`
+          : `Address: ${issue.title ?? "issue"}`);
+      const rationaleWithHint =
+        resolvedMissing && template?.insertionAnchors?.length
+          ? `${rationaleBase} Suggested insertion near ${template.insertionAnchors[0]}.`
+          : rationaleBase;
+
       if (baseEdit) {
-        // For existing clauses, only use the AI-provided edit text (surgical)
-        // Don't fallback to template text as that would replace the entire clause
-        const resolvedProposedText = issueMissing
-          ? baseProposedText || fallbackProposedText  // OK to use template for missing clauses
-          : baseProposedText;  // Only use AI-provided text for existing clauses
-
-        // If no proposed text for an existing clause, skip this edit (not surgical)
-        if (!resolvedProposedText && !issueMissing) {
-          return null;
-        }
-
-        // Check if the edit is surgical (not too long for a replacement)
-        // Skip non-surgical edits for existing clauses to preserve contract integrity
-        if (resolvedProposedText && !isSurgicalEdit(resolvedProposedText, issueMissing)) {
-          return null;
-        }
-
-        const rationaleSuffix =
-          issueMissing && template?.insertionAnchors?.length
-            ? ` Suggested insertion near ${template.insertionAnchors[0]}.`
-            : "";
+        const resolvedProposedText = resolveProposedText(baseProposedText);
         return {
           ...baseEdit,
           id: issueId,
@@ -1976,74 +2025,29 @@ function buildProposedEditsForIssues(
           intent:
             typeof baseEdit.intent === "string" && baseEdit.intent.length > 0
               ? baseEdit.intent
-              : issueMissing ? "insert" : "replace",
+              : resolvedMissing ? "insert" : "replace",
           previousText: anchorText,
           updatedText: resolvedProposedText,
           proposedText: resolvedProposedText,
           rationale:
             (baseEdit.rationale as string | undefined) ??
-            issue.recommendation ??
-            issue.rationale ??
-            `Insert ${template?.title ?? "clause"}.${rationaleSuffix}`,
+            rationaleWithHint,
         };
       }
 
-      // For issues with templates, generate edits ONLY for missing clauses
-      // For existing clauses, templates would replace the entire clause which is not surgical
-      if (template && issueMissing) {
-        const proposedText = applyTemplateContext(template.text, report);
-        const rationale =
-          issue.recommendation ??
-          issue.rationale ??
-          `Insert ${template.title} clause.`;
-        const rationaleWithHint = template.insertionAnchors?.length
-          ? `${rationale} Suggested insertion near ${template.insertionAnchors[0]}.`
-          : rationale;
-
-        return {
-          id: issueId,
-          clauseId: anchorClauseId,
-          anchorText,
-          proposedText,
-          intent: "insert",
-          rationale: rationaleWithHint,
-          previousText: anchorText,
-          updatedText: proposedText,
-        };
-      }
-
-      // For existing clauses with templates, don't use template text (not surgical)
-      // The issue will be visible but without a proposed edit that replaces the whole clause
-      // This preserves contract integrity by not making wholesale replacements
-      if (template && !issueMissing) {
-        // Skip - don't create non-surgical edits for existing clauses
-        return null;
-      }
-
-      // For issues without templates, only create edits for missing clauses.
-      // Existing clauses without templates won't have proposed edits (returns null).
-      const surgicalProposedText = generateSurgicalEditText(issue);
-
-      // If no surgical text (existing clause without template), skip this edit
-      if (!surgicalProposedText) {
-        return null;
-      }
-
-      const surgicalIntent = issueMissing ? "insert" : "replace";
-      const surgicalRationale =
-        issue.recommendation ??
-        issue.rationale ??
-        `Address: ${issue.title}`;
+      const resolvedProposedText = resolveProposedText(
+        template ? applyTemplateContext(template.text, report) : null,
+      );
 
       return {
         id: issueId,
         clauseId: anchorClauseId,
         anchorText,
-        proposedText: surgicalProposedText,
-        intent: surgicalIntent,
-        rationale: surgicalRationale,
+        proposedText: resolvedProposedText,
+        intent: resolvedMissing ? "insert" : "replace",
+        rationale: rationaleWithHint,
         previousText: anchorText,
-        updatedText: surgicalProposedText,
+        updatedText: resolvedProposedText,
       };
     })
     .filter(
@@ -2085,9 +2089,12 @@ function backfillMissingClauseEdits(
 
   targetIssues.forEach((issue, index) => {
     const issueText = issueSignals(issue);
-    const template = templates.find((item) =>
+    const baseTemplate = templates.find((item) =>
       templateMatchesIssue(item, issueText),
     );
+    const template = baseTemplate
+      ? resolveTemplateVariant(baseTemplate, report)
+      : null;
     if (!template) return;
     if (existingEdits.some((edit) => editMatchesTemplate(edit, template))) {
       return;
@@ -2221,8 +2228,21 @@ function evaluatePlaybookCoverageFromReport(
   report: AnalysisReport,
   playbook: ContractPlaybook,
 ): PlaybookCoverageSummary {
+  const governingLaw = report.contractSummary?.governingLaw ?? "";
+  const jurisdiction = report.contractSummary?.jurisdiction ?? "";
+  const regionKey = resolveRegionKeyFromSummary(governingLaw, jurisdiction);
+  const regionalCriteria = resolvePlaybookCriteriaForRegion(playbook, {
+    regionKey,
+    governingLaw,
+    jurisdiction,
+  });
+  const regionalPlaybook = {
+    ...playbook,
+    criticalClauses: regionalCriteria.criticalClauses,
+    clauseAnchors: regionalCriteria.clauseAnchors,
+  };
   const sources = buildEvidenceSources(report);
-  const criticalClauses = (playbook.criticalClauses ?? []).map((clause) => {
+  const criticalClauses = (regionalPlaybook.criticalClauses ?? []).map((clause) => {
     const normalizedKeywords = [
       clause.title,
       ...(clause.mustInclude ?? []),
@@ -2247,7 +2267,7 @@ function evaluatePlaybookCoverageFromReport(
     };
   });
 
-  const anchorCoverage = (playbook.clauseAnchors ?? []).map((anchor) => {
+  const anchorCoverage = (regionalPlaybook.clauseAnchors ?? []).map((anchor) => {
     const result = findEvidenceForKeywords([anchor], sources);
     return {
       anchor,
@@ -2315,7 +2335,20 @@ function computeRuleBasedScore(
   let coveragePenalty = 0;
   let coverage: PlaybookCoverageSummary | null = null;
   if (playbook) {
-    coverage = evaluatePlaybookCoverageFromContent(playbook, {
+    const governingLaw = report.contractSummary?.governingLaw ?? "";
+    const jurisdiction = report.contractSummary?.jurisdiction ?? "";
+    const regionKey = resolveRegionKeyFromSummary(governingLaw, jurisdiction);
+    const regionalCriteria = resolvePlaybookCriteriaForRegion(playbook, {
+      regionKey,
+      governingLaw,
+      jurisdiction,
+    });
+    const regionalPlaybook = {
+      ...playbook,
+      criticalClauses: regionalCriteria.criticalClauses,
+      clauseAnchors: regionalCriteria.clauseAnchors,
+    };
+    coverage = evaluatePlaybookCoverageFromContent(regionalPlaybook, {
       content: coverageContext?.content ?? "",
       clauses: coverageContext?.clauses ?? [],
     });
