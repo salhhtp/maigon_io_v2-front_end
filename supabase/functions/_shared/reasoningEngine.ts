@@ -1565,11 +1565,24 @@ const MISSING_CLAUSE_MARKERS = [
   "missing clause",
 ];
 
+function stripBoundaryEllipses(value: string): string {
+  return value
+    .replace(/^\s*(?:\.\.\.|\u2026)\s*/g, "")
+    .replace(/\s*(?:\.\.\.|\u2026)\s*$/g, "")
+    .trim();
+}
+
 function normalizeMatchText(value: string) {
   return value
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, " ")
     .trim();
+}
+
+function isMissingEvidenceMarker(value?: string | null): boolean {
+  if (!value) return false;
+  const normalized = normalizeMatchText(value);
+  return MISSING_CLAUSE_MARKERS.some((marker) => normalized.includes(marker));
 }
 
 function tokenizeMatchText(value: string): string[] {
@@ -1692,6 +1705,101 @@ function pickAnchorSnippet(text: string, maxLength = 220) {
   const trimmed = text.trim();
   if (!trimmed) return "";
   return trimmed.length > maxLength ? trimmed.slice(0, maxLength) : trimmed;
+}
+
+function normalizeClauseWhitespace(text: string) {
+  return text.replace(/\s+/g, " ").trim();
+}
+
+function splitIntoSentences(text: string): string[] {
+  const normalized = normalizeClauseWhitespace(text);
+  if (!normalized) return [];
+  const sentences: string[] = [];
+  let start = 0;
+  for (let i = 0; i < normalized.length; i += 1) {
+    if (/[.!?]/.test(normalized[i])) {
+      const slice = normalized.slice(start, i + 1).trim();
+      if (slice) sentences.push(slice);
+      start = i + 1;
+    }
+  }
+  const tail = normalized.slice(start).trim();
+  if (tail) sentences.push(tail);
+  return sentences;
+}
+
+function extractSentenceAroundMatch(
+  clauseText: string,
+  anchorText: string,
+): string {
+  const normalizedClause = normalizeClauseWhitespace(clauseText);
+  const cleanedAnchor = stripBoundaryEllipses(anchorText);
+  if (!normalizedClause || !cleanedAnchor) return "";
+  const lowerClause = normalizedClause.toLowerCase();
+  const lowerAnchor = cleanedAnchor.toLowerCase();
+  const index = lowerClause.indexOf(lowerAnchor);
+  if (index < 0) return "";
+
+  let start = 0;
+  for (let i = index - 1; i >= 0; i -= 1) {
+    if (/[.!?]/.test(normalizedClause[i])) {
+      start = i + 1;
+      break;
+    }
+  }
+  let end = normalizedClause.length;
+  for (
+    let i = index + lowerAnchor.length;
+    i < normalizedClause.length;
+    i += 1
+  ) {
+    if (/[.!?]/.test(normalizedClause[i])) {
+      end = i + 1;
+      break;
+    }
+  }
+
+  const sentence = normalizedClause.slice(start, end).trim();
+  return sentence || cleanedAnchor;
+}
+
+function extractTemplateSnippet(
+  templateText: string,
+  issue: AnalysisReport["issuesToAddress"][number],
+): string {
+  const normalizedTemplate = normalizeClauseWhitespace(templateText);
+  const sentences = splitIntoSentences(normalizedTemplate);
+  if (!sentences.length) return "";
+  if (sentences.length === 1) return sentences[0];
+
+  const issueTokens = tokenizeMatchText(issueSignals(issue)).filter(
+    (token) => token.length > 3,
+  );
+  if (!issueTokens.length) return sentences[0];
+
+  let bestIndex = 0;
+  let bestScore = 0;
+  sentences.forEach((sentence, index) => {
+    const sentenceTokens = new Set(tokenizeMatchText(sentence));
+    let score = 0;
+    issueTokens.forEach((token) => {
+      if (sentenceTokens.has(token)) score += 1;
+    });
+    if (score > bestScore) {
+      bestScore = score;
+      bestIndex = index;
+    }
+  });
+
+  const chosen = sentences[bestIndex];
+  if (!bestScore) return chosen;
+
+  const isHeadingLike =
+    tokenizeMatchText(chosen).length <= 4 && chosen.length <= 48;
+  if (isHeadingLike && sentences[bestIndex + 1]) {
+    return `${chosen} ${sentences[bestIndex + 1]}`.trim();
+  }
+  return chosen;
 }
 
 function resolveInsertionAnchor(
@@ -1924,16 +2032,20 @@ function buildProposedEditsForIssues(
       const issueIdNormalized = normalizeIssueKey(issueId);
       const matchedEdit = existingEdits.find((edit) => {
         const editId = typeof edit.id === "string" ? edit.id : "";
-        const editMatchesId = editId && normalizeIssueKey(editId) === issueIdNormalized;
-        if (!editMatchesId) return false;
-        if (!template) return true;
-        return editMatchesTemplate(edit, template);
+        return editId && normalizeIssueKey(editId) === issueIdNormalized;
       });
 
       const baseEdit =
         matchedEdit && typeof matchedEdit === "object"
           ? { ...(matchedEdit as Record<string, unknown>) }
           : null;
+      const baseAnchorRaw =
+        baseEdit && typeof baseEdit.anchorText === "string"
+          ? baseEdit.anchorText
+          : baseEdit && typeof baseEdit.previousText === "string"
+            ? baseEdit.previousText
+            : "";
+      const baseAnchorText = stripBoundaryEllipses(baseAnchorRaw);
       const baseProposedText =
         baseEdit && typeof baseEdit.proposedText === "string"
           ? baseEdit.proposedText
@@ -1962,18 +2074,37 @@ function buildProposedEditsForIssues(
         anchorClause = findClauseByIssue(issue, clauseList);
       }
 
-      // For surgical edits, prefer the specific excerpt from the issue if available
-      // This allows targeting just the problematic text, not the entire clause
-      const issueExcerpt = issue.clauseReference?.excerpt?.trim();
-      const anchorText = issueMissing
-        ? "Not present in contract"
-        : issueExcerpt && issueExcerpt.length > 0 && issueExcerpt !== "Not present in contract"
-          ? issueExcerpt  // Use the specific excerpt for surgical targeting
-          : anchorClause?.originalText
-            ? pickAnchorSnippet(anchorClause.originalText)
-            : fallbackAnchorText || "Not present in contract";
+      // For surgical edits, prefer the model-provided anchor; fall back to a clean
+      // sentence containing the issue excerpt to avoid ellipses and cut-offs.
+      const issueExcerptRaw = issue.clauseReference?.excerpt?.trim() ?? "";
+      const issueExcerpt = stripBoundaryEllipses(issueExcerptRaw);
+      const clauseTextForAnchor = anchorClause?.originalText ?? "";
+      const fallbackSentence =
+        issueExcerpt && clauseTextForAnchor
+          ? extractSentenceAroundMatch(clauseTextForAnchor, issueExcerpt)
+          : "";
+      const firstSentence = clauseTextForAnchor
+        ? splitIntoSentences(clauseTextForAnchor)[0] ?? ""
+        : "";
+      const fallbackAnchor =
+        fallbackSentence ||
+        issueExcerpt ||
+        firstSentence ||
+        fallbackAnchorText ||
+        "";
+      const baseIntent =
+        baseEdit && typeof baseEdit.intent === "string"
+          ? baseEdit.intent.toLowerCase()
+          : "";
+      const candidateAnchor =
+        baseAnchorText || fallbackAnchor || "";
       const resolvedMissing =
-        issueMissing || normalizeMatchText(anchorText) === "not present in contract";
+        issueMissing ||
+        baseIntent === "insert" ||
+        isMissingEvidenceMarker(candidateAnchor);
+      const anchorText = resolvedMissing
+        ? "Not present in contract"
+        : candidateAnchor || "Clause text unavailable";
       const anchorClauseId =
         anchorClause?.clauseId ??
         anchorClause?.id ??
@@ -1996,7 +2127,12 @@ function buildProposedEditsForIssues(
             "Insert missing clause.";
           return guidance.trim();
         }
-        if (anchorText && anchorText !== "Not present in contract") {
+        if (template) {
+          const templateText = applyTemplateContext(template.text, report);
+          const snippet = extractTemplateSnippet(templateText, issue);
+          if (snippet) return snippet;
+        }
+        if (anchorText && !isMissingEvidenceMarker(anchorText)) {
           return anchorText;
         }
         const guidance =
@@ -2023,13 +2159,20 @@ function buildProposedEditsForIssues(
         return {
           ...baseEdit,
           id: issueId,
-          clauseId: anchorClauseId ?? (baseEdit.clauseId as string | undefined),
-          anchorText: anchorText || (baseEdit.anchorText as string | undefined),
+          clauseId:
+            (typeof baseEdit.clauseId === "string" && baseEdit.clauseId.trim())
+              ? (baseEdit.clauseId as string)
+              : anchorClauseId ?? (baseEdit.clauseId as string | undefined),
+          anchorText,
           intent:
             typeof baseEdit.intent === "string" && baseEdit.intent.length > 0
               ? baseEdit.intent
               : resolvedMissing ? "insert" : "replace",
-          previousText: anchorText,
+          previousText:
+            (typeof baseEdit.previousText === "string" &&
+              baseEdit.previousText.trim().length > 0)
+              ? stripBoundaryEllipses(baseEdit.previousText)
+              : anchorText,
           updatedText: resolvedProposedText,
           proposedText: resolvedProposedText,
           rationale:
