@@ -376,23 +376,6 @@ function computeDraftKey(
   return crypto.createHash("sha1").update(JSON.stringify(payload)).digest("hex");
 }
 
-function dedupeDraftEdits(edits: AgentDraftEdit[]): AgentDraftEdit[] {
-  const seen = new Set<string>();
-  const deduped: AgentDraftEdit[] = [];
-  edits.forEach((edit) => {
-    const key = JSON.stringify({
-      clauseReference: (edit.clauseReference ?? "").toLowerCase(),
-      changeType: (edit.changeType ?? "modify").toLowerCase(),
-      originalText: (edit.originalText ?? "").trim(),
-      suggestedText: (edit.suggestedText ?? "").trim(),
-    });
-    if (seen.has(key)) return;
-    seen.add(key);
-    deduped.push(edit);
-  });
-  return deduped;
-}
-
 function buildResponseFromSnapshot(
   snapshot: DraftSnapshot,
   context: { contractContent: string; contractHtml: string | undefined },
@@ -719,13 +702,6 @@ function isMissingPlaceholder(value: string) {
     /\bmissing\b/.test(normalized) ||
     /\bnot\s+found\b/.test(normalized)
   );
-}
-
-function stripBoundaryEllipses(value: string | null | undefined): string {
-  return (value ?? "")
-    .replace(/^\s*(?:\.{3}|\u2026)\s*/g, "")
-    .replace(/\s*(?:\.{3}|\u2026)\s*$/g, "")
-    .trim();
 }
 
 function inferSuggestionChangeType(options: {
@@ -1066,24 +1042,9 @@ function applyEditsToPlainText(
     return `${text.trim()}\n\n${insertion}`;
   };
 
-  const sortPriority = (edit: AgentDraftEdit) => {
-    const type = (edit.changeType ?? "modify").toLowerCase();
-    if (type === "modify") return 0;
-    if (type === "remove") return 1;
-    if (type === "insert") return 2;
-    return 3;
-  };
-  const sortedEdits = [...edits].sort((a, b) => {
-    const priorityDelta = sortPriority(a) - sortPriority(b);
-    if (priorityDelta !== 0) return priorityDelta;
-    const lengthA = (a.originalText ?? "").length;
-    const lengthB = (b.originalText ?? "").length;
-    return lengthB - lengthA;
-  });
-
   let output = original;
 
-  for (const edit of sortedEdits) {
+  for (const edit of edits) {
     const changeType = (edit.changeType || "modify").toLowerCase();
     const suggestion = (edit.suggestedText || "").trim();
     const originalText = (edit.originalText || "").trim();
@@ -1726,12 +1687,11 @@ async function composeDraft(
     .map((item) => {
       const proposed = item.proposedEdit;
       if (!proposed) return null;
-      const suggestedText = stripBoundaryEllipses(
+      const suggestedText =
         proposed.updatedText ??
-          proposed.proposedText ??
-          proposed.anchorText ??
-          "",
-      );
+        proposed.proposedText ??
+        proposed.anchorText ??
+        "";
       if (!suggestedText.trim()) {
         return null;
       }
@@ -1766,9 +1726,7 @@ async function composeDraft(
       const originalText =
         changeType === "insert" && anchorIsPlaceholder
           ? null
-          : stripBoundaryEllipses(
-              proposed.previousText ?? proposed.anchorText ?? null,
-            ) || null;
+          : proposed.previousText ?? proposed.anchorText ?? null;
       return {
         id: item.id,
         clauseReference,
@@ -1781,7 +1739,6 @@ async function composeDraft(
     .filter((edit): edit is AgentDraftEdit => Boolean(edit));
 
   const combinedEdits = [...agentEdits, ...suggestionEdits];
-  const draftEdits = dedupeDraftEdits(combinedEdits);
   const supabase = getSupabaseAdminClient();
 
   console.info("[agent] compose request", {
@@ -1895,19 +1852,15 @@ async function composeDraft(
             }
             const originalClause = sanitizeTripleQuotes(
               truncateInput(
-                stripBoundaryEllipses(
-                  item.proposedEdit.previousText ??
-                    item.proposedEdit.anchorText,
-                ),
+                item.proposedEdit.previousText ??
+                  item.proposedEdit.anchorText,
                 2_000,
               ),
             );
             const updatedClause = sanitizeTripleQuotes(
               truncateInput(
-                stripBoundaryEllipses(
-                  item.proposedEdit.updatedText ??
-                    item.proposedEdit.proposedText,
-                ),
+                item.proposedEdit.updatedText ??
+                  item.proposedEdit.proposedText,
                 2_000,
               ),
             );
@@ -1941,7 +1894,6 @@ async function composeDraft(
   const systemPrompt =
     `You are Maigon's contract rewriting assistant. Integrate the provided review directives into the base contract while preserving every numbering sequence, heading, table, and styling cue.` +
     ` Use the supplied HTML template as the source of truth—edit only the clauses that require changes and reuse all existing markup for unchanged sections.` +
-    ` When multiple edits target the same clause, merge them into a single coherent clause update and keep all unrelated text intact.` +
     ` Only introduce new clauses when explicitly required by a suggestion. ${LEGAL_LANGUAGE_PROMPT_BLOCK} Always return valid JSON matching the provided schema.`;
 
   const promptSections = [
@@ -2023,8 +1975,8 @@ async function composeDraft(
       : contractContent;
 
   const updatedPlainText =
-    syntheticPlainText === contractContent && draftEdits.length > 0
-      ? applyEditsToPlainText(contractContent, draftEdits)
+    syntheticPlainText === contractContent && combinedEdits.length > 0
+      ? applyEditsToPlainText(contractContent, combinedEdits)
       : syntheticPlainText;
 
   let htmlSource: AgentDraftResponse["htmlSource"] | undefined =
@@ -2036,13 +1988,6 @@ async function composeDraft(
   let patchedResult: Awaited<ReturnType<typeof buildPatchedHtmlDraft>> | null =
     null;
   let shouldUsePatched = false;
-  const totalDraftEdits = draftEdits.length;
-  const hasLlmOutput = Boolean(normalized.updatedHtml || normalized.updatedContract);
-  const normalizedOriginal = contractContent.replace(/\s+/g, " ").trim();
-  const normalizedLlm = (normalized.updatedContract ?? "")
-    .replace(/\s+/g, " ")
-    .trim();
-  const llmChanged = normalizedLlm.length > 0 && normalizedLlm !== normalizedOriginal;
 
   if (htmlPackageRef && (combinedEdits.length > 0 || updatedPlainText)) {
     try {
@@ -2050,7 +1995,7 @@ async function composeDraft(
         contractId: body.contractId,
         draftKey,
         htmlPackage: htmlPackageRef,
-        agentEdits: draftEdits,
+        agentEdits: combinedEdits,
         updatedPlainText,
       });
     } catch (patchError) {
@@ -2065,11 +2010,11 @@ async function composeDraft(
   if (
     !patchedResult &&
     baseHtml &&
-    (draftEdits.length > 0 || updatedPlainText)
+    (combinedEdits.length > 0 || updatedPlainText)
   ) {
     const inMemoryPatch = buildPatchedHtmlFromString(
       baseHtml,
-      draftEdits,
+      combinedEdits,
       updatedPlainText,
     );
     if (inMemoryPatch) {
@@ -2078,18 +2023,14 @@ async function composeDraft(
   }
 
   if (patchedResult) {
+    const normalizedOriginal = contractContent.replace(/\s+/g, " ").trim();
     const normalizedPatched = (patchedResult.plainText ?? "")
       .replace(/\s+/g, " ")
       .trim();
     const patchedHasMatches = (patchedResult.matchedEdits ?? []).length > 0;
     const patchedHasChanges =
       normalizedPatched.length > 0 && normalizedPatched !== normalizedOriginal;
-    const matchedCount = patchedResult.matchedEdits?.length ?? 0;
-    const allEditsMatched =
-      totalDraftEdits > 0 && matchedCount >= totalDraftEdits;
-    shouldUsePatched =
-      allEditsMatched ||
-      ((!hasLlmOutput || !llmChanged) && (patchedHasMatches || patchedHasChanges));
+    shouldUsePatched = patchedHasMatches || patchedHasChanges;
     if (shouldUsePatched) {
       htmlSource = "patched";
     }
