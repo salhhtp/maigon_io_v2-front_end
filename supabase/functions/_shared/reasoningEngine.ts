@@ -1860,11 +1860,11 @@ function selectTemplateForIssue(
   if (issueMatchesAny(issueKey, ["remedies", "injunctive", "specific performance"])) {
     return templates.find((item) => item.id === "nda-remedies") ?? null;
   }
+  if (issueMatchesAny(issueKey, ["term", "survival", "trade secret"])) {
+    return templates.find((item) => item.id === "nda-term-survival") ?? null;
+  }
   if (issueMatchesAny(issueKey, ["liability", "caps", "carve-outs", "carve outs"])) {
     return templates.find((item) => item.id === "nda-liability-cap") ?? null;
-  }
-  if (issueMatchesAny(issueKey, ["term", "survival", "duration"])) {
-    return templates.find((item) => item.id === "nda-term-survival") ?? null;
   }
   if (issueMatchesAny(issueKey, ["license", "ip", "intellectual property"])) {
     return templates.find((item) => item.id === "nda-ip-no-license") ?? null;
@@ -1979,14 +1979,6 @@ function buildProposedEditsForIssues(
         baseEdit && typeof baseEdit.previousText === "string"
           ? baseEdit.previousText.trim()
           : "";
-      const safeBaseAnchorText =
-        baseAnchorText && !baseAnchorText.includes("...")
-          ? baseAnchorText
-          : "";
-      const safeBasePreviousText =
-        basePreviousText && !basePreviousText.includes("...")
-          ? basePreviousText
-          : "";
       const fallbackProposedText = template
         ? applyTemplateContext(template.text, report)
         : "";
@@ -2021,10 +2013,10 @@ function buildProposedEditsForIssues(
           : "";
       const anchorText = issueMissing
         ? "Not present in contract"
-        : safeBasePreviousText && !isMissingEvidenceMarker(safeBasePreviousText)
-          ? safeBasePreviousText
-          : safeBaseAnchorText && !isMissingEvidenceMarker(safeBaseAnchorText)
-            ? safeBaseAnchorText
+        : basePreviousText && !isMissingEvidenceMarker(basePreviousText)
+          ? basePreviousText
+          : baseAnchorText && !isMissingEvidenceMarker(baseAnchorText)
+            ? baseAnchorText
             : safeIssueExcerpt
               ? safeIssueExcerpt
               : anchorClause?.originalText
@@ -2041,6 +2033,9 @@ function buildProposedEditsForIssues(
         baseEdit && typeof baseEdit.intent === "string"
           ? baseEdit.intent.toLowerCase()
           : "";
+      const resolvedIntent =
+        baseIntent ||
+        (resolvedMissing ? "insert" : template ? "insert" : "replace");
 
       const resolveProposedText = (preferred?: string | null) => {
         const trimmedPreferred =
@@ -2083,36 +2078,12 @@ function buildProposedEditsForIssues(
           ? `${rationaleBase} Suggested insertion near ${template.insertionAnchors[0]}.`
           : rationaleBase;
 
-      const resolvedProposedText = resolveProposedText(baseProposedText);
-      const anchorForSimilarity =
-        safeBasePreviousText || safeBaseAnchorText || anchorText;
-      const similarity = anchorForSimilarity
-        ? jaccardSimilarityForText(anchorForSimilarity, resolvedProposedText)
-        : 0;
-      const trimmedProposed = resolvedProposedText.trim();
-      const endsWithSentence = /[.!?]$/.test(trimmedProposed);
-      const startsLower =
-        trimmedProposed.length > 0 &&
-        trimmedProposed[0] === trimmedProposed[0]?.toLowerCase();
-      const isFragment = trimmedProposed.length <= 180 && (!endsWithSentence || startsLower);
-      const hasExplicitRewrite = baseProposedText.trim().length > 0;
-      const preferReplace =
-        !resolvedMissing &&
-        hasExplicitRewrite &&
-        (similarity >= 0.35 || isFragment);
-      let resolvedIntent =
-        baseIntent ||
-        (resolvedMissing ? "insert" : template ? "insert" : "replace");
-      if (preferReplace) {
-        resolvedIntent = "replace";
-      }
-
       if (baseEdit) {
-        let nextProposedText = resolvedProposedText;
+        let resolvedProposedText = resolveProposedText(baseProposedText);
         if (template && resolvedIntent === "insert") {
-          nextProposedText = ensureTemplateCoverage(
+          resolvedProposedText = ensureTemplateCoverage(
             issueKey,
-            nextProposedText,
+            resolvedProposedText,
           );
         }
         return {
@@ -2120,32 +2091,35 @@ function buildProposedEditsForIssues(
           id: issueId,
           clauseId: (baseEdit.clauseId as string | undefined) ?? anchorClauseId,
           anchorText: anchorText || (baseEdit.anchorText as string | undefined),
-          intent: resolvedIntent,
-          previousText: safeBasePreviousText || anchorText,
-          updatedText: nextProposedText,
-          proposedText: nextProposedText,
+          intent:
+            typeof baseEdit.intent === "string" && baseEdit.intent.length > 0
+              ? baseEdit.intent
+              : resolvedIntent,
+          previousText: basePreviousText || anchorText,
+          updatedText: resolvedProposedText,
+          proposedText: resolvedProposedText,
           rationale:
             (baseEdit.rationale as string | undefined) ??
             rationaleWithHint,
         };
       }
 
-      let finalProposedText = resolveProposedText(
+      let resolvedProposedText = resolveProposedText(
         template ? applyTemplateContext(template.text, report) : null,
       );
       if (template && resolvedIntent === "insert") {
-        finalProposedText = ensureTemplateCoverage(issueKey, finalProposedText);
+        resolvedProposedText = ensureTemplateCoverage(issueKey, resolvedProposedText);
       }
 
       return {
         id: issueId,
         clauseId: anchorClauseId,
         anchorText,
-        proposedText: finalProposedText,
+        proposedText: resolvedProposedText,
         intent: resolvedIntent,
         rationale: rationaleWithHint,
         previousText: anchorText,
-        updatedText: finalProposedText,
+        updatedText: resolvedProposedText,
       };
     })
     .filter(
