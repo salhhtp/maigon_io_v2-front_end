@@ -1820,11 +1820,19 @@ function selectTemplateForIssue(
       .join(" "),
   );
 
-  if (issueMatchesAny(issueKey, ["marking", "reasonable notice", "unmarked"])) {
-    return templates.find((item) => item.id === "nda-marking-notice") ?? null;
+  const hasDefinitionSignals = issueMatchesAny(issueKey, [
+    "definition",
+    "exclusion",
+    "exclusions",
+  ]);
+  if (hasDefinitionSignals) {
+    return templates.find((item) => item.id === "nda-definition-exclusions") ?? null;
   }
   if (issueMatchesAny(issueKey, ["residual"])) {
     return templates.find((item) => item.id === "nda-residual-knowledge") ?? null;
+  }
+  if (issueMatchesAny(issueKey, ["marking", "reasonable notice", "unmarked"])) {
+    return templates.find((item) => item.id === "nda-marking-notice") ?? null;
   }
   if (issueMatchesAny(issueKey, ["compelled", "protective order", "subpoena"])) {
     return templates.find((item) => item.id === "nda-compelled-disclosure") ?? null;
@@ -1861,11 +1869,6 @@ function selectTemplateForIssue(
       : "nda-governing-law";
     return templates.find((item) => item.id === preferred) ?? null;
   }
-  if (
-    issueMatchesAny(issueKey, ["definition", "exclusion", "confidential information"])
-  ) {
-    return templates.find((item) => item.id === "nda-definition-exclusions") ?? null;
-  }
 
   return templates.find((item) => templateMatchesIssue(item, issueKey)) ?? null;
 }
@@ -1896,6 +1899,29 @@ function generateSurgicalEditText(
   return null;
 }
 
+function ensureTemplateCoverage(issueKey: string, proposedText: string): string {
+  const normalizedIssue = normalizeIssueKey(issueKey);
+  const normalizedText = normalizeMatchText(proposedText);
+  let updated = proposedText.trim();
+
+  if (
+    (normalizedIssue.includes("reasonable notice") ||
+      normalizedIssue.includes("marking")) &&
+    !normalizedText.includes("reasonable notice")
+  ) {
+    updated = `${updated} Reasonable notice may be provided for oral or visual disclosures.`;
+  }
+
+  if (
+    normalizedIssue.includes("jurisdiction") &&
+    !normalizedText.includes("jurisdiction")
+  ) {
+    updated = `${updated} The parties submit to the exclusive jurisdiction of the courts identified above.`;
+  }
+
+  return updated;
+}
+
 function buildProposedEditsForIssues(
   report: AnalysisReport,
   playbook: ContractPlaybook,
@@ -1911,6 +1937,7 @@ function buildProposedEditsForIssues(
         typeof issue.id === "string" && issue.id.trim().length > 0
           ? issue.id
           : `ISSUE_${index + 1}`;
+      const issueKey = normalizeIssueKey(issueSignals(issue));
       const issueMissing = isMissingClauseIssue(issue);
       const hasClauseEvidence = !issueMissing;
       const baseTemplate = selectTemplateForIssue(
@@ -1938,6 +1965,14 @@ function buildProposedEditsForIssues(
         baseEdit && typeof baseEdit.proposedText === "string"
           ? baseEdit.proposedText
           : "";
+      const baseAnchorText =
+        baseEdit && typeof baseEdit.anchorText === "string"
+          ? baseEdit.anchorText.trim()
+          : "";
+      const basePreviousText =
+        baseEdit && typeof baseEdit.previousText === "string"
+          ? baseEdit.previousText.trim()
+          : "";
       const fallbackProposedText = template
         ? applyTemplateContext(template.text, report)
         : "";
@@ -1962,16 +1997,25 @@ function buildProposedEditsForIssues(
         anchorClause = findClauseByIssue(issue, clauseList);
       }
 
-      // For surgical edits, prefer the specific excerpt from the issue if available
-      // This allows targeting just the problematic text, not the entire clause
-      const issueExcerpt = issue.clauseReference?.excerpt?.trim();
+      const issueExcerptRaw = issue.clauseReference?.excerpt?.trim() ?? "";
+      const safeIssueExcerpt =
+        issueExcerptRaw &&
+        issueExcerptRaw !== "Not present in contract" &&
+        !issueExcerptRaw.includes("...") &&
+        issueExcerptRaw.length <= 240
+          ? issueExcerptRaw
+          : "";
       const anchorText = issueMissing
         ? "Not present in contract"
-        : issueExcerpt && issueExcerpt.length > 0 && issueExcerpt !== "Not present in contract"
-          ? issueExcerpt  // Use the specific excerpt for surgical targeting
-          : anchorClause?.originalText
-            ? pickAnchorSnippet(anchorClause.originalText)
-            : fallbackAnchorText || "Not present in contract";
+        : basePreviousText && !isMissingEvidenceMarker(basePreviousText)
+          ? basePreviousText
+          : baseAnchorText && !isMissingEvidenceMarker(baseAnchorText)
+            ? baseAnchorText
+            : safeIssueExcerpt
+              ? safeIssueExcerpt
+              : anchorClause?.originalText
+                ? pickAnchorSnippet(anchorClause.originalText)
+                : fallbackAnchorText || "Not present in contract";
       const resolvedMissing =
         issueMissing || normalizeMatchText(anchorText) === "not present in contract";
       const anchorClauseId =
@@ -1979,11 +2023,21 @@ function buildProposedEditsForIssues(
         anchorClause?.id ??
         fallbackAnchorId ??
         undefined;
+      const baseIntent =
+        baseEdit && typeof baseEdit.intent === "string"
+          ? baseEdit.intent.toLowerCase()
+          : "";
+      const resolvedIntent =
+        baseIntent ||
+        (resolvedMissing ? "insert" : template ? "insert" : "replace");
 
       const resolveProposedText = (preferred?: string | null) => {
         const trimmedPreferred =
           typeof preferred === "string" ? preferred.trim() : "";
         if (trimmedPreferred) return applyTemplateContext(trimmedPreferred, report);
+        if (fallbackProposedText && fallbackProposedText.trim()) {
+          return fallbackProposedText.trim();
+        }
         if (resolvedMissing) {
           const missingFallback = fallbackProposedText || generateSurgicalEditText(issue);
           if (missingFallback && missingFallback.trim()) {
@@ -2019,17 +2073,23 @@ function buildProposedEditsForIssues(
           : rationaleBase;
 
       if (baseEdit) {
-        const resolvedProposedText = resolveProposedText(baseProposedText);
+        let resolvedProposedText = resolveProposedText(baseProposedText);
+        if (template && resolvedIntent === "insert") {
+          resolvedProposedText = ensureTemplateCoverage(
+            issueKey,
+            resolvedProposedText,
+          );
+        }
         return {
           ...baseEdit,
           id: issueId,
-          clauseId: anchorClauseId ?? (baseEdit.clauseId as string | undefined),
+          clauseId: (baseEdit.clauseId as string | undefined) ?? anchorClauseId,
           anchorText: anchorText || (baseEdit.anchorText as string | undefined),
           intent:
             typeof baseEdit.intent === "string" && baseEdit.intent.length > 0
               ? baseEdit.intent
-              : resolvedMissing ? "insert" : "replace",
-          previousText: anchorText,
+              : resolvedIntent,
+          previousText: basePreviousText || anchorText,
           updatedText: resolvedProposedText,
           proposedText: resolvedProposedText,
           rationale:
@@ -2038,16 +2098,19 @@ function buildProposedEditsForIssues(
         };
       }
 
-      const resolvedProposedText = resolveProposedText(
+      let resolvedProposedText = resolveProposedText(
         template ? applyTemplateContext(template.text, report) : null,
       );
+      if (template && resolvedIntent === "insert") {
+        resolvedProposedText = ensureTemplateCoverage(issueKey, resolvedProposedText);
+      }
 
       return {
         id: issueId,
         clauseId: anchorClauseId,
         anchorText,
         proposedText: resolvedProposedText,
-        intent: resolvedMissing ? "insert" : "replace",
+        intent: resolvedIntent,
         rationale: rationaleWithHint,
         previousText: anchorText,
         updatedText: resolvedProposedText,
