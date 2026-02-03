@@ -380,23 +380,12 @@ function dedupeDraftEdits(edits: AgentDraftEdit[]): AgentDraftEdit[] {
   const seen = new Set<string>();
   const deduped: AgentDraftEdit[] = [];
   edits.forEach((edit) => {
-    const changeType = (edit.changeType ?? "modify").toLowerCase();
-    const clauseReference = (edit.clauseReference ?? "").toLowerCase();
-    const suggestedText = (edit.suggestedText ?? "").trim();
-    const originalText = (edit.originalText ?? "").trim();
-    const key =
-      changeType === "insert" && clauseReference
-        ? JSON.stringify({
-            clauseReference,
-            changeType,
-            suggestedText,
-          })
-        : JSON.stringify({
-            clauseReference,
-            changeType,
-            originalText,
-            suggestedText,
-          });
+    const key = JSON.stringify({
+      clauseReference: (edit.clauseReference ?? "").toLowerCase(),
+      changeType: (edit.changeType ?? "modify").toLowerCase(),
+      originalText: (edit.originalText ?? "").trim(),
+      suggestedText: (edit.suggestedText ?? "").trim(),
+    });
     if (seen.has(key)) return;
     seen.add(key);
     deduped.push(edit);

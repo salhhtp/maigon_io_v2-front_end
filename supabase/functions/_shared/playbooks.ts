@@ -485,7 +485,7 @@ export const CONTRACT_PLAYBOOKS: Record<PlaybookKey, ContractPlaybook> = {
           "Exceptions",
         ],
         text:
-          "Marking and reasonable notice. Confidential Information should be marked as confidential when disclosed in writing or electronic form. For oral or visual disclosures, reasonable notice must be provided at the time of disclosure or confirmed in writing within 30 days. Unmarked information is Confidential Information when a reasonable person would understand the circumstances to indicate confidentiality.",
+          "Marking and notice. Confidential Information should be marked as confidential when disclosed in writing or electronic form. Oral or visual disclosures are Confidential Information if identified as confidential at the time of disclosure or confirmed in writing within 30 days. Unmarked information is Confidential Information when a reasonable person would understand the circumstances to indicate confidentiality.",
       },
       {
         id: "nda-residual-knowledge",
@@ -646,7 +646,7 @@ export const CONTRACT_PLAYBOOKS: Record<PlaybookKey, ContractPlaybook> = {
         tags: ["governing law", "jurisdiction", "dispute resolution", "clarify"],
         insertionAnchors: ["Governing law", "GOVERNING LAW AND DISPUTES"],
         text:
-          "Forum election and jurisdiction. The parties may agree in writing to resolve disputes by arbitration; absent such agreement, disputes shall be resolved by the courts identified above, and that jurisdiction is exclusive.",
+          "Forum election. The parties may agree in writing to resolve disputes by arbitration; absent such agreement, disputes shall be resolved by the courts identified above.",
       },
     ],
     regionalCriteria: createRegionalCriteria(PRIORITY_COUNTRY_KEYS, {
