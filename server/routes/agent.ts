@@ -728,6 +728,40 @@ function stripBoundaryEllipses(value: string | null | undefined): string {
     .trim();
 }
 
+function normalizeDraftTextForMatch(value: string | null | undefined): string {
+  return (value ?? "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function countEditCoverage(
+  text: string | null | undefined,
+  edits: AgentDraftEdit[],
+): number {
+  const normalizedText = normalizeDraftTextForMatch(text);
+  if (!normalizedText) return 0;
+  let count = 0;
+  edits.forEach((edit) => {
+    const suggested = normalizeDraftTextForMatch(edit.suggestedText);
+    if (!suggested) return;
+    if (suggested.length < 12) return;
+    if (!normalizedText.includes(suggested)) return;
+    const changeType = (edit.changeType ?? "modify").toLowerCase();
+    if (changeType === "modify") {
+      const original = normalizeDraftTextForMatch(edit.originalText);
+      if (original && normalizedText.includes(original)) {
+        if (original.length >= suggested.length) {
+          return;
+        }
+      }
+    }
+    count += 1;
+  });
+  return count;
+}
+
 function inferSuggestionChangeType(options: {
   proposedText?: string | null;
   previousText?: string | null;
@@ -2043,6 +2077,7 @@ async function composeDraft(
     .replace(/\s+/g, " ")
     .trim();
   const llmChanged = normalizedLlm.length > 0 && normalizedLlm !== normalizedOriginal;
+  const llmCoverage = countEditCoverage(normalized.updatedContract, draftEdits);
 
   if (htmlPackageRef && (combinedEdits.length > 0 || updatedPlainText)) {
     try {
@@ -2087,12 +2122,26 @@ async function composeDraft(
     const matchedCount = patchedResult.matchedEdits?.length ?? 0;
     const allEditsMatched =
       totalDraftEdits > 0 && matchedCount >= totalDraftEdits;
+    const patchedCoverage = countEditCoverage(
+      patchedResult.plainText,
+      draftEdits,
+    );
     shouldUsePatched =
       allEditsMatched ||
+      (patchedCoverage > llmCoverage && (patchedHasMatches || patchedHasChanges)) ||
+      (matchedCount > 0 && llmCoverage === 0) ||
       ((!hasLlmOutput || !llmChanged) && (patchedHasMatches || patchedHasChanges));
     if (shouldUsePatched) {
       htmlSource = "patched";
     }
+    console.info("[agent] draft coverage", {
+      contractId: body.contractId,
+      llmCoverage,
+      patchedCoverage,
+      matchedEdits: matchedCount,
+      totalEdits: totalDraftEdits,
+      llmChanged,
+    });
   }
 
   const updatedHtml =
