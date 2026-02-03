@@ -1136,11 +1136,6 @@ export default function Dashboard() {
                           <p className="text-sm font-medium text-[#271D1D] font-lora">
                             {solution.name}
                           </p>
-                          <p className="text-xs text-[#725A5A]">
-                            {solution.contractType || "Custom"} •{" "}
-                            {solution.description?.slice(0, 120) ??
-                              "Organization-specific playbook"}
-                          </p>
                         </div>
                         <div className="flex justify-end mt-3">
                           <Button

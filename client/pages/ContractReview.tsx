@@ -1918,7 +1918,7 @@ function ClausePreview({
   const renderDiffColumn = (variant: "original" | "updated") => {
     if (variant === "original" && isMissingOriginal) {
       return (
-        <pre className="whitespace-pre-wrap break-words rounded bg-[#FDFBFB] p-3 text-sm text-[#271D1D]">
+        <pre className="whitespace-pre-wrap break-words rounded bg-[#FDFBFB] p-3 text-sm text-[#271D1D] font-sans">
           {previousTextForDiff}
         </pre>
       );
@@ -1927,13 +1927,13 @@ function ClausePreview({
       const fallbackText =
         variant === "original" ? previousTextForDiff : updatedTextForDiff;
       return (
-        <pre className="whitespace-pre-wrap break-words rounded bg-[#FDFBFB] p-3 text-sm text-[#271D1D]">
+        <pre className="whitespace-pre-wrap break-words rounded bg-[#FDFBFB] p-3 text-sm text-[#271D1D] font-sans">
           {fallbackText}
         </pre>
       );
     }
     return (
-      <pre className="whitespace-pre-wrap break-words rounded bg-[#FDFBFB] p-3 text-sm text-[#271D1D]">
+      <pre className="whitespace-pre-wrap break-words rounded bg-[#FDFBFB] p-3 text-sm text-[#271D1D] font-sans">
         {renderTokenDiff(diffTokens, variant, `preview-${variant}`)}
       </pre>
     );

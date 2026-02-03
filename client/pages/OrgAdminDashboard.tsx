@@ -105,6 +105,8 @@ const OrgAdminDashboard: React.FC = () => {
   //const [showAllQuickSolutions, setShowAllQuickSolutions] = useState(false);
   const [orgCustomSolutions, setOrgCustomSolutions] = useState<CustomSolution[]>([]);
   const [loadingOrgSolutions, setLoadingOrgSolutions] = useState(false);
+  const [highRiskFilter, setHighRiskFilter] = useState<"all" | "critical" | "high">("all");
+  const [showAllHighRisk, setShowAllHighRisk] = useState(false);
 
   const organizationMetadata = (user?.organization?.metadata ??
     {}) as Record<string, unknown>;
@@ -549,11 +551,6 @@ const OrgAdminDashboard: React.FC = () => {
                     <p className="text-sm font-medium text-[#271D1D] font-lora">
                       {solution.name}
                     </p>
-                    <p className="text-xs text-[#725A5A]">
-                      {solution.contractType || "Custom"} •{" "}
-                      {solution.description?.slice(0, 120) ??
-                        "Organization-specific playbook"}
-                    </p>
                   </div>
                   <div className="flex justify-end mt-3">
                     <Button
@@ -749,16 +746,56 @@ const OrgAdminDashboard: React.FC = () => {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <p className="text-xs font-medium text-[#6B7280] uppercase tracking-wide">
-                      Recent high-risk items
-                    </p>
-                    {alertSummary.highRiskItems.length === 0 ? (
-                      <p className="text-sm text-[#6B7280]">
-                        No recent high-risk findings.
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <p className="text-xs font-medium text-[#6B7280] uppercase tracking-wide">
+                        Recent high-risk items
                       </p>
-                    ) : (
-                      <ul className="space-y-2">
-                        {alertSummary.highRiskItems.map((item) => (
+                      <select
+                        value={highRiskFilter}
+                        onChange={(event) => {
+                          const nextValue = event.target.value as "all" | "critical" | "high";
+                          setHighRiskFilter(nextValue);
+                          setShowAllHighRisk(false);
+                        }}
+                        className="rounded-md border border-[#E8DDDD] bg-white px-2 py-1 text-xs text-[#6B7280]"
+                        aria-label="Filter recent high-risk items"
+                      >
+                        <option value="all">All severities</option>
+                        <option value="critical">Critical only</option>
+                        <option value="high">High only</option>
+                      </select>
+                    </div>
+                    {(() => {
+                      const highRiskItems = alertSummary.highRiskItems;
+                      const filteredItems =
+                        highRiskFilter === "all"
+                          ? highRiskItems
+                          : highRiskItems.filter(
+                              (item) =>
+                                (item.severity ?? "").toLowerCase() === highRiskFilter,
+                            );
+                      const maxVisible = 3;
+                      const hasOverflow = filteredItems.length > maxVisible;
+                      const visibleItems =
+                        showAllHighRisk || !hasOverflow
+                          ? filteredItems
+                          : filteredItems.slice(0, maxVisible);
+                      const hiddenCount = filteredItems.length - maxVisible;
+
+                      if (filteredItems.length === 0) {
+                        return (
+                          <p className="text-sm text-[#6B7280]">
+                            {highRiskFilter === "all"
+                              ? "No recent high-risk findings."
+                              : "No items match this filter."}
+                          </p>
+                        );
+                      }
+
+                      return (
+                        <>
+                          <ul className="space-y-2">
+                            {visibleItems.map((item) => (
                           <li
                             key={item.reviewId}
                             className="flex items-start gap-3 rounded-lg border border-[#E8DDDD] bg-white px-3 py-2 text-sm"
@@ -773,9 +810,22 @@ const OrgAdminDashboard: React.FC = () => {
                               </p>
                             </div>
                           </li>
-                        ))}
-                      </ul>
-                    )}
+                            ))}
+                          </ul>
+                          {hasOverflow && (
+                            <button
+                              type="button"
+                              className="text-xs text-[#9A7C7C] underline"
+                              onClick={() => setShowAllHighRisk((value) => !value)}
+                            >
+                              {showAllHighRisk
+                                ? "Show fewer"
+                                : `Show ${hiddenCount} more`}
+                            </button>
+                          )}
+                        </>
+                      );
+                    })()}
                     <div className="flex gap-2 pt-2">
                       <Button
                         variant="outline"
