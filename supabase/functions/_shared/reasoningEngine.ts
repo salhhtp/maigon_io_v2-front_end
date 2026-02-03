@@ -1616,12 +1616,6 @@ function isMissingClauseIssue(
   return MISSING_CLAUSE_MARKERS.some((marker) => excerpt.includes(marker));
 }
 
-function isMissingEvidenceMarker(value: string): boolean {
-  const normalized = normalizeMatchText(value);
-  if (!normalized) return false;
-  return MISSING_CLAUSE_MARKERS.some((marker) => normalized.includes(marker));
-}
-
 function templateMatchesIssue(
   template: ClauseTemplate,
   issueText: string,
