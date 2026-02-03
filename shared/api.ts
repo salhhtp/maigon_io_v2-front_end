@@ -464,6 +464,8 @@ export interface AgentDraftSuggestion {
     clauseTitle?: string | null;
     anchorText: string;
     proposedText: string;
+    intent?: string | null;
+    matchText?: string | null;
     previousText?: string | null;
     updatedText?: string | null;
     previewHtml?: {
@@ -477,6 +479,7 @@ export interface AgentDraftSuggestion {
 export interface AgentDraftEdit {
   id: string;
   clauseReference?: string | null;
+  matchText?: string | null;
   changeType?: string | null;
   originalText?: string | null;
   suggestedText: string;

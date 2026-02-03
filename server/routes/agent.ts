@@ -1167,6 +1167,29 @@ function applyEditsToPlainText(
     }
 
     if (!suggestion || !originalText || !pattern) {
+      if (changeType === "modify" && edit.matchText && suggestion && originalText) {
+        const matchText = edit.matchText.trim();
+        if (matchText) {
+          const matchPattern = new RegExp(
+            matchText.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+            "i",
+          );
+          const match = matchPattern.exec(output);
+          if (match) {
+            const block = match[0];
+            if (originalText) {
+              const innerPattern = new RegExp(flexibleWhitespace, "i");
+              if (innerPattern.test(block)) {
+                const updatedBlock = block.replace(innerPattern, suggestion);
+                output =
+                  output.slice(0, match.index) +
+                  updatedBlock +
+                  output.slice(match.index + block.length);
+              }
+            }
+          }
+        }
+      }
       continue;
     }
 
@@ -1773,6 +1796,7 @@ async function composeDraft(
         proposedText: proposed.updatedText ?? proposed.proposedText ?? null,
         previousText: proposed.previousText ?? null,
         anchorText: proposed.anchorText ?? null,
+        intent: proposed.intent ?? null,
       });
       const inferredInsertionReference =
         changeType === "insert"
@@ -1791,11 +1815,11 @@ async function composeDraft(
           ? proposed.clauseTitle ??
             proposed.clauseId ??
             inferredInsertionReference ??
-            (anchorIsPlaceholder ? null : proposed.anchorText) ??
+            (anchorIsPlaceholder ? null : stripBoundaryEllipses(proposed.anchorText)) ??
             null
           : proposed.clauseTitle ??
             proposed.clauseId ??
-            proposed.anchorText ??
+            stripBoundaryEllipses(proposed.anchorText) ??
             null;
       const originalText =
         changeType === "insert" && anchorIsPlaceholder
@@ -1806,6 +1830,7 @@ async function composeDraft(
       return {
         id: item.id,
         clauseReference,
+        matchText: stripBoundaryEllipses(proposed.matchText ?? null) || null,
         changeType,
         originalText,
         suggestedText,
@@ -1927,15 +1952,16 @@ async function composeDraft(
             if (item.proposedEdit.clauseId) {
               parts.push(`Clause ID: ${item.proposedEdit.clauseId}`);
             }
-            const originalClause = sanitizeTripleQuotes(
-              truncateInput(
-                stripBoundaryEllipses(
-                  item.proposedEdit.previousText ??
-                    item.proposedEdit.anchorText,
-                ),
-                2_000,
-              ),
-            );
+    const originalClause = sanitizeTripleQuotes(
+      truncateInput(
+        stripBoundaryEllipses(
+          item.proposedEdit.matchText ??
+            item.proposedEdit.previousText ??
+            item.proposedEdit.anchorText,
+        ),
+        2_000,
+      ),
+    );
             const updatedClause = sanitizeTripleQuotes(
               truncateInput(
                 stripBoundaryEllipses(
