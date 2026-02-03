@@ -383,27 +383,19 @@ function findMatchingNode(
   usedNodes: Set<cheerio.Element>,
   options?: { allowUsed?: boolean },
 ) {
-  const normalizedMatchText = normalizeClauseText(edit.matchText ?? "");
   const normalizedOriginal = normalizeClauseText(edit.originalText ?? "");
   let bestNode: ClauseNode | null = null;
   let bestScore = 0;
   const allowUsed = options?.allowUsed ?? false;
 
-  const candidates = normalizedMatchText
-    ? [normalizedMatchText, normalizedOriginal]
-    : [normalizedOriginal];
-  for (const candidate of candidates) {
-    if (!candidate) continue;
+  if (normalizedOriginal) {
     for (const node of nodes) {
       if (usedNodes.has(node.element) && !allowUsed) continue;
-      const score = computeMatchScore(candidate, node.normalizedText);
+      const score = computeMatchScore(normalizedOriginal, node.normalizedText);
       if (score > bestScore && score >= MATCH_THRESHOLD) {
         bestNode = node;
         bestScore = score;
       }
-    }
-    if (bestNode && bestScore >= MATCH_THRESHOLD) {
-      break;
     }
   }
 

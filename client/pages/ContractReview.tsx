@@ -3645,10 +3645,6 @@ const actionItemEntries = useMemo(
       return;
     }
 
-    const clauseSourcesForDraft =
-      fullDocumentClauseExtractions.length > 0
-        ? fullDocumentClauseExtractions
-        : resolvedClauseExtractions;
     const suggestionsPayload: AgentDraftSuggestion[] = selectedSuggestions.map(
       (item) => {
         const updatedText = resolveUpdatedTextForItem(item);
@@ -3656,16 +3652,6 @@ const actionItemEntries = useMemo(
           item.proposedEdit?.previousText ??
           item.proposedEdit?.anchorText ??
           null;
-        const anchorText = item.proposedEdit?.anchorText ?? "";
-        const matchText =
-          item.proposedEdit
-            ? resolveFullClauseText({
-                clauseId: item.proposedEdit.clauseId ?? null,
-                clauseTitle: item.proposedEdit.clauseTitle ?? null,
-                anchorText,
-                clauses: clauseSourcesForDraft,
-              })
-            : null;
         return {
           id: item.id,
           description: item.description,
@@ -3678,10 +3664,8 @@ const actionItemEntries = useMemo(
                 id: item.proposedEdit.id,
                 clauseId: item.proposedEdit.clauseId ?? null,
                 clauseTitle: item.proposedEdit.clauseTitle ?? null,
-                anchorText,
+                anchorText: item.proposedEdit.anchorText,
                 proposedText: updatedText,
-                intent: item.proposedEdit.intent ?? null,
-                matchText,
                 previousText,
                 updatedText,
                 previewHtml: buildPreviewHtmlFromText(previousText, updatedText),
