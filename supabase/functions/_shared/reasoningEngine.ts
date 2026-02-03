@@ -1700,58 +1700,6 @@ function pickAnchorSnippet(text: string, maxLength = 220) {
   return trimmed.length > maxLength ? trimmed.slice(0, maxLength) : trimmed;
 }
 
-function clauseTextIncludes(clause: ClauseExtraction | null, snippet: string) {
-  if (!clause) return false;
-  const needle = normalizeMatchText(snippet);
-  if (!needle) return false;
-  const haystack = normalizeMatchText(
-    clause.originalText ?? clause.normalizedText ?? clause.title ?? "",
-  );
-  if (!haystack) return false;
-  return haystack.includes(needle);
-}
-
-function findTermSentenceForReplacement(text: string): string | null {
-  const cleaned = text.replace(/\s+/g, " ").trim();
-  if (!cleaned) return null;
-  const indefiniteMatch = cleaned.match(
-    /[^.?!]*\b(indefinite|indefinitely)\b[^.?!]*[.?!]/i,
-  );
-  if (indefiniteMatch?.[0]) return indefiniteMatch[0].trim();
-  const sentences = cleaned.split(/(?<=[.?!])\s+/);
-  for (const sentence of sentences) {
-    if (
-      sentence.length <= 260 &&
-      /\b(term|duration|valid|effective|force)\b/i.test(sentence)
-    ) {
-      return sentence.trim();
-    }
-  }
-  return null;
-}
-
-function adjustTermSurvivalReplacementText(
-  proposedText: string,
-  anchorSentence: string,
-): string {
-  let adjusted = proposedText.trim();
-  if (!adjusted) return adjusted;
-  adjusted = adjusted.replace(/^Term and survival\.?\s*/i, "");
-  const normalizedAnchor = normalizeMatchText(anchorSentence);
-  const normalizedAdjusted = normalizeMatchText(adjusted);
-  if (
-    (normalizedAnchor.includes("enters into force") ||
-      normalizedAnchor.includes("upon signing")) &&
-    !normalizedAdjusted.includes("enters into force")
-  ) {
-    adjusted = adjusted.replace(
-      /^This Agreement\s+(remains|is)\s+/i,
-      "This Agreement enters into force upon signing and remains ",
-    );
-  }
-  return adjusted;
-}
-
 function resolveInsertionAnchor(
   template: ClauseTemplate,
   clauses: ClauseExtraction[],
@@ -2071,69 +2019,24 @@ function buildProposedEditsForIssues(
         issueExcerptRaw.length <= 240
           ? issueExcerptRaw
           : "";
+      const anchorText = issueMissing
+        ? "Not present in contract"
+        : safeBasePreviousText && !isMissingEvidenceMarker(safeBasePreviousText)
+          ? safeBasePreviousText
+          : safeBaseAnchorText && !isMissingEvidenceMarker(safeBaseAnchorText)
+            ? safeBaseAnchorText
+            : safeIssueExcerpt
+              ? safeIssueExcerpt
+              : anchorClause?.originalText
+                ? pickAnchorSnippet(anchorClause.originalText)
+                : fallbackAnchorText || "Not present in contract";
+      const resolvedMissing =
+        issueMissing || normalizeMatchText(anchorText) === "not present in contract";
       const anchorClauseId =
         anchorClause?.clauseId ??
         anchorClause?.id ??
         fallbackAnchorId ??
         undefined;
-      const baseEvidence =
-        safeBasePreviousText || safeBaseAnchorText || safeIssueExcerpt;
-      const baseClause =
-        baseEdit && typeof baseEdit.clauseId === "string"
-          ? clauseList.find(
-              (clause) =>
-                normalizeMatchText(clause.clauseId ?? clause.id ?? "") ===
-                normalizeMatchText(baseEdit.clauseId as string),
-            ) ?? null
-          : null;
-      const baseClauseMatchesEvidence =
-        baseEvidence && baseClause
-          ? clauseTextIncludes(baseClause, baseEvidence)
-          : false;
-      const preferAnchorClause = Boolean(
-        anchorClauseId && (!baseEdit?.clauseId || !baseClauseMatchesEvidence),
-      );
-      const baseClauseTitle =
-        baseEdit && typeof baseEdit.clauseTitle === "string"
-          ? baseEdit.clauseTitle.trim()
-          : "";
-      const baseTitleMatchesClause = baseClauseTitle
-        ? clauseList.some((clause) => {
-            const clauseTitle = normalizeMatchText(
-              clause.title ?? clause.location?.section ?? "",
-            );
-            return clauseTitle === normalizeMatchText(baseClauseTitle);
-          })
-        : false;
-      const resolvedClauseTitle = baseTitleMatchesClause
-        ? baseClauseTitle
-        : anchorClause?.title ??
-          anchorClause?.location?.section ??
-          baseClauseTitle;
-      let anchorText = issueMissing
-        ? "Not present in contract"
-        : baseEvidence && !isMissingEvidenceMarker(baseEvidence)
-          ? baseEvidence
-          : anchorClause?.originalText
-            ? pickAnchorSnippet(anchorClause.originalText)
-            : fallbackAnchorText || "Not present in contract";
-      if (preferAnchorClause && anchorClause?.originalText) {
-        anchorText = pickAnchorSnippet(anchorClause.originalText);
-      }
-      const termReplacementAnchor =
-        template?.id === "nda-term-survival" && anchorClause
-          ? findTermSentenceForReplacement(
-              anchorClause.originalText ?? anchorClause.normalizedText ?? "",
-            )
-          : null;
-      if (termReplacementAnchor) {
-        anchorText = termReplacementAnchor;
-      }
-      const resolvedMissing =
-        issueMissing || normalizeMatchText(anchorText) === "not present in contract";
-      const resolvedClauseId = preferAnchorClause
-        ? anchorClauseId
-        : (baseEdit?.clauseId as string | undefined) ?? anchorClauseId;
       const baseIntent =
         baseEdit && typeof baseEdit.intent === "string"
           ? baseEdit.intent.toLowerCase()
@@ -2180,13 +2083,7 @@ function buildProposedEditsForIssues(
           ? `${rationaleBase} Suggested insertion near ${template.insertionAnchors[0]}.`
           : rationaleBase;
 
-      let resolvedProposedText = resolveProposedText(baseProposedText);
-      if (termReplacementAnchor) {
-        resolvedProposedText = adjustTermSurvivalReplacementText(
-          resolvedProposedText,
-          termReplacementAnchor,
-        );
-      }
+      const resolvedProposedText = resolveProposedText(baseProposedText);
       const anchorForSimilarity =
         safeBasePreviousText || safeBaseAnchorText || anchorText;
       const similarity = anchorForSimilarity
@@ -2209,11 +2106,6 @@ function buildProposedEditsForIssues(
       if (preferReplace) {
         resolvedIntent = "replace";
       }
-      if (termReplacementAnchor) {
-        resolvedIntent = "replace";
-      }
-      const resolvedPreviousText =
-        termReplacementAnchor || safeBasePreviousText || anchorText;
 
       if (baseEdit) {
         let nextProposedText = resolvedProposedText;
@@ -2226,11 +2118,10 @@ function buildProposedEditsForIssues(
         return {
           ...baseEdit,
           id: issueId,
-          clauseId: resolvedClauseId,
-          clauseTitle: resolvedClauseTitle || (baseEdit.clauseTitle as string | undefined),
+          clauseId: (baseEdit.clauseId as string | undefined) ?? anchorClauseId,
           anchorText: anchorText || (baseEdit.anchorText as string | undefined),
           intent: resolvedIntent,
-          previousText: resolvedPreviousText,
+          previousText: safeBasePreviousText || anchorText,
           updatedText: nextProposedText,
           proposedText: nextProposedText,
           rationale:
@@ -2242,20 +2133,13 @@ function buildProposedEditsForIssues(
       let finalProposedText = resolveProposedText(
         template ? applyTemplateContext(template.text, report) : null,
       );
-      if (termReplacementAnchor) {
-        finalProposedText = adjustTermSurvivalReplacementText(
-          finalProposedText,
-          termReplacementAnchor,
-        );
-      }
       if (template && resolvedIntent === "insert") {
         finalProposedText = ensureTemplateCoverage(issueKey, finalProposedText);
       }
 
       return {
         id: issueId,
-        clauseId: resolvedClauseId,
-        clauseTitle: resolvedClauseTitle || anchorClause?.title,
+        clauseId: anchorClauseId,
         anchorText,
         proposedText: finalProposedText,
         intent: resolvedIntent,
