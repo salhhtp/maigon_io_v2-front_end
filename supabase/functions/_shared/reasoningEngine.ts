@@ -2895,8 +2895,7 @@ function createReasoningSession(context: ReasoningContext): ReasoningSession {
       .toString()
       .toLowerCase();
   const playbookKey = normaliseSolutionKey(
-    customSolution?.contractType ??
-      normalizedSolutionKey ||
+    (customSolution?.contractType ?? normalizedSolutionKey) ||
       context.classification?.contractType,
     context.classification?.contractType,
   );
