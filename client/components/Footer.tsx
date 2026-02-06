@@ -1,6 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import Logo from "./Logo";
+import BrandingTagline from "@/components/BrandingTagline";
 
 const Footer: React.FC = () => {
   return (
@@ -103,6 +104,9 @@ const Footer: React.FC = () => {
               </div>
             </div>
           </div>
+        </div>
+        <div className="mt-12">
+          <BrandingTagline />
         </div>
       </div>
     </footer>

@@ -1,3 +1,9 @@
+import type {
+  CustomSolution,
+  CustomSolutionClauseTemplate,
+  CustomSolutionDeviationRule,
+} from "../../../shared/api.ts";
+
 export type PlaybookKey =
   | "data_processing_agreement"
   | "non_disclosure_agreement"
@@ -62,6 +68,68 @@ const createPlaybook = (
   negotiationGuidance: overrides.negotiationGuidance ?? [],
   clauseAnchors: overrides.clauseAnchors ?? [],
 });
+
+const normaliseCustomClauses = (
+  clauses?: CustomSolutionClauseTemplate[] | null,
+) => (Array.isArray(clauses) ? clauses.filter(Boolean) : []);
+
+const normaliseCustomDeviationRules = (
+  rules?: CustomSolutionDeviationRule[] | null,
+) => (Array.isArray(rules) ? rules.filter(Boolean) : []);
+
+export function buildCustomPlaybook(
+  customSolution: CustomSolution,
+  baseKey: PlaybookKey,
+): ContractPlaybook {
+  const clauseLibrary = normaliseCustomClauses(customSolution.clauseLibrary);
+  const deviationRules = normaliseCustomDeviationRules(
+    customSolution.deviationRules,
+  );
+
+  const clauseAnchors = new Set<string>();
+  clauseLibrary.forEach((clause) => {
+    if (clause.title) clauseAnchors.add(clause.title);
+  });
+  deviationRules.forEach((rule) => {
+    if (rule.title) clauseAnchors.add(rule.title);
+  });
+
+  const guidanceSet = new Set<string>();
+  deviationRules.forEach((rule) => {
+    if (rule.expected?.trim()) guidanceSet.add(rule.expected.trim());
+    if (rule.guidance?.trim()) guidanceSet.add(rule.guidance.trim());
+  });
+
+  const clauseTemplates: ClauseTemplate[] = clauseLibrary.map((clause) => {
+    const fallbackText =
+      clause.description?.trim() ||
+      (clause.mustInclude?.length
+        ? `Must include: ${clause.mustInclude.join("; ")}.`
+        : clause.title ?? "");
+    return {
+      id: clause.id,
+      title: clause.title,
+      text: fallbackText,
+      insertionAnchors: clause.references ?? [],
+      tags: clause.mustInclude ?? [],
+    };
+  });
+
+  return createPlaybook({
+    key: baseKey,
+    displayName: customSolution.name,
+    description: customSolution.description ?? "",
+    regulatoryFocus: customSolution.complianceFramework ?? [],
+    clauseTemplates,
+    criticalClauses: clauseLibrary.map((clause) => ({
+      title: clause.title,
+      mustInclude: clause.mustInclude ?? [],
+      redFlags: clause.redFlags ?? [],
+    })),
+    negotiationGuidance: Array.from(guidanceSet),
+    clauseAnchors: Array.from(clauseAnchors),
+  });
+}
 
 const PRIORITY_COUNTRY_KEYS = [
   "se",

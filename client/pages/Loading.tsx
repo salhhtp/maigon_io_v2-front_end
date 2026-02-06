@@ -156,7 +156,13 @@ export default function Loading() {
         const payload: ContractReviewPayload = {
           contract: result.contract,
           review: result.review,
-          metadata: pending.metadata,
+          metadata: {
+            ...pending.metadata,
+            customSolutionId:
+              pending.metadata?.customSolutionId ??
+              pending.contractInput?.custom_solution_id ??
+              undefined,
+          },
           classification: result.classification ?? null,
           timings: result.timings,
         };

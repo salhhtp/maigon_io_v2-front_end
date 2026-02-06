@@ -1,9 +1,9 @@
 import {
+  buildCustomPlaybook,
   resolvePlaybook,
   type PlaybookKey,
   type ContractPlaybook,
   type ClauseTemplate,
-  CONTRACT_PLAYBOOKS,
 } from "./playbooks.ts";
 import {
   validateAnalysisReport,
@@ -30,6 +30,7 @@ import {
   normaliseReportExpiry,
 } from "../../../shared/ai/reliability.ts";
 import { LEGAL_LANGUAGE_PROMPT_BLOCK } from "../../../shared/legalLanguage.ts";
+import type { CustomSolution } from "../../../shared/api.ts";
 import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
@@ -690,6 +691,7 @@ interface ReasoningContext {
     key?: string;
     title?: string;
   } | null;
+  customSolution?: CustomSolution | null;
   filename?: string | null;
   documentFormat?: string | null;
   ingestionWarnings?: unknown;
@@ -784,6 +786,23 @@ function resolveModelId(tier: ModelTier) {
     : entry.fallback;
 }
 
+function resolveCustomModelId(value: string): string {
+  const normalized = value.toLowerCase();
+  if (normalized.includes("gpt-5") && normalized.includes("mini")) {
+    return "gpt-5-mini";
+  }
+  if (normalized.includes("gpt-5") && normalized.includes("pro")) {
+    return "gpt-5-pro";
+  }
+  if (normalized.includes("gpt-5") && normalized.includes("nano")) {
+    return "gpt-5-nano";
+  }
+  if (normalized.includes("gpt-5")) {
+    return "gpt-5";
+  }
+  return value;
+}
+
 function normaliseSolutionKey(
   key?: string | null,
   fallback?: string | null,
@@ -869,7 +888,7 @@ function truncateTemplateText(value: string, maxLength = 520) {
 
 function buildUserPrompt(
   context: ReasoningContext,
-  playbook: ReturnType<typeof resolvePlaybook>,
+  playbook: ContractPlaybook,
   options?: { compact?: boolean; maxChars?: number },
 ) {
   const compact = Boolean(options?.compact);
@@ -910,6 +929,12 @@ function buildUserPrompt(
         `Drafting tone: ${playbook.draftingTone}`,
         `Negotiation guidance: ${playbook.negotiationGuidance.join("; ")}`,
       ].join("\n");
+
+  const customRulesSection = (() => {
+    const rules = context.customSolution?.customRules?.trim();
+    if (!rules) return null;
+    return `Custom playbook rules:\n${rules}`;
+  })();
 
   const clauseDigestSection = (() => {
     if (context.clauseDigest?.summary) {
@@ -976,6 +1001,7 @@ function buildUserPrompt(
   return [
     metadataSections,
     playbookSection,
+    customRulesSection,
     clauseDigestSection,
     extractionNotice,
     clauseContextSection,
@@ -1141,6 +1167,7 @@ function runHeuristicCritique(
     content?: string | null;
     clauses?: ClauseExtraction[] | null;
   },
+  playbookOverride?: ContractPlaybook | null,
 ): {
   notes: string[];
   coverage: PlaybookCoverageSummary | null;
@@ -1153,12 +1180,14 @@ function runHeuristicCritique(
   let coverage: PlaybookCoverageSummary | null = null;
   let contentCoverage: PlaybookCoverageSummary | null = null;
   let modelCoverage: PlaybookCoverageSummary | null = null;
-  let playbook: ContractPlaybook | null = null;
+  let playbook: ContractPlaybook | null = playbookOverride ?? null;
 
-  try {
-    playbook = resolvePlaybook(playbookKey);
-  } catch {
-    playbook = null;
+  if (!playbook) {
+    try {
+      playbook = resolvePlaybook(playbookKey);
+    } catch {
+      playbook = null;
+    }
   }
 
   if (playbook) {
@@ -2860,26 +2889,28 @@ function createReasoningSession(context: ReasoningContext): ReasoningSession {
   }
 
   const tier = FORCED_MODEL_TIER ?? context.modelTier ?? DEFAULT_MODEL_TIER;
-  const model = resolveModelId(tier);
+  const customSolution = context.customSolution ?? null;
   const normalizedSolutionKey =
     (context.selectedSolution?.key ?? context.selectedSolution?.id ?? "")
       .toString()
       .toLowerCase();
   const playbookKey = normaliseSolutionKey(
-    normalizedSolutionKey || context.classification?.contractType,
+    customSolution?.contractType ??
+      normalizedSolutionKey ||
+      context.classification?.contractType,
     context.classification?.contractType,
   );
-  const playbook = resolvePlaybook(playbookKey);
-  const matchesKnownPlaybook = Object.values(CONTRACT_PLAYBOOKS).some(
-    (candidate) =>
-      candidate.key === normalizedSolutionKey ||
-      candidate.displayName.toLowerCase() === normalizedSolutionKey ||
-      candidate.key === playbookKey,
-  );
-  const hasCustomSolution = Boolean(
-    context.selectedSolution?.id && !matchesKnownPlaybook,
-  );
-  const usePlaybookCoverage = !hasCustomSolution;
+  const playbook = customSolution
+    ? buildCustomPlaybook(customSolution, playbookKey)
+    : resolvePlaybook(playbookKey);
+  const customModelOverride =
+    customSolution?.modelSettings?.reasoningModel ??
+    customSolution?.aiModel ??
+    null;
+  const model = customModelOverride
+    ? resolveCustomModelId(customModelOverride)
+    : resolveModelId(tier);
+  const usePlaybookCoverage = true;
 
   const responsesSupported = shouldUseResponsesApi(model);
   if (!responsesSupported) {
@@ -2953,6 +2984,7 @@ function buildCoreReportFromPayload(
       content: context.content,
       clauses: context.clauseExtractions ?? null,
     },
+    session.playbook,
   );
   return {
     ...report,

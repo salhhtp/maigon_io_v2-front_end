@@ -118,6 +118,12 @@ export class DataService {
     }
   }
 
+  static async getCustomSolutionById(
+    customSolutionId: string,
+  ): Promise<CustomSolution | null> {
+    return this.fetchCustomSolution(customSolutionId);
+  }
+
   private static async findOrganizationCustomSolution(
     organizationId: string,
     solutionKey?: SolutionKey,

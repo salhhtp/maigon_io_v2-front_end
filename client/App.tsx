@@ -6,8 +6,9 @@ import { createRoot } from "react-dom/client";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { createBrowserRouter, RouterProvider, Outlet } from "react-router-dom";
+import { createBrowserRouter, RouterProvider, Outlet, Navigate } from "react-router-dom";
 import { UserProvider } from "@/contexts/SupabaseUserContext";
+import { BrandingProvider } from "@/contexts/BrandingContext";
 import ScrollToTop from "@/components/ScrollToTop";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import logger from "@/utils/logger";
@@ -91,7 +92,9 @@ const Layout = () => {
     <>
       <SeoDefaults />
       <ScrollToTop />
-      <Outlet />
+      <BrandingProvider>
+        <Outlet />
+      </BrandingProvider>
     </>
   );
 };
@@ -112,6 +115,18 @@ const router = createBrowserRouter([
       {
         path: "signin",
         element: <SignIn />,
+      },
+      {
+        path: "nda/:playbookSlug",
+        element: <SignIn />,
+      },
+      {
+        path: "alfalaval",
+        element: <Navigate to="/nda/alfalaval" replace />,
+      },
+      {
+        path: "alfa_laval",
+        element: <Navigate to="/nda/alfalaval" replace />,
       },
       {
         path: "signup",

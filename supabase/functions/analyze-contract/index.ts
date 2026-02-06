@@ -1527,6 +1527,7 @@ serve(async (req) => {
         clauseDigest,
         clauseExtractions: clauseSeed,
         clauseSetWeak: clauseQuality.isWeak,
+        customSolution: request.customSolution,
       };
 
       const responseId =

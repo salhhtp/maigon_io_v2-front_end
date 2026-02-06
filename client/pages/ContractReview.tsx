@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { logError, createUserFriendlyMessage } from "@/utils/errorLogger";
+import { DataService } from "@/services/dataService";
 import type { AgentChatContext, AgentProposedEdit } from "@/components/AgentChat";
 import type {
   ContractReviewPayload,
@@ -43,6 +44,8 @@ import type {
   ClauseEditJobStartRequest,
   ClauseEditJobStartResponse,
   ClauseEditJobStatusResponse,
+  CustomSolution,
+  CustomSolutionSectionConfig,
 } from "@shared/api";
 import type {
   AnalysisReport,
@@ -84,6 +87,28 @@ interface ReviewData {
   created_at: string;
   contract_id?: string;
 }
+
+const DEFAULT_SECTION_LAYOUT: CustomSolutionSectionConfig[] = [
+  { id: "generalInformation", title: "General information", enabled: true },
+  { id: "contractSummary", title: "Contract summary", enabled: true },
+  { id: "issues", title: "Issues to be addressed", enabled: true },
+  { id: "criteria", title: "Criteria met", enabled: true },
+  { id: "actionItems", title: "Action items", enabled: true },
+  { id: "playbookInsights", title: "Playbook deviations", enabled: false },
+  { id: "clauseInsights", title: "Clause insights", enabled: false },
+  { id: "similarity", title: "Similarity analysis", enabled: false },
+];
+
+const SECTION_ANCHORS: Record<string, { id: string; label: string }> = {
+  generalInformation: { id: "general-section", label: "General Information" },
+  contractSummary: { id: "contract-summary-section", label: "Contract Summary" },
+  issues: { id: "issues-section", label: "Issues" },
+  criteria: { id: "criteria-section", label: "Criteria Met" },
+  playbookInsights: { id: "playbook-section", label: "Playbook" },
+  clauseInsights: { id: "clause-insights-section", label: "Clause Insights" },
+  similarity: { id: "similarity-section", label: "Similarity" },
+  actionItems: { id: "action-items-section", label: "Action Items" },
+};
 
 type NormalizedDecision = {
   id: string;
@@ -2226,6 +2251,39 @@ export default function ContractReview() {
   // Get contract data from navigation state (from upload page)
   const locationState =
     (location.state || {}) as ContractReviewLocationState;
+  const customSolutionId =
+    (typeof locationState.metadata?.customSolutionId === "string" &&
+      locationState.metadata.customSolutionId) ||
+    (typeof storedPayload?.metadata?.customSolutionId === "string"
+      ? storedPayload?.metadata?.customSolutionId
+      : null);
+  const [customSolution, setCustomSolution] =
+    useState<CustomSolution | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    if (!customSolutionId) {
+      setCustomSolution(null);
+      return () => {
+        active = false;
+      };
+    }
+    DataService.getCustomSolutionById(customSolutionId)
+      .then((solution) => {
+        if (active) {
+          setCustomSolution(solution);
+        }
+      })
+      .catch((error) => {
+        console.warn("Failed to load custom solution layout", error);
+        if (active) {
+          setCustomSolution(null);
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, [customSolutionId]);
   const classificationFromState = locationState.classification;
 
   const perspectiveKey =
@@ -4042,9 +4100,31 @@ const scrollToSection = useCallback((sectionId: string) => {
   }
 }, []);
 
-const showPlaybookSections = false;
-const showSimilaritySection = false;
-const showDeviationSection = false;
+const resolvedSectionLayout = useMemo(() => {
+  if (customSolution?.sectionLayout && customSolution.sectionLayout.length > 0) {
+    return customSolution.sectionLayout;
+  }
+  return DEFAULT_SECTION_LAYOUT;
+}, [customSolution]);
+
+const enabledSectionLayout = useMemo(
+  () => resolvedSectionLayout.filter((section) => section.enabled !== false),
+  [resolvedSectionLayout],
+);
+
+const enabledSectionIds = useMemo(
+  () => new Set(enabledSectionLayout.map((section) => section.id)),
+  [enabledSectionLayout],
+);
+
+const showPlaybookSections = enabledSectionIds.has("playbookInsights");
+const showSimilaritySection = enabledSectionIds.has("similarity");
+const showDeviationSection = enabledSectionIds.has("clauseInsights");
+const showCriteriaSection = enabledSectionIds.has("criteria");
+const showActionItemsSection = enabledSectionIds.has("actionItems");
+const showContractSummarySection = enabledSectionIds.has("contractSummary");
+const showGeneralInformationSection = enabledSectionIds.has("generalInformation");
+const showIssuesSection = enabledSectionIds.has("issues");
 const showPrioritySnapshot = false;
 
 const heroFileName =
@@ -4054,20 +4134,696 @@ const heroFileName =
   (locationState.metadata?.fileName as string | undefined) ??
   storedPayload?.metadata?.fileName ??
   "Contract";
-const heroNavItems: { id: string; label: string }[] = [
-  { id: "issues-section", label: "Issues" },
-  { id: "criteria-section", label: "Criteria Met" },
-  { id: "draft-section", label: "Draft Generation" },
-  ...(showPlaybookSections
-    ? [{ id: "playbook-section", label: "Playbook" }]
-    : []),
-  ...(showSimilaritySection
-    ? [{ id: "similarity-section", label: "Similarity" }]
-    : []),
-  ...(showDeviationSection
-    ? [{ id: "deviation-section", label: "Deviations" }]
-    : []),
-];
+const heroNavItems: { id: string; label: string }[] = [];
+enabledSectionLayout.forEach((section) => {
+  const config = SECTION_ANCHORS[section.id];
+  if (!config) return;
+  heroNavItems.push({
+    id: config.id,
+    label: section.title || config.label,
+  });
+  if (section.id === "actionItems" && combinedDecisions.length > 0) {
+    heroNavItems.push({ id: "draft-section", label: "Draft Generation" });
+  }
+});
+
+const generalInformationSection =
+  showGeneralInformationSection && generalInformation ? (
+    <div
+      id={SECTION_ANCHORS.generalInformation.id}
+      className="bg-white border border-[#E8DDDD] rounded-lg p-6 shadow-sm"
+    >
+      <h3 className="text-sm font-semibold text-[#271D1D] uppercase tracking-wide mb-3">
+        General Information
+      </h3>
+      <dl className="grid grid-cols-2 gap-4 text-sm text-gray-700">
+        <div>
+          <dt className="text-xs uppercase text-gray-500">Score</dt>
+          <dd className="text-2xl font-semibold text-[#271D1D]">
+            {generalInformation?.complianceScore ?? "–"}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-xs uppercase text-gray-500">Perspective</dt>
+          <dd className="font-medium">{resolvedPerspectiveLabel ?? "n/a"}</dd>
+        </div>
+        <div>
+          <dt className="text-xs uppercase text-gray-500">Review Time</dt>
+          <dd>{formattedReviewTime}</dd>
+        </div>
+        <div>
+          <dt className="text-xs uppercase text-gray-500">Time Savings</dt>
+          <dd>
+            {generalInformation
+              ? `${generalInformation.timeSavingsMinutes} min`
+              : "n/a"}
+          </dd>
+        </div>
+        <div className="col-span-2">
+          <dt className="text-xs uppercase text-gray-500">Report expires</dt>
+          <dd>
+            {generalInformation?.reportExpiry
+              ? new Date(generalInformation.reportExpiry).toLocaleDateString()
+              : "n/a"}
+          </dd>
+        </div>
+      </dl>
+    </div>
+  ) : null;
+
+const contractSummarySection = showContractSummarySection ? (
+  <div
+    id={SECTION_ANCHORS.contractSummary.id}
+    className="bg-white border border-[#E8DDDD] rounded-lg p-6 shadow-sm"
+  >
+    <h3 className="text-sm font-semibold text-[#271D1D] uppercase tracking-wide mb-3">
+      Contract Summary
+    </h3>
+    <div className="space-y-2 text-sm text-gray-700">
+      <p>
+        <span className="font-semibold text-[#271D1D]">Name:</span>{" "}
+        {summaryContractName}
+      </p>
+      <p>
+        <span className="font-semibold text-[#271D1D]">Parties:</span>{" "}
+        {summaryParties?.length ? summaryParties.join(" vs ") : "n/a"}
+      </p>
+      <p>
+        <span className="font-semibold text-[#271D1D]">Purpose:</span>{" "}
+        {summaryPurpose}
+      </p>
+      <p>
+        <span className="font-semibold text-[#271D1D]">Contract period:</span>{" "}
+        {summaryContractPeriod}
+      </p>
+      <p>
+        <span className="font-semibold text-[#271D1D]">
+          Verbal information covered:
+        </span>{" "}
+        {summaryVerbalInfo}
+      </p>
+      <p>
+        <span className="font-semibold text-[#271D1D]">Governing law:</span>{" "}
+        {summaryGoverningLaw}
+      </p>
+      <p>
+        <span className="font-semibold text-[#271D1D]">Jurisdiction:</span>{" "}
+        {summaryJurisdiction}
+      </p>
+    </div>
+  </div>
+) : null;
+
+const issuesSection =
+  showIssuesSection && structuredIssues.length > 0 ? (
+    <div id={SECTION_ANCHORS.issues.id}>
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-sm font-semibold text-[#271D1D] uppercase tracking-wide">
+          Issues to be addressed
+        </h3>
+        <p className="text-xs text-gray-500">
+          {structuredIssues.length} findings
+        </p>
+      </div>
+      <div className="space-y-4">
+        {SEVERITY_DISPLAY_ORDER.map((severity) => {
+          const bucket = severityBuckets[severity];
+          if (!bucket || bucket.length === 0) {
+            return null;
+          }
+          const style = SEVERITY_STYLES[severity] ?? SEVERITY_STYLES.default;
+          const expanded = expandedSeverities[severity];
+          return (
+            <div
+              key={severity}
+              className="border border-[#E8DDDD] rounded-lg bg-white shadow-sm"
+            >
+              <button
+                type="button"
+                onClick={() => toggleSeveritySection(severity)}
+                className="w-full flex items-center justify-between px-4 py-3"
+              >
+                <div className="flex items-center gap-2">
+                  <span className={`h-2.5 w-2.5 rounded-full ${style.dot}`} />
+                  <p className="text-sm font-semibold text-[#271D1D]">
+                    {style.label}
+                  </p>
+                  <Badge
+                    className={style.badge}
+                  >{`${bucket.length} issue${bucket.length === 1 ? "" : "s"}`}</Badge>
+                </div>
+                <ChevronDown
+                  className={`h-4 w-4 text-[#6B4F4F] transition-transform ${
+                    expanded ? "rotate-180" : ""
+                  }`}
+                />
+              </button>
+              {expanded && (
+                <div className="px-4 pb-4 space-y-3">
+                  {bucket.map((issue) => {
+                    const issueFullText =
+                      resolveClauseEvidenceFullText({
+                        reference: issue.clauseReference,
+                        documentText: fullDocumentText,
+                        clauses: clauseEvidenceSources,
+                      }) ??
+                      resolveClauseEvidenceText(
+                        issue.clauseReference,
+                        clauseEvidenceSources,
+                      );
+                    const clauseKey =
+                      issue.clauseReference?.heading?.toLowerCase() ??
+                      issue.id?.toLowerCase() ??
+                      null;
+                    const excerptKey =
+                      issue.clauseReference?.excerpt?.toLowerCase() ?? null;
+                    const matchingEdit =
+                      (clauseKey && proposedEditLookup.get(clauseKey)) ||
+                      (excerptKey && proposedEditLookup.get(excerptKey)) ||
+                      (issue.id && proposedEditLookup.get(issue.id.toLowerCase())) ||
+                      null;
+                    return (
+                      <div
+                        key={issue.id}
+                        className="border border-[#F5D1C5] rounded-lg p-5 bg-[#FFF8F4] shadow-sm"
+                      >
+                        <div className="flex flex-col gap-2">
+                          <div className="flex items-center justify-between gap-4">
+                            <p className="text-sm font-semibold text-[#271D1D]">
+                              {issue.title}
+                            </p>
+                            <span
+                              className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${style.badge}`}
+                            >
+                              {style.label}
+                            </span>
+                          </div>
+                          <p className="text-sm text-gray-700">
+                            {issue.recommendation}
+                          </p>
+                          <ClauseEvidenceBlock
+                            reference={issue.clauseReference}
+                            fullText={issueFullText}
+                          />
+                          {matchingEdit ? (
+                            <div className="mt-3 rounded-md border border-[#E8DDDD] bg-white p-3 text-xs text-[#725A5A]">
+                              <p className="font-semibold text-[#271D1D]">
+                                Draft recommendation
+                              </p>
+                              <p className="mt-1">
+                                {matchingEdit.proposedText ||
+                                  matchingEdit.updatedText ||
+                                  matchingEdit.anchorText ||
+                                  "Review suggested changes in the draft builder."}
+                              </p>
+                            </div>
+                          ) : null}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  ) : null;
+
+const criteriaSection =
+  showCriteriaSection && structuredCriteria.length > 0 ? (
+    <div
+      id={SECTION_ANCHORS.criteria.id}
+      className="bg-[#F6FCF8] border border-[#CDE9D8] rounded-lg p-6 shadow-sm"
+    >
+      <h3 className="text-sm font-semibold text-[#271D1D] uppercase tracking-wide mb-4">
+        Criteria Met
+      </h3>
+      <div className="space-y-3">
+        {structuredCriteria.map((criterion) => {
+          const criteriaReference = criterion.evidence
+            ? ({
+                excerpt: criterion.evidence,
+                heading: criterion.title,
+              } as Issue["clauseReference"])
+            : null;
+          const criteriaFullText =
+            resolveClauseEvidenceFullText({
+              reference: criteriaReference,
+              documentText: fullDocumentText,
+              clauses: clauseEvidenceSources,
+            }) ??
+            resolveClauseEvidenceFromSnippet(
+              criterion.evidence,
+              clauseEvidenceSources,
+            );
+          return (
+            <div
+              key={criterion.id}
+              className="flex items-start gap-3 text-sm text-gray-800 bg-white/70 border border-[#D9F0E4] rounded-md p-3"
+            >
+              <CheckCircle className="h-4 w-4 text-emerald-500 mt-0.5" />
+              <div>
+                <p className="font-semibold text-[#271D1D]">
+                  {criterion.title}
+                </p>
+                <p className="text-gray-600">{criterion.description}</p>
+                {criteriaReference && (
+                  <ClauseEvidenceBlock
+                    reference={criteriaReference}
+                    fullText={criteriaFullText}
+                    tone="neutral"
+                  />
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  ) : null;
+
+const playbookInsightsSection =
+  showPlaybookSections && structuredReport ? (
+    <div id={SECTION_ANCHORS.playbookInsights.id} className="space-y-6">
+      {playbookCoverage && (
+        <div className="bg-white border border-[#E8DDDD] rounded-lg p-6 shadow-sm">
+          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-[#6B4F4F]">
+                Playbook coverage
+              </p>
+              <p className="text-3xl font-semibold text-[#271D1D]">
+                {coveragePercent ?? "--"}%
+              </p>
+              <p className="text-sm text-[#271D1D]/70">
+                {uncoveredCriticalClauses.length || uncoveredAnchors.length
+                  ? "Review missing anchors below."
+                  : "All required anchors satisfied."}
+              </p>
+            </div>
+            <div className="w-full md:w-48 h-2 bg-[#F3E9E9] rounded-full overflow-hidden">
+              <div
+                className="h-full bg-[#9A7C7C] transition-all"
+                style={{
+                  width: `${Math.min(100, Math.max(0, coveragePercent ?? 0))}%`,
+                }}
+              />
+            </div>
+          </div>
+          {(uncoveredCriticalClauses.length > 0 ||
+            uncoveredAnchors.length > 0) && (
+            <div className="mt-4 grid gap-2">
+              {uncoveredCriticalClauses.map((clause) => (
+                <div
+                  key={clause.title}
+                  className="rounded-md bg-[#FEFBFB] border border-[#F3E9E9] px-3 py-2 text-sm text-[#271D1D]/80"
+                >
+                  <p className="font-semibold">{clause.title}</p>
+                  {clause.missingMustInclude.length > 0 && (
+                    <p className="text-xs text-[#6B4F4F]">
+                      Missing: {clause.missingMustInclude.join(", ")}
+                    </p>
+                  )}
+                </div>
+              ))}
+              {uncoveredAnchors.map((anchor) => (
+                <div
+                  key={anchor.anchor}
+                  className="rounded-md bg-[#FFF8F1] border border-[#F3E9E9] px-3 py-2 text-sm text-[#6B4F4F]"
+                >
+                  Anchor not satisfied: {anchor.anchor}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+      <div className="bg-white border border-[#E8DDDD] rounded-lg p-6 shadow-sm">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-sm font-semibold text-[#271D1D] uppercase tracking-wide">
+            Playbook: deviations and tools
+          </h3>
+          <p className="text-xs text-gray-500">
+            {resolvedPlaybookInsights.length > 0
+              ? `${resolvedPlaybookInsights.length} guidance item${resolvedPlaybookInsights.length === 1 ? "" : "s"}`
+              : "No playbook insights surfaced"}
+          </p>
+        </div>
+        {resolvedPlaybookInsights.length > 0 ? (
+          <div className="space-y-4">
+            {resolvedPlaybookInsights.map((insight) => {
+              const statusStyle = getInsightStatusStyle(insight.status);
+              const severityStyle = insight.severity
+                ? getSeverityStyle(insight.severity)
+                : null;
+              return (
+                <div
+                  key={insight.id}
+                  className="rounded-lg border border-[#F3E9E9] bg-[#FEFBFB] p-4"
+                >
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-sm font-semibold text-[#271D1D]">
+                      {insight.title}
+                    </p>
+                    <span
+                      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${statusStyle.badge}`}
+                    >
+                      {statusStyle.label}
+                    </span>
+                    {severityStyle ? (
+                      <span
+                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${severityStyle.badge}`}
+                      >
+                        {severityStyle.label}
+                      </span>
+                    ) : null}
+                  </div>
+                  {insight.summary && (
+                    <p className="mt-2 text-sm text-gray-700">
+                      {insight.summary}
+                    </p>
+                  )}
+                  {insight.recommendation && (
+                    <p className="mt-2 text-xs text-[#725A5A]">
+                      Recommendation: {insight.recommendation}
+                    </p>
+                  )}
+                  {insight.guidance?.length ? (
+                    <ul className="mt-3 space-y-1 text-xs text-gray-600">
+                      {insight.guidance.map((line, index) => (
+                        <li key={index} className="flex gap-2">
+                          <span className="text-[#9A7C7C]">•</span>
+                          <span>{line}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="text-sm text-gray-600">
+            No playbook deviations were detected for this contract.
+          </p>
+        )}
+      </div>
+    </div>
+  ) : null;
+
+const similaritySection =
+  showSimilaritySection && structuredReport ? (
+    <div
+      id={SECTION_ANCHORS.similarity.id}
+      className="bg-white border border-[#E8DDDD] rounded-lg p-6 shadow-sm"
+    >
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-sm font-semibold text-[#271D1D] uppercase tracking-wide">
+          Similarity analysis
+        </h3>
+        <p className="text-xs text-gray-500">
+          {resolvedSimilarityAnalysis.length > 0
+            ? `Highest match: ${Math.round(
+                (resolvedSimilarityAnalysis[0].similarityScore || 0) * 100,
+              )}%`
+            : "No close document matches"}
+        </p>
+      </div>
+      {resolvedSimilarityAnalysis.length > 0 ? (
+        <div className="space-y-3">
+          {resolvedSimilarityAnalysis.map((match) => (
+            <div
+              key={match.id}
+              className="rounded-lg border border-[#EDE1E1] p-4 bg-white"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-[#271D1D]">
+                    {match.sourceTitle}
+                  </p>
+                  {match.tags?.length ? (
+                    <p className="text-xs text-gray-500">
+                      {match.tags.join(", ")}
+                    </p>
+                  ) : null}
+                </div>
+                <span className="text-sm font-semibold text-[#271D1D]">
+                  {Math.round((match.similarityScore || 0) * 100)}%
+                </span>
+              </div>
+              {match.rationale && (
+                <p className="mt-2 text-sm text-gray-700">{match.rationale}</p>
+              )}
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="text-sm text-gray-600">
+          No similar documents were found for this contract.
+        </p>
+      )}
+    </div>
+  ) : null;
+
+const actionItemsSection =
+  showActionItemsSection && combinedDecisions.length > 0 ? (
+    <div id={SECTION_ANCHORS.actionItems.id} className="mb-8 print:mb-6">
+      <div id="draft-section" className="mb-8 print:hidden">
+        <div className="rounded-2xl border border-[#E8DDDD] bg-white shadow-sm p-6">
+          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+            <div className="space-y-1">
+              <h2 className="text-lg font-lora text-[#271D1D]">
+                Build an AI-assisted contract draft
+              </h2>
+              <p className="text-sm text-[#725A5A] max-w-xl">
+                Select which review recommendations you want to merge. Maigon will create a fresh contract that applies those changes while preserving the existing structure.
+              </p>
+            </div>
+            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center">
+              <Button
+                className="bg-[#271D1D] hover:bg-[#3A2F2F] text-white"
+                onClick={handleGenerateDraft}
+                disabled={!hasSelectedDraftInputs || isGeneratingDraft}
+              >
+                {isGeneratingDraft ? (
+                  <span className="inline-flex items-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin" /> Generating…
+                  </span>
+                ) : (
+                  "Generate updated contract"
+                )}
+              </Button>
+            </div>
+          </div>
+
+          <div className="mt-4 flex flex-wrap items-center gap-4 text-sm text-[#725A5A]">
+            <span>
+              {selectedSuggestionCount} of {combinedDecisions.length} review suggestions selected
+            </span>
+            {combinedDecisions.length > 0 && (
+              <div className="flex items-center gap-3 text-xs">
+                <button
+                  type="button"
+                  className="text-[#9A7C7C] underline"
+                  onClick={handleSelectAllSuggestions}
+                >
+                  Select all
+                </button>
+                <button
+                  type="button"
+                  className="text-[#9A7C7C] underline"
+                  onClick={handleClearAllSuggestions}
+                >
+                  Clear all
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="mb-4 flex items-center justify-between">
+        <h2 className="text-xl font-medium text-[#271D1D] print:text-lg">
+          Action Items
+        </h2>
+        {combinedDecisions.length > 3 && (
+          <button
+            type="button"
+            className="text-sm text-[#9A7C7C] underline"
+            onClick={() => toggleSection("actions")}
+          >
+            {expandedSections.actions
+              ? "Show fewer"
+              : `Show ${combinedDecisions.length - 3} more`}
+          </button>
+        )}
+      </div>
+      <div className="space-y-3">
+        {groupedDecisionEntries.map((group) => (
+          <div
+            key={group.id}
+            className="rounded-xl border border-[#F3E9E9] bg-white p-4 shadow-sm"
+          >
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <p className="text-xs uppercase tracking-wide text-[#725A5A]">
+                  Clause group
+                </p>
+                <p className="text-sm font-semibold text-[#271D1D]">
+                  {group.title}
+                </p>
+              </div>
+              <span className="text-xs text-[#725A5A]">
+                {group.items.length} edit
+                {group.items.length === 1 ? "" : "s"}
+              </span>
+            </div>
+            <div className="space-y-3">
+              {group.items.map((item) => {
+                const severityStyle = getSeverityStyle(item.severity);
+                const checked = suggestionSelection[item.id] !== false;
+                const actionPreviewAnchor =
+                  item.proposedEdit?.previousText ??
+                  item.proposedEdit?.anchorText ??
+                  "Current clause text";
+                const actionPreviewUpdated =
+                  resolveUpdatedTextForItem(item) || actionPreviewAnchor;
+                const pendingAiText = pendingAiEdits[item.id]?.text ?? null;
+                const issueEvidence = item.proposedEdit
+                  ? (() => {
+                      const candidates = [
+                        item.proposedEdit.id,
+                        item.proposedEdit.clauseId ?? null,
+                        item.proposedEdit.clauseTitle ?? null,
+                        item.proposedEdit.anchorText ?? null,
+                        item.proposedEdit.previousText ?? null,
+                        actionPreviewAnchor,
+                      ];
+                      for (const candidate of candidates) {
+                        const key = normalizeEvidenceKey(candidate);
+                        if (!key) continue;
+                        const match = issueEvidenceLookup.get(key);
+                        if (match) return match;
+                      }
+                      return null;
+                    })()
+                  : null;
+                const issueEvidenceExcerpt = issueEvidence?.excerpt ?? null;
+                const issueEvidenceHeading =
+                  issueEvidence?.reference?.heading ?? null;
+                const clauseTitleForPreview =
+                  issueEvidenceHeading ?? item.proposedEdit?.clauseTitle;
+                const actionPreviewHtml = proposedEditOverrides[item.id]?.text
+                  ? buildPreviewHtmlFromText(
+                      actionPreviewAnchor,
+                      actionPreviewUpdated,
+                    )
+                  : item.proposedEdit?.previewHtml ?? null;
+                const fullClauseSource =
+                  fullDocumentClauseExtractions.length > 0
+                    ? fullDocumentClauseExtractions
+                    : resolvedClauseExtractions;
+                const actionFullOriginalCandidate =
+                  issueEvidence?.fullText ??
+                  (item.proposedEdit
+                    ? resolveFullClauseText({
+                        clauseId: item.proposedEdit.clauseId ?? null,
+                        clauseTitle: item.proposedEdit.clauseTitle ?? null,
+                        anchorText: actionPreviewAnchor,
+                        clauses: fullClauseSource,
+                      })
+                    : null);
+                const anchorForFullMatch =
+                  issueEvidenceExcerpt ?? actionPreviewAnchor;
+                const actionFullOriginal = issueEvidence?.fullText
+                  ? issueEvidence.fullText
+                  : actionFullOriginalCandidate &&
+                      fullTextMatchesAnchor(
+                        actionFullOriginalCandidate,
+                        anchorForFullMatch,
+                      )
+                    ? actionFullOriginalCandidate
+                    : null;
+                return (
+                  <div
+                    key={item.id}
+                    className="rounded-lg border border-[#F3E9E9] bg-[#FFFDFB] p-4"
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-semibold text-[#271D1D]">
+                          {item.title || "Proposed update"}
+                        </p>
+                        {item.description && (
+                          <p className="text-xs text-[#725A5A]">
+                            {item.description}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {severityStyle ? (
+                          <span
+                            className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${severityStyle.badge}`}
+                          >
+                            {severityStyle.label}
+                          </span>
+                        ) : null}
+                        <label className="flex items-center gap-2 text-xs text-[#725A5A]">
+                          <Checkbox
+                            checked={checked}
+                            onCheckedChange={() => toggleSuggestionSelection(item.id)}
+                          />
+                          Include in draft
+                        </label>
+                      </div>
+                    </div>
+
+                    <div className="mt-3 rounded-lg border border-[#F0E4E4] bg-white p-3">
+                      <ClausePreview
+                        clauseTitle={clauseTitleForPreview}
+                        previousText={actionPreviewAnchor}
+                        updatedText={actionPreviewUpdated}
+                        previewHtml={actionPreviewHtml}
+                        fullOriginalText={actionFullOriginal}
+                        fullUpdatedText={resolveUpdatedTextForItem(item)}
+                        onEdit={(text) => handleAiEditConfirm(item.id, text)}
+                        onAiEditRequest={(prompt) =>
+                          handleAiEditRequest(item, prompt)
+                        }
+                        isAiEditing={Boolean(pendingAiText)}
+                        aiEditText={pendingAiText}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  ) : null;
+
+const orderedSections = enabledSectionLayout
+  .map((section) => {
+    const blocks: Record<string, React.ReactNode> = {
+      generalInformation: generalInformationSection,
+      contractSummary: contractSummarySection,
+      issues: issuesSection,
+      playbookInsights: playbookInsightsSection,
+      actionItems: actionItemsSection,
+      criteria: criteriaSection,
+      similarity: similaritySection,
+      clauseInsights: null,
+    };
+    const block = blocks[section.id];
+    return block ? (
+      <React.Fragment key={section.id}>{block}</React.Fragment>
+    ) : null;
+  })
+  .filter((block): block is React.ReactElement => block !== null);
 
   return (
     <>
@@ -4291,537 +5047,7 @@ const heroNavItems: { id: string; label: string }[] = [
             </div>
 
           {structuredReport && (
-            <div className="mb-6 space-y-6">
-              <div className="grid gap-4 lg:grid-cols-2">
-                <div className="bg-white border border-[#E8DDDD] rounded-lg p-6 shadow-sm">
-                  <h3 className="text-sm font-semibold text-[#271D1D] uppercase tracking-wide mb-3">
-                    General Information
-                  </h3>
-                  <dl className="grid grid-cols-2 gap-4 text-sm text-gray-700">
-                    <div>
-                      <dt className="text-xs uppercase text-gray-500">Score</dt>
-                      <dd className="text-2xl font-semibold text-[#271D1D]">
-                        {generalInformation?.complianceScore ?? "–"}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="text-xs uppercase text-gray-500">
-                        Perspective
-                      </dt>
-                      <dd className="font-medium">
-                        {resolvedPerspectiveLabel ?? "n/a"}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="text-xs uppercase text-gray-500">
-                        Review Time
-                      </dt>
-                      <dd>{formattedReviewTime}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-xs uppercase text-gray-500">
-                        Time Savings
-                      </dt>
-                      <dd>
-                        {generalInformation
-                          ? `${generalInformation.timeSavingsMinutes} min`
-                          : "n/a"}
-                      </dd>
-                    </div>
-                    <div className="col-span-2">
-                      <dt className="text-xs uppercase text-gray-500">
-                        Report expires
-                      </dt>
-                      <dd>
-                        {generalInformation?.reportExpiry
-                          ? new Date(
-                              generalInformation.reportExpiry,
-                            ).toLocaleDateString()
-                          : "n/a"}
-                      </dd>
-                    </div>
-                  </dl>
-                </div>
-                <div className="bg-white border border-[#E8DDDD] rounded-lg p-6 shadow-sm">
-                  <h3 className="text-sm font-semibold text-[#271D1D] uppercase tracking-wide mb-3">
-                    Contract Summary
-                  </h3>
-                  <div className="space-y-2 text-sm text-gray-700">
-                    <p>
-                      <span className="font-semibold text-[#271D1D]">
-                        Name:
-                      </span>{" "}
-                      {summaryContractName}
-                    </p>
-                    <p>
-                      <span className="font-semibold text-[#271D1D]">
-                        Parties:
-                      </span>{" "}
-                      {summaryParties?.length
-                        ? summaryParties.join(" vs ")
-                        : "n/a"}
-                    </p>
-                    <p>
-                      <span className="font-semibold text-[#271D1D]">
-                        Purpose:
-                      </span>{" "}
-                      {summaryPurpose}
-                    </p>
-                    <p>
-                      <span className="font-semibold text-[#271D1D]">
-                        Contract period:
-                      </span>{" "}
-                      {summaryContractPeriod}
-                    </p>
-                    <p>
-                      <span className="font-semibold text-[#271D1D]">
-                        Verbal information covered:
-                      </span>{" "}
-                      {summaryVerbalInfo}
-                    </p>
-                    <p>
-                      <span className="font-semibold text-[#271D1D]">
-                        Governing law:
-                      </span>{" "}
-                      {summaryGoverningLaw}
-                    </p>
-                    <p>
-                      <span className="font-semibold text-[#271D1D]">
-                        Jurisdiction:
-                      </span>{" "}
-                      {summaryJurisdiction}
-                    </p>
-                  </div>
-                </div>
-              </div>
-              {showPlaybookSections && playbookCoverage && (
-                <div className="bg-white border border-[#E8DDDD] rounded-lg p-6 shadow-sm mb-6">
-                  <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-wide text-[#6B4F4F]">
-                        Playbook coverage
-                      </p>
-                      <p className="text-3xl font-semibold text-[#271D1D]">
-                        {coveragePercent ?? "--"}%
-                      </p>
-                      <p className="text-sm text-[#271D1D]/70">
-                        {uncoveredCriticalClauses.length || uncoveredAnchors.length
-                          ? "Review missing anchors below."
-                          : "All required anchors satisfied."}
-                      </p>
-                    </div>
-                    <div className="w-full md:w-48 h-2 bg-[#F3E9E9] rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-[#9A7C7C] transition-all"
-                        style={{
-                          width: `${Math.min(
-                            100,
-                            Math.max(0, coveragePercent ?? 0),
-                          )}%`,
-                        }}
-                      />
-                    </div>
-                  </div>
-                  {(uncoveredCriticalClauses.length > 0 ||
-                    uncoveredAnchors.length > 0) && (
-                    <div className="mt-4 grid gap-2">
-                      {uncoveredCriticalClauses.map((clause) => (
-                        <div
-                          key={clause.title}
-                          className="rounded-md bg-[#FEFBFB] border border-[#F3E9E9] px-3 py-2 text-sm text-[#271D1D]/80"
-                        >
-                          <p className="font-semibold">{clause.title}</p>
-                          {clause.missingMustInclude.length > 0 && (
-                            <p className="text-xs text-[#6B4F4F]">
-                              Missing: {clause.missingMustInclude.join(", ")}
-                            </p>
-                          )}
-                        </div>
-                      ))}
-                      {uncoveredAnchors.map((anchor) => (
-                        <div
-                          key={anchor.anchor}
-                          className="rounded-md bg-[#FFF8F1] border border-[#F3E9E9] px-3 py-2 text-sm text-[#6B4F4F]"
-                        >
-                          Anchor not satisfied: {anchor.anchor}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-              {structuredIssues.length > 0 && (
-                <div id="issues-section">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-sm font-semibold text-[#271D1D] uppercase tracking-wide">
-                      Issues to be addressed
-                    </h3>
-                    <p className="text-xs text-gray-500">
-                      {structuredIssues.length} findings
-                    </p>
-                  </div>
-                  <div className="space-y-4">
-                    {SEVERITY_DISPLAY_ORDER.map((severity) => {
-                      const bucket = severityBuckets[severity];
-                      if (!bucket || bucket.length === 0) {
-                        return null;
-                      }
-                      const style =
-                        SEVERITY_STYLES[severity] ?? SEVERITY_STYLES.default;
-                      const expanded = expandedSeverities[severity];
-                      return (
-                        <div
-                          key={severity}
-                          className="border border-[#E8DDDD] rounded-lg bg-white shadow-sm"
-                        >
-                          <button
-                            type="button"
-                            onClick={() => toggleSeveritySection(severity)}
-                            className="w-full flex items-center justify-between px-4 py-3"
-                          >
-                            <div className="flex items-center gap-2">
-                              <span
-                                className={`h-2.5 w-2.5 rounded-full ${style.dot}`}
-                              />
-                              <p className="text-sm font-semibold text-[#271D1D]">
-                                {style.label}
-                              </p>
-                              <Badge
-                                className={style.badge}
-                              >{`${bucket.length} issue${bucket.length === 1 ? "" : "s"}`}</Badge>
-                            </div>
-                            <ChevronDown
-                              className={`h-4 w-4 text-[#6B4F4F] transition-transform ${
-                                expanded ? "rotate-180" : ""
-                              }`}
-                            />
-                          </button>
-                          {expanded && (
-                            <div className="px-4 pb-4 space-y-3">
-                              {bucket.map((issue) => {
-                                const issueFullText =
-                                  resolveClauseEvidenceFullText({
-                                    reference: issue.clauseReference,
-                                    documentText: fullDocumentText,
-                                    clauses: clauseEvidenceSources,
-                                  }) ??
-                                  resolveClauseEvidenceText(
-                                    issue.clauseReference,
-                                    clauseEvidenceSources,
-                                  );
-                                const clauseKey =
-                                  issue.clauseReference?.heading?.toLowerCase() ??
-                                  issue.id?.toLowerCase() ??
-                                  null;
-                                const excerptKey =
-                                  issue.clauseReference?.excerpt?.toLowerCase() ??
-                                  null;
-                                const matchingEdit =
-                                  (clauseKey &&
-                                    proposedEditLookup.get(clauseKey)) ||
-                                  (excerptKey &&
-                                    proposedEditLookup.get(excerptKey)) ||
-                                  (issue.id &&
-                                    proposedEditLookup.get(
-                                      issue.id.toLowerCase(),
-                                    )) ||
-                                  null;
-                                return (
-                  <div
-                    key={issue.id}
-                    className="border border-[#F5D1C5] rounded-lg p-5 bg-[#FFF8F4] shadow-sm"
-                  >
-                    <div className="flex flex-col gap-2">
-                      <div className="flex items-center justify-between gap-4">
-                        <p className="text-sm font-semibold text-[#271D1D]">
-                          {issue.title}
-                        </p>
-                                        <span
-                                          className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${style.badge}`}
-                                        >
-                                          {style.label}
-                        </span>
-                      </div>
-                      <p className="text-sm text-gray-700">
-                        {issue.recommendation}
-                      </p>
-                      <ClauseEvidenceBlock
-                        reference={issue.clauseReference}
-                        fullText={issueFullText}
-                      />
-                  </div>
-                </div>
-              );
-            })}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-              {structuredCriteria.length > 0 && (
-                <div
-                  id="criteria-section"
-                  className="bg-[#F6FCF8] border border-[#CDE9D8] rounded-lg p-6 shadow-sm"
-                >
-                  <h3 className="text-sm font-semibold text-[#271D1D] uppercase tracking-wide mb-4">
-                    Criteria Met
-                  </h3>
-                  <div className="space-y-3">
-                    {structuredCriteria.map((criterion) => {
-                      const criteriaReference = criterion.evidence
-                        ? ({
-                            excerpt: criterion.evidence,
-                            heading: criterion.title,
-                          } as Issue["clauseReference"])
-                        : null;
-                      const criteriaFullText =
-                        resolveClauseEvidenceFullText({
-                          reference: criteriaReference,
-                          documentText: fullDocumentText,
-                          clauses: clauseEvidenceSources,
-                        }) ??
-                        resolveClauseEvidenceFromSnippet(
-                          criterion.evidence,
-                          clauseEvidenceSources,
-                        );
-                      return (
-                        <div
-                          key={criterion.id}
-                          className="flex items-start gap-3 text-sm text-gray-800 bg-white/70 border border-[#D9F0E4] rounded-md p-3"
-                        >
-                          <CheckCircle className="h-4 w-4 text-emerald-500 mt-0.5" />
-                          <div>
-                            <p className="font-semibold text-[#271D1D]">
-                              {criterion.title}
-                            </p>
-                            <p className="text-gray-600">
-                              {criterion.description}
-                            </p>
-                            {criteriaReference && (
-                              <ClauseEvidenceBlock
-                                reference={criteriaReference}
-                                fullText={criteriaFullText}
-                                tone="neutral"
-                              />
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-              {showPlaybookSections && structuredReport && (
-                <div
-                  id="playbook-section"
-                  className="bg-white border border-[#E8DDDD] rounded-lg p-6 shadow-sm"
-                >
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-sm font-semibold text-[#271D1D] uppercase tracking-wide">
-                      Playbook: deviations and tools
-                    </h3>
-                    <p className="text-xs text-gray-500">
-                      {resolvedPlaybookInsights.length > 0
-                        ? `${resolvedPlaybookInsights.length} guidance item${resolvedPlaybookInsights.length === 1 ? "" : "s"}`
-                        : "No playbook insights surfaced"}
-                    </p>
-                  </div>
-                  {resolvedPlaybookInsights.length > 0 ? (
-                    <div className="space-y-4">
-                      {resolvedPlaybookInsights.map((insight) => {
-                        const statusStyle = getInsightStatusStyle(
-                          insight.status,
-                        );
-                        const severityStyle = insight.severity
-                          ? getSeverityStyle(insight.severity)
-                          : null;
-                        return (
-                          <div
-                            key={insight.id}
-                            className="rounded-lg border border-[#F3E9E9] bg-[#FEFBFB] p-4"
-                          >
-                            <div className="flex flex-wrap items-center gap-2">
-                              <p className="text-sm font-semibold text-[#271D1D]">
-                                {insight.title}
-                              </p>
-                              <span
-                                className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${statusStyle.badge}`}
-                              >
-                                {statusStyle.label}
-                              </span>
-                              {severityStyle ? (
-                                <span
-                                  className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${severityStyle.badge}`}
-                                >
-                                  {severityStyle.label}
-                                </span>
-                              ) : null}
-                            </div>
-                            {insight.summary && (
-                              <p className="mt-2 text-sm text-gray-700">
-                                {insight.summary}
-                              </p>
-                            )}
-                            {insight.recommendation && (
-                              <p className="mt-2 text-xs text-[#725A5A]">
-                                Recommendation: {insight.recommendation}
-                              </p>
-                            )}
-                            {insight.guidance?.length ? (
-                              <ul className="mt-3 space-y-1 text-xs text-gray-600">
-                                {insight.guidance.map((line, index) => (
-                                  <li key={index} className="flex gap-2">
-                                    <span className="text-[#9A7C7C]">•</span>
-                                    <span>{line}</span>
-                                  </li>
-                                ))}
-                              </ul>
-                            ) : null}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-gray-600">
-                      No playbook deviations were detected for this contract.
-                    </p>
-                  )}
-                </div>
-              )}
-              {showSimilaritySection && structuredReport && (
-                <div
-                  id="similarity-section"
-                  className="bg-white border border-[#E8DDDD] rounded-lg p-6 shadow-sm"
-                >
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-sm font-semibold text-[#271D1D] uppercase tracking-wide">
-                      Similarity analysis
-                    </h3>
-                    <p className="text-xs text-gray-500">
-                      {resolvedSimilarityAnalysis.length > 0
-                        ? `Highest match: ${Math.round(
-                            (resolvedSimilarityAnalysis[0].similarityScore ||
-                              0) * 100,
-                          )}%`
-                        : "No close document matches"}
-                    </p>
-                  </div>
-                  {resolvedSimilarityAnalysis.length > 0 ? (
-                    <div className="space-y-3">
-                      {resolvedSimilarityAnalysis.map((match) => (
-                        <div
-                          key={match.id}
-                          className="rounded-lg border border-[#EDE1E1] p-4 bg-white"
-                        >
-                          <div className="flex items-center justify-between gap-3">
-                            <div>
-                              <p className="text-sm font-semibold text-[#271D1D]">
-                                {match.sourceTitle}
-                              </p>
-                              {match.tags?.length ? (
-                                <p className="text-xs text-gray-500">
-                                  {match.tags.join(", ")}
-                                </p>
-                              ) : null}
-                            </div>
-                            <span className="text-sm font-semibold text-[#271D1D]">
-                              {Math.round((match.similarityScore || 0) * 100)}%
-                            </span>
-                          </div>
-                          {match.excerpt && (
-                            <p className="mt-2 text-sm text-gray-700">
-                              “{match.excerpt.trim()}”
-                            </p>
-                          )}
-                          <div className="mt-3 flex gap-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="border-[#9A7C7C]/40 text-[#9A7C7C]"
-                              onClick={() => setActiveSimilarityMatch(match)}
-                            >
-                              View section guide
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-gray-600">
-                      No near-duplicate agreements were highlighted for this review.
-                    </p>
-                  )}
-                </div>
-              )}
-              {showDeviationSection && structuredReport && (
-                <div
-                  id="deviation-section"
-                  className="bg-white border border-[#E8DDDD] rounded-lg p-6 shadow-sm"
-                >
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-sm font-semibold text-[#271D1D] uppercase tracking-wide">
-                      Deviation analysis
-                    </h3>
-                    <p className="text-xs text-gray-500">
-                      {resolvedDeviationInsights.length > 0
-                        ? `${resolvedDeviationInsights.length} flagged item${resolvedDeviationInsights.length === 1 ? "" : "s"}`
-                        : "No deviations flagged"}
-                    </p>
-                  </div>
-                  {resolvedDeviationInsights.length > 0 ? (
-                    <div className="space-y-3">
-                      {resolvedDeviationInsights.map((deviation) => {
-                        const severityStyle = getSeverityStyle(
-                          deviation.severity,
-                        );
-                        return (
-                          <div
-                            key={deviation.id}
-                            className="rounded-lg border border-[#F1E6E6] bg-white p-4"
-                          >
-                            <div className="flex items-center gap-2">
-                              <span
-                                className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${severityStyle.badge}`}
-                              >
-                                {severityStyle.label}
-                              </span>
-                              {deviation.deviationType && (
-                                <span className="text-xs text-gray-500 uppercase tracking-wide">
-                                  {formatLabel(deviation.deviationType)}
-                                </span>
-                              )}
-                            </div>
-                            <p className="mt-2 text-sm font-semibold text-[#271D1D]">
-                              {deviation.title}
-                            </p>
-                            <p className="text-sm text-gray-700">
-                              {deviation.description}
-                            </p>
-                            <div className="mt-3">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="border-[#271D1D]/20 text-[#271D1D]"
-                                onClick={() => setActiveDeviationInsight(deviation)}
-                              >
-                                View deviation detail
-                              </Button>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-gray-600">
-                      Contract language aligns with the playbook, so no deviations were flagged.
-                    </p>
-                  )}
-                </div>
-              )}
-            </div>
+            <div className="mb-6 space-y-6">{orderedSections}</div>
           )}
 
           {/* Priority Snapshot */}
@@ -4949,283 +5175,6 @@ const heroNavItems: { id: string; label: string }[] = [
                       </span>
                     </div>
                     <p className="text-gray-700 text-sm">{risk.description}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {combinedDecisions.length > 0 && (
-            <div id="draft-section" className="mb-8 print:hidden">
-              <div className="rounded-2xl border border-[#E8DDDD] bg-white shadow-sm p-6">
-                <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-                  <div className="space-y-1">
-                    <h2 className="text-lg font-lora text-[#271D1D]">
-                      Build an AI-assisted contract draft
-                    </h2>
-                    <p className="text-sm text-[#725A5A] max-w-xl">
-                      Select which review recommendations you want to merge. Maigon will create a fresh contract that applies those changes while preserving the existing structure.
-                    </p>
-                  </div>
-                  <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center">
-                    <Button
-                      className="bg-[#271D1D] hover:bg-[#3A2F2F] text-white"
-                      onClick={handleGenerateDraft}
-                      disabled={!hasSelectedDraftInputs || isGeneratingDraft}
-                    >
-                      {isGeneratingDraft ? (
-                        <span className="inline-flex items-center gap-2">
-                          <Loader2 className="w-4 h-4 animate-spin" /> Generating…
-                        </span>
-                      ) : (
-                        "Generate updated contract"
-                      )}
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="mt-4 flex flex-wrap items-center gap-4 text-sm text-[#725A5A]">
-                  <span>
-                    {selectedSuggestionCount} of {combinedDecisions.length} review suggestions selected
-                  </span>
-                  {combinedDecisions.length > 0 && (
-                    <div className="flex items-center gap-3 text-xs">
-                      <button
-                        type="button"
-                        className="text-[#9A7C7C] underline"
-                        onClick={handleSelectAllSuggestions}
-                      >
-                        Select all
-                      </button>
-                      <button
-                        type="button"
-                        className="text-[#9A7C7C] underline"
-                        onClick={handleClearAllSuggestions}
-                      >
-                        Clear all
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Action Items */}
-          {combinedDecisions.length > 0 && (
-            <div className="mb-8 print:mb-6">
-              <div className="mb-4 flex items-center justify-between">
-                <h2 className="text-xl font-medium text-[#271D1D] print:text-lg">
-                  Action Items
-                </h2>
-                {combinedDecisions.length > 3 && (
-                  <button
-                    type="button"
-                    className="text-sm text-[#9A7C7C] underline"
-                    onClick={() => toggleSection("actions")}
-                  >
-                    {expandedSections.actions
-                      ? "Show fewer"
-                      : `Show ${combinedDecisions.length - 3} more`}
-                  </button>
-                )}
-              </div>
-              <div className="space-y-3">
-                {groupedDecisionEntries.map((group) => (
-                  <div
-                    key={group.id}
-                    className="rounded-xl border border-[#F3E9E9] bg-white p-4 shadow-sm"
-                  >
-                    <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                      <div>
-                        <p className="text-xs uppercase tracking-wide text-[#725A5A]">
-                          Clause group
-                        </p>
-                        <p className="text-sm font-semibold text-[#271D1D]">
-                          {group.title}
-                        </p>
-                      </div>
-                      <span className="text-xs text-[#725A5A]">
-                        {group.items.length} edit
-                        {group.items.length === 1 ? "" : "s"}
-                      </span>
-                    </div>
-                    <div className="space-y-3">
-                      {group.items.map((item) => {
-                        const severityStyle = getSeverityStyle(item.severity);
-                        const checked = suggestionSelection[item.id] !== false;
-                        const actionPreviewAnchor =
-                          item.proposedEdit?.previousText ??
-                          item.proposedEdit?.anchorText ??
-                          "Current clause text";
-                        const actionPreviewUpdated =
-                          resolveUpdatedTextForItem(item) ||
-                          actionPreviewAnchor;
-                        const pendingAiText =
-                          pendingAiEdits[item.id]?.text ?? null;
-                        const issueEvidence = item.proposedEdit
-                          ? (() => {
-                              const candidates = [
-                                item.proposedEdit.id,
-                                item.proposedEdit.clauseId ?? null,
-                                item.proposedEdit.clauseTitle ?? null,
-                                item.proposedEdit.anchorText ?? null,
-                                item.proposedEdit.previousText ?? null,
-                                actionPreviewAnchor,
-                              ];
-                              for (const candidate of candidates) {
-                                const key = normalizeEvidenceKey(candidate);
-                                if (!key) continue;
-                                const match = issueEvidenceLookup.get(key);
-                                if (match) return match;
-                              }
-                              return null;
-                            })()
-                          : null;
-                        const issueEvidenceExcerpt =
-                          issueEvidence?.excerpt ?? null;
-                        const issueEvidenceHeading =
-                          issueEvidence?.reference?.heading ?? null;
-                        const clauseTitleForPreview =
-                          issueEvidenceHeading ?? item.proposedEdit?.clauseTitle;
-                        const actionPreviewHtml =
-                          proposedEditOverrides[item.id]?.text
-                            ? buildPreviewHtmlFromText(
-                                actionPreviewAnchor,
-                                actionPreviewUpdated,
-                              )
-                            : item.proposedEdit?.previewHtml ?? null;
-                        const fullClauseSource =
-                          fullDocumentClauseExtractions.length > 0
-                            ? fullDocumentClauseExtractions
-                            : resolvedClauseExtractions;
-                        const actionFullOriginalCandidate =
-                          issueEvidence?.fullText ??
-                          (item.proposedEdit
-                            ? resolveFullClauseText({
-                                clauseId: item.proposedEdit.clauseId ?? null,
-                                clauseTitle: item.proposedEdit.clauseTitle ?? null,
-                                anchorText: actionPreviewAnchor,
-                                clauses: fullClauseSource,
-                              })
-                            : null);
-                        const anchorForFullMatch =
-                          issueEvidenceExcerpt ?? actionPreviewAnchor;
-                        const actionFullOriginal = issueEvidence?.fullText
-                          ? issueEvidence.fullText
-                          : actionFullOriginalCandidate &&
-                              fullTextMatchesAnchor(
-                                actionFullOriginalCandidate,
-                                anchorForFullMatch,
-                              )
-                            ? actionFullOriginalCandidate
-                            : null;
-                        return (
-                          <div
-                            key={item.id}
-                            className="rounded-lg border border-orange-100 bg-orange-50 p-4"
-                          >
-                            <div className="flex flex-wrap items-start justify-between gap-2">
-                              <div className="flex flex-wrap items-center gap-2">
-                                <span
-                                  className={`inline-flex items-center gap-2 rounded-full px-2.5 py-0.5 text-xs font-medium ${severityStyle.badge}`}
-                                >
-                                  <span
-                                    className={`h-2 w-2 rounded-full ${severityStyle.dot}`}
-                                  ></span>
-                                  {severityStyle.label}
-                                </span>
-                                {item.category && (
-                                  <span className="inline-flex items-center rounded-full bg-white px-2.5 py-0.5 text-xs font-medium text-orange-700">
-                                    {formatLabel(item.category)}
-                                  </span>
-                                )}
-                              </div>
-                              <label
-                                htmlFor={`suggestion-${item.id}`}
-                                className="flex items-center gap-2 text-xs text-[#725A5A]"
-                              >
-                                <Checkbox
-                                  id={`suggestion-${item.id}`}
-                                  checked={checked}
-                                  onCheckedChange={(value) =>
-                                    handleSuggestionSelection(item.id, value === true)
-                                  }
-                                />
-                                Include in draft
-                              </label>
-                            </div>
-                            <div className="mt-3 flex items-start gap-3">
-                                <AlertTriangle className="mt-1 h-5 w-5 flex-shrink-0 text-orange-600" />
-                              <div className="space-y-1">
-                                <p className="text-sm font-semibold text-[#271D1D]">
-                                  {resolveActionItemTitle(
-                                    item,
-                                    actionPreviewUpdated,
-                                  )}
-                                </p>
-                                <p className="text-sm text-gray-700">
-                                  {item.description}
-                                </p>
-                              </div>
-                            </div>
-                            {item.proposedEdit ? (
-                              <div className="mt-3 space-y-2">
-                                <ClausePreview
-                                  clauseTitle={clauseTitleForPreview}
-                                  anchorText={actionPreviewAnchor}
-                                  proposedText={actionPreviewUpdated}
-                                  previousText={
-                                    item.proposedEdit.previousText ??
-                                    item.proposedEdit.anchorText ??
-                                    null
-                                  }
-                                  updatedText={
-                                    actionPreviewUpdated
-                                  }
-                                  fullPreviousText={actionFullOriginal}
-                                  fullUpdatedText={actionPreviewUpdated}
-                                  originalEvidenceExcerpt={
-                                    issueEvidenceExcerpt
-                                  }
-                                  previewHtml={actionPreviewHtml}
-                                  isActive={checked}
-                                  isEditable
-                                  aiEditState={aiEditStatus[item.id]}
-                                  pendingAiEditText={pendingAiText}
-                                  onSaveUpdatedText={(text) =>
-                                    saveUpdatedTextOverride(item.id, text, "manual")
-                                  }
-                                  onRequestAiEdit={(prompt) =>
-                                    requestAiClauseEdit(item, prompt)
-                                  }
-                                  onAcceptAiEdit={() => {
-                                    if (!pendingAiText) return;
-                                    saveUpdatedTextOverride(
-                                      item.id,
-                                      pendingAiText,
-                                      "ai",
-                                    );
-                                  }}
-                                  onRejectAiEdit={() => {
-                                    clearPendingAiEdit(item.id);
-                                  }}
-                                />
-                                {!checked && (
-                                  <p className="text-xs text-[#9A7C7C]">
-                                    Turn on “Include in draft” to apply this change in the generated document.
-                                  </p>
-                                )}
-                              </div>
-                            ) : (
-                              <p className="mt-3 text-xs text-[#9A7C7C]">
-                                Preview unavailable for this action, but it will still be described in the draft summary.
-                              </p>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
                   </div>
                 ))}
               </div>

@@ -6,6 +6,7 @@ import { Mail, Lock } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import Logo from "@/components/Logo";
+import BrandingTagline from "@/components/BrandingTagline";
 import { useUser } from "@/contexts/SupabaseUserContext";
 import { getDefaultDashboardRoute } from "@/utils/navigation";
 
@@ -279,6 +280,7 @@ export default function SignIn() {
               </Link>
             </div>
           </div>
+          <BrandingTagline className="mt-6 text-xs text-[#725A5A]" />
         </div>
       </div>
     </div>

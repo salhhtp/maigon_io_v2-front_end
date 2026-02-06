@@ -152,6 +152,7 @@ export interface ContractReviewPayload {
     fileSize?: number;
     solutionTitle?: string;
     perspective?: string;
+    customSolutionId?: string;
   };
   timings?: {
     workflowMs?: number | null;
