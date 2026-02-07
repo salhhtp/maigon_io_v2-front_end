@@ -1047,7 +1047,7 @@ function buildJsonSchemaDescription(
 }
 
 function shouldUseResponsesApi(model: string) {
-  return /(gpt-5|o1|o3|reasoning|deepseek)/i.test(model);
+  return /(gpt-5|gpt-4|o1|o3|reasoning|deepseek)/i.test(model);
 }
 
 function buildResponsesInput(systemPrompt: string, userPrompt: string) {
@@ -2906,9 +2906,13 @@ function createReasoningSession(context: ReasoningContext): ReasoningSession {
     customSolution?.modelSettings?.reasoningModel ??
     customSolution?.aiModel ??
     null;
-  const model = customModelOverride
+  const resolvedOverride = customModelOverride
     ? resolveCustomModelId(customModelOverride)
-    : resolveModelId(tier);
+    : null;
+  const model =
+    resolvedOverride && /gpt-5-nano/i.test(resolvedOverride)
+      ? resolvedOverride
+      : resolveModelId(tier);
   const usePlaybookCoverage = true;
 
   const responsesSupported = shouldUseResponsesApi(model);
