@@ -1124,6 +1124,64 @@ function buildKpis(
   return base;
 }
 
+function countWords(text: string): number {
+  const trimmed = text.trim();
+  if (!trimmed) return 0;
+  return trimmed.split(/\s+/).filter(Boolean).length;
+}
+
+function estimateTimeSavingsMinutes(
+  content: string,
+  ingestionRecord?: ContractIngestionRecord | null,
+): number {
+  const wordCount =
+    typeof ingestionRecord?.word_count === "number"
+      ? ingestionRecord.word_count
+      : countWords(content);
+  const charCount =
+    typeof ingestionRecord?.character_count === "number"
+      ? ingestionRecord.character_count
+      : content.length;
+  const baselineMinutes = 30;
+  let estimated = 0;
+  if (wordCount > 0) {
+    estimated = Math.round(wordCount / 150);
+  } else if (charCount > 0) {
+    estimated = Math.round(charCount / 900);
+  }
+  if (!Number.isFinite(estimated) || estimated <= 0) {
+    estimated = baselineMinutes;
+  }
+  return Math.max(baselineMinutes, estimated);
+}
+
+function applyTimeSavingsToReport(
+  report: AnalysisReport,
+  estimatedMinutes: number,
+) {
+  if (!report?.generalInformation) return;
+  const current =
+    typeof report.generalInformation.timeSavingsMinutes === "number"
+      ? report.generalInformation.timeSavingsMinutes
+      : 0;
+  report.generalInformation.timeSavingsMinutes = Math.max(
+    current,
+    estimatedMinutes,
+  );
+}
+
+function applyTimeSavingsToFallback(
+  fallbackResponse: Record<string, unknown>,
+  estimatedMinutes: number,
+) {
+  const structured = fallbackResponse.structured_report as
+    | AnalysisReport
+    | undefined;
+  if (structured) {
+    applyTimeSavingsToReport(structured, estimatedMinutes);
+  }
+}
+
 type ModelTier = "default" | "premium" | "intensive";
 
 function parseTierEnv(key: string): ModelTier | null {
@@ -1490,6 +1548,10 @@ serve(async (req) => {
     }
 
     const modelTier = resolveModelTier(request.model, request.reviewType);
+    const estimatedTimeSavingsMinutes = estimateTimeSavingsMinutes(
+      processedContent,
+      ingestionRecord,
+    );
 
     const storedClauses = readStoredClauseExtractions(
       ingestionRecord,
@@ -1587,6 +1649,10 @@ serve(async (req) => {
           responseId,
           durationMs: Date.now() - requestStartedAt,
         });
+        applyTimeSavingsToReport(
+          pollResult.result.report,
+          estimatedTimeSavingsMinutes,
+        );
         const responsePayload = buildLegacyResponse(pollResult.result.report, {
           classification: request.classification,
           contractType: resolvedContractType,
@@ -1636,6 +1702,10 @@ serve(async (req) => {
         modelTier,
         durationMs: Date.now() - requestStartedAt,
       });
+      applyTimeSavingsToReport(
+        reasoningResult.report,
+        estimatedTimeSavingsMinutes,
+      );
 
       const responsePayload = buildLegacyResponse(reasoningResult.report, {
         classification: request.classification,
@@ -1665,6 +1735,10 @@ serve(async (req) => {
         ...fallbackContext!,
         fallbackReason: `Primary AI provider error: ${errorMessage}`,
       });
+      applyTimeSavingsToFallback(
+        fallbackResponse as Record<string, unknown>,
+        estimatedTimeSavingsMinutes,
+      );
 
       return new Response(JSON.stringify(fallbackResponse), {
         status: 200,

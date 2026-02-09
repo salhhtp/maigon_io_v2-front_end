@@ -327,7 +327,7 @@ function buildStructuredReport(
           context.reviewType ??
           "summary"),
       reviewTimeSeconds: Math.max(45, wordStats.wordCount / 2),
-      timeSavingsMinutes: Math.max(5, Math.round(wordStats.wordCount / 420)),
+      timeSavingsMinutes: Math.max(30, Math.round(wordStats.wordCount / 150)),
       reportExpiry: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30).toISOString(),
     },
     contractSummary: {
