@@ -1646,6 +1646,24 @@ function isMissingClauseIssue(
   return MISSING_CLAUSE_MARKERS.some((marker) => excerpt.includes(marker));
 }
 
+function shouldTreatAsMissingIssue(
+  issue: AnalysisReport["issuesToAddress"][number],
+): boolean {
+  if (isMissingClauseIssue(issue)) return true;
+  const normalized = normalizeMatchText(issueSignals(issue));
+  if (!normalized) return false;
+  return (
+    normalized.includes("insert") ||
+    normalized.includes("add") ||
+    normalized.includes("include") ||
+    normalized.includes("missing") ||
+    normalized.includes("not present") ||
+    normalized.includes("must include") ||
+    normalized.includes("add or clarify") ||
+    normalized.includes("clarify")
+  );
+}
+
 function templateMatchesIssue(
   template: ClauseTemplate,
   issueText: string,
@@ -1941,7 +1959,7 @@ function buildProposedEditsForIssues(
         typeof issue.id === "string" && issue.id.trim().length > 0
           ? issue.id
           : `ISSUE_${index + 1}`;
-      const issueMissing = isMissingClauseIssue(issue);
+      const issueMissing = shouldTreatAsMissingIssue(issue);
       const hasClauseEvidence = !issueMissing;
       const baseTemplate = selectTemplateForIssue(
         templates,
@@ -2014,26 +2032,24 @@ function buildProposedEditsForIssues(
         const trimmedPreferred =
           typeof preferred === "string" ? preferred.trim() : "";
         if (trimmedPreferred) return applyTemplateContext(trimmedPreferred, report);
-        if (resolvedMissing) {
-          const missingFallback = fallbackProposedText || generateSurgicalEditText(issue);
-          if (missingFallback && missingFallback.trim()) {
-            return missingFallback.trim();
-          }
-          const guidance =
-            issue.recommendation ??
-            issue.rationale ??
-            issue.title ??
-            "Insert missing clause.";
-          return guidance.trim();
-        }
-        if (anchorText && anchorText !== "Not present in contract") {
-          return anchorText;
-        }
         const guidance =
           issue.recommendation ??
           issue.rationale ??
           issue.title ??
           "Update clause.";
+        if (resolvedMissing) {
+          const missingFallback = fallbackProposedText || generateSurgicalEditText(issue);
+          if (missingFallback && missingFallback.trim()) {
+            return missingFallback.trim();
+          }
+          return guidance.trim();
+        }
+        if (guidance && guidance.trim().length > 0) {
+          return guidance.trim();
+        }
+        if (anchorText && anchorText !== "Not present in contract") {
+          return anchorText;
+        }
         return guidance.trim();
       };
 
@@ -2100,21 +2116,7 @@ function backfillMissingClauseEdits(
   const existingEdits = report.proposedEdits ?? [];
   const shouldBackfillIssue = (
     issue: AnalysisReport["issuesToAddress"][number],
-  ) => {
-    if (isMissingClauseIssue(issue)) return true;
-    const normalized = normalizeMatchText(issueSignals(issue));
-    if (!normalized) return false;
-    return (
-      normalized.includes("insert") ||
-      normalized.includes("add") ||
-      normalized.includes("include") ||
-      normalized.includes("missing") ||
-      normalized.includes("not present") ||
-      normalized.includes("must include") ||
-      normalized.includes("add or clarify") ||
-      normalized.includes("clarify")
-    );
-  };
+  ) => shouldTreatAsMissingIssue(issue);
   const targetIssues = report.issuesToAddress.filter(shouldBackfillIssue);
   if (targetIssues.length === 0) return report;
 
@@ -3086,10 +3088,29 @@ async function finalizeReasoningReport(
     dedupedIssues,
     clauseAlignedReportWithEdits.criteriaMet ?? [],
   );
-  const dedupedReport: AnalysisReport = {
+  const issueAlignedReport: AnalysisReport = {
     ...clauseAlignedReportWithEdits,
     issuesToAddress: filteredIssues,
-    proposedEdits: dedupeProposedEdits(clauseAlignedReportWithEdits.proposedEdits),
+  };
+  const rebuiltEdits = buildProposedEditsForIssues(
+    {
+      ...issueAlignedReport,
+      proposedEdits: clauseAlignedReportWithEdits.proposedEdits,
+    },
+    session.playbook,
+    context.clauseExtractions ?? issueAlignedReport.clauseExtractions ?? [],
+  );
+  const boundRebuiltEdits = bindProposedEditsToClauses({
+    proposedEdits: rebuiltEdits,
+    issues: filteredIssues,
+    clauses:
+      context.clauseExtractions ??
+      issueAlignedReport.clauseExtractions ??
+      [],
+  });
+  const dedupedReport: AnalysisReport = {
+    ...issueAlignedReport,
+    proposedEdits: dedupeProposedEdits(boundRebuiltEdits),
   };
   const reconciledReport = reconcileActionItemsWithProposedEdits(dedupedReport);
 
