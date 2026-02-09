@@ -464,30 +464,32 @@ export class DataService {
       if (customSolution) {
         customSolutionId = customSolution.id ?? undefined;
         contractData.custom_solution_id = customSolutionId;
-        contractData.selected_solution_id ??=
-          customSolution.id ?? undefined;
-        contractData.selected_solution_title ??=
+        contractData.selected_solution_id = customSolution.id ?? undefined;
+        contractData.selected_solution_title =
           customSolution.name ?? contractData.selected_solution_title;
-        if (!contractData.selected_solution_key) {
-          const derived = deriveSolutionKey(
-            customSolution.contractType,
-            customSolution.name,
-          );
-          if (derived) {
-            contractData.selected_solution_key = derived;
-          }
-        }
 
-        const solutionKey =
-          (contractData.selected_solution_key as SolutionKey | undefined) ??
-          deriveSolutionKey(customSolution.contractType, customSolution.name);
-        if (solutionKey) {
-          const alignedType = solutionKeyToClassificationType(solutionKey);
+        const derivedSolutionKey = deriveSolutionKey(
+          customSolution.contractType,
+          customSolution.name,
+        );
+        if (derivedSolutionKey) {
+          contractData.selected_solution_key = derivedSolutionKey;
+          const alignedType = solutionKeyToClassificationType(derivedSolutionKey);
           if (classification.contractType !== alignedType) {
             classification.contractType = alignedType;
+            classification.recommendedSolutionKey = derivedSolutionKey;
+            classification.recommendedSolutionTitle =
+              solutionKeyToDisplayName(derivedSolutionKey);
+            classification.source = "custom-solution";
+            classification.modelUsed =
+              classification.modelUsed ?? "custom-solution";
+            classification.fallbackUsed = true;
+            classification.fallbackReason =
+              classification.fallbackReason ??
+              "Classification aligned to custom solution.";
             console.log("🔧 Classification aligned to custom solution:", {
               contractType: alignedType,
-              solutionKey,
+              solutionKey: derivedSolutionKey,
             });
           }
         }
