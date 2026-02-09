@@ -77,6 +77,14 @@ const normaliseCustomDeviationRules = (
   rules?: CustomSolutionDeviationRule[] | null,
 ) => (Array.isArray(rules) ? rules.filter(Boolean) : []);
 
+const isHumanAnchor = (value: string) => {
+  const trimmed = value.trim();
+  if (!trimmed) return false;
+  if (trimmed.length < 4) return false;
+  if (/[_/;]/.test(trimmed)) return false;
+  return true;
+};
+
 export function buildCustomPlaybook(
   customSolution: CustomSolution,
   baseKey: PlaybookKey,
@@ -86,12 +94,19 @@ export function buildCustomPlaybook(
     customSolution.deviationRules,
   );
 
-  const clauseAnchors = new Set<string>();
+  const criticalClauseTitles = new Set<string>();
   clauseLibrary.forEach((clause) => {
-    if (clause.title) clauseAnchors.add(clause.title);
+    if (clause.title) {
+      criticalClauseTitles.add(clause.title.trim().toLowerCase());
+    }
   });
+
+  const clauseAnchors = new Set<string>();
   deviationRules.forEach((rule) => {
-    if (rule.title) clauseAnchors.add(rule.title);
+    const title = typeof rule.title === "string" ? rule.title.trim() : "";
+    if (!title || !isHumanAnchor(title)) return;
+    if (criticalClauseTitles.has(title.toLowerCase())) return;
+    clauseAnchors.add(title);
   });
 
   const guidanceSet = new Set<string>();
@@ -100,20 +115,31 @@ export function buildCustomPlaybook(
     if (rule.guidance?.trim()) guidanceSet.add(rule.guidance.trim());
   });
 
-  const clauseTemplates: ClauseTemplate[] = clauseLibrary.map((clause) => {
-    const fallbackText =
-      clause.description?.trim() ||
-      (clause.mustInclude?.length
-        ? `Must include: ${clause.mustInclude.join("; ")}.`
-        : clause.title ?? "");
-    return {
-      id: clause.id,
-      title: clause.title,
-      text: fallbackText,
-      insertionAnchors: clause.references ?? [],
-      tags: clause.mustInclude ?? [],
-    };
-  });
+  const clauseTemplates: ClauseTemplate[] = clauseLibrary
+    .map((clause) => {
+      const hasExplicitText =
+        Boolean(clause.description?.trim()) ||
+        (clause.mustInclude?.length ?? 0) > 0;
+      if (!hasExplicitText) {
+        return null;
+      }
+      const fallbackText =
+        clause.description?.trim() ||
+        (clause.mustInclude?.length
+          ? `Must include: ${clause.mustInclude.join("; ")}.`
+          : clause.title ?? "");
+      if (!fallbackText || fallbackText.length < 25) {
+        return null;
+      }
+      return {
+        id: clause.id,
+        title: clause.title,
+        text: fallbackText,
+        insertionAnchors: clause.references ?? [],
+        tags: clause.mustInclude ?? [],
+      } satisfies ClauseTemplate;
+    })
+    .filter((template): template is ClauseTemplate => Boolean(template));
 
   return createPlaybook({
     key: baseKey,

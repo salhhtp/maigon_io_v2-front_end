@@ -3038,6 +3038,18 @@ Next step: ${
             ? [issue.clauseReference.heading]
             : [],
         }));
+  const playbookReferenceLinks = useMemo(() => {
+    const rules = customSolution?.deviationRules ?? [];
+    const urls = new Set<string>();
+    rules.forEach((rule) => {
+      if (!rule?.guidance) return;
+      const matches = rule.guidance.match(/https?:\/\/[^\s)]+/g);
+      if (matches) {
+        matches.forEach((url) => urls.add(url.trim()));
+      }
+    });
+    return Array.from(urls);
+  }, [customSolution]);
   const resolvedDeviationInsights: DeviationInsight[] =
     structuredDeviationInsights.length
       ? structuredDeviationInsights
@@ -4523,6 +4535,28 @@ const playbookInsightsSection =
                 </div>
               );
             })}
+            {playbookReferenceLinks.length > 0 && (
+              <div className="rounded-lg border border-[#F3E9E9] bg-white p-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-[#6B4F4F]">
+                  Playbook references
+                </p>
+                <ul className="mt-2 space-y-1 text-xs text-[#6B4F4F]">
+                  {playbookReferenceLinks.map((link) => (
+                    <li key={link} className="flex gap-2">
+                      <span className="text-[#9A7C7C]">•</span>
+                      <a
+                        href={link}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-[#725A5A] underline underline-offset-2"
+                      >
+                        {link}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
         ) : (
           <p className="text-sm text-gray-600">

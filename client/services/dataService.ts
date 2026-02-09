@@ -20,6 +20,7 @@ import type { CustomSolution } from "@shared/api";
 import {
   deriveSolutionKey,
   mapClassificationToSolutionKey,
+  solutionKeyToClassificationType,
   solutionKeyToCustomContractType,
   solutionKeyToDisplayName,
   type SolutionKey,
@@ -430,6 +431,68 @@ export class DataService {
       });
       emitProgress("classification_complete", 22);
 
+      const classificationSolutionKey =
+        this.extractSolutionKeyFromClassification(classification);
+
+      if (!contractData.selected_solution_key && classificationSolutionKey) {
+        contractData.selected_solution_key = classificationSolutionKey;
+      }
+      if (!contractData.selected_solution_title && classificationSolutionKey) {
+        contractData.selected_solution_title =
+          solutionKeyToDisplayName(classificationSolutionKey);
+      }
+
+      if (customSolutionId) {
+        customSolution = await this.fetchCustomSolution(customSolutionId);
+      }
+
+      if (!customSolution && organizationId) {
+        const inferredSolutionKey =
+          (contractData.selected_solution_key as SolutionKey | undefined) ??
+          classificationSolutionKey;
+        customSolution = await this.findOrganizationCustomSolution(
+          organizationId,
+          inferredSolutionKey,
+        );
+        if (!customSolution && !inferredSolutionKey) {
+          customSolution = await this.findOrganizationCustomSolution(
+            organizationId,
+          );
+        }
+      }
+
+      if (customSolution) {
+        customSolutionId = customSolution.id ?? undefined;
+        contractData.custom_solution_id = customSolutionId;
+        contractData.selected_solution_id ??=
+          customSolution.id ?? undefined;
+        contractData.selected_solution_title ??=
+          customSolution.name ?? contractData.selected_solution_title;
+        if (!contractData.selected_solution_key) {
+          const derived = deriveSolutionKey(
+            customSolution.contractType,
+            customSolution.name,
+          );
+          if (derived) {
+            contractData.selected_solution_key = derived;
+          }
+        }
+
+        const solutionKey =
+          (contractData.selected_solution_key as SolutionKey | undefined) ??
+          deriveSolutionKey(customSolution.contractType, customSolution.name);
+        if (solutionKey) {
+          const alignedType = solutionKeyToClassificationType(solutionKey);
+          if (classification.contractType !== alignedType) {
+            classification.contractType = alignedType;
+            console.log("🔧 Classification aligned to custom solution:", {
+              contractType: alignedType,
+              solutionKey,
+            });
+          }
+        }
+      }
+
       if (contractData.ingestion_id || contractData.content) {
         emitProgress("clause_extraction", 28);
         try {
@@ -463,47 +526,6 @@ export class DataService {
           });
         }
         emitProgress("clause_ready", 32);
-      }
-
-      const classificationSolutionKey =
-        this.extractSolutionKeyFromClassification(classification);
-
-      if (!contractData.selected_solution_key && classificationSolutionKey) {
-        contractData.selected_solution_key = classificationSolutionKey;
-      }
-      if (!contractData.selected_solution_title && classificationSolutionKey) {
-        contractData.selected_solution_title =
-          solutionKeyToDisplayName(classificationSolutionKey);
-      }
-
-      if (!customSolutionId && organizationId) {
-        const inferredSolutionKey =
-          (contractData.selected_solution_key as SolutionKey | undefined) ??
-          classificationSolutionKey;
-        const organizationSolution =
-          await this.findOrganizationCustomSolution(
-            organizationId,
-            inferredSolutionKey,
-          );
-        if (organizationSolution) {
-          customSolution = organizationSolution;
-          customSolutionId = organizationSolution.id ?? undefined;
-          contractData.custom_solution_id = customSolutionId;
-          contractData.selected_solution_id ??=
-            organizationSolution.id ?? undefined;
-          contractData.selected_solution_title ??=
-            organizationSolution.name ??
-            contractData.selected_solution_title;
-          if (!contractData.selected_solution_key) {
-            const derived = deriveSolutionKey(
-              organizationSolution.contractType,
-              organizationSolution.name,
-            );
-            if (derived) {
-              contractData.selected_solution_key = derived;
-            }
-          }
-        }
       }
 
       const userIdCandidates = Array.from(

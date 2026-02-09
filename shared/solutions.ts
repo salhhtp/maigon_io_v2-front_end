@@ -40,6 +40,16 @@ const SOLUTION_KEY_TO_CUSTOM_TYPE: Record<SolutionKey, string> = {
   rda: "research",
 };
 
+const SOLUTION_KEY_TO_CLASSIFICATION: Record<SolutionKey, string> = {
+  nda: "non_disclosure_agreement",
+  dpa: "data_processing_agreement",
+  eula: "end_user_license_agreement",
+  ppc: "privacy_policy_document",
+  psa: "product_supply_agreement",
+  ca: "consultancy_agreement",
+  rda: "research_development_agreement",
+};
+
 export function deriveSolutionKey(
   rawId?: string,
   rawTitle?: string,
@@ -75,6 +85,12 @@ export function solutionKeyToCustomContractType(
   key: SolutionKey,
 ): string {
   return SOLUTION_KEY_TO_CUSTOM_TYPE[key] ?? "general";
+}
+
+export function solutionKeyToClassificationType(
+  key: SolutionKey,
+): string {
+  return SOLUTION_KEY_TO_CLASSIFICATION[key] ?? "general_commercial";
 }
 
 export function solutionKeyToDisplayName(key: SolutionKey): string {
