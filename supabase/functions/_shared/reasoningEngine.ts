@@ -646,17 +646,8 @@ type EnhancementSections = Pick<
 const FORCED_MODEL_TIER = parseTierFromEnv("OPENAI_REASONING_FORCE_TIER");
 const DEFAULT_MODEL_TIER =
   FORCED_MODEL_TIER ?? parseTierFromEnv("OPENAI_REASONING_DEFAULT_TIER") ?? "premium";
-const DEFAULT_MAX_OUTPUT_TOKENS = 10000;
-const MAX_ENHANCEMENT_OUTPUT_TOKENS = 10000;
-const MAX_OUTPUT_TOKENS_ENV = Deno.env.get("OPENAI_REASONING_MAX_OUTPUT_TOKENS");
-const parsedMaxOutput =
-  MAX_OUTPUT_TOKENS_ENV === undefined
-    ? DEFAULT_MAX_OUTPUT_TOKENS
-    : Number(MAX_OUTPUT_TOKENS_ENV);
-const MAX_OUTPUT_TOKENS =
-  Number.isFinite(parsedMaxOutput) && parsedMaxOutput > 0
-    ? parsedMaxOutput
-    : null;
+const MAX_ENHANCEMENT_OUTPUT_TOKENS: number | null = null;
+const MAX_OUTPUT_TOKENS: number | null = null;
 const DEFAULT_REQUEST_TIMEOUT_MS = 120000;
 const parsedTimeout = Number(Deno.env.get("OPENAI_REASONING_TIMEOUT_MS"));
 const REQUEST_TIMEOUT_MS =
@@ -2469,7 +2460,7 @@ async function generateEnhancementSections(
       text: {
         format: enhancementsJsonSchema,
       },
-      max_output_tokens: MAX_ENHANCEMENT_OUTPUT_TOKENS,
+      max_output_tokens: MAX_ENHANCEMENT_OUTPUT_TOKENS ?? undefined,
     }),
   });
 
@@ -3170,11 +3161,11 @@ export async function runReasoningAnalysis(
     const compactMaxTokens =
       MAX_OUTPUT_TOKENS !== null && MAX_OUTPUT_TOKENS !== undefined
         ? Math.min(MAX_OUTPUT_TOKENS, 6000)
-        : 6000;
+        : undefined;
     const ultraMaxTokens =
       MAX_OUTPUT_TOKENS !== null && MAX_OUTPUT_TOKENS !== undefined
         ? Math.min(MAX_OUTPUT_TOKENS, 3000)
-        : 3000;
+        : undefined;
     const format =
       mode === "ultra"
         ? jsonSchemaFormatUltra
@@ -3316,11 +3307,11 @@ export async function startReasoningAnalysis(
   const compactMaxTokens =
     MAX_OUTPUT_TOKENS !== null && MAX_OUTPUT_TOKENS !== undefined
       ? Math.min(MAX_OUTPUT_TOKENS, 6000)
-      : 6000;
+      : undefined;
   const ultraMaxTokens =
     MAX_OUTPUT_TOKENS !== null && MAX_OUTPUT_TOKENS !== undefined
       ? Math.min(MAX_OUTPUT_TOKENS, 3000)
-      : 3000;
+      : undefined;
   const format =
     mode === "ultra"
       ? jsonSchemaFormatUltra

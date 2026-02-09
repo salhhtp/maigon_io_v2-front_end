@@ -363,12 +363,7 @@ class AIService {
       typeof request.content === "string" ? request.content : "";
     const contentLengthForRouting = originalContent.trim().length;
     const requestContent = request.ingestionId ? "" : originalContent;
-    const asyncThreshold =
-      Number(import.meta.env.VITE_AI_ASYNC_MIN_CHARS) || 20000;
-    const defaultAsync =
-      contentLengthForRouting === 0
-        ? true
-        : contentLengthForRouting >= asyncThreshold;
+    const defaultAsync = true;
 
     // Validate request before sending: allow empty content if ingestionId is provided
     const hasContent = requestContent.trim().length > 0;
@@ -392,9 +387,7 @@ class AIService {
 
       // Prepare the request body with all necessary data
       // First, ensure all properties are serializable
-      const useAsync = typeof request.async === "boolean"
-        ? request.async
-        : defaultAsync;
+      const useAsync = defaultAsync;
       const requestBody: any = {
         content: requestContent,
         reviewType: request.reviewType,
@@ -424,7 +417,7 @@ class AIService {
           : null,
         selectedSolution: requestBody.selectedSolution,
         contentLengthForRouting,
-        asyncThreshold,
+        asyncThreshold: null,
       });
 
       // Validate that the request body is JSON-serializable
