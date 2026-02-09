@@ -77,6 +77,9 @@ const normaliseCustomDeviationRules = (
   rules?: CustomSolutionDeviationRule[] | null,
 ) => (Array.isArray(rules) ? rules.filter(Boolean) : []);
 
+const normaliseTitleKey = (value: string) =>
+  value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+
 const isHumanAnchor = (value: string) => {
   const trimmed = value.trim();
   if (!trimmed) return false;
@@ -93,6 +96,8 @@ export function buildCustomPlaybook(
   const deviationRules = normaliseCustomDeviationRules(
     customSolution.deviationRules,
   );
+  const basePlaybook = resolvePlaybook(baseKey);
+  const customRulesText = (customSolution.customRules ?? "").toLowerCase();
 
   const criticalClauseTitles = new Set<string>();
   clauseLibrary.forEach((clause) => {
@@ -141,12 +146,113 @@ export function buildCustomPlaybook(
     })
     .filter((template): template is ClauseTemplate => Boolean(template));
 
+  const customTemplateKeys = new Set(
+    clauseTemplates.flatMap((template) => [
+      template.id?.toLowerCase(),
+      template.title ? normaliseTitleKey(template.title) : "",
+    ]),
+  );
+
+  const ruleTitles = deviationRules
+    .map((rule) => (typeof rule.title === "string" ? rule.title : ""))
+    .filter(Boolean);
+  const clauseTitles = clauseLibrary
+    .map((clause) => (typeof clause.title === "string" ? clause.title : ""))
+    .filter(Boolean);
+  const hasTitleMatch = (needle: string) => {
+    const target = normaliseTitleKey(needle);
+    return (
+      ruleTitles.some((title) => normaliseTitleKey(title).includes(target)) ||
+      clauseTitles.some((title) => normaliseTitleKey(title).includes(target))
+    );
+  };
+
+  const extraTemplates: ClauseTemplate[] = [];
+  if (hasTitleMatch("Mutual NDA") || hasTitleMatch("Mutuality")) {
+    extraTemplates.push({
+      id: "nda-mutual-direction",
+      title: "Mutual NDA (direction)",
+      tags: ["mutual", "direction", "mutual nda", "reciprocal"],
+      insertionAnchors: ["Non-disclosure Agreement", "Whereas", "Definitions"],
+      text:
+        "Mutuality. Each party may disclose as a Disclosing Party and receive as a Receiving Party, and the obligations of confidentiality and permitted use apply equally to both Parties.",
+    });
+  }
+  if (hasTitleMatch("No Warranties")) {
+    extraTemplates.push({
+      id: "nda-no-warranties",
+      title: "No Warranties",
+      tags: ["no warranties", "as is", "disclaimer"],
+      insertionAnchors: ["MISCELLANEOUS", "Governing law"],
+      text:
+        "No warranties. All Confidential Information is provided \"as is\" without any warranty of accuracy, completeness, merchantability, fitness for a particular purpose, or non-infringement.",
+    });
+  }
+  if (
+    hasTitleMatch("No Further Relationship") ||
+    hasTitleMatch("No JV") ||
+    hasTitleMatch("partnership")
+  ) {
+    extraTemplates.push({
+      id: "nda-no-relationship",
+      title: "No Further Relationship (no JV/partnership)",
+      tags: ["no partnership", "no joint venture", "independent contractors"],
+      insertionAnchors: ["MISCELLANEOUS", "No Binding Commitments"],
+      text:
+        "No partnership. Nothing in this Agreement creates a joint venture, partnership, agency, or employment relationship between the Parties, and neither party has authority to bind the other.",
+    });
+  }
+
+  const excludeBaseTemplate = (template: ClauseTemplate) => {
+    const idKey = template.id?.toLowerCase() ?? "";
+    if (
+      idKey === "nda-liability-cap" &&
+      (customRulesText.includes("no liability cap") ||
+        customRulesText.includes("no liability caps") ||
+        customRulesText.includes("delete liability cap") ||
+        customRulesText.includes("delete liability caps"))
+    ) {
+      return true;
+    }
+    return false;
+  };
+
+  const baseTemplates = basePlaybook.clauseTemplates
+    .map((template) => {
+      if (excludeBaseTemplate(template)) return null;
+      if (template.id === "nda-term-survival" && /5\s*years|five\s*\(5\)\s*years|five years/.test(customRulesText)) {
+        return {
+          ...template,
+          text: template.text
+            .replace(/2\s*years/gi, "five (5) years")
+            .replace(/two\s*\(2\)\s*years/gi, "five (5) years"),
+        };
+      }
+      return template;
+    })
+    .filter((template): template is ClauseTemplate => Boolean(template))
+    .filter((template) => {
+      const idKey = template.id?.toLowerCase() ?? "";
+      const titleKey = template.title ? normaliseTitleKey(template.title) : "";
+      return !customTemplateKeys.has(idKey) && !customTemplateKeys.has(titleKey);
+    });
+
+  const mergedTemplates = [
+    ...clauseTemplates,
+    ...extraTemplates.filter((template) => {
+      const idKey = template.id?.toLowerCase() ?? "";
+      const titleKey = template.title ? normaliseTitleKey(template.title) : "";
+      return !customTemplateKeys.has(idKey) && !customTemplateKeys.has(titleKey);
+    }),
+    ...baseTemplates,
+  ];
+
   return createPlaybook({
     key: baseKey,
     displayName: customSolution.name,
     description: customSolution.description ?? "",
     regulatoryFocus: customSolution.complianceFramework ?? [],
-    clauseTemplates,
+    clauseTemplates: mergedTemplates,
     criticalClauses: clauseLibrary.map((clause) => ({
       title: clause.title,
       mustInclude: clause.mustInclude ?? [],
