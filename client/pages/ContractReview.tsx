@@ -4719,6 +4719,7 @@ const actionItemsSection =
                 const severityStyle = getSeverityStyle(item.severity);
                 const checked = suggestionSelection[item.id] !== false;
                 const actionPreviewAnchor =
+                  issueEvidenceExcerpt ??
                   item.proposedEdit?.previousText ??
                   item.proposedEdit?.anchorText ??
                   "Current clause text";
@@ -4819,6 +4820,7 @@ const actionItemsSection =
                         clauseTitle={clauseTitleForPreview}
                         previousText={actionPreviewAnchor}
                         updatedText={actionPreviewUpdated}
+                        originalEvidenceExcerpt={issueEvidenceExcerpt}
                         previewHtml={actionPreviewHtml}
                         fullOriginalText={actionFullOriginal}
                         fullUpdatedText={resolveUpdatedTextForItem(item)}
